@@ -6,13 +6,12 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 
-// Default landing page redirects to login
+// Default landing page
 Route::get('/', function () {
-    return redirect()->route('login');
-});
+    return view('landing_page_views.index');
+})->name('home');
 
-// Landing Pages Routes - DISABLED
-/*
+// Landing Pages Routes
 Route::get('/home', function () {
     return view('landing_page_views.index');
 });
@@ -118,7 +117,7 @@ Route::post('/newsletter/subscribe', [\App\Http\Controllers\NewsletterController
 Route::get('/elements', function () {
     return view('landing_page_views.elements');
 });
-*/
+
 
 // Booking Routes
 Route::get('/booking', [BookingController::class, 'index'])->name('booking.index');
