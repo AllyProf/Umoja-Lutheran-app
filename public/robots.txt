@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# Disallow admin and dashboard areas
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /login
+Disallow: /register
+
+# Allow public pages
+Allow: /
+Allow: /about-us
+Allow: /services
+Allow: /contact
+
+# Sitemap location
+Sitemap: https://primelandhotel.co.tz/sitemap.xml
