@@ -8,9 +8,9 @@
             <div class="col-lg-3 col-md-6 col-sm-6">
                 <div class="single-footer-widget footer-logo-section">
                     <div class="footer-logo">
-                        <img src="{{ asset('royal-master/image/logo/Logo.png') }}" alt="PrimeLand Hotel Logo">
+                        <img src="{{ asset('royal-master/image/logo/Logo.png') }}" alt="{{ config('app.name') }} Logo">
                     </div>
-                    <p style="color: rgba(255,255,255,0.9); line-height: 1.8; margin-top: 15px;">Experience luxury and comfort at PrimeLand Hotel. Your perfect stay awaits in the heart of Kilimanjaro.</p>
+                    <p style="color: rgba(255,255,255,0.9); line-height: 1.8; margin-top: 15px;">Experience luxury and comfort at {{ config('app.name') }}. Your perfect stay awaits in the heart of Kilimanjaro.</p>
                 </div>
             </div>
             
@@ -145,7 +145,7 @@
         </div>
         <div class="border_line" style="border-color: rgba(255,255,255,0.2); margin: 40px 0 30px;"></div>
         <div class="row footer-bottom d-flex justify-content-between align-items-center">
-            <p class="col-lg-6 col-sm-12 footer-text m-0" style="color: rgba(255,255,255,0.9);">Copyright &copy;<script>document.write(new Date().getFullYear());</script> All rights reserved | PrimeLand Hotel</p>
+            <p class="col-lg-6 col-sm-12 footer-text m-0" style="color: rgba(255,255,255,0.9);">Copyright &copy;<script>document.write(new Date().getFullYear());</script> All rights reserved | {{ config('app.name') }}</p>
             <p class="col-lg-6 col-sm-12 footer-text m-0 text-right" style="color: rgba(255,255,255,0.9);">
                 Powered By <a href="https://emca.tech/#" target="_blank" style="color: #ff0000; font-weight: 600; text-decoration: none;">EmCa Techonologies</a>
             </p>

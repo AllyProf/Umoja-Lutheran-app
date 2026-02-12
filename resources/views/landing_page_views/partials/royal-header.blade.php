@@ -3,7 +3,7 @@
         <nav class="navbar navbar-expand-lg navbar-light">
             <!-- Brand and toggle get grouped for better mobile display -->
             <a class="navbar-brand logo_h" href="{{ url('/') }}">
-                <img src="{{ asset('royal-master/image/logo/Logo.png') }}" alt="PrimeLand Hotel Logo" style="height: 100px; width: auto; max-width: 400px;">
+                <img src="{{ asset('royal-master/image/logo/Logo.png') }}" alt="{{ config('app.name') }} Logo" style="height: 100px; width: auto; max-width: 400px;">
             </a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="icon-bar"></span>
@@ -13,9 +13,9 @@
             <!-- Collect the nav links, forms, and other content for toggling -->
             <div class="collapse navbar-collapse offset" id="navbarSupportedContent">
                 <div class="mobile-menu-header d-lg-none">
-                    <img src="{{ asset('royal-master/image/logo/Logo.png') }}" alt="PrimeLand Hotel" class="mobile-menu-logo">
+                    <img src="{{ asset('royal-master/image/logo/Logo.png') }}" alt="{{ config('app.name') }}" class="mobile-menu-logo">
                     <div class="mobile-menu-info">
-                        <h3 class="mobile-menu-title">PrimeLand Hotel</h3>
+                        <h3 class="mobile-menu-title">{{ config('app.name') }}</h3>
                         <p class="mobile-menu-subtitle">Comfort in every stay</p>
                     </div>
                 </div>

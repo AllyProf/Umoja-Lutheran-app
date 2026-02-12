@@ -5,7 +5,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <link rel="icon" href="{{ asset('royal-master/image/logo/Logo.png') }}" type="image/png">
-        <title>PrimeLand Hotel</title>
+        <title>{{ config('app.name') }}</title>
         <!-- Bootstrap CSS -->
         <link rel="stylesheet" href="{{ asset('royal-master/css/bootstrap.css') }}">
         <link rel="stylesheet" href="{{ asset('royal-master/vendors/linericon/style.css') }}">
@@ -2200,7 +2200,7 @@
             	<div class="overlay bg-parallax bg-image-5" data-stellar-ratio="0.9" data-stellar-vertical-offset="0" data-background=""></div>
 				<div class="container">
 					<div class="banner_content text-center">
-						<h2 style="color: #e77a3a;">Welcome to PrimeLand Hotel</h2>
+						<h2 style="color: #e77a3a;">Welcome to {{ config('app.name') }}</h2>
 						<h4>Comfort in every stay.</h4>
 						<a href="{{ route('booking.index') }}" class="btn theme_btn button_hover" style="margin-top: 20px;">Book Now</a>
 					</div>
@@ -2322,7 +2322,7 @@
             <div class="container">
                 <div class="section_title text-center">
                     <h2 class="title_w">OUR FEATURES</h2>
-                    <p style="color: white;">Experience comfort and convenience at PrimeLand Hotel</p>
+                    <p style="color: white;">Experience comfort and convenience at {{ config('app.name') }}</p>
                 </div>
                 <div class="row mb_30">
                     <div class="col-lg-4 col-md-6">

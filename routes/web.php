@@ -6,12 +6,12 @@ use App\Http\Controllers\RoomController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 
-// Default landing page
-Route::get('/', function () {
-    return view('landing_page_views.index');
-})->name('home');
+// Default landing page redirects to login
+// Default landing page shows login directly
+Route::get('/', [AuthController::class, 'showUnifiedLogin'])->name('index');
 
-// Landing Pages Routes
+// Landing Pages Routes - DISABLED
+/*
 Route::get('/home', function () {
     return view('landing_page_views.index');
 });
@@ -118,7 +118,7 @@ Route::get('/elements', function () {
     return view('landing_page_views.elements');
 });
 
-
+*/
 // Booking Routes
 Route::get('/booking', [BookingController::class, 'index'])->name('booking.index');
 Route::post('/booking/check-availability', [BookingController::class, 'checkAvailability'])->name('booking.check-availability');

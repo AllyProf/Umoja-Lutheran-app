@@ -5,7 +5,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
         <link rel="icon" href="{{ asset('royal-master/image/logo/Logo.png') }}" type="image/png">
-        <title>Book a Room - PrimeLand Hotel</title>
+        <title>Book a Room - {{ config('app.name') }}</title>
         <!-- Bootstrap CSS -->
         <link rel="stylesheet" href="{{ asset('royal-master/css/bootstrap.css') }}">
         <link rel="stylesheet" href="{{ asset('royal-master/vendors/linericon/style.css') }}">
@@ -4356,7 +4356,7 @@
             <div class="container" style="position: relative; z-index: 1;">
                 <div class="page-cover text-center">
                     <h2 class="page-cover-tittle" style="color: #e77a3a;">Book Your Room</h2>
-                    <p style="color: white; font-size: 16px; margin-top: 15px; margin-bottom: 20px;">Reserve your perfect stay at PrimeLand Hotel</p>
+                    <p style="color: white; font-size: 16px; margin-top: 15px; margin-bottom: 20px;">Reserve your perfect stay at {{ config('app.name') }}</p>
                     <ol class="breadcrumb">
                         <li><a href="{{ url('/') }}">Home</a></li>
                         <li class="active">Book Now</li>
@@ -4800,7 +4800,7 @@
             <div class="terms-modal-body">
                 <h3>1. Booking and Payment</h3>
                 <p><strong>All bookings will be confirmed by receiving 50% deposit before guests check in, remaining balance to be cleared on arrival.</strong></p>
-                <p>If payment is not received on time, PrimeLand Hotel reserves the right to collect cash from your guests.</p>
+                <p>If payment is not received on time, {{ config('app.name') }} reserves the right to collect cash from your guests.</p>
                 <ul>
                     <li><strong>Full pre-payment required:</strong> Not later than 30 days prior to guests' arrival.</li>
                     <li><strong>For bookings within 20 days of arrival:</strong> Full pre-payment (i.e., 50% of the total booking amount) will be required within 48 hours of booking time.</li>
@@ -4831,7 +4831,7 @@
                 
                 <h3>8. Contact Information</h3>
                 <p>For any questions or concerns, please contact us at:</p>
-                <p><strong>PrimeLand Hotel</strong><br>
+                <p><strong>{{ config('app.name') }}</strong><br>
                 Sokoine Road, Moshi, Kilimanjaro, Tanzania<br>
                 Phone: +255 677-155-156 / +255 677-155-157<br>
                 Email: info@primelandhotel.co.tz</p>
