@@ -138,7 +138,8 @@
     <style>
       @font-face {
         font-family: 'Century Gothic';
-        src: local('Century Gothic'), local('CenturyGothic'), url('https://fonts.cdnfonts.com/s/15454/GOTHIC.woff') format('woff');
+        src: local('Century Gothic'), local('CenturyGothic'), local('Gothic A1');
+        font-display: swap;
       }
 
       /* Background Image */
