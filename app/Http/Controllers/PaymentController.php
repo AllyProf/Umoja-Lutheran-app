@@ -225,6 +225,7 @@ class PaymentController extends Controller
     public function success(Request $request)
     {
         try {
+            $paymentAmount = 0;
             $token = $request->query('token');
             $payerId = $request->query('PayerID');
             $bookingId = $request->query('booking_id');
@@ -348,6 +349,7 @@ class PaymentController extends Controller
                 
                 // Add the outstanding amount to amount_paid
                 $amountToIncreaseUsd = $outstandingToPayUsd;
+                $paymentAmount = $amountToIncreaseUsd;
                 
                 $booking->update([
                     'payment_status' => 'paid',
@@ -480,8 +482,9 @@ class PaymentController extends Controller
             if ($booking->guest_phone) {
                 try {
                     $smsService = app(\App\Services\SmsService::class);
-                    $amountPaidFormatted = number_format($booking->fresh()->amount_paid ?? 0, 2);
-                    $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", we have received your payment of $" . $amountPaidFormatted . ". Your booking {$booking->booking_reference} is now " . strtoupper($booking->status) . ". Thank you!";
+                    $totalAmountPaidFormatted = number_format($booking->fresh()->amount_paid ?? 0, 2);
+                    $recentPaymentAmountFormatted = number_format($paymentAmount ?? 0, 2);
+                    $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", we have received your payment of $" . $recentPaymentAmountFormatted . " via " . strtoupper($paymentMethod) . ". Your current total paid is $" . $totalAmountPaidFormatted . ". Thank you!";
                     $smsService->sendSms($booking->guest_phone, $smsMessage);
                 } catch (\Exception $e) {
                     Log::error("Failed to send payment confirmation SMS to guest: " . $e->getMessage());

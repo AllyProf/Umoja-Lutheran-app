@@ -1606,6 +1606,17 @@ class ReceptionController extends Controller
                 $user->update(['is_active' => false]);
             }
 
+            // Send SMS notification to Guest (Receipt Confirmation)
+            if ($booking->guest_phone) {
+                try {
+                    $smsService = app(\App\Services\SmsService::class);
+                    $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", we have received your payment of $" . number_format($totalAdditionalChargesUsd, 2) . " via " . strtoupper($request->payment_method) . ". Your current total paid is $" . number_format($booking->amount_paid, 2) . ". Thank you!";
+                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                } catch (\Exception $e) {
+                    \Log::error("Failed to send checkout payment SMS to guest: " . $e->getMessage());
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Additional charges paid successfully. Guest account has been deactivated.',
