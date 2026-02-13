@@ -37,6 +37,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\CheckSingleSession::class,
         ]);
+        
+        // Trust all proxies for correct HTTPS/Session handling behind cPanel/proxy
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Log CSRF token mismatch exceptions with full details
