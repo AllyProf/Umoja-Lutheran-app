@@ -605,6 +605,17 @@ class HousekeeperController extends Controller
                     \Log::error('Failed to send room issue notification: ' . $e->getMessage());
                 }
             }
+
+            // SMS notification
+            if ($staff->phone) {
+                try {
+                    $smsService = app(\App\Services\SmsService::class);
+                    $smsMessage = "Housekeeping Alert: Room {$issue->room->room_number} issue reported: {$issue->issue_type}. Priority: " . strtoupper($issue->priority);
+                    $smsService->sendSms($staff->phone, $smsMessage);
+                } catch (\Exception $e) {
+                    \Log::error("Failed to send room issue SMS to staff: " . $e->getMessage());
+                }
+            }
         }
         
         return response()->json([

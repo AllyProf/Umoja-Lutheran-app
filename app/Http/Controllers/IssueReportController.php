@@ -243,8 +243,9 @@ class IssueReportController extends Controller
                     ->where('is_active', true)
                     ->get();
                 
+                $smsService = app(SmsService::class);
                 foreach ($managersAndAdmins as $staff) {
-                    // Check if user has notifications enabled
+                    // Email
                     if ($staff->isNotificationEnabled('issue_report')) {
                         try {
                             \Illuminate\Support\Facades\Mail::to($staff->email)
@@ -253,9 +254,33 @@ class IssueReportController extends Controller
                             Log::error('Failed to send issue status update email to staff: ' . $staff->email . ' - ' . $e->getMessage());
                         }
                     }
+
+                    // SMS for managers on high priority status changes
+                    if ($staff->phone && in_array($issue->priority, ['high', 'urgent'])) {
+                        try {
+                            $smsMessage = "Issue Update: {$issue->subject} (Room: " . ($issue->room?->room_number ?? 'N/A') . ") is now " . strtoupper($newStatus);
+                            $smsService->sendSms($staff->phone, $smsMessage);
+                        } catch (\Exception $e) {
+                            Log::error("Failed to send issue status update SMS to manager: " . $e->getMessage());
+                        }
+                    }
                 }
             } catch (\Exception $e) {
                 Log::error('Failed to send issue status update emails to managers/admins: ' . $e->getMessage());
+            }
+
+            // Send SMS to Reporter if issue is resolved
+            if ($newStatus === 'resolved') {
+                try {
+                    $reporter = $issue->getReporter();
+                    if ($reporter && $reporter->phone) {
+                        $smsService = app(SmsService::class);
+                        $smsMessage = "Hello " . ($reporter->name ?? 'Guest') . ", your reported issue '{$issue->subject}' has been RESOLVED. Thank you for your patience!";
+                        $smsService->sendSms($reporter->phone, $smsMessage);
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Failed to send resolution SMS to reporter: " . $e->getMessage());
+                }
             }
         }
         
@@ -518,14 +543,15 @@ class IssueReportController extends Controller
                 Log::error('Failed to create issue report notification: ' . $e->getMessage());
             }
 
-            // Send email notification to managers and super admins
+            // Send email and SMS notification to managers and super admins
             try {
                 $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
                     ->where('is_active', true)
                     ->get();
                 
+                $smsService = app(SmsService::class);
                 foreach ($managersAndAdmins as $staff) {
-                    // Check if user has notifications enabled
+                    // Email
                     if ($staff->isNotificationEnabled('issue_report')) {
                         try {
                             \Illuminate\Support\Facades\Mail::to($staff->email)
@@ -534,9 +560,40 @@ class IssueReportController extends Controller
                             Log::error('Failed to send new issue report email to staff: ' . $staff->email . ' - ' . $e->getMessage());
                         }
                     }
+
+                    // SMS for high/urgent priority
+                    if ($staff->phone && in_array($validated['priority'], ['high', 'urgent'])) {
+                        try {
+                            $smsMessage = "URGENT ISSUE: " . ($user->name ?? 'Guest') . " reported: {$validated['subject']}. Priority: " . strtoupper($validated['priority']);
+                            $smsService->sendSms($staff->phone, $smsMessage);
+                        } catch (\Exception $e) {
+                            Log::error("Failed to send issue report SMS to manager: " . $e->getMessage());
+                        }
+                    }
                 }
             } catch (\Exception $e) {
-                Log::error('Failed to send new issue report emails to managers/admins: ' . $e->getMessage());
+                Log::error('Failed to send new issue report notifications to managers/admins: ' . $e->getMessage());
+            }
+
+            // Send SMS notification to Reception for all issues
+            try {
+                $receptionStaff = \App\Models\Staff::where('role', 'reception')
+                    ->where('is_active', true)
+                    ->get();
+                
+                foreach ($receptionStaff as $staff) {
+                    if ($staff->phone) {
+                        try {
+                            $smsService = app(SmsService::class);
+                            $smsMessage = "New Issue Report: " . ($user->name ?? 'Guest') . " - {$validated['subject']} (Room: " . ($room?->room_number ?? 'N/A') . ")";
+                            $smsService->sendSms($staff->phone, $smsMessage);
+                        } catch (\Exception $e) {
+                            Log::error("Failed to send issue report SMS to reception: " . $e->getMessage());
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to send issue report SMS to reception: ' . $e->getMessage());
             }
 
             return response()->json([
