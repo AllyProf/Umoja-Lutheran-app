@@ -62,96 +62,7 @@
         </div>
       </div>
       
-      <!-- Booking Type Tabs -->
-      <div class="booking-tabs-wrapper mb-4">
-        <ul class="nav nav-pills nav-justified" role="tablist" style="background: #f8f9fa; padding: 8px; border-radius: 8px;">
-          <li class="nav-item">
-            <a class="nav-link {{ ($bookingType ?? 'individual') == 'individual' ? 'active' : '' }}" 
-               href="{{ route($bookingsRoute, array_merge(request()->except(['type']), ['type' => 'individual'])) }}"
-               style="
-                 color: {{ ($bookingType ?? 'individual') == 'individual' ? '#fff' : '#6c757d' }}; 
-                 background-color: {{ ($bookingType ?? 'individual') == 'individual' ? '#940000' : 'transparent' }};
-                 border-radius: 6px;
-                 padding: 10px 20px;
-                 font-weight: {{ ($bookingType ?? 'individual') == 'individual' ? '600' : '400' }};
-                 transition: all 0.3s ease;
-               "
-               onmouseover="this.style.backgroundColor='{{ ($bookingType ?? 'individual') == 'individual' ? '#940000' : '#e9ecef' }}'"
-               onmouseout="this.style.backgroundColor='{{ ($bookingType ?? 'individual') == 'individual' ? '#940000' : 'transparent' }}'">
-              <i class="fa fa-user"></i> Individual Bookings
-              <span class="badge {{ ($bookingType ?? 'individual') == 'individual' ? 'badge-light' : 'badge-secondary' }} ml-2">{{ $stats['individual_total'] ?? 0 }}</span>
-            </a>
-          </li>
-          {{-- <li class="nav-item">
-            <a class="nav-link {{ ($bookingType ?? 'individual') == 'corporate' ? 'active' : '' }}" 
-               href="{{ route($bookingsRoute, array_merge(request()->except(['type']), ['type' => 'corporate'])) }}"
-               style="
-                 color: {{ ($bookingType ?? 'individual') == 'corporate' ? '#fff' : '#6c757d' }}; 
-                 background-color: {{ ($bookingType ?? 'individual') == 'corporate' ? '#940000' : 'transparent' }};
-                 border-radius: 6px;
-                 padding: 10px 20px;
-                 font-weight: {{ ($bookingType ?? 'individual') == 'corporate' ? '600' : '400' }};
-                 transition: all 0.3s ease;
-               "
-               onmouseover="this.style.backgroundColor='{{ ($bookingType ?? 'individual') == 'corporate' ? '#940000' : '#e9ecef' }}'"
-               onmouseout="this.style.backgroundColor='{{ ($bookingType ?? 'individual') == 'corporate' ? '#940000' : 'transparent' }}'">
-              <i class="fa fa-building"></i> Company Bookings
-              <span class="badge {{ ($bookingType ?? 'individual') == 'corporate' ? 'badge-light' : 'badge-secondary' }} ml-2">{{ $stats['corporate_total'] ?? 0 }}</span>
-            </a>
-          </li> --}}
-        </ul>
-      </div>
-      
       <!-- Statistics Cards -->
-      @php
-        $isCorporate = ($bookingType ?? 'individual') == 'corporate';
-      @endphp
-      
-      @if($isCorporate)
-      <!-- Corporate Bookings Statistics -->
-      <div class="row mb-3">
-        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-          <div class="widget-small info coloured-icon">
-            <i class="icon fa fa-building fa-2x"></i>
-            <div class="info">
-              <h4>Total Companies</h4>
-              <p><b>{{ $stats['total'] ?? 0 }}</b></p>
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-          <div class="widget-small dark coloured-icon">
-            <i class="icon fa fa-check-circle fa-2x"></i>
-            <div class="info">
-              <h4 style="color: #000;">Confirmed</h4>
-              <p style="color: #000;"><b>{{ $stats['confirmed'] ?? 0 }}</b></p>
-              <small style="color: #000;">Companies</small>
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-          <div class="widget-small primary coloured-icon">
-            <i class="icon fa fa-sign-in fa-2x"></i>
-            <div class="info">
-              <h4>Checked In</h4>
-              <p><b>{{ $stats['checked_in'] ?? 0 }}</b></p>
-              <small>Companies</small>
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-          <div class="widget-small warning coloured-icon">
-            <i class="icon fa fa-sign-out fa-2x"></i>
-            <div class="info">
-              <h4>Checked Out</h4>
-              <p><b>{{ $stats['checked_out'] ?? 0 }}</b></p>
-              <small>Companies</small>
-            </div>
-          </div>
-        </div>
-      </div>
-      @else
-      <!-- Individual Bookings Statistics -->
       <div class="row mb-3">
         <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
           <div class="widget-small info coloured-icon">
@@ -230,7 +141,7 @@
           </div>
         </div>
       </div>
-      @endif
+
       
       <!-- Filters -->
       <div class="row mb-3">

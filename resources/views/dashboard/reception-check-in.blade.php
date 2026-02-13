@@ -30,46 +30,6 @@
         $defaultCheckInTime = \App\Models\HotelSetting::getValue('default_checkin_time', '14:00');
       @endphp
       
-      <!-- Booking Type Tabs -->
-      <div class="booking-tabs-wrapper mb-4">
-        <ul class="nav nav-pills nav-justified" role="tablist" style="background: #f8f9fa; padding: 8px; border-radius: 8px;">
-          <li class="nav-item">
-            <a class="nav-link {{ ($bookingType ?? 'individual') == 'individual' ? 'active' : '' }}" 
-               href="{{ route($checkInRoute, array_merge(request()->except(['type']), ['type' => 'individual'])) }}"
-               style="
-                 color: {{ ($bookingType ?? 'individual') == 'individual' ? '#fff' : '#6c757d' }}; 
-                 background-color: {{ ($bookingType ?? 'individual') == 'individual' ? '#940000' : 'transparent' }};
-                 border-radius: 6px;
-                 padding: 10px 20px;
-                 font-weight: {{ ($bookingType ?? 'individual') == 'individual' ? '600' : '400' }};
-                 transition: all 0.3s ease;
-               "
-               onmouseover="this.style.backgroundColor='{{ ($bookingType ?? 'individual') == 'individual' ? '#940000' : '#e9ecef' }}'"
-               onmouseout="this.style.backgroundColor='{{ ($bookingType ?? 'individual') == 'individual' ? '#940000' : 'transparent' }}'">
-              <i class="fa fa-user"></i> Individual Bookings
-              <span class="badge {{ ($bookingType ?? 'individual') == 'individual' ? 'badge-light' : 'badge-secondary' }} ml-2">{{ $stats['individual_total'] ?? 0 }}</span>
-            </a>
-          </li>
-          {{-- <li class="nav-item">
-            <a class="nav-link {{ ($bookingType ?? 'individual') == 'corporate' ? 'active' : '' }}" 
-               href="{{ route($checkInRoute, array_merge(request()->except(['type']), ['type' => 'corporate'])) }}"
-               style="
-                 color: {{ ($bookingType ?? 'individual') == 'corporate' ? '#fff' : '#6c757d' }}; 
-                 background-color: {{ ($bookingType ?? 'individual') == 'corporate' ? '#940000' : 'transparent' }};
-                 border-radius: 6px;
-                 padding: 10px 20px;
-                 font-weight: {{ ($bookingType ?? 'individual') == 'corporate' ? '600' : '400' }};
-                 transition: all 0.3s ease;
-               "
-               onmouseover="this.style.backgroundColor='{{ ($bookingType ?? 'individual') == 'corporate' ? '#940000' : '#e9ecef' }}'"
-               onmouseout="this.style.backgroundColor='{{ ($bookingType ?? 'individual') == 'corporate' ? '#940000' : 'transparent' }}'">
-              <i class="fa fa-building"></i> Company Bookings
-              <span class="badge {{ ($bookingType ?? 'individual') == 'corporate' ? 'badge-light' : 'badge-secondary' }} ml-2">{{ $stats['corporate_total'] ?? 0 }}</span>
-            </a>
-          </li> --}}
-        </ul>
-      </div>
-      
       <!-- Search Filter -->
       <div class="row mb-3">
         <div class="col-md-6 col-12 mb-2 mb-md-0">
