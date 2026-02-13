@@ -142,7 +142,7 @@
 
       /* Background Image */
       .material-half-bg {
-        background-image: url('{{ asset("landing_page_backround_images/hotel view_.jpg") }}');
+        background-image: url('{{ asset("dashboard_assets/images/restaurant-interior.jpg") }}');
         background-size: cover !important;
         background-position: center center !important;
         background-repeat: no-repeat !important;
