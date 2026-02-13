@@ -148,6 +148,30 @@ class PurchaseRequestController extends Controller
                     'priority' => $item['priority'],
                     'status' => 'pending',
                 ]);
+
+                // SMS for high/urgent priority
+                if (in_array($item['priority'], ['high', 'urgent'])) {
+                    try {
+                        $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
+                            ->where('is_active', true)
+                            ->get();
+                        
+                        foreach ($managersAndAdmins as $manager) {
+                            if ($manager->phone) {
+                                try {
+                                    $smsService = app(\App\Services\SmsService::class);
+                                    $smsMessage = "URGENT PURCHASE: {$staff->name} requested {$item['quantity']} {$item['unit']} of '{$itemName}'. Priority: " . strtoupper($item['priority']);
+                                    $smsService->sendSms($manager->phone, $smsMessage);
+                                } catch (\Exception $e) {
+                                    \Log::error("Failed to send purchase request SMS to manager: " . $e->getMessage());
+                                }
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to send purchase request SMS to managers: ' . $e->getMessage());
+                    }
+                }
+
                 $createdRequests[] = $purchaseRequest;
             }
             
@@ -185,6 +209,29 @@ class PurchaseRequestController extends Controller
                 'priority' => $request->priority,
                 'status' => 'pending',
             ]);
+
+            // SMS for high/urgent priority
+            if (in_array($request->priority, ['high', 'urgent'])) {
+                try {
+                    $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
+                        ->where('is_active', true)
+                        ->get();
+                    
+                    foreach ($managersAndAdmins as $manager) {
+                        if ($manager->phone) {
+                            try {
+                                $smsService = app(\App\Services\SmsService::class);
+                                $smsMessage = "URGENT PURCHASE: {$staff->name} requested {$request->quantity} {$request->unit} of '{$request->item_name}'. Priority: " . strtoupper($request->priority);
+                                $smsService->sendSms($manager->phone, $smsMessage);
+                            } catch (\Exception $e) {
+                                \Log::error("Failed to send purchase request SMS to manager: " . $e->getMessage());
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send purchase request SMS to managers: ' . $e->getMessage());
+                }
+            }
             
             return response()->json([
                 'success' => true,
@@ -762,6 +809,18 @@ class PurchaseRequestController extends Controller
             'approved_by' => $manager->id,
             'approved_at' => now(),
         ]);
+
+        // Send SMS to requester
+        try {
+            $requester = $purchaseRequest->requestedBy;
+            if ($requester && $requester->phone) {
+                $smsService = app(\App\Services\SmsService::class);
+                $smsMessage = "Hi " . ($requester->name ?? 'Staff') . ", your purchase request for '{$purchaseRequest->item_name}' ({$purchaseRequest->quantity} {$purchaseRequest->unit}) has been APPROVED. Thank you!";
+                $smsService->sendSms($requester->phone, $smsMessage);
+            }
+        } catch (\Exception $e) {
+            \Log::error("Failed to send purchase approval SMS to requester: " . $e->getMessage());
+        }
         
         return response()->json([
             'success' => true,
@@ -845,6 +904,18 @@ class PurchaseRequestController extends Controller
             'status' => 'rejected',
             'rejection_reason' => $request->rejection_reason,
         ]);
+
+        // Send SMS to requester
+        try {
+            $requester = $purchaseRequest->requestedBy;
+            if ($requester && $requester->phone) {
+                $smsService = app(\App\Services\SmsService::class);
+                $smsMessage = "Hi " . ($requester->name ?? 'Staff') . ", your purchase request for '{$purchaseRequest->item_name}' has been REJECTED. Reason: " . ($request->rejection_reason ?? 'N/A') . ". Thank you!";
+                $smsService->sendSms($requester->phone, $smsMessage);
+            }
+        } catch (\Exception $e) {
+            \Log::error("Failed to send purchase rejection SMS to requester: " . $e->getMessage());
+        }
         
         return response()->json([
             'success' => true,

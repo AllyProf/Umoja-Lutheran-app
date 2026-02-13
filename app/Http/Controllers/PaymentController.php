@@ -459,10 +459,33 @@ class PaymentController extends Controller
                         } catch (\Exception $e) {
                             Log::error('Failed to send payment received email to staff: ' . $staff->email . ' - ' . $e->getMessage());
                         }
+
+                        // SMS to managers
+                        if ($staff->phone) {
+                            try {
+                                $smsService = app(\App\Services\SmsService::class);
+                                $smsMessage = "Payment Received: " . ($booking->guest_name ?? 'Guest') . " paid $" . number_format($amountPaid, 2) . " via " . strtoupper($paymentMethod) . " (Ref: {$booking->booking_reference})";
+                                $smsService->sendSms($staff->phone, $smsMessage);
+                            } catch (\Exception $e) {
+                                Log::error("Failed to send payment received SMS to manager: " . $e->getMessage());
+                            }
+                        }
                     }
                 }
             } catch (\Exception $e) {
                 Log::error('Failed to send payment received emails to managers/admins: ' . $e->getMessage());
+            }
+
+            // Send SMS notification to Guest (Receipt Confirmation)
+            if ($booking->guest_phone) {
+                try {
+                    $smsService = app(\App\Services\SmsService::class);
+                    $amountPaidFormatted = number_format($booking->fresh()->amount_paid ?? 0, 2);
+                    $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", we have received your payment of $" . $amountPaidFormatted . ". Your booking {$booking->booking_reference} is now " . strtoupper($booking->status) . ". Thank you!";
+                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                } catch (\Exception $e) {
+                    Log::error("Failed to send payment confirmation SMS to guest: " . $e->getMessage());
+                }
             }
 
             // Create notification for payment completion

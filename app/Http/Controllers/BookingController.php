@@ -889,6 +889,46 @@ class BookingController extends Controller
             }
         }
 
+        // Send SMS notification to Guest
+        if ($booking->guest_phone) {
+            try {
+                $smsService = app(\App\Services\SmsService::class);
+                $status = strtoupper($request->status);
+                $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", your booking {$booking->booking_reference} has been updated to {$status}.";
+                
+                if ($request->status === 'cancelled') {
+                    $smsMessage .= " Reason: " . ($updateData['cancellation_reason'] ?? 'N/A');
+                } elseif ($request->status === 'confirmed') {
+                    $smsMessage .= " We look forward to welcoming you on " . Carbon::parse($booking->check_in)->format('M d, Y') . ".";
+                }
+                
+                $smsService->sendSms($booking->guest_phone, $smsMessage);
+            } catch (\Exception $e) {
+                \Log::error("Failed to send booking status SMS to guest: " . $e->getMessage());
+            }
+        }
+
+        // Send SMS notification to Managers
+        try {
+            $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
+                ->where('is_active', true)
+                ->get();
+            
+            foreach ($managersAndAdmins as $staff) {
+                if ($staff->phone && $staff->isNotificationEnabled('booking')) {
+                    try {
+                        $smsService = app(\App\Services\SmsService::class);
+                        $smsMessage = "Booking Status Update: {$booking->guest_name} - {$booking->booking_reference} is now " . strtoupper($request->status);
+                        $smsService->sendSms($staff->phone, $smsMessage);
+                    } catch (\Exception $e) {
+                        \Log::error("Failed to send booking status SMS to manager: " . $e->getMessage());
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send booking status SMS to managers: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Booking status updated successfully!',
@@ -1772,6 +1812,40 @@ class BookingController extends Controller
             \Log::error('Failed to send check-in confirmation email: ' . $e->getMessage());
         }
 
+        // Send SMS to guest
+        if ($booking->guest_phone) {
+            try {
+                $smsService = app(\App\Services\SmsService::class);
+                $wifiPassword = \App\Models\HotelSetting::getWifiPassword();
+                $wifiNetworkName = \App\Models\HotelSetting::getWifiNetworkName();
+                $smsMessage = "Welcome to " . config('app.name') . ", {$booking->first_name}! You are checked in to Room {$booking->room->room_number}. WiFi: {$wifiNetworkName}, Password: {$wifiPassword}. Enjoy your stay!";
+                $smsService->sendSms($booking->guest_phone, $smsMessage);
+            } catch (\Exception $e) {
+                \Log::error("Failed to send check-in SMS to guest: " . $e->getMessage());
+            }
+        }
+
+        // Send SMS to managers
+        try {
+            $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
+                ->where('is_active', true)
+                ->get();
+            
+            foreach ($managersAndAdmins as $staff) {
+                if ($staff->phone && $staff->isNotificationEnabled('booking')) {
+                    try {
+                        $smsService = app(\App\Services\SmsService::class);
+                        $smsMessage = "CHECK-IN ALERT: " . ($booking->guest_name ?? 'Guest') . " has self-checked in to Room " . ($booking->room->room_number ?? 'N/A') . ". (Ref: {$booking->booking_reference})";
+                        $smsService->sendSms($staff->phone, $smsMessage);
+                    } catch (\Exception $e) {
+                        \Log::error("Failed to send check-in SMS to manager: " . $e->getMessage());
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send check-in SMS to managers: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Check-in successful! Welcome to PrimeLand Hotel.',
@@ -2090,22 +2164,39 @@ class BookingController extends Controller
             }
             
             // Handle email reminders (queued for async processing)
+            $smsMessage = "";
             if ($reminderType === 'checkin') {
                 $daysUntil = $today->diffInDays($checkInDate, false);
                 Mail::to($booking->guest_email)->queue(new \App\Mail\CheckInReminderMail($booking, $daysUntil));
                 $message = "Check-in reminder email sent successfully to {$booking->guest_email}";
+                $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", this is a reminder of your upcoming check-in at " . config('app.name') . " on " . $checkInDate->format('M d, Y') . ". We look forward to seeing you!";
             } elseif ($reminderType === 'checkout') {
                 $daysUntil = $today->diffInDays($checkOutDate, false);
                 Mail::to($booking->guest_email)->queue(new \App\Mail\CheckOutReminderMail($booking, $daysUntil));
                 $message = "Check-out reminder email sent successfully to {$booking->guest_email}";
+                $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", we hope you enjoyed your stay. This is a reminder of your check-out scheduled for " . $checkOutDate->format('M d, Y') . " at 10:00 AM. Safe travels!";
             } elseif ($reminderType === 'payment' || $reminderType === 'email') {
                 Mail::to($booking->guest_email)->queue(new \App\Mail\ExpirationWarningMail($booking, null, '24h'));
                 $message = "Payment reminder email sent successfully to {$booking->guest_email}";
+                $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", this is a reminder regarding your booking {$booking->booking_reference} payment. Please complete payment to avoid cancellation. Thank you!";
             } else {
                 // General reminder - send booking confirmation as reminder
                 // Pass null for password since this is a reminder, not a new booking
                 Mail::to($booking->guest_email)->queue(new BookingConfirmationMail($booking, null));
                 $message = "Reminder email sent successfully to {$booking->guest_email}";
+                $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", this is a general reminder regarding your booking {$booking->booking_reference} at " . config('app.name') . ". Thank you!";
+            }
+
+            // Send SMS reminder
+            if ($booking->guest_phone && $smsMessage) {
+                try {
+                    $smsService = app(\App\Services\SmsService::class);
+                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                    $message .= " and SMS sent successfully.";
+                } catch (\Exception $e) {
+                    \Log::error("Failed to send reminder SMS to guest: " . $e->getMessage());
+                    $message .= " but SMS failed.";
+                }
             }
             
             return response()->json([
@@ -2666,6 +2757,28 @@ class BookingController extends Controller
             } catch (\Exception $e) {
                 \Log::error('Failed to queue extension approved email: ' . $e->getMessage());
             }
+
+            // Send SMS notification to guest
+            if ($booking->guest_phone) {
+                try {
+                    $smsService = app(\App\Services\SmsService::class);
+                    $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", your booking stay has been extended. New checkout date: " . $newCheckOut->format('M d, Y') . ". Thank you!";
+                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                } catch (\Exception $e) {
+                    \Log::error("Failed to send extension SMS to guest: " . $e->getMessage());
+                }
+            }
+        } elseif ($nightsDifference < 0) {
+            // Send SMS notification to guest for decrease
+            if ($booking->guest_phone) {
+                try {
+                    $smsService = app(\App\Services\SmsService::class);
+                    $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", your booking stay has been decreased. New checkout date: " . $newCheckOut->format('M d, Y') . ". Thank you!";
+                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                } catch (\Exception $e) {
+                    \Log::error("Failed to send stay decrease SMS to guest: " . $e->getMessage());
+                }
+            }
         }
 
         return response()->json([
@@ -2796,6 +2909,17 @@ class BookingController extends Controller
                 \Log::error('Failed to queue extension approved email: ' . $e->getMessage());
             }
 
+            // Send SMS notification to guest
+            if ($booking->guest_phone) {
+                try {
+                    $smsService = app(\App\Services\SmsService::class);
+                    $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", your request to " . ($isExtension ? 'extend' : 'decrease') . " your stay has been APPROVED. New checkout date: " . $newCheckOut->format('M d, Y') . ". Thank you!";
+                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                } catch (\Exception $e) {
+                    \Log::error("Failed to send extension approval SMS to guest: " . $e->getMessage());
+                }
+            }
+
             // Send email notification to managers and super admins for extension approval
             try {
                 $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
@@ -2890,6 +3014,17 @@ class BookingController extends Controller
                     ->queue(new \App\Mail\ExtensionRequestStatusMail($booking->fresh()->load('room'), 'rejected'));
             } catch (\Exception $e) {
                 \Log::error('Failed to queue extension rejected email: ' . $e->getMessage());
+            }
+
+            // Send SMS notification to guest
+            if ($booking->guest_phone) {
+                try {
+                    $smsService = app(\App\Services\SmsService::class);
+                    $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", your request to extend/decrease your stay has been REJECTED. Please contact reception for more information. Thank you!";
+                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                } catch (\Exception $e) {
+                    \Log::error("Failed to send extension rejection SMS to guest: " . $e->getMessage());
+                }
             }
 
             // Send email notification to managers and super admins for extension rejection

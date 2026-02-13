@@ -1451,6 +1451,38 @@ class ReceptionController extends Controller
             'paid_at' => $booking->paid_at ?? now(),
             'total_service_charges_tsh' => $totalServiceChargesTsh,
         ]);
+
+        // Send SMS notification to Guest (Receipt Confirmation)
+        if ($booking->guest_phone) {
+            try {
+                $smsService = app(\App\Services\SmsService::class);
+                $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", we have received your payment of $" . number_format($paymentAmountUsd, 2) . " via " . strtoupper($request->payment_method) . ". Your current total paid is $" . number_format($newAmountPaidUsd, 2) . ". Thank you!";
+                $smsService->sendSms($booking->guest_phone, $smsMessage);
+            } catch (\Exception $e) {
+                \Log::error("Failed to send payment receipt SMS to guest: " . $e->getMessage());
+            }
+        }
+
+        // Send SMS to managers
+        try {
+            $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
+                ->where('is_active', true)
+                ->get();
+            
+            foreach ($managersAndAdmins as $staff) {
+                if ($staff->phone && $staff->isNotificationEnabled('payment')) {
+                    try {
+                        $smsService = app(\App\Services\SmsService::class);
+                        $smsMessage = "POS Payment: " . ($booking->guest_name ?? 'Guest') . " paid $" . number_format($paymentAmountUsd, 2) . " via " . strtoupper($request->payment_method) . " (Ref: {$booking->booking_reference})";
+                        $smsService->sendSms($staff->phone, $smsMessage);
+                    } catch (\Exception $e) {
+                        \Log::error("Failed to send POS payment SMS to manager: " . $e->getMessage());
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send POS payment SMS to managers: ' . $e->getMessage());
+        }
         
         // Only deactivate guest account if they have checked out
         // If still checked in, keep account active so they can access dashboard and services

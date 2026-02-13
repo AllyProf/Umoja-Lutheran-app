@@ -387,6 +387,17 @@ class ServiceRequestController extends Controller
                         } catch (\Exception $e) {
                             \Log::error('Failed to send service request email to staff: ' . $staff->email . ' - ' . $e->getMessage());
                         }
+
+                        // Send SMS to staff
+                        if ($staff->phone) {
+                            try {
+                                $smsService = app(\App\Services\SmsService::class);
+                                $smsMessage = "NEW SERVICE REQUEST: " . ($booking->guest_name ?? 'Guest') . " (Room " . ($booking->room->room_number ?? 'N/A') . ") requested " . ($itemName ?? 'a service') . ".";
+                                $smsService->sendSms($staff->phone, $smsMessage);
+                            } catch (\Exception $e) {
+                                \Log::error("Failed to send service request SMS to staff: " . $e->getMessage());
+                            }
+                        }
                     }
                 }
             } catch (\Exception $e) {
@@ -737,6 +748,19 @@ class ServiceRequestController extends Controller
                     }
                 } catch (\Exception $e) {
                     \Log::error('Failed to send service request status email: ' . $e->getMessage());
+                }
+
+                // Send SMS notification
+                if ($booking->guest_phone) {
+                    try {
+                        $smsService = app(\App\Services\SmsService::class);
+                        $statusText = strtoupper($request->status);
+                        $itemName = $serviceRequest->service->name ?? ($serviceRequest->service_type === 'transportation' ? 'Transportation' : 'Service');
+                        $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", your request for {$itemName} has been {$statusText}. Thank you!";
+                        $smsService->sendSms($booking->guest_phone, $smsMessage);
+                    } catch (\Exception $e) {
+                        \Log::error("Failed to send service request status SMS: " . $e->getMessage());
+                    }
                 }
 
                 // Send email notification to managers and super admins
