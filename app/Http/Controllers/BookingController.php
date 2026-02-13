@@ -13,6 +13,7 @@ use App\Mail\StaffNewBookingMail;
 use App\Services\CurrencyExchangeService;
 use App\Services\NotificationService;
 use App\Services\WeatherService;
+use App\Services\SmsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
@@ -3131,71 +3132,79 @@ class BookingController extends Controller
 
                 // Handle special requests notifications for this guest
                 if (!empty($guestData['special_requests']) && !empty($guestData['notify_departments'])) {
-                    $notificationService = new NotificationService();
-                    $departments = $guestData['notify_departments'];
-                    
-                    // Map department values to role names
-                    $roleMapping = [
-                        'reception' => 'reception',
-                        'bar_keeper' => 'bar_keeper',
-                        'head_chef' => 'head_chef',
-                    ];
-                    
-                    foreach ($departments as $department) {
-                        $role = $roleMapping[$department] ?? null;
-                        if ($role) {
-                            // Create notification for the department
-                            Notification::create([
-                                'type' => 'booking',
-                                'title' => 'Special Request from Guest',
-                                'message' => "Guest {$fullName} (Room {$room->room_number}) has special requests: " . Str::limit($guestData['special_requests'], 150),
-                                'icon' => 'fa-sticky-note',
-                                'color' => 'info',
-                                'role' => $role,
-                                'notifiable_id' => $booking->id,
-                                'notifiable_type' => Booking::class,
-                                'link' => $role === 'reception' ? route('reception.bookings') : ($role === 'bar_keeper' ? route('bar-keeper.dashboard') : route('chef-master.dashboard')),
-                            ]);
-                            
-                            // Send email notification to all staff members of this department
-                            try {
-                                $departmentStaff = \App\Models\Staff::where('role', $role)
-                                    ->where('is_active', true)
-                                    ->get();
-                                
-                                foreach ($departmentStaff as $staff) {
-                                    try {
-                                        $emailSubject = "Special Request from Guest - Room {$room->room_number}";
-                                        $emailBody = "Dear {$staff->name},\n\n";
-                                        $emailBody .= "Guest {$fullName} (Room {$room->room_number}) has submitted special requests:\n\n";
-                                        $emailBody .= $guestData['special_requests'] . "\n\n";
-                                        $emailBody .= "Check-in: {$checkIn->format('Y-m-d H:i')}\n";
-                                        $emailBody .= "Check-out: {$checkOut->format('Y-m-d H:i')}\n\n";
-                                        $emailBody .= "Please review and prepare accordingly.\n\n";
-                                        $emailBody .= "Booking Reference: {$bookingReference}\n\n";
-                                        $emailBody .= "Best regards,\nPrimeLand Hotel System";
-                                        
-                                        Mail::raw($emailBody, function($message) use ($staff, $emailSubject, $fullName, $room) {
-                                            $message->to($staff->email)
-                                                ->subject($emailSubject);
-                                        });
-                                    } catch (\Exception $e) {
-                                        \Log::error('Failed to send special request email to staff', [
-                                            'staff_email' => $staff->email,
-                                            'error' => $e->getMessage()
-                                        ]);
-                                    }
-                                }
-                            } catch (\Exception $e) {
-                                \Log::error('Failed to send special request notifications', [
-                                    'error' => $e->getMessage()
+                    try {
+                        $notificationService = new NotificationService();
+                        $smsService = app(SmsService::class);
+                        $departments = $guestData['notify_departments'];
+                        
+                        // Map department values to role names
+                        $roleMapping = [
+                            'reception' => 'reception',
+                            'bar_keeper' => 'bar_keeper',
+                            'head_chef' => 'head_chef',
+                        ];
+                        
+                        foreach ($departments as $department) {
+                            $role = $roleMapping[$department] ?? null;
+                            if ($role) {
+                                // Create notification for the department
+                                Notification::create([
+                                    'type' => 'booking',
+                                    'title' => 'Special Request from Guest',
+                                    'message' => "Guest {$fullName} (Room {$room->room_number}) has special requests: " . Str::limit($guestData['special_requests'], 150),
+                                    'icon' => 'fa-sticky-note',
+                                    'color' => 'info',
+                                    'role' => $role,
+                                    'notifiable_id' => $booking->id,
+                                    'notifiable_type' => Booking::class,
+                                    'link' => $role === 'reception' ? route('reception.bookings') : ($role === 'bar_keeper' ? route('bar-keeper.dashboard') : route('chef-master.dashboard')),
                                 ]);
+                                
+                                // Send email and SMS notification to all staff members of this department
+                                try {
+                                    $departmentStaff = \App\Models\Staff::where('role', $role)
+                                        ->where('is_active', true)
+                                        ->get();
+                                    
+                                    foreach ($departmentStaff as $staff) {
+                                        // 1. Email notification
+                                        try {
+                                            $emailSubject = "Special Request from Guest - Room {$room->room_number}";
+                                            $emailBody = "Dear {$staff->name},\n\n";
+                                            $emailBody .= "Guest {$fullName} (Room {$room->room_number}) has submitted special requests:\n\n";
+                                            $emailBody .= $guestData['special_requests'] . "\n\n";
+                                            $emailBody .= "Check-in: {$checkIn->format('Y-m-d H:i')}\n";
+                                            $emailBody .= "Check-out: {$checkOut->format('Y-m-d H:i')}\n";
+                                            $emailBody .= "Booking Reference: {$bookingReference}\n\n";
+                                            
+                                            Mail::raw($emailBody, function($message) use ($staff, $emailSubject) {
+                                                $message->to($staff->email)->subject($emailSubject);
+                                            });
+                                        } catch (\Exception $e) {
+                                            \Log::error('Failed to send special request email to staff: ' . $staff->email . ' - ' . $e->getMessage());
+                                        }
+
+                                        // 2. SMS notification
+                                        if ($staff->phone) {
+                                            try {
+                                                $smsMessage = "Special Request: Guest {$fullName} (Room {$room->room_number}) requested: " . Str::limit($guestData['special_requests'], 80);
+                                                $smsService->sendSms($staff->phone, $smsMessage);
+                                            } catch (\Exception $e) {
+                                                \Log::error("Failed to send special request SMS to staff: " . $e->getMessage());
+                                            }
+                                        }
+                                    }
+                                } catch (\Exception $e) {
+                                    \Log::error('Failed to send special request notifications to department staff: ' . $e->getMessage());
+                                }
                             }
                         }
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to process special requests notifications: ' . $e->getMessage());
                     }
                 }
 
-                // Send booking confirmation email to guest
+                // Send booking confirmation email and SMS to guest
                 try {
                     $booking->load('room');
                     // Calculate remaining amount in USD (company pays in USD)
@@ -3209,8 +3218,19 @@ class BookingController extends Controller
                         $remainingAmountUSD,
                         $generalNotes
                     ));
+
+                    // SMS to Guest
+                    if (!empty($guestData['phone'])) {
+                        try {
+                            $smsService = app(SmsService::class);
+                            $smsMessage = "Hello {$firstName}, your corporate booking at " . config('app.name') . " is confirmed! Ref: {$bookingReference}. See you on {$validated['check_in']}!";
+                            $smsService->sendSms($guestData['phone'], $smsMessage);
+                        } catch (\Exception $e) {
+                            \Log::error("Failed to send guest SMS: " . $e->getMessage());
+                        }
+                    }
                 } catch (\Exception $e) {
-                    \Log::error('Failed to send booking confirmation email to guest', [
+                    \Log::error('Failed to send booking confirmation notifications to guest', [
                         'booking_reference' => $bookingReference,
                         'guest_email' => $guestData['email'],
                         'error' => $e->getMessage()
@@ -3334,7 +3354,7 @@ class BookingController extends Controller
                 }
             }
 
-            // Send company invoice email
+            // Send company invoice email and SMS
             try {
                 Mail::to($validated['company_email'])->send(new \App\Mail\CompanyInvoiceMail(
                     $company,
@@ -3350,6 +3370,17 @@ class BookingController extends Controller
                     'company_email' => $validated['company_email'],
                     'company_name' => $company->name
                 ]);
+
+                // SMS to Company
+                if ($company->phone) {
+                    try {
+                        $smsService = app(SmsService::class);
+                        $smsMessage = "Hello {$company->name}, a corporate booking for " . count($createdBookings) . " guests has been created. Check-in: {$validated['check_in']}. Thank you for choosing " . config('app.name') . "!";
+                        $smsService->sendSms($company->phone, $smsMessage);
+                    } catch (\Exception $e) {
+                        \Log::error("Failed to send SMS to company: " . $e->getMessage());
+                    }
+                }
             } catch (\Exception $e) {
                 \Log::error('Failed to send company invoice email', [
                     'company_id' => $company->id,
@@ -3357,7 +3388,7 @@ class BookingController extends Controller
                 ]);
             }
 
-            // Send guider/leader confirmation email
+            // Send guider/leader confirmation email and SMS
             try {
                 Mail::to($validated['guider_email'])->send(new \App\Mail\GuiderConfirmationMail(
                     $validated['guider_name'],
@@ -3371,6 +3402,17 @@ class BookingController extends Controller
                     'guider_email' => $validated['guider_email'],
                     'guider_name' => $validated['guider_name']
                 ]);
+
+                // SMS to Guider
+                if ($validated['guider_phone']) {
+                    try {
+                        $smsService = app(SmsService::class);
+                        $smsMessage = "Hello {$validated['guider_name']}, the group booking for {$company->name} (" . count($createdBookings) . " guests) is confirmed. Ref: Group Booking. See you on {$validated['check_in']}!";
+                        $smsService->sendSms($validated['guider_phone'], $smsMessage);
+                    } catch (\Exception $e) {
+                        \Log::error("Failed to send SMS to guider: " . $e->getMessage());
+                    }
+                }
             } catch (\Exception $e) {
                 \Log::error('Failed to send guider confirmation email', [
                     'guider_email' => $validated['guider_email'],
@@ -3396,6 +3438,17 @@ class BookingController extends Controller
                         'notifiable_type' => \App\Models\Company::class,
                         'link' => route('admin.bookings.index') . '?company=' . $company->id,
                     ]);
+
+                    // SMS to Reception Staff for Corporate Booking
+                    if ($staff->phone) {
+                        try {
+                            $smsService = app(SmsService::class);
+                            $smsMessage = "New Corporate Booking: {$company->name} with " . count($createdBookings) . " guests arriving on {$validated['check_in']}.";
+                            $smsService->sendSms($staff->phone, $smsMessage);
+                        } catch (\Exception $e) {
+                            \Log::error("Failed to send corporate booking SMS to staff: " . $e->getMessage());
+                        }
+                    }
                 }
             } catch (\Exception $e) {
                 \Log::error('Failed to create reception notification', [
@@ -3976,38 +4029,62 @@ class BookingController extends Controller
             ]);
         }
 
-        // Send email notification to reception staff
+        // Send email and SMS notification to reception staff
         try {
             $receptionStaff = \App\Models\Staff::where('role', 'reception')
                 ->where('is_active', true)
                 ->get();
             
+            $smsService = app(SmsService::class);
             foreach ($receptionStaff as $staff) {
+                // Email
                 try {
                     Mail::to($staff->email)->send(new \App\Mail\StaffNewBookingMail($booking->load('room')));
                 } catch (\Exception $e) {
                     \Log::error('Failed to send booking email to reception staff: ' . $staff->email . ' - ' . $e->getMessage());
                 }
+
+                // SMS
+                if ($staff->phone) {
+                    try {
+                        $smsMessage = "New Booking: Guest {$fullName} (Room {$room->room_number}) arriving on {$validated['check_in']}. Ref: {$bookingReference}";
+                        $smsService->sendSms($staff->phone, $smsMessage);
+                    } catch (\Exception $e) {
+                        \Log::error("Failed to send booking SMS to reception staff: " . $e->getMessage());
+                    }
+                }
             }
         } catch (\Exception $e) {
-            \Log::error('Failed to send booking emails to reception staff: ' . $e->getMessage());
+            \Log::error('Failed to send booking notifications to reception staff: ' . $e->getMessage());
         }
 
-        // Send email notification to managers
+        // Send email and SMS notification to managers
         try {
             $managers = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
                 ->where('is_active', true)
                 ->get();
             
+            $smsService = app(SmsService::class);
             foreach ($managers as $manager) {
+                // Email
                 try {
                     Mail::to($manager->email)->send(new \App\Mail\StaffNewBookingMail($booking->load('room')));
                 } catch (\Exception $e) {
                     \Log::error('Failed to send booking email to manager: ' . $manager->email . ' - ' . $e->getMessage());
                 }
+
+                // SMS (Optional for managers - maybe only for urgent ones? User said "all staff sms using phone number")
+                if ($manager->phone) {
+                    try {
+                        $smsMessage = "New Manual Booking: {$fullName} (Room {$room->room_number}) on {$validated['check_in']}.";
+                        $smsService->sendSms($manager->phone, $smsMessage);
+                    } catch (\Exception $e) {
+                        \Log::error("Failed to send booking SMS to manager: " . $e->getMessage());
+                    }
+                }
             }
         } catch (\Exception $e) {
-            \Log::error('Failed to send booking emails to managers: ' . $e->getMessage());
+            \Log::error('Failed to send booking notifications to managers: ' . $e->getMessage());
         }
 
         // Create notification
@@ -4022,6 +4099,7 @@ class BookingController extends Controller
         if (!empty($validated['special_requests']) && !empty($validated['notify_departments'])) {
             try {
                 $notificationService = new NotificationService();
+                $smsService = app(SmsService::class);
                 $departments = $validated['notify_departments'];
                 
                 // Map department values to role names
@@ -4047,52 +4125,60 @@ class BookingController extends Controller
                             'link' => $role === 'reception' ? route('reception.bookings') : ($role === 'bar_keeper' ? route('bar-keeper.dashboard') : route('chef-master.dashboard')),
                         ]);
                         
-                        // Send email notification to all staff members of this department
+                        // Send email and SMS notification to all staff members of this department
                         try {
                             $departmentStaff = \App\Models\Staff::where('role', $role)
                                 ->where('is_active', true)
                                 ->get();
                             
                             foreach ($departmentStaff as $staff) {
+                                // 1. Email notification
                                 try {
-                                    // Create a simple email notification
                                     $emailSubject = "Special Request from Guest - Room {$room->room_number}";
                                     $emailBody = "Dear {$staff->name},\n\n";
                                     $emailBody .= "Guest {$fullName} (Room {$room->room_number}) has submitted special requests:\n\n";
                                     $emailBody .= $validated['special_requests'] . "\n\n";
                                     $emailBody .= "Check-in: {$checkIn->format('Y-m-d H:i')}\n";
-                                    $emailBody .= "Check-out: {$checkOut->format('Y-m-d H:i')}\n\n";
-                                    $emailBody .= "Please review and prepare accordingly.\n\n";
+                                    $emailBody .= "Check-out: {$checkOut->format('Y-m-d H:i')}\n";
                                     $emailBody .= "Booking Reference: {$bookingReference}\n\n";
-                                    $emailBody .= "Best regards,\nPrimeLand Hotel System";
                                     
-                                    Mail::raw($emailBody, function($message) use ($staff, $emailSubject, $fullName, $room) {
-                                        $message->to($staff->email)
-                                                ->subject($emailSubject);
+                                    Mail::raw($emailBody, function($message) use ($staff, $emailSubject) {
+                                        $message->to($staff->email)->subject($emailSubject);
                                     });
-                                    
-                                    \Log::info('Special request email sent to department staff', [
-                                        'staff_email' => $staff->email,
-                                        'role' => $role,
-                                        'booking_reference' => $bookingReference
-                                    ]);
                                 } catch (\Exception $e) {
-                                    \Log::error('Failed to send special request email to staff: ' . $staff->email . ' - ' . $e->getMessage());
+                                    \Log::error('Failed to send special request email: ' . $staff->email . ' - ' . $e->getMessage());
+                                }
+
+                                // 2. SMS notification
+                                if ($staff->phone) {
+                                    try {
+                                        $smsMessage = "Special Request: Guest {$fullName} (Room {$room->room_number}) requested: " . Str::limit($validated['special_requests'], 80);
+                                        $smsService->sendSms($staff->phone, $smsMessage);
+                                        \Log::info("Special request SMS sent to {$staff->name} ({$staff->phone})");
+                                    } catch (\Exception $e) {
+                                        \Log::error("Failed to send special request SMS to {$staff->phone}: " . $e->getMessage());
+                                    }
                                 }
                             }
                         } catch (\Exception $e) {
-                            \Log::error('Failed to send special request emails to department: ' . $e->getMessage());
+                            \Log::error('Failed to send special request notifications to department: ' . $e->getMessage());
                         }
                     }
                 }
-                
-                \Log::info('Special requests notifications sent to departments', [
-                    'booking_reference' => $bookingReference,
-                    'departments' => $departments,
-                    'guest_name' => $fullName
-                ]);
             } catch (\Exception $e) {
-                \Log::error('Failed to send special requests notifications: ' . $e->getMessage());
+                \Log::error('Failed to process special requests notifications: ' . $e->getMessage());
+            }
+        }
+
+        // Send SMS to Guest
+        if (!empty($validated['guest_phone'])) {
+            try {
+                $smsService = app(SmsService::class);
+                $smsMessage = "Hello {$firstName}, your booking at " . config('app.name') . " is confirmed! Ref: {$bookingReference}. Check-in: " . $checkIn->format('Y-m-d H:i') . ". See you soon!";
+                $smsService->sendSms($validated['guest_phone'], $smsMessage);
+                \Log::info("Booking confirmation SMS sent to guest: {$validated['guest_phone']}");
+            } catch (\Exception $e) {
+                \Log::error("Failed to send booking SMS to guest: " . $e->getMessage());
             }
         }
 
