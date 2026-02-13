@@ -952,14 +952,28 @@ class BookingController extends Controller
                 \Log::error('Failed to send check-in confirmation email: ' . $e->getMessage());
             }
 
-            // Send email notification to managers and super admins for check-in (send immediately)
+            // Send SMS notification to Guest (Welcome + WiFi)
+            if ($booking->guest_phone) {
+                try {
+                    $smsService = app(SmsService::class);
+                    $wifiPassword = \App\Models\HotelSetting::getWifiPassword();
+                    $wifiNetworkName = \App\Models\HotelSetting::getWifiNetworkName();
+                    $smsMessage = "Welcome to " . config('app.name') . ", {$booking->first_name}! You are checked in to Room {$booking->room->room_number}. WiFi: {$wifiNetworkName}, Password: {$wifiPassword}. Enjoy your stay!";
+                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                } catch (\Exception $e) {
+                    \Log::error("Failed to send check-in SMS to guest: " . $e->getMessage());
+                }
+            }
+
+            // Send email and SMS notification to managers and super admins for check-in
             try {
                 $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
                     ->where('is_active', true)
                     ->get();
                 
+                $smsService = app(SmsService::class);
                 foreach ($managersAndAdmins as $staff) {
-                    // Check if user has notifications enabled
+                    // Email
                     if ($staff->isNotificationEnabled('check_in_out')) {
                         try {
                             \Illuminate\Support\Facades\Mail::to($staff->email)
@@ -968,9 +982,19 @@ class BookingController extends Controller
                             \Log::error('Failed to send check-in email to staff: ' . $staff->email . ' - ' . $e->getMessage());
                         }
                     }
+
+                    // SMS
+                    if ($staff->phone) {
+                        try {
+                            $smsMessage = "Check-in Alert: Guest {$booking->guest_name} has checked in to Room {$booking->room->room_number}.";
+                            $smsService->sendSms($staff->phone, $smsMessage);
+                        } catch (\Exception $e) {
+                            \Log::error("Failed to send check-in SMS to manager: " . $e->getMessage());
+                        }
+                    }
                 }
             } catch (\Exception $e) {
-                \Log::error('Failed to send check-in emails to managers/admins: ' . $e->getMessage());
+                \Log::error('Failed to send check-in notifications to managers/admins: ' . $e->getMessage());
             }
         } elseif ($request->check_in_status === 'checked_out') {
             // Check if there's outstanding balance before allowing checkout
@@ -1055,6 +1079,7 @@ class BookingController extends Controller
                     ->get();
                 
                 foreach ($housekeepers as $housekeeper) {
+                    // Email
                     if ($housekeeper->isNotificationEnabled('room_cleaning')) {
                         try {
                             \Mail::to($housekeeper->email)->send(
@@ -1062,6 +1087,17 @@ class BookingController extends Controller
                             );
                         } catch (\Exception $e) {
                             \Log::error('Failed to send room cleaning notification: ' . $e->getMessage());
+                        }
+                    }
+
+                    // SMS
+                    if ($housekeeper->phone) {
+                        try {
+                            $smsService = app(SmsService::class);
+                            $smsMessage = "Cleaning Alert: Room {$booking->room->room_number} is now vacant and needs cleaning (Guest: {$booking->guest_name}).";
+                            $smsService->sendSms($housekeeper->phone, $smsMessage);
+                        } catch (\Exception $e) {
+                            \Log::error("Failed to send room cleaning SMS to housekeeper: " . $e->getMessage());
                         }
                     }
                 }
@@ -1081,14 +1117,26 @@ class BookingController extends Controller
                 \Log::error('Failed to send check-out confirmation email: ' . $e->getMessage());
             }
 
-            // Send email notification to managers and super admins for check-out (send immediately)
+            // Send SMS notification to Guest (Thank you)
+            if ($booking->guest_phone) {
+                try {
+                    $smsService = app(SmsService::class);
+                    $smsMessage = "Thank you for staying with us at " . config('app.name') . ", {$booking->first_name}! Your stay is now completed. We hope to see you again soon!";
+                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                } catch (\Exception $e) {
+                    \Log::error("Failed to send check-out SMS to guest: " . $e->getMessage());
+                }
+            }
+
+            // Send email and SMS notification to managers and super admins for check-out
             try {
                 $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
                     ->where('is_active', true)
                     ->get();
                 
+                $smsService = app(SmsService::class);
                 foreach ($managersAndAdmins as $staff) {
-                    // Check if user has notifications enabled
+                    // Email
                     if ($staff->isNotificationEnabled('check_in_out')) {
                         try {
                             \Illuminate\Support\Facades\Mail::to($staff->email)
@@ -1097,9 +1145,19 @@ class BookingController extends Controller
                             \Log::error('Failed to send check-out email to staff: ' . $staff->email . ' - ' . $e->getMessage());
                         }
                     }
+
+                    // SMS
+                    if ($staff->phone) {
+                        try {
+                            $smsMessage = "Check-out Alert: Guest {$booking->guest_name} has checked out of Room {$booking->room->room_number}. Status: Completed.";
+                            $smsService->sendSms($staff->phone, $smsMessage);
+                        } catch (\Exception $e) {
+                            \Log::error("Failed to send check-out SMS to manager: " . $e->getMessage());
+                        }
+                    }
                 }
             } catch (\Exception $e) {
-                \Log::error('Failed to send check-out emails to managers/admins: ' . $e->getMessage());
+                \Log::error('Failed to send check-out notifications to managers/admins: ' . $e->getMessage());
             }
             
             return response()->json([
