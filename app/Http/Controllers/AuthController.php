@@ -440,16 +440,129 @@ class AuthController extends Controller
                 ])->withInput($request->only('email'));
             }
 
-            // Credentials are valid - Send OTP via SMS
-            $otpResult = $this->sendLoginOtpSms($user, $userType, $request);
-            
-            if (!$otpResult['success']) {
-                return back()->withErrors([
-                    'email' => $otpResult['message']
-                ])->withInput($request->only('email'));
+            // Credentials are valid - Login directly (OTP DISABLED)
+            \Log::info('Logging in user directly - OTP disabled', [
+                'user_id' => $user->id,
+                'user_type' => $userType
+            ]);
+
+            // Log in the user
+            $remember = $request->has('remember');
+            if ($userType === 'staff') {
+                Auth::guard('staff')->login($user, $remember);
+            } else {
+                Auth::guard('guest')->login($user, $remember);
             }
 
-            return back()->with('success', $otpResult['message'])->with('show_otp', true);
+            // Regenerate session to prevent session fixation attacks
+            $request->session()->regenerate();
+            
+            // Get the NEW session ID after regeneration
+            $sessionId = $request->session()->getId();
+            
+            // Generate new session token
+            $sessionToken = \Illuminate\Support\Str::random(60);
+            
+            // Update user with new session token and session ID
+            $user->session_token = hash('sha256', $sessionToken);
+            $user->last_session_id = $sessionId;
+            $user->save();
+            
+            // Update sessions table with user_id
+            DB::table('sessions')
+                ->where('id', $sessionId)
+                ->update([
+                    'user_id' => $user->id,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+            
+            // Store session token in session
+            $request->session()->put('user_session_token', $sessionToken);
+
+            // Get user role
+            $userRole = $user->role ?? 'guest';
+
+            // Get intended URL
+            $intendedUrl = $request->session()->pull('url.intended');
+            $validDashboardRoutes = [
+                route('admin.dashboard'),
+                route('super_admin.dashboard'),
+                route('reception.dashboard'),
+                route('bar-keeper.dashboard'),
+                route('housekeeper.dashboard'),
+                route('chef-master.dashboard'),
+                route('waiter.dashboard'),
+                route('customer.dashboard'),
+            ];
+            
+            if ($intendedUrl && !in_array($intendedUrl, $validDashboardRoutes)) {
+                $isValidPath = str_contains($intendedUrl, '/admin/') || 
+                               str_contains($intendedUrl, '/super-admin/') ||
+                               str_contains($intendedUrl, '/reception/') || 
+                               str_contains($intendedUrl, '/bar-keeper/') ||
+                               str_contains($intendedUrl, '/chef-master/') ||
+                               str_contains($intendedUrl, '/customer/');
+                
+                if (!$isValidPath || str_contains($intendedUrl, '/notifications/') || 
+                    str_contains($intendedUrl, '/api/') || 
+                    str_contains($intendedUrl, '/ajax/')) {
+                    $intendedUrl = null;
+                }
+            }
+
+            // Log login activity
+            ActivityLog::create([
+                'user_id' => $user->id,
+                'user_type' => get_class($user),
+                'action' => 'logged_in',
+                'description' => "User logged in: {$user->name} ({$user->email})",
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            // Redirect based on user role
+            if ($userRole === 'super_admin') {
+                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes) 
+                    ? $intendedUrl 
+                    : route('super_admin.dashboard');
+                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
+            } elseif ($userRole === 'manager') {
+                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes) 
+                    ? $intendedUrl 
+                    : route('admin.dashboard');
+                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
+            } elseif ($userRole === 'reception') {
+                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes) 
+                    ? $intendedUrl 
+                    : route('reception.dashboard');
+                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
+            } elseif ($userRole === 'bar_keeper') {
+                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes) 
+                    ? $intendedUrl 
+                    : route('bar-keeper.dashboard');
+                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
+            } elseif ($userRole === 'housekeeper') {
+                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes) 
+                    ? $intendedUrl 
+                    : route('housekeeper.dashboard');
+                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
+            } elseif ($userRole === 'head_chef') {
+                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes) 
+                    ? $intendedUrl 
+                    : route('chef-master.dashboard');
+                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
+            } elseif ($userRole === 'waiter') {
+                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes) 
+                    ? $intendedUrl 
+                    : route('waiter.dashboard');
+                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
+            } else {
+                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes) 
+                    ? $intendedUrl 
+                    : route('customer.dashboard');
+                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
+            }
 
         } catch (\Exception $e) {
             \Log::error('Login error', [

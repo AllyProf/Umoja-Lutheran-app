@@ -119,34 +119,6 @@
           </div>
         </form>
 
-        <!-- OTP Verification Form -->
-        <form class="otp-form" action="{{ route('login.verify') }}" method="POST">
-          @csrf
-          <input type="hidden" name="email" value="{{ old('email') }}">
-          <h3 class="login-head"><i class="fa fa-lg fa-fw fa-shield"></i>Verify OTP</h3>
-          <p class="text-center text-muted small mb-4">A 6-digit verification code has been sent to your phone number.</p>
-          <div class="form-group">
-            <label class="control-label">VERIFICATION CODE</label>
-            <input class="form-control @error('otp') is-invalid @enderror" type="text" name="otp" placeholder="6-digit code" maxlength="6" pattern="\d{6}" required autofocus autocomplete="one-time-code">
-            @error('otp')
-              <span class="invalid-feedback" role="alert">
-                <strong>{{ $message }}</strong>
-              </span>
-            @enderror
-          </div>
-          <div class="form-group btn-container">
-            <button type="submit" id="verify-btn" class="btn btn-primary btn-block">
-              <span id="verify-btn-text"><i class="fa fa-check-circle fa-lg fa-fw"></i>VERIFY & LOGIN</span>
-              <span id="verify-btn-spinner" style="display: none;">
-                <i class="fa fa-spinner fa-spin fa-lg fa-fw"></i> VERIFYING...
-              </span>
-            </button>
-          </div>
-          <div class="form-group mt-3 d-flex justify-content-between">
-            <p class="semibold-text mb-0"><a href="#" onclick="window.location.reload();"><i class="fa fa-angle-left fa-fw"></i> Back</a></p>
-            <p class="semibold-text mb-0"><a href="{{ route('login.resend-otp') }}?email={{ old('email') }}" id="resend-otp-link">Resend Code</a></p>
-          </div>
-        </form>
       </div>
       
       <!-- Powered By Footer -->
@@ -303,37 +275,7 @@
         border-color: #7b0000 !important;
       }
       
-      .login-content .login-box .otp-form {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        padding: 40px;
-        opacity: 0;
-        visibility: hidden;
-        -webkit-backface-visibility: hidden;
-        backface-visibility: hidden;
-        -webkit-transform: rotateY(180deg);
-        transform: rotateY(180deg);
-        -webkit-transition: all 0.5s ease-in-out;
-        transition: all 0.5s ease-in-out;
-      }
 
-      .login-content .login-box.otp-mode .login-form {
-        opacity: 0;
-        visibility: hidden;
-        -webkit-transform: rotateY(-180deg);
-        transform: rotateY(-180deg);
-      }
-
-      .login-content .login-box.otp-mode .otp-form {
-        opacity: 1;
-        visibility: visible;
-        -webkit-transform: rotateY(0deg);
-        transform: rotateY(0deg);
-      }
-      
       body {
         font-family: 'Century Gothic', 'Segoe UI', Tahoma, sans-serif !important;
       }
@@ -389,10 +331,7 @@
           $('.login-box').addClass('flipped');
         @endif
         
-        @if(session('show_otp'))
-          $('.login-box').addClass('otp-mode');
-        @endif
-        
+
         // Password Toggle Functionality
         $('#togglePassword').on('click', function() {
           const passwordInput = $('#password');
@@ -446,24 +385,6 @@
         }, 30000);
       });
 
-      // Verify OTP Form Submission with Loading Spinner
-      $('.otp-form').on('submit', function(e) {
-        const $btn = $('#verify-btn');
-        const $btnText = $('#verify-btn-text');
-        const $btnSpinner = $('#verify-btn-spinner');
-        
-        // Disable button and show spinner
-        $btn.prop('disabled', true);
-        $btnText.hide();
-        $btnSpinner.show();
-        
-        // Re-enable after 30 seconds as fallback (in case of error)
-        setTimeout(function() {
-          $btn.prop('disabled', false);
-          $btnText.show();
-          $btnSpinner.hide();
-        }, 30000);
-      });
     </script>
   </body>
 </html>
