@@ -417,7 +417,7 @@
     <!-- Loading overlay - must be first to prevent FOUC -->
     <div class="loading-container" id="loadingContainer">
         <div class="loading-logo">
-            <div class="loading-logo-text">{{ strtoupper(config('app.name')) }}</div>
+            <div class="loading-logo-text">UMOJA LUTHERAN</div>
         </div>
         <div class="spinner-wrapper">
             <div class="spinner"></div>
@@ -484,7 +484,7 @@
         }
       @endphp
       <a class="app-header__logo" href="{{ $logoRoute }}" style="text-decoration: none; color: #ffffff; font-size: 20px; font-weight: 700; letter-spacing: 1px; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">
-        {{ config('app.name') }}
+        Umoja Lutheran
       </a>
       <!-- Sidebar toggle button-->
       <a class="app-sidebar__toggle" href="#" data-toggle="sidebar" aria-label="Hide Sidebar"></a>
