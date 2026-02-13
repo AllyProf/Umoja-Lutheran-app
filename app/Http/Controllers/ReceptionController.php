@@ -176,7 +176,7 @@ class ReceptionController extends Controller
             }
             
             $bookings = $query->paginate(20);
-        // }
+
 
         // Get statistics filtered by booking type
         /* if ($bookingType === 'corporate') {
@@ -236,7 +236,7 @@ class ReceptionController extends Controller
                 $q->where('is_corporate_booking', false)
                   ->orWhereNull('is_corporate_booking');
             });
-        // }
+
             
             // Synchronize stats with all current filters
             $statsQuery = clone $baseQuery;
@@ -315,7 +315,7 @@ class ReceptionController extends Controller
                 'checked_in' => (clone $statsQuery)->where('check_in_status', 'checked_in')->count(),
                 'checked_out' => (clone $statsQuery)->where('check_in_status', 'checked_out')->count(),
             ];
-        }
+
 
         $role = $this->getRole();
         
