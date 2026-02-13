@@ -1457,7 +1457,7 @@ class ReceptionController extends Controller
         if ($booking->guest_phone) {
             try {
                 $smsService = app(\App\Services\SmsService::class);
-                $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", we have received your payment of $" . number_format($paymentAmountUsd, 2) . " via " . strtoupper($request->payment_method) . ". Your current total paid is $" . number_format($newAmountPaidUsd, 2) . ". Thank you!";
+                $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", we have received your payment of Tsh " . number_format($paymentAmountTsh, 0, '.', '') . "/= via " . strtoupper($request->payment_method) . ". Your current total paid is Tsh " . number_format($newAmountPaidTsh, 0, '.', '') . "/=. Thank you!";
                 $smsService->sendSms($booking->guest_phone, $smsMessage);
             } catch (\Exception $e) {
                 \Log::error("Failed to send payment receipt SMS to guest: " . $e->getMessage());
@@ -1474,7 +1474,7 @@ class ReceptionController extends Controller
                 if ($staff->phone && $staff->isNotificationEnabled('payment')) {
                     try {
                         $smsService = app(\App\Services\SmsService::class);
-                        $smsMessage = "POS Payment: " . ($booking->guest_name ?? 'Guest') . " paid $" . number_format($paymentAmountUsd, 2) . " via " . strtoupper($request->payment_method) . " (Ref: {$booking->booking_reference})";
+                        $smsMessage = "POS Payment: " . ($booking->guest_name ?? 'Guest') . " paid Tsh " . number_format($paymentAmountTsh, 0, '.', '') . "/= via " . strtoupper($request->payment_method) . " (Ref: {$booking->booking_reference})";
                         $smsService->sendSms($staff->phone, $smsMessage);
                     } catch (\Exception $e) {
                         \Log::error("Failed to send POS payment SMS to manager: " . $e->getMessage());
@@ -1610,7 +1610,7 @@ class ReceptionController extends Controller
             if ($booking->guest_phone) {
                 try {
                     $smsService = app(\App\Services\SmsService::class);
-                    $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", we have received your payment of $" . number_format($totalAdditionalChargesUsd, 2) . " via " . strtoupper($request->payment_method) . ". Your current total paid is $" . number_format($booking->amount_paid, 2) . ". Thank you!";
+                    $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", we have received your payment of Tsh " . number_format($totalAdditionalChargesTsh, 0, '.', '') . "/= via " . strtoupper($request->payment_method) . ". Your current total paid is Tsh " . number_format($booking->amount_paid * ($booking->locked_exchange_rate ?? $exchangeRate), 0, '.', '') . "/=. Thank you!";
                     $smsService->sendSms($booking->guest_phone, $smsMessage);
                 } catch (\Exception $e) {
                     \Log::error("Failed to send checkout payment SMS to guest: " . $e->getMessage());

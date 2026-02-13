@@ -466,7 +466,9 @@ class PaymentController extends Controller
                         if ($staff->phone) {
                             try {
                                 $smsService = app(\App\Services\SmsService::class);
-                                $smsMessage = "Payment Received: " . ($booking->guest_name ?? 'Guest') . " paid $" . number_format($amountPaid, 2) . " via " . strtoupper($paymentMethod) . " (Ref: {$booking->booking_reference})";
+                                $bookingExchangeRate = $booking->fresh()->locked_exchange_rate ?? (new \App\Services\CurrencyExchangeService())->getUsdToTshRate();
+                                $amountPaidTsh = ($amountPaid ?? 0) * $bookingExchangeRate;
+                                $smsMessage = "Payment Received: " . ($booking->guest_name ?? 'Guest') . " paid Tsh " . number_format($amountPaidTsh, 0, '.', '') . "/= via " . strtoupper($paymentMethod) . " (Ref: {$booking->booking_reference})";
                                 $smsService->sendSms($staff->phone, $smsMessage);
                             } catch (\Exception $e) {
                                 Log::error("Failed to send payment received SMS to manager: " . $e->getMessage());
@@ -482,9 +484,11 @@ class PaymentController extends Controller
             if ($booking->guest_phone) {
                 try {
                     $smsService = app(\App\Services\SmsService::class);
-                    $totalAmountPaidFormatted = number_format($booking->fresh()->amount_paid ?? 0, 2);
-                    $recentPaymentAmountFormatted = number_format($paymentAmount ?? 0, 2);
-                    $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", we have received your payment of $" . $recentPaymentAmountFormatted . " via " . strtoupper($paymentMethod) . ". Your current total paid is $" . $totalAmountPaidFormatted . ". Thank you!";
+                    $bookingExchangeRate = $booking->fresh()->locked_exchange_rate ?? (new \App\Services\CurrencyExchangeService())->getUsdToTshRate();
+                    $totalAmountPaidTsh = ($booking->fresh()->amount_paid ?? 0) * $bookingExchangeRate;
+                    $recentPaymentAmountTsh = ($paymentAmount ?? 0) * $bookingExchangeRate;
+                    
+                    $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", we have received your payment of Tsh " . number_format($recentPaymentAmountTsh, 0, '.', '') . "/= via " . strtoupper($paymentMethod) . ". Your current total paid is Tsh " . number_format($totalAmountPaidTsh, 0, '.', '') . "/=. Thank you!";
                     $smsService->sendSms($booking->guest_phone, $smsMessage);
                 } catch (\Exception $e) {
                     Log::error("Failed to send payment confirmation SMS to guest: " . $e->getMessage());
