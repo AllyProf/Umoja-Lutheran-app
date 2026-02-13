@@ -9,6 +9,7 @@ class LoginOtp extends Model
 {
     protected $fillable = [
         'email',
+        'phone',
         'otp',
         'user_type',
         'user_id',
@@ -43,6 +44,29 @@ class LoginOtp extends Model
 
         return self::create([
             'email' => $email,
+            'otp' => self::generate(),
+            'user_type' => $userType,
+            'user_id' => $userId,
+            'ip_address' => $ipAddress,
+            'expires_at' => now()->addMinutes(10), // OTP valid for 10 minutes
+            'used' => false,
+        ]);
+    }
+
+    /**
+     * Create a new OTP for phone
+     */
+    public static function createForPhone(string $phone, string $userType, ?int $userId, string $ipAddress, ?string $email = null): self
+    {
+        // Invalidate any existing unused OTPs for this phone
+        self::where('phone', $phone)
+            ->where('used', false)
+            ->where('expires_at', '>', now())
+            ->update(['used' => true]);
+
+        return self::create([
+            'phone' => $phone,
+            'email' => $email ?? '',
             'otp' => self::generate(),
             'user_type' => $userType,
             'user_id' => $userId,

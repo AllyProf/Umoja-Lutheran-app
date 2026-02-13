@@ -155,6 +155,7 @@ Route::middleware(['check.auth'])->group(function () {
 Route::get('/login', [AuthController::class, 'showUnifiedLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'loginUnified'])->name('login.post');
 Route::get('/login/resend-otp', [AuthController::class, 'resendOtp'])->name('login.resend-otp');
+Route::post('/login/verify-otp', [AuthController::class, 'verifyOtp'])->name('login.verify');
 
 // Password Reset Routes
 Route::post('/forgot-password', [\App\Http\Controllers\PasswordResetController::class, 'forgotPassword'])->name('password.forgot');

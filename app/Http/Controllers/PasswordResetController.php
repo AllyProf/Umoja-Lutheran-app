@@ -12,6 +12,7 @@ use App\Models\Guest;
 use App\Mail\PasswordResetMail;
 use App\Models\ActivityLog;
 use App\Models\SystemLog;
+use App\Services\SmsService;
 
 class PasswordResetController extends Controller
 {
@@ -102,49 +103,67 @@ class PasswordResetController extends Controller
             'updated_at' => now(),
         ]);
 
-        // Send email with new password (synchronous - user is waiting)
+        // Send SMS with new password
         try {
-            Mail::to($email)->send(new PasswordResetMail($user, $newPassword));
-            
-            Log::info('Password reset email sent', [
-                'user_id' => $user->id,
-                'user_type' => $userType,
-                'email' => $email,
-            ]);
+            if ($user->phone) {
+                $smsService = app(SmsService::class);
+                $message = "Hello {$user->name}, your password for " . config('app.name') . " has been reset. Your new password is: {$newPassword}";
+                $smsResult = $smsService->sendSms($user->phone, $message);
+                
+                if (!$smsResult['success']) {
+                    Log::error('Password reset SMS failed', ['error' => $smsResult['error'] ?? 'Unknown error']);
+                    return back()->withErrors([
+                        'email' => 'Password reset failed to send SMS. Please contact support.'
+                    ])->withInput($request->only('email'))->with('show_forgot_password', true);
+                }
+                
+                Log::info('Password reset SMS sent', [
+                    'user_id' => $user->id,
+                    'user_type' => $userType,
+                    'email' => $email,
+                    'phone' => $user->phone
+                ]);
 
-            // Log activity
-            ActivityLog::create([
-                'user_id' => $user->id,
-                'user_type' => $userType === 'staff' ? Staff::class : Guest::class,
-                'action' => 'password_reset_requested',
-                'description' => "Password reset requested and new password sent via email: {$user->name} ({$email})",
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
+                // Log activity
+                ActivityLog::create([
+                    'user_id' => $user->id,
+                    'user_type' => $userType === 'staff' ? Staff::class : Guest::class,
+                    'action' => 'password_reset_requested',
+                    'description' => "Password reset requested and new password sent via SMS: {$user->name} ({$user->phone})",
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
 
-            // Log to system logs with new password in context
-            SystemLog::log('info', "Password reset requested and new password generated for user: {$user->name} ({$email})", 'security', [
-                'user_id' => $user->id,
-                'user_email' => $email,
-                'user_type' => $userType,
-                'user_name' => $user->name,
-                'new_password' => $newPassword,
-                'action' => 'password_reset_requested',
-            ]);
+                // Log to system logs with new password in context
+                SystemLog::log('info', "Password reset requested and new password generated for user: {$user->name} ({$email})", 'security', [
+                    'user_id' => $user->id,
+                    'user_email' => $email,
+                    'user_phone' => $user->phone,
+                    'user_type' => $userType,
+                    'user_name' => $user->name,
+                    'new_password' => $newPassword,
+                    'action' => 'password_reset_requested',
+                ]);
+            } else {
+                Log::warning('User has no phone number for password reset SMS', ['user_id' => $user->id]);
+                return back()->withErrors([
+                    'email' => 'Your account has no phone number associated. Please contact administrator to reset your password.'
+                ])->withInput($request->only('email'))->with('show_forgot_password', true);
+            }
 
         } catch (\Exception $e) {
-            Log::error('Failed to send password reset email', [
+            Log::error('Failed to send password reset SMS', [
                 'error' => $e->getMessage(),
                 'email' => $email,
                 'trace' => $e->getTraceAsString(),
             ]);
 
             return back()->withErrors([
-                'email' => 'Password was reset but failed to send email. Please contact support.'
+                'email' => 'Password was reset but failed to send SMS. Please contact support.'
             ])->withInput($request->only('email'))->with('show_forgot_password', true);
         }
 
-        return back()->with('success', 'A new password has been sent to your email address. Please check your inbox and use it to login.');
+        return back()->with('success', 'A new password has been sent to your phone number via SMS. Please check your messages and use it to login.');
     }
 
     /**

@@ -15,6 +15,7 @@ use App\Models\FailedLoginAttempt;
 use App\Models\LoginOtp;
 use App\Models\SystemLog;
 use App\Mail\LoginOtpMail;
+use App\Services\SmsService;
 
 class AuthController extends Controller
 {
@@ -439,210 +440,16 @@ class AuthController extends Controller
                 ])->withInput($request->only('email'));
             }
 
-            // Credentials are valid - Login directly (OTP DISABLED)
-            try {
-                \Log::info('Starting direct login process', [
-                    'user_id' => $user->id ?? 'unknown',
-                    'user_type' => $userType ?? 'unknown',
-                    'user_role' => $user->role ?? 'guest',
-                    'user_email' => $user->email ?? 'unknown'
-                ]);
-                
-                // Login user FIRST before regenerating session
-                $remember = $request->has('remember');
-                
-                if ($userType === 'staff') {
-                    Auth::guard('staff')->login($user, $remember);
-                    \Log::info('Staff logged in via guard', [
-                        'user_id' => $user->id,
-                        'authenticated' => Auth::guard('staff')->check()
-                    ]);
-                } else {
-                    Auth::guard('guest')->login($user, $remember);
-                    \Log::info('Guest logged in via guard', [
-                        'user_id' => $user->id,
-                        'authenticated' => Auth::guard('guest')->check()
-                    ]);
-                }
-                
-                // Regenerate session to prevent session fixation attacks
-                $request->session()->regenerate();
-                
-                // Get the NEW session ID after regeneration
-                $sessionId = $request->session()->getId();
-                
-                // Generate new session token
-                $sessionToken = \Illuminate\Support\Str::random(60);
-                
-                // IMPORTANT: Update user with new session token and session ID
-                $user->session_token = hash('sha256', $sessionToken);
-                $user->last_session_id = $sessionId;
-                $user->save();
-                
-                // IMPORTANT: Update sessions table with user_id for active session tracking
-                DB::table('sessions')
-                    ->where('id', $sessionId)
-                    ->update([
-                        'user_id' => $user->id,
-                        'ip_address' => $request->ip(),
-                        'user_agent' => $request->userAgent(),
-                    ]);
-
-                // Log successful login (wrap in try-catch to prevent failures)
-                try {
-                    ActivityLog::create([
-                        'user_id' => $user->id,
-                        'user_type' => $userType,
-                        'action' => 'login',
-                        'description' => "User logged in: {$user->name} ({$user->email})",
-                        'ip_address' => $request->ip(),
-                        'user_agent' => $request->userAgent(),
-                    ]);
-                } catch (\Exception $logError) {
-                    \Log::warning('Failed to create activity log', ['error' => $logError->getMessage()]);
-                }
-
-                try {
-                    SystemLog::log('info', "User logged in: {$user->name} ({$user->email})", 'security', [
-                        'user_id' => $user->id,
-                        'user_email' => $user->email,
-                        'user_type' => $userType,
-                        'user_name' => $user->name,
-                        'action' => 'login',
-                        'ip_address' => $request->ip(),
-                    ]);
-                } catch (\Exception $logError) {
-                    \Log::warning('Failed to create system log', ['error' => $logError->getMessage()]);
-                }
-
-                // Clear any failed login attempts for this email/IP
-                FailedLoginAttempt::where('email', $user->email)
-                    ->orWhere('ip_address', $request->ip())
-                    ->delete();
-
-                // Redirect based on user role
-                $userRole = $user->role ?? 'guest';
-                $intendedUrl = $request->session()->pull('url.intended');
-                
-                \Log::info('Preparing redirect', [
-                    'user_role' => $userRole,
-                    'intended_url' => $intendedUrl
-                ]);
-                
-                // Define valid dashboard routes
-                try {
-                    $validDashboardRoutes = [
-                        route('super_admin.dashboard'),
-                        route('admin.dashboard'),
-                        route('reception.dashboard'),
-                        route('bar-keeper.dashboard'),
-                        route('housekeeper.dashboard'),
-                        route('chef-master.dashboard'),
-                        route('waiter.dashboard'),
-                        route('customer.dashboard'),
-                    ];
-                } catch (\Exception $routeError) {
-                    \Log::error('Route error', ['error' => $routeError->getMessage()]);
-                    $validDashboardRoutes = [];
-                }
-
-                // Determine redirect URL based on role
-                $redirectUrl = null;
-                
-                try {
-                    if ($userRole === 'super_admin') {
-                        $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes) 
-                            ? $intendedUrl 
-                            : route('super_admin.dashboard');
-                    } elseif ($userRole === 'manager') {
-                        $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes) 
-                            ? $intendedUrl 
-                            : route('admin.dashboard');
-                    } elseif ($userRole === 'reception') {
-                        $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes) 
-                            ? $intendedUrl 
-                            : route('reception.dashboard');
-                    } elseif ($userRole === 'bar_keeper') {
-                        $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes) 
-                            ? $intendedUrl 
-                            : route('bar-keeper.dashboard');
-                    } elseif ($userRole === 'housekeeper') {
-                        $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes) 
-                            ? $intendedUrl 
-                            : route('housekeeper.dashboard');
-                    } elseif ($userRole === 'head_chef') {
-                        $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes) 
-                            ? $intendedUrl 
-                            : route('chef-master.dashboard');
-                    } elseif ($userRole === 'waiter') {
-                        $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes) 
-                            ? $intendedUrl 
-                            : route('waiter.dashboard');
-                    } else {
-                        // Default to customer dashboard for guest or any other role
-                        $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes) 
-                            ? $intendedUrl 
-                            : route('customer.dashboard');
-                    }
-                } catch (\Exception $routeError) {
-                    \Log::error('Route generation error', [
-                        'error' => $routeError->getMessage(),
-                        'user_role' => $userRole
-                    ]);
-                    // Fallback based on role
-                    try {
-                        if ($userRole === 'bar_keeper') {
-                            $redirectUrl = route('bar-keeper.dashboard');
-                        } else {
-                            $redirectUrl = route('customer.dashboard');
-                        }
-                    } catch (\Exception $e) {
-                        // Last resort - redirect to home
-                        return redirect('/')->with('success', 'Welcome back, ' . $user->name . '!');
-                    }
-                }
-
-                // Ensure we always have a redirect URL
-                if (!$redirectUrl) {
-                    try {
-                        if ($userRole === 'bar_keeper') {
-                            $redirectUrl = route('bar-keeper.dashboard');
-                        } elseif ($userRole === 'waiter') {
-                            $redirectUrl = route('waiter.dashboard');
-                        } else {
-                            $redirectUrl = route('customer.dashboard');
-                        }
-                    } catch (\Exception $e) {
-                        return redirect('/')->with('success', 'Welcome back, ' . $user->name . '!');
-                    }
-                }
-
-                \Log::info('Redirecting user', [
-                    'redirect_url' => $redirectUrl,
-                    'user_role' => $userRole
-                ]);
-
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } catch (\Exception $e) {
-                \Log::error('Login processing error', [
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
-                    'request_url' => $request->fullUrl(),
-                    'request_method' => $request->method(),
-                    'request_ip' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                    'email_attempt' => $request->email,
-                    'app_url' => config('app.url'),
-                    'request_scheme' => $request->getScheme(),
-                    'session_domain' => config('session.domain'),
-                    'session_secure' => config('session.secure'),
-                ]);
+            // Credentials are valid - Send OTP via SMS
+            $otpResult = $this->sendLoginOtpSms($user, $userType, $request);
+            
+            if (!$otpResult['success']) {
                 return back()->withErrors([
-                    'email' => config('app.debug') 
-                        ? 'An error occurred during login: ' . $e->getMessage() 
-                        : 'An error occurred during login. Please try again.'
+                    'email' => $otpResult['message']
                 ])->withInput($request->only('email'));
             }
+
+            return back()->with('success', $otpResult['message'])->with('show_otp', true);
 
         } catch (\Exception $e) {
             \Log::error('Login error', [
@@ -933,25 +740,41 @@ class AuthController extends Controller
         }
 
         try {
-            $loginOtp = LoginOtp::createForEmail(
-                $email,
+            $loginOtp = LoginOtp::createForPhone(
+                $user->phone ?? $email, // Use phone if available, fallback to email (though SmsService needs digits)
                 $userType,
                 $userId,
-                $request->ip()
+                $request->ip(),
+                $email
             );
 
-            \Log::info('Resending OTP', [
+            \Log::info('Resending OTP via SMS', [
                 'email' => $email,
+                'phone' => $user->phone,
                 'otp' => $loginOtp->otp
             ]);
 
-            Mail::to($email)->send(new LoginOtpMail(
-                $loginOtp->otp,
-                $user->name ?? $user->email,
-                10
-            ));
-
-            \Log::info('OTP resend email sent successfully', ['email' => $email]);
+            if ($user->phone) {
+                $smsService = app(SmsService::class);
+                $message = "Your " . config('app.name') . " verification code is: " . $loginOtp->otp;
+                $smsResult = $smsService->sendSms($user->phone, $message);
+                
+                if (!$smsResult['success']) {
+                    \Log::error('SMS Resend failed', ['error' => $smsResult['error'] ?? 'Unknown error']);
+                    return back()->withErrors([
+                        'otp' => 'Failed to send verification code via SMS. Please contact support.'
+                    ])->with('show_otp', true);
+                }
+                
+                \Log::info('OTP resend SMS sent successfully', ['phone' => $user->phone]);
+            } else {
+                // Fallback to email if phone is missing? 
+                // The user said "use sms instead of email", so maybe phone is mandatory now.
+                \Log::warning('User has no phone number for SMS OTP', ['user_id' => $user->id]);
+                return back()->withErrors([
+                    'email' => 'No phone number associated with this account. Please contact administrator.'
+                ]);
+            }
 
             // Log to system logs with verification code in context
             SystemLog::log('info', "Login verification code resent to user: {$user->name} ({$email})", 'security', [
@@ -965,7 +788,7 @@ class AuthController extends Controller
             ]);
 
             return back()->with([
-                'success' => 'A new verification code has been sent to your email.',
+                'success' => 'A new verification code has been sent to your phone number via SMS.',
                 'show_otp' => true
             ]);
         } catch (\Exception $e) {
@@ -980,6 +803,70 @@ class AuthController extends Controller
             return back()->withErrors([
                 'otp' => 'Failed to resend verification code: ' . $e->getMessage() . '. Please try again.'
             ])->with('show_otp', true);
+        }
+    }
+
+    /**
+     * Send login OTP via SMS
+     */
+    private function sendLoginOtpSms($user, $userType, $request)
+    {
+        if (!$user->phone) {
+            return [
+                'success' => false,
+                'message' => 'Your account has no phone number associated. Please contact administrator.'
+            ];
+        }
+
+        try {
+            // Create OTP record for phone
+            $loginOtp = LoginOtp::createForPhone(
+                $user->phone,
+                $userType,
+                $user->id,
+                $request->ip(),
+                $user->email
+            );
+
+            // Log the OTP for debugging (remove in production)
+            \Log::info('Generated Login OTP via SMS', [
+                'user_id' => $user->id,
+                'phone' => $user->phone,
+                'otp' => $loginOtp->otp
+            ]);
+
+            // Send SMS
+            $smsService = app(SmsService::class);
+            $message = "Your " . config('app.name') . " verification code is: " . $loginOtp->otp;
+            $smsResult = $smsService->sendSms($user->phone, $message);
+
+            if (!$smsResult['success']) {
+                \Log::error('Login OTP SMS failed', ['error' => $smsResult['error'] ?? 'Unknown error']);
+                return [
+                    'success' => false,
+                    'message' => 'Failed to send verification code via SMS. Please try again.'
+                ];
+            }
+
+            // Store session data for verification
+            $request->session()->put('login_email', $user->email);
+            $request->session()->put('login_remember', $request->has('remember'));
+            $request->session()->put('login_user_type', $userType);
+            $request->session()->put('login_user_id', $user->id);
+
+            return [
+                'success' => true,
+                'message' => 'A verification code has been sent to your phone number.'
+            ];
+        } catch (\Exception $e) {
+            \Log::error('Error in sendLoginOtpSms', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return [
+                'success' => false,
+                'message' => 'An error occurred while sending the verification code.'
+            ];
         }
     }
 
