@@ -203,7 +203,4 @@
 @endif
 
 {{-- 5. Utilities (Always show) --}}
-<li class="treeview-item-header" style="padding: 10px 20px; color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-top: 10px;">Utilities</li>
-@if($hasPermission('manage_exchange_rates') || $isSuperAdmin())
-<li><a class="app-menu__item {{ str_contains($activePage, 'exchange-rates') ? 'active' : '' }}" href="{{ route('exchange-rates') }}"><i class="app-menu__icon fa fa-exchange"></i><span class="app-menu__label">Exchange Rates</span></a></li>
-@endif
+

@@ -59,7 +59,7 @@
           </div>
           <div class="col-md-3">
             <div class="widget-small danger coloured-icon">
-              <i class="icon fa fa-dollar fa-2x"></i>
+              <i class="icon fa fa-money fa-2x"></i>
               <div class="info">
                 <h4>Week Revenue</h4>
                 <p><b>{{ number_format($weekRevenueTZS, 0) }} TZS</b></p>
@@ -225,9 +225,8 @@
           </div>
           <div class="col-md-4">
             <div class="alert alert-success">
-              <h5><i class="fa fa-dollar"></i> Expected Revenue</h5>
+              <h5><i class="fa fa-money"></i> Expected Revenue</h5>
               <p class="mb-0"><strong>{{ number_format($nextWeekExpectedRevenueTZS, 0) }} TZS</strong></p>
-              <small>≈ ${{ number_format($nextWeekExpectedRevenueTZS / $exchangeRate, 2) }}</small>
             </div>
           </div>
         </div>

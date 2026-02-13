@@ -613,11 +613,7 @@
                 </div>
                 <div class="receipt-info-row">
                     <span class="receipt-info-label">Total Revenue:</span>
-                    <span class="receipt-info-value"><span class="amount-highlight">{{ number_format($totalRevenueAll ?? ($stats['total_revenue'] ?? 0), 2) }} TZS</span></span>
-                </div>
-                <div class="receipt-info-row">
-                    <span class="receipt-info-label"></span>
-                    <span class="receipt-info-value" style="color: #666; font-size: 12px;">≈ ${{ number_format(($totalRevenueAll ?? ($stats['total_revenue'] ?? 0)) / $exchangeRate, 2) }}</span>
+                    <span class="receipt-info-value"><span class="amount-highlight">{{ number_format($totalRevenueAll ?? ($stats['total_revenue'] ?? 0), 0) }} TZS</span></span>
                 </div>
             </div>
         </div>
@@ -670,29 +666,24 @@
                 <tr>
                     <th>Revenue Source</th>
                     <th style="text-align: right;">Amount (TZS)</th>
-                    <th style="text-align: right;">Amount (USD)</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td>Room Bookings</td>
-                    <td style="text-align: right;"><strong>{{ number_format($stats['total_revenue'] ?? 0, 2) }} TZS</strong></td>
-                    <td style="text-align: right;">≈ ${{ number_format($stats['total_revenue_usd'] ?? 0, 2) }}</td>
+                    <td style="text-align: right;"><strong>{{ number_format($stats['total_revenue'] ?? 0, 0) }} TZS</strong></td>
                 </tr>
                 <tr>
                     <td>Day Services</td>
-                    <td style="text-align: right;"><strong>{{ number_format($dayServicesRevenue ?? 0, 2) }} TZS</strong></td>
-                    <td style="text-align: right;">≈ ${{ number_format(($dayServicesRevenue ?? 0) / $exchangeRate, 2) }}</td>
+                    <td style="text-align: right;"><strong>{{ number_format($dayServicesRevenue ?? 0, 0) }} TZS</strong></td>
                 </tr>
                 <tr>
                     <td>Service Requests</td>
-                    <td style="text-align: right;"><strong>{{ number_format($serviceRequests['revenue'] ?? 0, 2) }} TZS</strong></td>
-                    <td style="text-align: right;">≈ ${{ number_format(($serviceRequests['revenue'] ?? 0) / $exchangeRate, 2) }}</td>
+                    <td style="text-align: right;"><strong>{{ number_format($serviceRequests['revenue'] ?? 0, 0) }} TZS</strong></td>
                 </tr>
                 <tr class="total-row">
                     <td><strong>Total Revenue</strong></td>
-                    <td style="text-align: right;"><strong style="color: #e07632; font-size: 16px;">{{ number_format($totalRevenueAll ?? ($stats['total_revenue'] ?? 0), 2) }} TZS</strong></td>
-                    <td style="text-align: right;"><strong style="color: #e07632; font-size: 16px;">≈ ${{ number_format(($totalRevenueAll ?? ($stats['total_revenue'] ?? 0)) / $exchangeRate, 2) }}</strong></td>
+                    <td style="text-align: right;"><strong style="color: #e07632; font-size: 16px;">{{ number_format($totalRevenueAll ?? ($stats['total_revenue'] ?? 0), 0) }} TZS</strong></td>
                 </tr>
             </tbody>
         </table>
@@ -773,7 +764,7 @@
                 </tr>
                 <tr class="total-row">
                     <td><strong>Service Revenue</strong></td>
-                    <td style="text-align: right;"><strong style="color: #e07632; font-size: 14px;">{{ number_format($serviceRequests['revenue'] ?? 0, 2) }} TZS</strong><br><small style="color: #666;">≈ ${{ number_format(($serviceRequests['revenue'] ?? 0) / $exchangeRate, 2) }}</small></td>
+                    <td style="text-align: right;"><strong style="color: #e07632; font-size: 14px;">{{ number_format($serviceRequests['revenue'] ?? 0, 0) }} TZS</strong></td>
                 </tr>
             </tbody>
         </table>
@@ -819,21 +810,21 @@
                     <td style="text-align: right;"><strong>{{ $ceremonyTotal }}</strong></td>
                     <td style="text-align: right;"><strong style="color: #28a745;">{{ $ceremonyPaid }}</strong></td>
                     <td style="text-align: right;"><strong style="color: #dc3545;">{{ $ceremonyUnpaid }}</strong></td>
-                    <td style="text-align: right;"><strong>{{ number_format($ceremonyRevenue, 2) }}</strong></td>
+                    <td style="text-align: right;"><strong>{{ number_format($ceremonyRevenue, 0) }}</strong></td>
                 </tr>
                 <tr>
                     <td>Walk-in Sales</td>
                     <td style="text-align: right;"><strong>{{ $walkInTotal }}</strong></td>
                     <td style="text-align: right;"><strong style="color: #28a745;">{{ $walkInPaid }}</strong></td>
                     <td style="text-align: right;"><strong style="color: #dc3545;">{{ $walkInUnpaid }}</strong></td>
-                    <td style="text-align: right;"><strong>{{ number_format($walkInRevenue, 2) }}</strong></td>
+                    <td style="text-align: right;"><strong>{{ number_format($walkInRevenue, 0) }}</strong></td>
                 </tr>
                 <tr class="total-row">
                     <td><strong>Total Bar/Restaurant</strong></td>
                     <td style="text-align: right;"><strong>{{ $ceremonyTotal + $walkInTotal }}</strong></td>
                     <td style="text-align: right;"><strong style="color: #28a745;">{{ $ceremonyPaid + $walkInPaid }}</strong></td>
                     <td style="text-align: right;"><strong style="color: #dc3545;">{{ $ceremonyUnpaid + $walkInUnpaid }}</strong></td>
-                    <td style="text-align: right;"><strong style="color: #e07632; font-size: 14px;">{{ number_format($totalConsumptionRevenue, 2) }} TZS</strong><br><small style="color: #666;">≈ ${{ number_format($totalConsumptionRevenue / $exchangeRate, 2) }}</small></td>
+                    <td style="text-align: right;"><strong style="color: #e07632; font-size: 14px;">{{ number_format($totalConsumptionRevenue, 0) }} TZS</strong></td>
                 </tr>
             </tbody>
         </table>
@@ -856,11 +847,11 @@
             <div class="receipt-column">
                 <div class="receipt-info-row">
                     <span class="receipt-info-label">This Month Revenue:</span>
-                    <span class="receipt-info-value" style="color: #e07632;"><strong>{{ number_format($stats['month_revenue'] ?? 0, 2) }} TZS</strong></span>
+                    <span class="receipt-info-value" style="color: #e07632;"><strong>{{ number_format($stats['month_revenue'] ?? 0, 0) }} TZS</strong></span>
                 </div>
                 <div class="receipt-info-row">
                     <span class="receipt-info-label">Last Month Revenue:</span>
-                    <span class="receipt-info-value" style="color: #666;">{{ number_format($stats['last_month_revenue'] ?? 0, 2) }} TZS</span>
+                    <span class="receipt-info-value" style="color: #666;">{{ number_format($stats['last_month_revenue'] ?? 0, 0) }} TZS</span>
                 </div>
             </div>
         </div>
@@ -897,7 +888,7 @@
                     <td><strong>{{ $roomData->room->room_number ?? 'N/A' }}</strong></td>
                     <td>{{ $roomData->room->room_type ?? 'N/A' }}</td>
                     <td style="text-align: right;"><strong>{{ $roomData->booking_count }}</strong></td>
-                    <td style="text-align: right;"><strong>{{ number_format($roomData->total_revenue ?? 0, 2) }} TZS</strong></td>
+                    <td style="text-align: right;"><strong>{{ number_format($roomData->total_revenue ?? 0, 0) }} TZS</strong></td>
                 </tr>
                 @endforeach
             </tbody>

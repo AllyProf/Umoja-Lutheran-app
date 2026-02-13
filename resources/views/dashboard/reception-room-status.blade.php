@@ -144,7 +144,7 @@
                             'number' => $room->room_number,
                             'type' => $room->room_type,
                             'status' => $statusText,
-                            'price' => $room->price_per_night,
+                            'price' => $room->price_per_night * ($exchangeRate ?? 2500),
                             'capacity' => $room->capacity,
                             'guest' => null,
                             'checkin' => null,
@@ -168,11 +168,11 @@
                                 ->sum('total_price_tsh');
                             
                             $bookingExchangeRate = $booking->locked_exchange_rate ?? ($exchangeRate ?? 2500);
-                            $servicesBillUsd = ($bookingExchangeRate > 0) ? ($servicesBillTsh / $bookingExchangeRate) : 0;
-                            $grandTotalUsd = $roomBillUsd + $servicesBillUsd;
+                            $roomBillTsh = $roomBillUsd * $bookingExchangeRate;
+                            $grandTotalTsh = $roomBillTsh + $servicesBillTsh;
 
-                            $roomData['paid'] = number_format($booking->amount_paid ?? 0, 2);
-                            $roomData['total'] = number_format($grandTotalUsd, 2);
+                            $roomData['paid'] = number_format(($booking->amount_paid ?? 0) * $bookingExchangeRate, 0);
+                            $roomData['total'] = number_format($grandTotalTsh, 0);
                         } elseif ($room->has_immediate_booking && $room->upcoming_checkin) {
                             $roomData['guest'] = $room->upcoming_checkin->guest_name;
                             $roomData['checkin'] = \Carbon\Carbon::parse($room->upcoming_checkin->check_in)->format('M d, Y H:i');
@@ -391,7 +391,7 @@
         document.getElementById('modalRoomTitle').innerText = 'Room ' + data.number;
         document.getElementById('modalRoomType').innerText = data.type;
         document.getElementById('modalStatus').innerHTML = '<span class="badge badge-secondary">' + data.status + '</span>';
-        document.getElementById('modalPrice').innerText = '$' + data.price;
+        document.getElementById('modalPrice').innerText = data.price.toLocaleString() + ' TZS';
         document.getElementById('modalCapacity').innerText = data.capacity + ' Person(s)';
 
         // Reset visibility
@@ -413,7 +413,7 @@
             document.getElementById('rowCheckout').style.display = 'table-row';
 
             if (data.paid !== null) {
-                 document.getElementById('modalPayment').innerText = 'Paid: $' + data.paid + ' / Total: $' + data.total;
+                 document.getElementById('modalPayment').innerText = 'Paid: ' + data.paid + ' TZS / Total: ' + data.total + ' TZS';
                  document.getElementById('rowPayment').style.display = 'table-row';
             }
             

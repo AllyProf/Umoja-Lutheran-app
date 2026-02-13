@@ -196,13 +196,13 @@
   <div class="row mb-3">
     <div class="col-md-12">
       <div class="tile">
-        <h3 class="tile-title"><i class="fa fa-dollar"></i> Default Pricing by Room Type</h3>
+        <h3 class="tile-title"><i class="fa fa-money"></i> Default Pricing by Room Type</h3>
         <div class="tile-body">
           <p class="text-muted">Set default prices that will be suggested when creating new rooms.</p>
           <div class="row">
             <div class="col-md-4">
               <div class="form-group">
-                <label for="default_price_single">Single Room (USD per night)</label>
+                <label for="default_price_single">Single Room (TZS per night)</label>
                 <input type="number" class="form-control" id="default_price_single" 
                        name="default_price_single" 
                        value="{{ \App\Models\HotelSetting::getValue('default_price_single') }}" 
@@ -211,7 +211,7 @@
             </div>
             <div class="col-md-4">
               <div class="form-group">
-                <label for="default_price_double">Double Room (USD per night)</label>
+                <label for="default_price_double">Double Room (TZS per night)</label>
                 <input type="number" class="form-control" id="default_price_double" 
                        name="default_price_double" 
                        value="{{ \App\Models\HotelSetting::getValue('default_price_double') }}" 
@@ -220,7 +220,7 @@
             </div>
             <div class="col-md-4">
               <div class="form-group">
-                <label for="default_price_twins">Standard Twin Room (USD per night)</label>
+                <label for="default_price_twins">Standard Twin Room (TZS per night)</label>
                 <input type="number" class="form-control" id="default_price_twins" 
                        name="default_price_twins" 
                        value="{{ \App\Models\HotelSetting::getValue('default_price_twins') }}" 

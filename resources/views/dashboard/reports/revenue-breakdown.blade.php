@@ -74,7 +74,6 @@
       <div class="info">
         <h4>Room Revenue</h4>
         <p><b>{{ number_format($roomRevenueTZS, 0) }} TZS</b></p>
-        <small>≈ ${{ number_format($roomRevenueTZS / $exchangeRate, 2) }}</small>
       </div>
     </div>
   </div>
@@ -98,11 +97,10 @@
   </div>
   <div class="col-md-3">
     <div class="widget-small danger coloured-icon">
-      <i class="icon fa fa-dollar fa-2x"></i>
+      <i class="icon fa fa-money fa-2x"></i>
       <div class="info">
         <h4>Total Revenue</h4>
         <p><b>{{ number_format($totalRevenueTZS, 0) }} TZS</b></p>
-        <small>≈ ${{ number_format($totalRevenueUSD ?? ($totalRevenueTZS / $exchangeRate), 2) }}</small>
       </div>
     </div>
   </div>

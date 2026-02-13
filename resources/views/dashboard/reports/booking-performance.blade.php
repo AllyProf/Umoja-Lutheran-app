@@ -96,7 +96,6 @@
       <div class="info">
         <h4>Booking Revenue</h4>
         <p><b>{{ number_format($totalRevenueTZS, 0) }} TZS</b></p>
-        <small>≈ ${{ number_format($totalRevenueUSD, 2) }}</small>
       </div>
     </div>
   </div>
@@ -138,7 +137,7 @@
         <table class="table table-bordered">
           <tr>
             <td><strong>Avg Revenue per Booking:</strong></td>
-            <td><strong>{{ number_format($avgBookingValueTZS, 0) }} TZS</strong> (≈ ${{ number_format($avgBookingValueUSD, 2) }})</td>
+            <td><strong>{{ number_format($avgBookingValueTZS, 0) }} TZS</strong></td>
           </tr>
           <tr>
             <td><strong>Average Lead Time:</strong></td>

@@ -18,7 +18,6 @@
       <div class="info">
         <h4>Today's Revenue</h4>
         <p><b>{{ number_format($todayRevenueTZS ?? 0, 0) }} TZS</b></p>
-        <small>≈ ${{ number_format($todayRevenueUSD ?? 0, 2) }}</small>
       </div>
     </div>
   </div>
@@ -38,7 +37,6 @@
       <div class="info">
         <h4>Month Revenue</h4>
         <p><b>{{ number_format($monthRevenueTZS ?? 0, 0) }} TZS</b></p>
-        <small>≈ ${{ number_format($monthRevenueUSD ?? 0, 2) }}</small>
       </div>
     </div>
   </div>

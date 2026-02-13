@@ -344,7 +344,7 @@
 
         <!-- Step 3: Payment Information -->
         <div class="wizard-step" data-step="3" style="display: none;">
-          <h4 class="mb-4"><i class="fa fa-dollar"></i> Payment Information</h4>
+          <h4 class="mb-4"><i class="fa fa-money"></i> Payment Information</h4>
         
         <div class="alert alert-info" id="calculationHint" style="display: none;">
           <i class="fa fa-info-circle"></i> <strong>Note:</strong> Please select a room and set check-in/check-out dates to see the recommended price.
@@ -550,7 +550,7 @@
 
             <div class="card mb-3">
               <div class="card-header bg-success text-white">
-                <h5 class="mb-0"><i class="fa fa-dollar"></i> Payment Information</h5>
+                <h5 class="mb-0"><i class="fa fa-money"></i> Payment Information</h5>
               </div>
               <div class="card-body">
                 <table class="table table-sm mb-0">

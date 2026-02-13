@@ -47,7 +47,6 @@
       <div class="info">
         <h4>Today's Revenue</h4>
         <p><b>{{ number_format($stats['today_revenue'] ?? 0, 0) }} TZS</b></p>
-        <small style="font-size: 11px; color: #666;"><b>≈ ${{ number_format(($stats['today_revenue'] ?? 0) / ($exchangeRate ?? 2500), 2) }}</b></small>
       </div>
     </div>
   </div>
@@ -173,10 +172,10 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="widget-small primary coloured-icon"><i class="icon fa fa-dollar fa-2x"></i>
+                    <div class="widget-small primary coloured-icon"><i class="icon fa fa-money fa-2x"></i>
                         <div class="info">
                             <h4>Total Revenue</h4>
-                            <p><b>{{ number_format($stats['total_revenue'] ?? 0, 0) }} TSH</b></p>
+                            <p><b>{{ number_format($stats['total_revenue'] ?? 0, 0) }} TZS</b></p>
                         </div>
                     </div>
                 </div>
@@ -338,8 +337,7 @@
                                     <small>{{ $booking->check_in->format('M d') }} - {{ $booking->check_out->format('M d') }}</small>
                                 </td>
                                 <td>
-                                    <strong>${{ number_format($booking->total_price, 2) }}</strong>
-                                    <br><small class="text-muted">{{ number_format($booking->total_price * ($booking->locked_exchange_rate ?? $exchangeRate ?? 2500), 0) }} TZS</small>
+                                    <strong>{{ number_format($booking->total_price * ($booking->locked_exchange_rate ?? $exchangeRate ?? 2500), 0) }} TZS</strong>
                                 </td>
                                 <td>
                                     @if($booking->status === 'confirmed') <span class="badge badge-success">Confirmed</span>
@@ -474,19 +472,15 @@
                     let exchangeRate = {{ $exchangeRate ?? 2500 }};
                     let lockedRate = parseFloat(b.locked_exchange_rate) || exchangeRate;
                     
-                    // Financial breakdown
-                    let roomTotalUsd = parseFloat(b.total_price) || 0;
+                    // Financial breakdown (Everything converted to TZS)
+                    let roomTotalTsh = parseFloat(b.total_price) * lockedRate || 0;
                     let serviceTotalTsh = parseFloat(b.total_service_charges_tsh) || 0;
-                    let serviceTotalUsd = serviceTotalTsh / lockedRate;
-                    let grandTotalUsd = roomTotalUsd + serviceTotalUsd;
-                    let paidUsd = parseFloat(b.amount_paid) || 0;
-                    
-                    let grandTotalTsh = Math.round(grandTotalUsd * lockedRate);
-                    let paidTsh = Math.round(paidUsd * lockedRate);
-                    let balanceUsd = Math.max(0, grandTotalUsd - paidUsd);
+                    let grandTotalTsh = roomTotalTsh + serviceTotalTsh;
+                    let paidTsh = parseFloat(b.amount_paid) * lockedRate || 0;
+                    let balanceTsh = Math.max(0, grandTotalTsh - paidTsh);
                     
                     // Dynamic percentage calculation
-                    let calcPercent = grandTotalUsd > 0 ? Math.min(Math.round((paidUsd / grandTotalUsd) * 100), 100) : 0;
+                    let calcPercent = grandTotalTsh > 0 ? Math.min(Math.round((paidTsh / grandTotalTsh) * 100), 100) : 0;
                     
                     let html = `
                         <div class="row">
@@ -545,19 +539,17 @@
                                             </div>
                                             <div class="col-md-3 p-3 border-right text-center bg-light">
                                                 <small class="text-muted d-block text-uppercase">Bill Breakdown</small>
-                                                <small class="d-block text-primary">Stay: $${roomTotalUsd.toFixed(2)}</small>
-                                                <small class="d-block text-info">Service: $${serviceTotalUsd.toFixed(2)}</small>
+                                                <small class="d-block text-primary">Stay: ${roomTotalTsh.toLocaleString()} TZS</small>
+                                                <small class="d-block text-info">Service: ${serviceTotalTsh.toLocaleString()} TZS</small>
                                             </div>
                                             <div class="col-md-3 p-3 text-center bg-primary text-white">
                                                 <small class="text-white-50 d-block text-uppercase font-weight-bold">Grand Total</small>
-                                                <strong class="h4 mb-0">$${grandTotalUsd.toFixed(2)}</strong>
-                                                <br><small class="text-white-50">${grandTotalTsh.toLocaleString()} TSH</small>
+                                                <strong class="h4 mb-0">${grandTotalTsh.toLocaleString()} TZS</strong>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
                             <div class="col-md-12 mt-3 mb-2">
                                 <div class="d-flex justify-content-between mb-1">
                                     <small class="text-muted">Payment Progress</small>
@@ -569,13 +561,12 @@
                                 <div class="d-flex justify-content-between mt-2">
                                     <div>
                                         <small class="text-muted d-block">RECEIVED AMOUNT</small>
-                                        <span class="font-weight-bold text-success">$${paidUsd.toFixed(2)}</span>
-                                        <small class="text-muted ml-1">(${paidTsh.toLocaleString()} TZS)</small>
+                                        <span class="font-weight-bold text-success">${paidTsh.toLocaleString()} TZS</span>
                                     </div>
                                     <div class="text-right">
                                         <small class="text-muted d-block uppercase">Outstanding Balance</small>
-                                        <span class="h5 mb-0 font-weight-bold ${balanceUsd > 0 ? 'text-danger' : 'text-success'}">
-                                            ${balanceUsd > 0 ? '$' + balanceUsd.toFixed(2) : 'SETTLED'}
+                                        <span class="h5 mb-0 font-weight-bold ${balanceTsh > 0 ? 'text-danger' : 'text-success'}">
+                                            ${balanceTsh > 0 ? balanceTsh.toLocaleString() + ' TZS' : 'SETTLED'}
                                         </span>
                                     </div>
                                 </div>

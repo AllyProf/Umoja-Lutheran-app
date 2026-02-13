@@ -77,11 +77,11 @@
           </div>
           <div class="col-md-3">
             <div class="widget-small danger coloured-icon">
-              <i class="icon fa fa-dollar fa-2x"></i>
+              <i class="icon fa fa-money fa-2x"></i>
               <div class="info">
                 <h4>Total Daily Income</h4>
                 <p><b>{{ number_format($grandTotalRevenueTZS, 0) }} TZS</b></p>
-                <small>≈ ${{ number_format($grandTotalRevenueTZS / $exchangeRate, 2) }}</small>
+
                 <div class="mt-2 small border-top pt-1 text-muted">
                   <div class="d-flex justify-content-between"><span>Bookings:</span> <span>{{ number_format($todayRevenueTZS, 0) }}</span></div>
                   <div class="d-flex justify-content-between"><span>Services (F&B):</span> <span>{{ number_format($todayServiceRevenueTZS, 0) }}</span></div>
@@ -227,9 +227,8 @@
           </div>
           <div class="col-md-4">
             <div class="alert alert-success">
-              <h5><i class="fa fa-dollar"></i> Expected Revenue</h5>
+              <h5><i class="fa fa-money"></i> Expected Revenue</h5>
               <p class="mb-0"><strong>{{ number_format($tomorrowExpectedRevenueTZS, 0) }} TZS</strong></p>
-              <small>≈ ${{ number_format($tomorrowExpectedRevenueTZS / $exchangeRate, 2) }}</small>
             </div>
           </div>
         </div>

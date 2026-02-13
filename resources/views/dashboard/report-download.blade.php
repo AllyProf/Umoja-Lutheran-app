@@ -485,10 +485,7 @@
                         <span class="info-label">Total Revenue:</span>
                         <span class="info-value"><span class="amount-highlight">{{ number_format(($payments['total_revenue'] ?? 0) * $exchangeRate, 2) }} TZS</span></span>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label"></span>
-                        <span class="info-value" style="color: #666; font-size: 12px;">≈ ${{ number_format($payments['total_revenue'] ?? 0, 2) }}</span>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -522,7 +519,7 @@
                     </tr>
                     <tr class="total-row">
                         <td><strong>Service Revenue</strong></td>
-                        <td style="text-align: right;"><strong style="color: #e07632; font-size: 14px;">{{ number_format($serviceRequests['revenue'] ?? 0, 2) }} TZS</strong><br><small style="color: #666;">≈ ${{ number_format(($serviceRequests['revenue'] ?? 0) / $exchangeRate, 2) }}</small></td>
+                        <td style="text-align: right;"><strong style="color: #e07632; font-size: 14px;">{{ number_format($serviceRequests['revenue'] ?? 0, 2) }} TZS</strong></td>
                     </tr>
                 </tbody>
             </table>
@@ -557,7 +554,7 @@
                         <td>{{ $booking->check_out->format('M d, Y') }}</td>
                         <td style="text-align: right;">
                             <strong>{{ number_format($booking->total_price * $exchangeRate, 2) }} TZS</strong><br>
-                            <small style="color: #999;">≈ ${{ number_format($booking->total_price, 2) }}</small>
+
                         </td>
                         <td>{{ ucfirst($booking->status) }}</td>
                     </tr>

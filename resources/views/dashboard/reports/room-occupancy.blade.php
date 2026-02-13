@@ -105,7 +105,6 @@
                 <th>Total Rooms</th>
                 <th>Avg Occupancy</th>
                 <th>Revenue (TZS)</th>
-                <th>Revenue (USD)</th>
               </tr>
             </thead>
             <tbody>
@@ -126,7 +125,6 @@
                   </div>
                 </td>
                 <td><strong>{{ number_format($type['revenue_usd'] * $exchangeRate, 0) }}</strong></td>
-                <td>${{ number_format($type['revenue_usd'], 2) }}</td>
               </tr>
               @empty
               <tr>
@@ -156,7 +154,6 @@
                 <th>Room Type</th>
                 <th>Number of Bookings</th>
                 <th>Revenue (TZS)</th>
-                <th>Revenue (USD)</th>
               </tr>
             </thead>
             <tbody>
@@ -178,12 +175,11 @@
                 <td>{{ ucfirst($roomData['room']->room_type ?? 'N/A') }}</td>
                 <td>{{ $roomData['booking_count'] }}</td>
                 <td><strong>{{ number_format($roomData['revenue_tzs'], 0) }}</strong></td>
-                <td>${{ number_format($roomData['revenue_usd'], 2) }}</td>
               </tr>
               @endif
               @empty
               <tr>
-                <td colspan="6" class="text-center">No bookings found for this period</td>
+                <td colspan="5" class="text-center">No bookings found for this period</td>
               </tr>
               @endforelse
             </tbody>

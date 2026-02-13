@@ -147,7 +147,6 @@
           $displayServiceRequests = $serviceRequests->whereIn('status', ['approved', 'completed']);
           $displayTotalServiceTsh = $displayServiceRequests->sum('total_price_tsh');
           $displayTotalBillTsh = $displayRoomPriceTsh + $displayExtensionTsh + $displayTotalServiceTsh;
-          $displayTotalBillUsd = $displayTotalBillTsh / $exchangeRate;
         @endphp
         <div class="mb-4">
           <h5 style="color: #e07632; border-bottom: 2px solid #e07632; padding-bottom: 10px; margin-bottom: 15px;">Bill Breakdown (Paid by Company)</h5>
@@ -565,7 +564,6 @@
                     $totalExpectedTsh = $totalBillTsh ?? 0;
                     $totalPaidTsh = $amountPaidTsh ?? 0;
                     $totalOutstandingTsh = $outstandingBalanceTsh ?? 0;
-                    $totalOutstandingUsd = $totalOutstandingTsh / $exchangeRate;
                   @endphp
                   
                   @if($totalOutstandingTsh <= 50)

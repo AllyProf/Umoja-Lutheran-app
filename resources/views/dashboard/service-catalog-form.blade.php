@@ -67,15 +67,7 @@
               <small class="form-text text-muted">How the price is calculated</small>
             </div>
           </div>
-          <div class="col-md-4" id="priceInternationalGroup">
-            <div class="form-group">
-              <label for="price_international">Price for International Guests (USD)</label>
-              <input class="form-control" type="number" id="price_international" name="price_international" 
-                     value="{{ $serviceCatalog->price_international ?? '' }}" 
-                     step="0.01" min="0" placeholder="Leave empty to use Tanzanian price">
-              <small class="form-text text-muted">Leave empty if same as Tanzanian price</small>
-            </div>
-          </div>
+
         </div>
 
         <!-- Age Group and Pricing Section (shown for swimming services) -->

@@ -76,7 +76,7 @@
                   <th>Guest Name</th>
                   <th>Room</th>
                   <th>Stay Period</th>
-                  <th>Room Net ($)</th>
+                  <th>Room Price (TZS)</th>
                   <th>SVC Charges (TZS)</th>
                   <th>Total (TZS)</th>
                   <th>Paid (TZS)</th>
@@ -95,7 +95,7 @@
                   <td>
                     <small>{{ $booking->check_in->format('M d') }} - {{ $booking->check_out->format('M d') }}</small>
                   </td>
-                  <td>${{ number_format($item['room_bill_usd'], 2) }}</td>
+                  <td>{{ number_format($item['room_bill_tsh'], 0) }}</td>
                   <td>{{ number_format($item['service_charges_tsh'], 0) }}</td>
                   <td><strong>{{ number_format($item['total_bill_tsh'], 0) }}</strong></td>
                   <td class="text-success">{{ number_format($item['amount_paid_tsh'], 0) }}</td>
@@ -108,7 +108,7 @@
               <tfoot style="background-color: #f8f9fa; font-size: 1.1em;">
                 <tr>
                   <th colspan="4" class="text-right">GRAND TOTALS:</th>
-                  <th>${{ number_format($groupData['totals']['room_price_usd'], 2) }}</th>
+                  <th>{{ number_format($groupData['totals']['total_bill_tsh'] - $groupData['totals']['service_charges_tsh'], 0) }} TZS</th>
                   <th>{{ number_format($groupData['totals']['service_charges_tsh'], 0) }} TZS</th>
                   <th>{{ number_format($groupData['totals']['total_bill_tsh'], 0) }} TZS</th>
                   <th class="text-success">{{ number_format($groupData['totals']['amount_paid_tsh'], 0) }} TZS</th>
@@ -138,14 +138,9 @@
             <div style="background: #f8f9fa; padding: 25px; border-radius: 10px; border: 2px solid #940000;">
               <table class="table table-borderless mb-0">
                 <tr>
-                  <td style="font-size: 16px;"><strong>Current Exchange Rate:</strong></td>
-                  <td class="text-right">1 USD = {{ number_format($exchangeRate, 2) }} TZS</td>
-                </tr>
-                <tr style="border-top: 1px solid #ddd;">
                   <td style="font-size: 18px;"><strong>Total Outstanding:</strong></td>
                   <td class="text-right">
                     <h3 style="color: #940000; margin: 0;">{{ number_format($groupData['totals']['outstanding_tsh'], 0) }} TZS</h3>
-                    <small class="text-muted">≈ ${{ number_format($groupData['totals']['outstanding_tsh'] / $exchangeRate, 2) }}</small>
                   </td>
                 </tr>
               </table>

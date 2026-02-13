@@ -333,44 +333,36 @@
             <i class="fa fa-info-circle"></i> 
             <strong>Payment Breakdown:</strong>
             <ul class="mb-0 mt-2">
-              <li><strong>Company Charges (Room + Company Services):</strong> $<span id="payment_company_total">0.00</span> USD (<span id="payment_company_total_tzs">0.00</span> TZS)</li>
-              <li><strong>Self-Paid Charges (Services Only):</strong> $<span id="payment_self_total">0.00</span> USD (<span id="payment_self_total_tzs">0.00</span> TZS)</li>
-              <li><strong>Total Amount:</strong> $<span id="payment_total_amount">0.00</span> USD (<span id="payment_total_amount_tzs">0.00</span> TZS)</li>
+              <li><strong>Company Charges (Room + Company Services):</strong> <span id="payment_company_total_tzs">0.00</span> TZS</li>
+              <li><strong>Self-Paid Charges (Services Only):</strong> <span id="payment_self_total_tzs">0.00</span> TZS</li>
+              <li><strong>Total Amount:</strong> <span id="payment_total_amount_tzs">0.00</span> TZS</li>
             </ul>
-            <div class="mt-2">
-              <i class="fa fa-exchange-alt"></i> Exchange Rate: <strong>1 USD = <span id="exchange_rate_display">{{ number_format($exchangeRate ?? 0, 2) }}</span> TZS</strong> (will be locked at booking creation)
-            </div>
+
           </div>
 
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
-                <label for="recommended_price">Recommended Price <span class="text-info">(Reference)</span></label>
+                <label for="recommended_price">Recommended Price (TZS)</label>
                 <div class="input-group">
-                  <div class="input-group-prepend">
-                    <span class="input-group-text" id="recommended_currency">$</span>
-                  </div>
                   <input class="form-control" type="number" id="recommended_price" step="0.01" min="0" placeholder="0.00" readonly style="background-color: #f8f9fa;">
+                  <div class="input-group-append">
+                    <span class="input-group-text">TZS</span>
+                  </div>
                 </div>
-                <small class="form-text text-muted">Calculated from room price and number of nights (reference only)</small>
-                <div id="recommended_price_tzs" style="margin-top: 5px;">
-                  <small class="text-muted">≈ <span id="recommended_price_tzs_value">0</span> TZS</small>
-                </div>
+                <small class="form-text text-muted">Calculated from room price and number of nights (TZS)</small>
               </div>
             </div>
             <div class="col-md-6">
               <div class="form-group">
-                <label for="total_price">Total Price <span class="text-danger">*</span></label>
+                <label for="total_price">Total Price (TZS) <span class="text-danger">*</span></label>
                 <div class="input-group">
-                  <div class="input-group-prepend">
-                    <span class="input-group-text" id="total_price_currency">$</span>
-                  </div>
                   <input class="form-control" type="number" id="total_price" name="total_price" step="0.01" min="0" placeholder="0.00" data-required="true">
+                  <div class="input-group-append">
+                    <span class="input-group-text">TZS</span>
+                  </div>
                 </div>
-                <small class="form-text text-muted">Enter total price in USD (can be lower than recommended for discounts)</small>
-                <div id="total_price_tzs" style="margin-top: 5px;">
-                  <small class="text-muted">≈ <span id="total_price_tzs_value">0</span> TZS</small>
-                </div>
+                <small class="form-text text-muted">Enter total price in TZS (can be lower than recommended for discounts)</small>
               </div>
             </div>
           </div>
@@ -412,15 +404,12 @@
               <div class="form-group">
                 <label for="amount_paid">Amount Paid <span class="text-danger">*</span></label>
                 <div class="input-group">
-                  <div class="input-group-prepend">
-                    <span class="input-group-text">$</span>
-                  </div>
                   <input class="form-control" type="number" id="amount_paid" name="amount_paid" step="0.01" min="0" placeholder="0.00" data-required="true">
+                  <div class="input-group-append">
+                    <span class="input-group-text">TZS</span>
+                  </div>
                 </div>
-                <small class="form-text text-muted">Enter the amount paid in USD</small>
-                <div id="amount_paid_tzs" style="margin-top: 5px;">
-                  <small class="text-muted">≈ <span id="amount_paid_tzs_value">0</span> TZS</small>
-                </div>
+                <small class="form-text text-muted">Enter the amount paid in TZS</small>
               </div>
             </div>
           </div>
@@ -442,15 +431,12 @@
               <div class="form-group">
                 <label for="remaining_amount">Remaining Amount</label>
                 <div class="input-group">
-                  <div class="input-group-prepend">
-                    <span class="input-group-text">$</span>
-                  </div>
                   <input class="form-control" type="number" id="remaining_amount" name="remaining_amount" step="0.01" min="0" placeholder="0.00" readonly>
+                  <div class="input-group-append">
+                    <span class="input-group-text">TZS</span>
+                  </div>
                 </div>
-                <small class="form-text text-muted">Amount to be paid later</small>
-                <div id="remaining_amount_tzs" style="margin-top: 5px;">
-                  <small class="text-muted">≈ <span id="remaining_amount_tzs_value">0</span> TZS</small>
-                </div>
+                <small class="form-text text-muted">Amount to be paid later (TZS)</small>
               </div>
             </div>
           </div>
@@ -1058,7 +1044,7 @@ let bookingData = {
   guests: []
 };
 
-let exchangeRate = {{ $exchangeRate ?? 2300 }};
+let exchangeRate = 1; // Always using TZS for internal calculations now
 const defaultImage = '{{ asset("royal-master/image/rooms/room1.jpg") }}';
 const storageBase = '{{ asset("storage") }}';
 
@@ -1768,11 +1754,9 @@ function createRoomCard(room) {
   cardHtml += '</div>';
   cardHtml += '<div class="room-price">';
   cardHtml += '<span class="price-label">Per night</span>';
-  // Room prices are stored in USD per night (company pays in USD)
   const roomPriceUSD = parseFloat(room.price_per_night) || 0;
   const roomPriceTZS = roomPriceUSD * exchangeRate;
-  cardHtml += '<span class="price-amount">$' + roomPriceUSD.toFixed(2) + ' USD</span>';
-  cardHtml += '<small class="d-block text-muted" style="font-size: 10px;">≈ ' + roomPriceTZS.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' TZS</small>';
+  cardHtml += '<span class="price-amount">' + roomPriceTZS.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0}) + ' TZS</span>';
   cardHtml += '</div>';
   
   // Show guest slots and info
@@ -2041,13 +2025,12 @@ function generatePreview() {
   bookingData.guests.forEach(guest => {
     const room = bookingData.rooms.find(r => r.id == guest.room_id);
     if (room) {
-      // Room charges are ALWAYS paid by company
-      // Room prices are stored in USD per night
+      // Room charges are always paid in TZS (converted from USD)
       const roomPriceUSD = parseFloat(room.price_per_night) || 0;
-      const roomCostUSD = roomPriceUSD * nights; // Total cost in USD
-      totalCompanyCost += roomCostUSD; // Company pays in USD
+      const roomCostTZS = roomPriceUSD * exchangeRate * nights; 
+      totalCompanyCost += roomCostTZS; 
       
-      // Payment responsibility only applies to services (not room charges)
+      // Payment responsibility matches business logic (all in TZS)
       // For now, we don't calculate service costs here, but the structure is ready
     }
   });
@@ -2113,17 +2096,14 @@ function generatePreview() {
   
   previewHtml += '</tbody></table></div></div></div>';
   
-  // Cost Summary
   previewHtml += '<div class="col-md-12 mb-3">';
   previewHtml += '<div class="card">';
-  previewHtml += '<div class="card-header bg-danger text-white"><h5 class="mb-0"><i class="fa fa-dollar"></i> Cost Summary</h5></div>';
+  previewHtml += '<div class="card-header bg-danger text-white"><h5 class="mb-0"><i class="fa fa-money"></i> Cost Summary (TZS)</h5></div>';
   previewHtml += '<div class="card-body">';
-  const totalCompanyCostTZS = totalCompanyCost * exchangeRate;
-  const totalSelfPaidCostTZS = totalSelfPaidCost * exchangeRate;
-  const totalBookingValueTZS = (totalCompanyCost + totalSelfPaidCost) * exchangeRate;
-  previewHtml += '<p><strong>Company Charges (Room + Company Services):</strong> $' + totalCompanyCost.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' USD (' + totalCompanyCostTZS.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' TZS)</p>';
-  previewHtml += '<p><strong>Self-Paid Charges (Services Only):</strong> $' + totalSelfPaidCost.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' USD (' + totalSelfPaidCostTZS.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' TZS)</p>';
-  previewHtml += '<p><strong>Total Booking Value:</strong> $' + (totalCompanyCost + totalSelfPaidCost).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' USD (' + totalBookingValueTZS.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' TZS)</p>';
+  const totalBookingValueTZS = totalCompanyCost + totalSelfPaidCost;
+  previewHtml += '<p><strong>Company Charges (Room + Company Services):</strong> ' + totalCompanyCost.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0}) + ' TZS</p>';
+  previewHtml += '<p><strong>Self-Paid Charges (Services Only):</strong> ' + totalSelfPaidCost.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0}) + ' TZS</p>';
+  previewHtml += '<p style="font-size: 1.2em; border-top: 1px solid #eee; padding-top: 10px;"><strong>Total Booking Value:</strong> ' + totalBookingValueTZS.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0}) + ' TZS</p>';
   previewHtml += '</div></div></div>';
   
   previewHtml += '</div>';
@@ -2591,23 +2571,9 @@ function deselectAllGuestDepartments() {
 
 // Payment Calculation Functions
 function updatePaymentSummary() {
-  const totalCompanyCostUSD = bookingData.booking.total_company_cost || 0;
-  const totalSelfPaidCostUSD = bookingData.booking.total_self_paid_cost || 0;
-  const totalAmountUSD = totalCompanyCostUSD + totalSelfPaidCostUSD;
-  
-  // Convert to TZS for display
-  const totalCompanyCostTZS = totalCompanyCostUSD * exchangeRate;
-  const totalSelfPaidCostTZS = totalSelfPaidCostUSD * exchangeRate;
-  const totalAmountTZS = totalAmountUSD * exchangeRate;
-  
-  // Update payment breakdown (USD)
-  const companyTotalEl = document.getElementById('payment_company_total');
-  const selfTotalEl = document.getElementById('payment_self_total');
-  const totalAmountEl = document.getElementById('payment_total_amount');
-  
-  if (companyTotalEl) companyTotalEl.textContent = totalCompanyCostUSD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-  if (selfTotalEl) selfTotalEl.textContent = totalSelfPaidCostUSD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-  if (totalAmountEl) totalAmountEl.textContent = totalAmountUSD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const totalCompanyCostTZS = bookingData.booking.total_company_cost || 0;
+  const totalSelfPaidCostTZS = bookingData.booking.total_self_paid_cost || 0;
+  const totalAmountTZS = totalCompanyCostTZS + totalSelfPaidCostTZS;
   
   // Update payment breakdown (TZS)
   const companyTotalTzsEl = document.getElementById('payment_company_total_tzs');
@@ -2618,22 +2584,17 @@ function updatePaymentSummary() {
   if (selfTotalTzsEl) selfTotalTzsEl.textContent = totalSelfPaidCostTZS.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   if (totalAmountTzsEl) totalAmountTzsEl.textContent = totalAmountTZS.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   
-  // Set recommended price (calculated from rooms in USD)
+  // Set recommended price (TZS)
   const recommendedPriceEl = document.getElementById('recommended_price');
   const totalPriceEl = document.getElementById('total_price');
   
   if (recommendedPriceEl) {
-    recommendedPriceEl.value = totalAmountUSD.toFixed(2);
-    // Show TZS conversion
-    const tzsValueEl = document.getElementById('recommended_price_tzs_value');
-    if (tzsValueEl) tzsValueEl.textContent = totalAmountTZS.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    recommendedPriceEl.value = totalAmountTZS.toFixed(2);
   }
   
   // Set total price default to recommended if empty
   if (totalPriceEl && !totalPriceEl.value) {
-    totalPriceEl.value = totalAmountUSD.toFixed(2);
-    const totalPriceTzsEl = document.getElementById('total_price_tzs_value');
-    if (totalPriceTzsEl) totalPriceTzsEl.textContent = totalAmountTZS.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    totalPriceEl.value = totalAmountTZS.toFixed(2);
   }
   
   // Calculate payment percentage and remaining amount
@@ -2641,38 +2602,18 @@ function updatePaymentSummary() {
 }
 
 function calculatePaymentDetails() {
-  const totalPriceUSD = parseFloat(document.getElementById('total_price').value) || 0;
-  const amountPaidUSD = parseFloat(document.getElementById('amount_paid').value) || 0;
+  const totalPriceTZS = parseFloat(document.getElementById('total_price').value) || 0;
+  const amountPaidTZS = parseFloat(document.getElementById('amount_paid').value) || 0;
   
   // Calculate payment percentage
-  const paymentPercentage = totalPriceUSD > 0 ? ((amountPaidUSD / totalPriceUSD) * 100) : 0;
+  const paymentPercentage = totalPriceTZS > 0 ? ((amountPaidTZS / totalPriceTZS) * 100) : 0;
   const paymentPercentageEl = document.getElementById('payment_percentage');
   if (paymentPercentageEl) paymentPercentageEl.value = paymentPercentage.toFixed(2);
   
-  // Calculate remaining amount (USD)
-  const remainingAmountUSD = Math.max(0, totalPriceUSD - amountPaidUSD);
+  // Calculate remaining amount (TZS)
+  const remainingAmountTZS = Math.max(0, totalPriceTZS - amountPaidTZS);
   const remainingAmountEl = document.getElementById('remaining_amount');
-  if (remainingAmountEl) remainingAmountEl.value = remainingAmountUSD.toFixed(2);
-  
-  // Convert to TZS for display
-  const totalPriceTZS = totalPriceUSD * exchangeRate;
-  const amountPaidTZS = amountPaidUSD * exchangeRate;
-  const remainingAmountTZS = remainingAmountUSD * exchangeRate;
-  
-  // Update TZS conversions
-  const amountPaidTzsEl = document.getElementById('amount_paid_tzs_value');
-  const remainingAmountTzsEl = document.getElementById('remaining_amount_tzs_value');
-  const totalPriceTzsEl = document.getElementById('total_price_tzs_value');
-  
-  if (amountPaidTzsEl) amountPaidTzsEl.textContent = amountPaidTZS.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-  if (remainingAmountTzsEl) remainingAmountTzsEl.textContent = remainingAmountTZS.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-  if (totalPriceTzsEl) totalPriceTzsEl.textContent = totalPriceTZS.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-  
-  // Update recommended price TZS conversion
-  const recommendedPriceUSD = parseFloat(document.getElementById('recommended_price').value) || 0;
-  const recommendedPriceTZS = recommendedPriceUSD * exchangeRate;
-  const recommendedPriceTzsEl = document.getElementById('recommended_price_tzs_value');
-  if (recommendedPriceTzsEl) recommendedPriceTzsEl.textContent = recommendedPriceTZS.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  if (remainingAmountEl) remainingAmountEl.value = remainingAmountTZS.toFixed(2);
 }
 
 // Event listeners for payment calculations

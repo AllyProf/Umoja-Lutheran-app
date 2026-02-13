@@ -435,24 +435,35 @@ class ServiceRequestController extends Controller
             }
             
             // Calculate total revenue (bookings + service requests + day services)
-            $totalBookingRevenueUSD = Booking::whereIn('payment_status', ['paid', 'partial'])
+            $totalBookingRevenueTZS = Booking::whereIn('payment_status', ['paid', 'partial'])
                 ->whereNotNull('amount_paid')
                 ->where('amount_paid', '>', 0)
                 ->get()
-                ->sum(fn($b) => $b->amount_paid ?? 0);
+                ->sum(function($booking) use ($exchangeRate) {
+                    return ($booking->amount_paid ?? 0) * ($booking->locked_exchange_rate ?? $exchangeRate);
+                });
             $totalServiceRevenueTZS = ServiceRequest::where('status', 'completed')->sum('total_price_tsh');
             $totalDayServiceRevenueTZS = \App\Models\DayService::where('payment_status', 'paid')->get()->sum(function($s) use ($exchangeRate) {
                 $amount = $s->amount_paid ?? $s->amount ?? 0;
                 return $s->guest_type === 'tanzanian' ? $amount : ($amount * ($s->exchange_rate ?? $exchangeRate));
             });
-            $totalRevenueTZS = ($totalBookingRevenueUSD * $exchangeRate) + $totalServiceRevenueTZS + $totalDayServiceRevenueTZS;
+            $totalRevenueTZS = $totalBookingRevenueTZS + $totalServiceRevenueTZS + $totalDayServiceRevenueTZS;
             
-            // Calculate today's revenue
-            $todayBookingRevenueUSD = Booking::whereIn('payment_status', ['paid', 'partial'])
+            // Calculate today's revenue (using paid_at if available)
+            $todayBookingRevenueTZS = Booking::whereIn('payment_status', ['paid', 'partial'])
                 ->whereNotNull('amount_paid')
                 ->where('amount_paid', '>', 0)
-                ->whereDate('paid_at', $today)
-                ->get()->sum(fn($b) => $b->amount_paid ?? 0);
+                ->where(function($q) use ($today) {
+                    $q->whereDate('paid_at', $today)
+                      ->orWhere(function($subQ) use ($today) {
+                          $subQ->whereNull('paid_at')
+                               ->whereDate('created_at', $today);
+                      });
+                })
+                ->get()
+                ->sum(function($booking) use ($exchangeRate) {
+                    return ($booking->amount_paid ?? 0) * ($booking->locked_exchange_rate ?? $exchangeRate);
+                });
             $todayServiceRevenueTZS = ServiceRequest::where('status', 'completed')
                 ->whereDate('completed_at', $today)
                 ->sum('total_price_tsh');
@@ -462,7 +473,7 @@ class ServiceRequestController extends Controller
                     $amount = $s->amount_paid ?? $s->amount ?? 0;
                     return $s->guest_type === 'tanzanian' ? $amount : ($amount * ($s->exchange_rate ?? $exchangeRate));
                 });
-            $todayRevenueTZS = ($todayBookingRevenueUSD * $exchangeRate) + $todayServiceRevenueTZS + $todayDayServiceRevenueTZS;
+            $todayRevenueTZS = $todayBookingRevenueTZS + $todayServiceRevenueTZS + $todayDayServiceRevenueTZS;
             
             // Statistics
             $stats = [
@@ -513,9 +524,12 @@ class ServiceRequestController extends Controller
                 $monthStart = $month->copy()->startOfMonth();
                 $monthEnd = $month->copy()->endOfMonth();
                 
-                $mBookingRevUSD = Booking::whereBetween('created_at', [$monthStart, $monthEnd])
+                $mBookingRevTZS = Booking::whereBetween('created_at', [$monthStart, $monthEnd])
                     ->where('payment_status', 'paid')
-                    ->get()->sum(fn($b) => $b->amount_paid ?? $b->total_price ?? 0);
+                    ->get()
+                    ->sum(function($b) use ($exchangeRate) {
+                        return ($b->amount_paid ?? $b->total_price ?? 0) * ($b->locked_exchange_rate ?? $exchangeRate);
+                    });
                 $mServiceRevTZS = ServiceRequest::where('status', 'completed')
                     ->whereBetween('completed_at', [$monthStart, $monthEnd])
                     ->sum('total_price_tsh');
@@ -528,7 +542,7 @@ class ServiceRequestController extends Controller
                 
                 $revenueData[] = [
                     'month' => $month->format('M Y'),
-                    'revenue' => ($mBookingRevUSD * $exchangeRate) + $mServiceRevTZS + $mDayServiceRevTZS
+                    'revenue' => $mBookingRevTZS + $mServiceRevTZS + $mDayServiceRevTZS
                 ];
             }
 

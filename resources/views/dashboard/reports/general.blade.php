@@ -68,7 +68,6 @@
       <div class="info">
         <h4>Total Revenue</h4>
         <p><b>{{ number_format($totalRevenueTZS, 0) }} TZS</b></p>
-        <small>≈ ${{ number_format($totalRevenueUSD, 2) }}</small>
       </div>
     </div>
   </div>

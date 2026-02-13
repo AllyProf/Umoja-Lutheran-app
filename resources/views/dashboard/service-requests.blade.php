@@ -5,11 +5,7 @@
   <div>
     <h1><i class="fa fa-list"></i> Service Requests</h1>
     <p>Manage guest service requests</p>
-    @if(isset($exchangeRate))
-    <p style="font-size: 12px; color: #666; margin-top: 5px;">
-      <i class="fa fa-exchange"></i> Exchange Rate: 1 USD = {{ number_format($exchangeRate, 2) }} TZS (Live)
-    </p>
-    @endif
+
   </div>
   <ul class="app-breadcrumb breadcrumb">
     <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
@@ -178,15 +174,11 @@
                 <td>{{ $request->quantity }} {{ $request->service->unit }}</td>
                 <td>
                   <div>{{ number_format($request->unit_price_tsh, 2) }} TZS</div>
-                  <div style="color: #28a745; font-size: 11px;">
-                    ≈ ${{ number_format($request->unit_price_tsh / ($exchangeRate ?? 2500), 2) }}
-                  </div>
+
                 </td>
                 <td>
                   <div><strong>{{ number_format($request->total_price_tsh, 2) }} TZS</strong></div>
-                  <div style="color: #28a745; font-size: 11px;">
-                    <strong>≈ ${{ number_format($request->total_price_tsh / ($exchangeRate ?? 2500), 2) }}</strong>
-                  </div>
+
                 </td>
                 <td>
                   @if($request->status === 'pending')
@@ -448,8 +440,7 @@ function viewServiceDetails(requestId) {
             <tr>
                 <td width="40%"><strong>Unit Price:</strong></td>
                 <td>
-                    ${parseFloat(request.unit_price_tsh).toLocaleString()} TZS<br>
-                    <small style="color: #28a745;">≈ $${(parseFloat(request.unit_price_tsh) / exchangeRate).toFixed(2)}</small>
+                    ${parseFloat(request.unit_price_tsh).toLocaleString()} TZS
                 </td>
             </tr>
             <tr>
@@ -459,14 +450,11 @@ function viewServiceDetails(requestId) {
             <tr style="background-color: #f8f9fa;">
                 <td><strong>Total Price:</strong></td>
                 <td>
-                    <strong>${parseFloat(request.total_price_tsh).toLocaleString()} TZS</strong><br>
-                    <strong style="color: #28a745;">≈ $${(parseFloat(request.total_price_tsh) / exchangeRate).toFixed(2)}</strong>
+                    <strong>${parseFloat(request.total_price_tsh).toLocaleString()} TZS</strong>
                 </td>
             </tr>
         </table>
-        <p class="text-muted" style="font-size: 11px; margin-top: 10px;">
-            <i class="fa fa-info-circle"></i> Exchange Rate: 1 USD = ${exchangeRate.toLocaleString()} TZS (via Frankfurter.app)
-        </p>
+
     `;
     
     // Timestamps

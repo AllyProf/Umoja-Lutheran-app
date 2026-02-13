@@ -50,7 +50,7 @@
   </div>
   <div class="col-md-6 col-lg-3">
     <div class="widget-small danger coloured-icon">
-      <i class="icon fa fa-dollar fa-3x"></i>
+      <i class="icon fa fa-money fa-3x"></i>
       <div class="info">
         <h4>Total Revenue</h4>
         <p><b>{{ number_format($stats['total_revenue'] ?? 0, 0) }} TZS</b></p>
@@ -482,14 +482,14 @@
                     $displayTotalPrice = $isGrouped ? $totalPrice : ($booking->total_price ?? 0);
                     $displayTotalPaid = $isGrouped ? $totalPaid : ($booking->amount_paid ?? 0);
                     $totalPriceTsh = $displayTotalPrice * $lockedRate;
+                    $totalPaidTsh = $displayTotalPaid * $lockedRate;
                   @endphp
-                  <strong>${{ number_format($displayTotalPrice, 2) }}</strong>
+                  <strong>{{ number_format($totalPriceTsh, 0) }} TZS</strong>
                   @if($isGrouped)
                     <br><small class="text-muted">Total for all guests</small>
                   @endif
-                  <br><small style="font-size: 11px; color: #666;">{{ number_format($totalPriceTsh, 0) }} TZS</small>
                   @if($displayTotalPaid > 0)
-                    <br><small style="font-size: 10px; color: #999;">Paid: ${{ number_format($displayTotalPaid, 2) }}</small>
+                    <br><small style="font-size: 10px; color: #158cba;">Paid: {{ number_format($totalPaidTsh, 0) }} TZS</small>
                   @endif
                 </td>
                 <td>
@@ -764,10 +764,10 @@ function viewBooking(bookingId) {
               </table>
             </div>
             <div class="col-md-6">
-              <h5><i class="fa fa-dollar"></i> Payment Information</h5>
+              <h5><i class="fa fa-money"></i> Payment Information</h5>
               <table class="table table-sm table-bordered">
-                <tr><td><strong>Total Price:</strong></td><td>$${parseFloat(booking.total_price || 0).toFixed(2)}</td></tr>
-                <tr><td><strong>Amount Paid:</strong></td><td>${booking.amount_paid ? '$' + parseFloat(booking.amount_paid).toFixed(2) : 'N/A'}</td></tr>
+                <tr><td><strong>Total Price (TZS):</strong></td><td><strong>${(parseFloat(booking.total_price || 0) * (booking.locked_exchange_rate || {{ $exchangeRate ?? 2500 }})).toLocaleString()} TZS</strong></td></tr>
+                <tr><td><strong>Amount Paid (TZS):</strong></td><td><strong>${booking.amount_paid ? (parseFloat(booking.amount_paid) * (booking.locked_exchange_rate || {{ $exchangeRate ?? 2500 }})).toLocaleString() + ' TZS' : 'N/A'}</strong></td></tr>
                 <tr><td><strong>Payment Method:</strong></td><td>${booking.payment_method ? booking.payment_method.charAt(0).toUpperCase() + booking.payment_method.slice(1) : 'N/A'}</td></tr>
                 <tr><td><strong>Payment Status:</strong></td><td><span class="badge badge-${booking.payment_status === 'paid' ? 'success' : booking.payment_status === 'partial' ? 'info' : booking.payment_status === 'pending' ? 'warning' : 'danger'}">${booking.payment_status ? (booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1) + (booking.payment_status === 'partial' && booking.payment_percentage ? ` (${booking.payment_percentage}% paid)` : '')) : 'N/A'}</span></td></tr>
                 ${booking.payment_transaction_id ? `<tr><td><strong>Transaction ID:</strong></td><td><small>${booking.payment_transaction_id}</small></td></tr>` : ''}

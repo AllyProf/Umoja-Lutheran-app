@@ -21,7 +21,6 @@
       <div class="info">
         <h4>Total Paid</h4>
         <p><b>{{ number_format(($stats['total_paid'] ?? 0) * ($exchangeRate ?? 2500), 0) }} TZS</b></p>
-        <p style="font-size: 12px; color: #666; margin-top: 5px;"><b>≈ ${{ number_format($stats['total_paid'] ?? 0, 2) }}</b></p>
       </div>
     </div>
   </div>
@@ -31,7 +30,6 @@
       <div class="info">
         <h4>Today's Revenue</h4>
         <p><b>{{ number_format(($stats['total_paid_today'] ?? 0) * ($exchangeRate ?? 2500), 0) }} TZS</b></p>
-        <p style="font-size: 12px; color: #666; margin-top: 5px;"><b>≈ ${{ number_format($stats['total_paid_today'] ?? 0, 2) }}</b></p>
       </div>
     </div>
   </div>
@@ -108,8 +106,7 @@
                   <small>{{ $payment->room->room_number ?? 'N/A' }}</small>
                 </td>
                 <td>
-                  <strong>${{ number_format($payment->amount_paid ?? $payment->total_price, 2) }}</strong><br>
-                  <small>{{ number_format(($payment->amount_paid ?? $payment->total_price) * $exchangeRate, 2) }} TZS</small>
+                  <strong>{{ number_format(($payment->amount_paid ?? $payment->total_price) * $exchangeRate, 0) }} TZS</strong>
                 </td>
                 <td>{{ ucfirst($payment->payment_method ?? 'N/A') }}</td>
                 <td>
@@ -286,8 +283,7 @@ function viewPaymentDetails(bookingId, bookingRef) {
               <h5 style="color: #e07632; border-bottom: 2px solid #e07632; padding-bottom: 5px; margin-bottom: 15px;"><i class="fa fa-credit-card"></i> Payment Information</h5>
               <table class="table table-sm table-bordered">
                 <tr><td width="40%"><strong>Booking Reference:</strong></td><td><strong>${booking.booking_reference || 'N/A'}</strong></td></tr>
-                <tr><td><strong>Amount Paid:</strong></td><td><strong>$${parseFloat(booking.amount_paid || booking.total_price || 0).toFixed(2)} USD</strong></td></tr>
-                <tr><td><strong>Amount Paid (TZS):</strong></td><td><strong>${(parseFloat(booking.amount_paid || booking.total_price || 0) * exchangeRate).toLocaleString()} TZS</strong></td></tr>
+                <tr><td><strong>Amount Paid (TZS):</strong></td><td><strong>${(parseFloat(booking.amount_paid || booking.total_price || 0) * (booking.locked_exchange_rate || exchangeRate)).toLocaleString()} TZS</strong></td></tr>
                 <tr><td><strong>Payment Method:</strong></td><td>${booking.payment_method || payment?.payment_method || 'N/A'}</td></tr>
                 <tr><td><strong>Transaction ID:</strong></td><td>${booking.payment_transaction_id || payment?.payment_transaction_id || 'N/A'}</td></tr>
                 <tr><td><strong>Payment Date:</strong></td><td>${booking.paid_at || payment?.paid_at ? new Date(booking.paid_at || payment.paid_at).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'}) : 'N/A'}</td></tr>
@@ -297,7 +293,7 @@ function viewPaymentDetails(bookingId, bookingRef) {
                   ${booking.payment_status === 'pending' ? '<span class="badge badge-warning">Pending</span>' : ''}
                 </td></tr>
                 ${booking.payment_status === 'partial' && booking.amount_paid ? `
-                <tr><td><strong>Remaining Amount:</strong></td><td><strong style="color: #dc3545;">$${parseFloat((booking.total_price || 0) - (booking.amount_paid || 0)).toFixed(2)} USD</strong></td></tr>
+                <tr><td><strong>Remaining Amount (TZS):</strong></td><td><strong style="color: #dc3545;">${(parseFloat((booking.total_price || 0) - (booking.amount_paid || 0)) * (booking.locked_exchange_rate || exchangeRate)).toLocaleString()} TZS</strong></td></tr>
                 <tr><td><strong>Payment Percentage:</strong></td><td><span class="badge badge-info">${parseFloat(((booking.amount_paid || 0) / (booking.total_price || 1)) * 100).toFixed(0)}%</span></td></tr>
                 ` : ''}
               </table>
@@ -327,9 +323,8 @@ function viewPaymentDetails(bookingId, bookingRef) {
                 <tr><td width="40%"><strong>Room Number:</strong></td><td><strong>${room.room_number || 'N/A'}</strong></td></tr>
                 <tr><td><strong>Room Type:</strong></td><td>${room.room_type || 'N/A'}</td></tr>
                 <tr><td><strong>Capacity:</strong></td><td>${room.capacity || 'N/A'} guests</td></tr>
-                <tr><td><strong>Price per Night:</strong></td><td>$${parseFloat(room.price_per_night || 0).toFixed(2)} USD</td></tr>
-                <tr><td><strong>Total Price:</strong></td><td><strong>$${parseFloat(booking.total_price || 0).toFixed(2)} USD</strong></td></tr>
-                <tr><td><strong>Total Price (TZS):</strong></td><td><strong>${(parseFloat(booking.total_price || 0) * exchangeRate).toLocaleString()} TZS</strong></td></tr>
+                <tr><td><strong>Price per Night (TZS):</strong></td><td>${(parseFloat(room.price_per_night || 0) * (booking.locked_exchange_rate || exchangeRate)).toLocaleString()} TZS</td></tr>
+                <tr><td><strong>Total Price (TZS):</strong></td><td><strong>${(parseFloat(booking.total_price || 0) * (booking.locked_exchange_rate || exchangeRate)).toLocaleString()} TZS</strong></td></tr>
               </table>
             </div>
           </div>

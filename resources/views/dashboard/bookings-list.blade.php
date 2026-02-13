@@ -2774,7 +2774,7 @@ function viewCompanyBookingGroup(companyId, firstBookingId) {
         // Col 2: Room Financials
         html += '<div class="col-md-6">';
         html += '<div class="preview-section h-100">';
-        html += '<h5><i class="fa fa-dollar"></i> Room Financials</h5>';
+        html += '<h5><i class="fa fa-money"></i> Room Financials</h5>';
         
         const serviceCharges = parseFloat(booking.service_charges_usd || 0);
         const isSelfPay = booking.payment_responsibility === 'self';

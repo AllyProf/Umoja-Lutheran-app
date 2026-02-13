@@ -3,7 +3,7 @@
 @section('content')
 <div class="app-title">
   <div>
-    <h1><i class="fa fa-dollar"></i> Pricing Settings</h1>
+    <h1><i class="fa fa-money"></i> Pricing Settings</h1>
     <p>Configure pricing rules, taxes, discounts, and seasonal rates</p>
   </div>
   <ul class="app-breadcrumb breadcrumb">
@@ -26,7 +26,7 @@
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
-                <label for="exchange_rate_usd_to_tzs">USD to TZS Exchange Rate - Fallback Only</label>
+                <label for="exchange_rate_usd_to_tzs">Exchange Rate (1 USD = X TZS)</label>
                 <input type="number" class="form-control" id="exchange_rate_usd_to_tzs" 
                        name="exchange_rate_usd_to_tzs" 
                        value="{{ \App\Models\HotelSetting::getValue('exchange_rate_usd_to_tzs', '2455') }}" 
@@ -121,7 +121,7 @@
             </div>
             <div class="col-md-4">
               <div class="form-group">
-                <label for="service_charge_fixed">Service Charge (Fixed USD)</label>
+                <label for="service_charge_fixed">Service Charge (Fixed TZS)</label>
                 <input type="number" class="form-control" id="service_charge_fixed" 
                        name="service_charge_fixed" 
                        value="{{ \App\Models\HotelSetting::getValue('service_charge_fixed', '0') }}" 
@@ -195,7 +195,7 @@
                        name="peak_season_multiplier" 
                        value="{{ \App\Models\HotelSetting::getValue('peak_season_multiplier', '1.2') }}" 
                        step="0.1" min="1">
-                <small class="form-text text-muted">Multiply base price by this factor during peak season (e.g., 1.2 = 20% increase)</small>
+                <small class="form-text text-muted">Multiply base TZS price by this factor during peak season (e.g., 1.2 = 20% increase)</small>
               </div>
             </div>
             <div class="col-md-6">

@@ -374,21 +374,21 @@
             $displayBookings = $allCompanyBookings;
         }
         
-        $groupRoomTotalUSD = 0;
-        foreach($displayBookings as $b) { $groupRoomTotalUSD += $b->total_price; }
+        $groupRoomTotalBase = 0;
+        foreach($displayBookings as $b) { $groupRoomTotalBase += $b->total_price; }
 
-        $totalPaidUSD = ($isCorporate && isset($totalCompanyPaid)) ? $totalCompanyPaid : ($booking->amount_paid ?? 0);
+        $totalPaidBase = ($isCorporate && isset($totalCompanyPaid)) ? $totalCompanyPaid : ($booking->amount_paid ?? 0);
         
         // If it's a guest viewing self-paid services, we override totals
         if (isset($isGuestWithSelfPaidServices) && $isGuestWithSelfPaidServices) {
-            $grandTotalUSD = $guestServicePayments ?? 0;
-            $grandPaidUSD = $guestServicePayments ?? 0;
+            $grandTotalBase = $guestServicePayments ?? 0;
+            $grandPaidBase = $guestServicePayments ?? 0;
         } else {
-            $grandTotalUSD = $groupRoomTotalUSD;
-            $grandPaidUSD = $totalPaidUSD;
+            $grandTotalBase = $groupRoomTotalBase;
+            $grandPaidBase = $totalPaidBase;
         }
         
-        $balanceUSD = max(0, $grandTotalUSD - $grandPaidUSD);
+        $balanceBase = max(0, $grandTotalBase - $grandPaidBase);
         $currentExchangeRate = $exchangeRate ?? 2500;
     @endphp
 
@@ -410,7 +410,7 @@
             <span class="watermark-subtitle">Comfort in every Stay</span>
         </div>
         <img src="{{ asset('royal-master/image/Umoj Lutheran Hostel_stamp.png') }}" alt="Hotel Stamp" class="hotel-stamp">
-        @if($balanceUSD < 0.5) <div class="status-stamp">PAID</div> @endif
+        @if($balanceBase < 0.0001) <div class="status-stamp">PAID</div> @endif
 
         <div class="header">
             <div class="hotel-info">
@@ -517,11 +517,11 @@
             <div class="summary-box">
                 <div class="summary-row">
                     <b>Subtotal:</b>
-                    <span>{{ number_format($grandTotalUSD * $currentExchangeRate, 0) }} TZS</span>
+                    <span>{{ number_format($grandTotalBase * $currentExchangeRate, 0) }} TZS</span>
                 </div>
                 <div class="summary-row total">
                     <b>Grand Total:</b>
-                    <span>{{ number_format($grandTotalUSD * $currentExchangeRate, 0) }} TZS</span>
+                    <span>{{ number_format($grandTotalBase * $currentExchangeRate, 0) }} TZS</span>
                 </div>
                 @if(isset($isGuestWithCompanyPaidServices) && $isGuestWithCompanyPaidServices)
                     {{-- For company-billed bookings viewed by guest, show clear message --}}
@@ -537,12 +537,12 @@
                     {{-- For individual or self-pay bookings, show normal payment details --}}
                     <div class="summary-row paid">
                         <b>Total Amount Paid:</b>
-                        <span>{{ number_format($grandPaidUSD * $currentExchangeRate, 0) }} TZS</span>
+                        <span>{{ number_format($grandPaidBase * $currentExchangeRate, 0) }} TZS</span>
                     </div>
-                    @if($balanceUSD > 0.1)
+                    @if($balanceBase > 0.1)
                     <div class="summary-row" style="color: var(--danger); font-weight: 700; border-top: 1px dashed #ddd; margin-top: 10px; padding-top: 10px;">
                         <b>Remaining Balance:</b>
-                        <span>{{ number_format($balanceUSD * $currentExchangeRate, 0) }} TZS</span>
+                        <span>{{ number_format($balanceBase * $currentExchangeRate, 0) }} TZS</span>
                     </div>
                     @endif
                 @endif

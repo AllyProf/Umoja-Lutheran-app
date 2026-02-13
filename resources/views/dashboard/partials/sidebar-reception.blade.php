@@ -86,6 +86,6 @@
 
 <li><a class="app-menu__item {{ str_contains($activePage, 'reception/payments') ? 'active' : '' }}" href="{{ route('reception.payments') }}"><i class="app-menu__icon fa fa-money"></i><span class="app-menu__label">All Payments</span></a></li>
 
-<li><a class="app-menu__item {{ str_contains($activePage, 'exchange-rates') ? 'active' : '' }}" href="{{ route('exchange-rates') }}"><i class="app-menu__icon fa fa-exchange"></i><span class="app-menu__label">Exchange Rates</span></a></li>
+
 
 <li><a class="app-menu__item {{ str_contains($activePage, 'profile') ? 'active' : '' }}" href="{{ route('reception.profile') }}"><i class="app-menu__icon fa fa-user"></i><span class="app-menu__label">My Profile</span></a></li>

@@ -106,7 +106,7 @@
   <div class="row mb-3">
     <div class="col-md-12">
       <div class="tile">
-        <h3 class="tile-title"><i class="fa fa-dollar"></i> Currency & Exchange</h3>
+        <h3 class="tile-title"><i class="fa fa-money"></i> Currency Settings</h3>
         <div class="tile-body">
           <div class="row">
             <div class="col-md-4">
@@ -121,7 +121,7 @@
             <div class="col-md-4">
               <div class="form-group">
                 <label for="exchange_rate_usd_to_tzs" style="font-weight: bold; color: #e07632;">
-                  <i class="fa fa-pencil"></i> Manual Exchange Rate Override (USD to TZS)
+                  <i class="fa fa-pencil"></i> Global Exchange Rate (1 USD = X TZS)
                 </label>
                 <input type="number" class="form-control" id="exchange_rate_usd_to_tzs" name="exchange_rate_usd_to_tzs" 
                        value="{{ \App\Models\HotelSetting::getValue('exchange_rate_usd_to_tzs', '2540') }}" 
