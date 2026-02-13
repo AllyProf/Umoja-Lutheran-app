@@ -249,6 +249,10 @@
                                                 @endif
                                             </div>
                                         </div>
+                                    @elseif($room->is_occupied)
+                                        <div class="small text-danger">
+                                            <i class="fa fa-user"></i> Occupied (Manual/External)
+                                        </div>
                                     @elseif($room->has_immediate_booking && $room->upcoming_checkin)
                                         <div class="small">
                                             <strong class="text-primary"><i class="fa fa-suitcase"></i> {{ Str::limit($room->upcoming_checkin->guest_name, 18) }}</strong>

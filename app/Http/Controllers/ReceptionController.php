@@ -971,12 +971,14 @@ class ReceptionController extends Controller
     {
         $today = today();
         
-        // Load all bookings (confirmed paid/partial, and pending bookings for future dates)
+        // Load all bookings (checked_in, confirmed paid/partial, and pending bookings for future dates)
         $rooms = Room::with(['bookings' => function($query) use ($today) {
             $query->with(['serviceRequests.service'])
                   ->where(function($q) use ($today) {
-                // Confirmed and paid/partial bookings for current/upcoming dates
-                $q->where(function($subQ) use ($today) {
+                // ANY booking that is currently checked in
+                $q->where('check_in_status', 'checked_in')
+                // OR Confirmed and paid/partial bookings for current/upcoming dates
+                ->orWhere(function($subQ) use ($today) {
                     $subQ->where('status', 'confirmed')
                           ->whereIn('payment_status', ['paid', 'partial'])
                           ->where(function($paymentQ) {
@@ -1014,7 +1016,6 @@ class ReceptionController extends Controller
                                                    ->where('amount_paid', '>', 0);
                                       });
                           })
-                          ->where('check_in_status', 'pending')
                           ->whereDate('check_in', '>=', $today);
                 });
             });
@@ -1022,17 +1023,13 @@ class ReceptionController extends Controller
 
         // Calculate room status
         $rooms = $rooms->map(function($room) use ($today) {
-            // Active bookings (checked in AND today is between check-in and check-out dates)
-            $activeBookings = $room->bookings->filter(function($booking) use ($today) {
-                if ($booking->check_in_status !== 'checked_in') {
-                    return false;
-                }
-                $checkIn = Carbon::parse($booking->check_in);
-                $checkOut = Carbon::parse($booking->check_out);
-                // Room is occupied only if today is between check-in and check-out dates
-                return $today->gte($checkIn) && $today->lte($checkOut);
+            // Active bookings (checked in)
+            $activeBookings = $room->bookings->filter(function($booking) {
+                return $booking->check_in_status === 'checked_in';
             });
-            $room->is_occupied = $activeBookings->count() > 0;
+            
+            // Room is occupied if there's a checked-in booking OR its database status is 'occupied'
+            $room->is_occupied = ($activeBookings->count() > 0) || ($room->status === 'occupied');
             $room->current_booking = $activeBookings->first();
             
             // Upcoming bookings (future check-ins or pending payment bookings)
@@ -1080,7 +1077,7 @@ class ReceptionController extends Controller
         $stats = [
             'total' => $rooms->count(),
             'available' => $rooms->filter(function($room) {
-                // Room is available if not occupied and doesn't have immediate bookings (within 3 days)
+                // Room is available if it's marked available in DB AND not occupied by a guest
                 return $room->status === 'available' && !$room->is_occupied && !$room->has_immediate_booking;
             })->count(),
             'occupied' => $rooms->filter(function($room) {
@@ -1096,13 +1093,13 @@ class ReceptionController extends Controller
                 // Reserved if has immediate booking (within 3 days) and not occupied
                 return $room->has_immediate_booking && !$room->is_occupied;
             })->count(),
-            'waiting_payment' => $rooms->filter(function($room) {
-                // Waiting for payment if has immediate booking with pending payment
-                return $room->has_immediate_booking && 
-                       (($room->pending_payment_booking) || 
-                        ($room->upcoming_checkin && $room->upcoming_checkin->payment_status === 'pending'));
-            })->count(),
         ];
+        
+        // Ensure availability counts any room that isn't in another state
+        $accountedFor = $stats['occupied'] + $stats['needs_cleaning'] + $stats['maintenance'] + $stats['reserved'];
+        if ($accountedFor < $stats['total']) {
+            $stats['available'] = $stats['total'] - $accountedFor;
+        }
 
         // Get rooms with check-out today or overdue
         $roomsWithUrgentCheckout = $rooms->filter(function($room) use ($today) {
