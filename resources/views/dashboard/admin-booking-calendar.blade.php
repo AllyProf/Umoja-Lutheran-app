@@ -692,7 +692,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </tr>
                                 <tr>
                                     <td><strong>Total Price:</strong></td>
-                                    <td><strong>$${parseFloat(props.total_price).toFixed(2)}</strong></td>
+                                    <td><strong>Tsh ${Math.round(props.total_price_tsh).toLocaleString()}/=</strong></td>
                                 </tr>
                             </table>
                         </div>
