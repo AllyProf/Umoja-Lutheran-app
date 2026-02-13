@@ -2014,6 +2014,10 @@ class BookingController extends Controller
      */
     public function adminCalendar()
     {
+        // Get exchange rate for tooltips/displays
+        $currencyService = new \App\Services\CurrencyExchangeService();
+        $exchangeRate = $currencyService->getUsdToTshRate() ?? 2500;
+
         // Get all rooms
         $rooms = Room::orderBy('room_number', 'asc')->get();
         
@@ -2112,6 +2116,8 @@ class BookingController extends Controller
                     'payment_status' => $booking->payment_status,
                     'check_in_status' => $booking->check_in_status,
                     'total_price' => $booking->total_price,
+                    'total_price_tsh' => ($booking->total_price * ($booking->locked_exchange_rate ?? $exchangeRate)),
+                    'locked_exchange_rate' => $booking->locked_exchange_rate ?? $exchangeRate,
                 ];
             }
         }
@@ -2123,6 +2129,7 @@ class BookingController extends Controller
             'rooms' => $rooms,
             'calendarEvents' => $calendarEvents,
             'roomStatuses' => $roomStatuses,
+            'exchangeRate' => $exchangeRate,
         ]);
     }
 

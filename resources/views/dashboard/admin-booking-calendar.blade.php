@@ -733,7 +733,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <i class="fa fa-calendar-check-o" style="margin-right: 5px;"></i><strong>Check-in:</strong> ${info.event.startStr}<br>
                         <i class="fa fa-calendar-times-o" style="margin-right: 5px;"></i><strong>Check-out:</strong> ${info.event.endStr}<br>
                         <i class="fa fa-info-circle" style="margin-right: 5px;"></i><strong>Status:</strong> ${statusText}<br>
-                        <i class="fa fa-dollar" style="margin-right: 5px;"></i><strong>Total:</strong> $${parseFloat(props.total_price).toFixed(2)}
+                        <i class="fa fa-money" style="margin-right: 5px;"></i><strong>Total:</strong> Tsh ${Math.round(props.total_price_tsh).toLocaleString()}/=
                     </div>
                 `;
                 $(info.el).tooltip({
