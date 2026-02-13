@@ -82,7 +82,7 @@
               <span class="badge {{ ($bookingType ?? 'individual') == 'individual' ? 'badge-light' : 'badge-secondary' }} ml-2">{{ $stats['individual_total'] ?? 0 }}</span>
             </a>
           </li>
-          <li class="nav-item">
+          {{-- <li class="nav-item">
             <a class="nav-link {{ ($bookingType ?? 'individual') == 'corporate' ? 'active' : '' }}" 
                href="{{ route($bookingsRoute, array_merge(request()->except(['type']), ['type' => 'corporate'])) }}"
                style="
@@ -98,7 +98,7 @@
               <i class="fa fa-building"></i> Company Bookings
               <span class="badge {{ ($bookingType ?? 'individual') == 'corporate' ? 'badge-light' : 'badge-secondary' }} ml-2">{{ $stats['corporate_total'] ?? 0 }}</span>
             </a>
-          </li>
+          </li> --}}
         </ul>
       </div>
       

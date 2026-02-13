@@ -74,7 +74,7 @@ class ReceptionController extends Controller
 
         // Filter by booking type (individual or corporate)
         $bookingType = $request->get('type', 'individual'); // Default to individual
-        if ($bookingType === 'corporate') {
+        /* if ($bookingType === 'corporate') {
             $query->where('is_corporate_booking', true);
             
             // Group corporate bookings by company_id
@@ -158,7 +158,7 @@ class ReceptionController extends Controller
                 $request->get('page', 1),
                 ['path' => $request->url(), 'query' => $request->query()]
             );
-        } else {
+        } else { */
             // Default to individual bookings (is_corporate_booking is false or null)
             $query->where(function($q) {
                 $q->where('is_corporate_booking', false)
@@ -176,10 +176,10 @@ class ReceptionController extends Controller
             }
             
             $bookings = $query->paginate(20);
-        }
+        // }
 
         // Get statistics filtered by booking type
-        if ($bookingType === 'corporate') {
+        /* if ($bookingType === 'corporate') {
             // For corporate bookings, count unique companies
             $baseQuery = Booking::where('is_corporate_booking', true);
             
@@ -229,13 +229,14 @@ class ReceptionController extends Controller
                 'checked_in' => $checkedInCompanies,
                 'checked_out' => $checkedOutCompanies,
             ];
-        } else {
+        } else { */
             // For individual bookings, count individual bookings
             // Base query for individual bookings
             $baseQuery = Booking::where(function($q) {
                 $q->where('is_corporate_booking', false)
                   ->orWhereNull('is_corporate_booking');
             });
+        // }
             
             // Synchronize stats with all current filters
             $statsQuery = clone $baseQuery;

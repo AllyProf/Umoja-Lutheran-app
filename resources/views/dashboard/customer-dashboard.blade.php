@@ -261,9 +261,9 @@
                   <div class="flex-grow-1" style="min-width: 0;">
                     <h6 class="alert-heading mb-1" style="font-size: 14px; margin: 0;">
                       <strong>{{ $isCorporate ? 'Company Booking - Upcoming Check-out!' : 'Upcoming Check-out!' }}</strong>
-                      @if($isCorporate)
+                      {{-- @if($isCorporate)
                         <span class="badge badge-warning ml-2" style="background-color: #940000; color: white; font-size: 10px;">Company</span>
-                      @endif
+                      @endif --}}
                       @if($hasPendingExtension)
                         @if($isDecreaseRequest)
                           <span class="badge badge-warning ml-2">Decrease Pending</span>
@@ -295,7 +295,7 @@
                     </p>
                     <p class="mb-0" style="font-size: 12px; color: #666;">
                       Check-out: <strong>{{ $alert['date']->format('M d, Y') }}</strong> at <strong>4:00 PM</strong>
-                      @if($isCorporate)
+                      {{-- @if($isCorporate)
                         <br><small style="font-size: 11px; margin-top: 5px; display: inline-block;">
                           <span class="badge badge-success" style="background-color: #28a745; font-size: 10px;">
                             <i class="fa fa-bed"></i> Room: Company Paid
@@ -304,7 +304,7 @@
                             <i class="fa fa-cutlery"></i> Services: {{ $paymentResponsibility == 'self' ? 'Self-Paid' : 'Company Paid' }}
                           </span>
                         </small>
-                      @endif
+                      @endif --}}
                       @if($hasApprovedExtension && $booking->extension_requested_to)
                         @if($isDecreaseRequest)
                           <br><small class="text-success">✓ Decreased to: <strong>{{ $booking->extension_requested_to->format('M d, Y') }}</strong></small>
@@ -404,9 +404,9 @@
         <div class="flex-grow-1">
           <h6 class="alert-heading mb-1" style="font-size: 14px; margin: 0;">
             <strong>{{ $isCorporate ? 'Company Booking - Upcoming Check-in!' : 'Upcoming Check-in!' }}</strong>
-            @if($isCorporate)
+            {{-- @if($isCorporate)
               <span class="badge badge-warning ml-2" style="background-color: #940000; color: white; font-size: 10px;">Company</span>
-            @endif
+            @endif --}}
           </h6>
           <p class="mb-0" style="font-size: 13px;">
             Booking <strong>{{ $booking->booking_reference }}</strong>
@@ -423,7 +423,7 @@
             @endif
           </p>
           <small class="text-muted" style="font-size: 11px;">Room: {{ $booking->room->room_type ?? 'N/A' }} ({{ $booking->room->room_number ?? 'N/A' }})</small>
-          @if($isCorporate)
+          {{-- @if($isCorporate)
             <div class="mt-1" style="font-size: 11px;">
               <span class="badge badge-success" style="background-color: #28a745; font-size: 10px;">
                 <i class="fa fa-bed"></i> Room Charges: Company Paid
@@ -432,7 +432,7 @@
                 <i class="fa fa-cutlery"></i> Services: {{ $paymentResponsibility == 'self' ? 'Self-Paid' : 'Company Paid' }}
               </span>
             </div>
-          @endif
+          @endif --}}
         </div>
         <div class="mt-2 mt-md-0 ml-2">
           <button onclick="showDirectionsMap({{ $booking->id }})" 
@@ -687,9 +687,9 @@
       <div class="tile-title-w-btn">
         <h3 class="tile-title">
           <i class="fa {{ $isCorporate ? 'fa-building' : 'fa-bed' }}"></i> Current Stay Information
-          @if($isCorporate)
+          {{-- @if($isCorporate)
             <span class="badge badge-warning ml-2" style="background-color: #940000; color: white; font-size: 11px;">Company Booking</span>
-          @endif
+          @endif --}}
         </h3>
         <div class="btn-group">
           <button onclick="showDirectionsMap()" class="btn btn-sm btn-success">
@@ -698,7 +698,7 @@
         </div>
       </div>
       <div class="tile-body">
-        @if($isCorporate && $company)
+        {{-- @if($isCorporate && $company)
         <div class="alert alert-info mb-3" style="background-color: #e7f3ff; border-left: 3px solid #940000;">
           <div class="d-flex align-items-center">
             <i class="fa fa-building fa-lg mr-2" style="color: #940000;"></i>
@@ -708,7 +708,7 @@
             </div>
           </div>
         </div>
-        @endif
+        @endif --}}
 
         @php
           // Get room-specific WiFi, fallback to hotel-wide WiFi
@@ -717,7 +717,7 @@
         @endphp
 
         <div class="status-grid">
-          @if($isCorporate && $company)
+          {{-- @if($isCorporate && $company)
           <div class="status-card full-width primary">
             <i class="fa fa-building"></i>
             <div class="status-card-content">
@@ -725,7 +725,7 @@
               <span class="status-card-value">{{ $company->name }}</span>
             </div>
           </div>
-          @endif
+          @endif --}}
 
           <!-- Row 1: Room Number & Check-in -->
           <div class="status-card primary">

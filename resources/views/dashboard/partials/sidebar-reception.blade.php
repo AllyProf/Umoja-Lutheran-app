@@ -37,7 +37,7 @@
     <ul class="treeview-menu">
         <li><a class="treeview-item" href="{{ route('reception.bookings') }}"><i class="icon fa fa-list"></i> All Bookings</a></li>
         <li><a class="treeview-item" href="{{ route('reception.bookings.manual.create') }}"><i class="icon fa fa-plus-circle"></i> Individual Booking</a></li>
-        <li><a class="treeview-item" href="{{ route('admin.bookings.corporate.create') }}"><i class="icon fa fa-building"></i> Corporate Booking</a></li>
+        {{-- <li><a class="treeview-item" href="{{ route('admin.bookings.corporate.create') }}"><i class="icon fa fa-building"></i> Corporate Booking</a></li> --}}
         <li><a class="treeview-item" href="{{ route('admin.bookings.calendar') }}"><i class="icon fa fa-calendar"></i> Calendar View</a></li>
         <li class="treeview-divider"></li>
         <li><a class="treeview-item" href="{{ route('reception.reservations.check-in') }}"><i class="icon fa fa-sign-in"></i> Guest Check-In</a></li>
