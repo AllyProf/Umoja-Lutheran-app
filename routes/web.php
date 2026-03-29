@@ -440,7 +440,7 @@ Route::prefix('manager')->group(function () {
         Route::get('/bookings/{booking}/checkout-bill', [\App\Http\Controllers\ServiceRequestController::class, 'generateCheckoutBill'])->name('admin.bookings.checkout-bill');
 
         // Unified Logout Route
-        Route::post('/logout', [App\Http\Controllers\EmergencyAuthController::class, 'logout'])->name('logout');
+        Route::post('/logout', [App\Http\Controllers\EmergencyAuthController::class, 'logout'])->name('admin.logout');
     });
 });
 
