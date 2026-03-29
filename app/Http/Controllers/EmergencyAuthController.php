@@ -525,13 +525,31 @@ class EmergencyAuthController extends Controller
 
             // Force session save to database before redirect
             $sessionId = $request->session()->getId();
+
+            // Sync user_id and user_type to sessions table for better tracking/persistence
+            try {
+                \DB::table('sessions')
+                    ->where('id', $sessionId)
+                    ->update([
+                        'user_id' => $user->id,
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                    ]);
+                \Log::channel('daily')->info('Sessions table updated with user_id', ['user_id' => $user->id]);
+            } catch (\Exception $sessionDbEx) {
+                \Log::channel('daily')->error('Failed to update sessions table: ' . $sessionDbEx->getMessage());
+            }
+
             session(['logged_at' => now()->toDateTimeString()]);
             session()->save();
 
             \Log::channel('daily')->info('--- SESSION SAVED, REDIRECTING TO DASHBOARD ---', [
                 'user_id' => $user->id,
                 'session_id' => $sessionId,
-                'guard_check' => Auth::guard('staff')->check(),
+                'guard_check_staff' => Auth::guard('staff')->check(),
+                'guard_check_guest' => Auth::guard('guest')->check(),
+                'cookie_secure_config' => config('session.secure'),
+                'cookie_name' => config('session.cookie'),
             ]);
 
             // Get user role for dashboard redirect

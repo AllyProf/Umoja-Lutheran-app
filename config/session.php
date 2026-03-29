@@ -166,7 +166,7 @@ return [
     |
     */
 
-    'secure' => false, // Set to false for diagnostic to allow cookies on all schemes
+    'secure' => env('SESSION_SECURE', false),
 
     /*
     |--------------------------------------------------------------------------
