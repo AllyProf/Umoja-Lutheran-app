@@ -35,8 +35,10 @@ class AppServiceProvider extends ServiceProvider
             ]);
         }
 
-        if ($appUrl && str_starts_with($appUrl, 'https://')) {
+        if (app()->environment('production') && $appUrl && str_starts_with($appUrl, 'https://')) {
             URL::forceScheme('https');
+        } elseif (app()->environment('local')) {
+            URL::forceScheme('http');
         }
         // If production but APP_URL is HTTP, don't force HTTPS (let it use HTTP)
         // This ensures CSRF tokens are generated with the correct protocol
