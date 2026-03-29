@@ -67,6 +67,9 @@ class StorekeeperController extends Controller
         // Calculate stock for each variant of these products
         foreach ($products as $product) {
             foreach ($product->variants as $variant) {
+                $packageUnits = ProductVariant::getPackageUnits();
+                $unitsList = "'" . implode("','", $packageUnits) . "'";
+
                 // 1. Total In (Receipts + Shopping List)
                 $receiptsIn = DB::table('stock_receipts')
                     ->join('product_variants', 'stock_receipts.product_variant_id', '=', 'product_variants.id')
@@ -79,11 +82,11 @@ class StorekeeperController extends Controller
                     ->join('products', 'shopping_list_items.product_id', '=', 'products.id')
                     ->where('shopping_list_items.product_variant_id', $variant->id)
                     ->where('shopping_list_items.is_purchased', true)
-                    ->sum(DB::raw('CASE 
+                    ->sum(DB::raw("CASE 
                         WHEN (received_quantity_kg > 0) THEN received_quantity_kg 
-                        WHEN (unit = "crates" OR unit = "carton" OR unit = "packages") AND products.category != "food" THEN purchased_quantity * product_variants.items_per_package 
+                        WHEN LOWER(unit) IN ($unitsList) AND (products.category != 'food' OR products.category IS NULL) THEN purchased_quantity * product_variants.items_per_package 
                         ELSE purchased_quantity 
-                    END'));
+                    END"));
 
                 $totalIn = (float) $receiptsIn + (float) $shoppingIn;
 
@@ -100,7 +103,7 @@ class StorekeeperController extends Controller
                     ->join('product_variants', 'stock_transfers.product_variant_id', '=', 'product_variants.id')
                     ->where('stock_transfers.product_variant_id', $variant->id)
                     ->where('stock_transfers.status', 'completed')
-                    ->sum(DB::raw('CASE WHEN quantity_unit = "packages" THEN quantity_transferred * product_variants.items_per_package ELSE quantity_transferred END'));
+                    ->sum(DB::raw("CASE WHEN LOWER(quantity_unit) IN ($unitsList) THEN quantity_transferred * product_variants.items_per_package ELSE quantity_transferred END"));
 
                 $variant->current_stock = $totalIn - (float) $transfersOut;
             }
@@ -125,17 +128,17 @@ class StorekeeperController extends Controller
                     ->where('is_purchased', true)
                     ->join('product_variants', 'shopping_list_items.product_variant_id', '=', 'product_variants.id')
                     ->join('products', 'shopping_list_items.product_id', '=', 'products.id')
-                    ->sum(DB::raw('CASE 
+                    ->sum(DB::raw("CASE 
                         WHEN (received_quantity_kg > 0) THEN received_quantity_kg 
-                        WHEN (unit = "crates" OR unit = "carton" OR unit = "packages") AND products.category != "food" THEN purchased_quantity * product_variants.items_per_package 
+                        WHEN LOWER(unit) IN ($unitsList) AND (products.category != 'food' OR products.category IS NULL) THEN purchased_quantity * product_variants.items_per_package 
                         ELSE purchased_quantity 
-                    END'));
+                    END"));
 
                 $transfersOut = DB::table('stock_transfers')
                     ->where('product_variant_id', $variant->id)
                     ->where('status', 'completed')
                     ->join('product_variants', 'stock_transfers.product_variant_id', '=', 'product_variants.id')
-                    ->sum(DB::raw('CASE WHEN quantity_unit = "packages" THEN quantity_transferred * product_variants.items_per_package ELSE quantity_transferred END'));
+                    ->sum(DB::raw("CASE WHEN LOWER(quantity_unit) IN ($unitsList) THEN quantity_transferred * product_variants.items_per_package ELSE quantity_transferred END"));
 
                 $returnsIn = DB::table('stock_returns')
                     ->where('product_variant_id', $variant->id)

@@ -165,8 +165,19 @@ class ProductVariant extends Model
         return 0;
     }
 
+    /**
+     * Get a list of units that should trigger the items_per_package multiplier
+     */
+    public static function getPackageUnits()
+    {
+        return ['crate', 'crates', 'carton', 'cartons', 'package', 'packages', 'box', 'boxes', 'unit', 'units', 'sado', 'debe', 'kiroba', 'case', 'cases', 'bundle', 'bundles'];
+    }
+
     public function getCurrentStock()
     {
+        $packageUnits = self::getPackageUnits();
+        $unitsList = "'" . implode("','", $packageUnits) . "'";
+
         // 1. Total In (Receipts + Shopping List)
         $receiptsIn = \DB::table('stock_receipts')
             ->join('product_variants', 'stock_receipts.product_variant_id', '=', 'product_variants.id')
@@ -179,11 +190,11 @@ class ProductVariant extends Model
             ->join('products', 'shopping_list_items.product_id', '=', 'products.id')
             ->where('shopping_list_items.product_variant_id', $this->id)
             ->where('shopping_list_items.is_purchased', true)
-            ->sum(\DB::raw('CASE 
+            ->sum(\DB::raw("CASE 
                 WHEN (received_quantity_kg > 0) THEN received_quantity_kg 
-                WHEN (unit = "crates" OR unit = "carton" OR unit = "packages") AND products.category != "food" THEN purchased_quantity * product_variants.items_per_package 
+                WHEN LOWER(unit) IN ($unitsList) AND (products.category != 'food' OR products.category IS NULL) THEN purchased_quantity * product_variants.items_per_package 
                 ELSE purchased_quantity 
-            END'));
+            END"));
 
         // 1.5 Total Returned
         $returnsIn = \DB::table('stock_returns')
@@ -198,7 +209,7 @@ class ProductVariant extends Model
             ->join('product_variants', 'stock_transfers.product_variant_id', '=', 'product_variants.id')
             ->where('stock_transfers.product_variant_id', $this->id)
             ->where('stock_transfers.status', 'completed')
-            ->sum(\DB::raw('CASE WHEN quantity_unit = "packages" THEN quantity_transferred * product_variants.items_per_package ELSE quantity_transferred END'));
+            ->sum(\DB::raw("CASE WHEN LOWER(quantity_unit) IN ($unitsList) THEN quantity_transferred * product_variants.items_per_package ELSE quantity_transferred END"));
 
         return $totalIn - (float) $transfersOut;
     }

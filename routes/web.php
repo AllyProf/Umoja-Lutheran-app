@@ -106,6 +106,9 @@ Route::post('/forgot-password', [\App\Http\Controllers\PasswordResetController::
 
 // Manager Dashboard Routes (previously Admin)
 Route::prefix('manager')->group(function () {
+    // Unified Logout Route for all admin/manager dashboard users
+    Route::post('/logout', [App\Http\Controllers\EmergencyAuthController::class, 'logout'])->name('admin.logout');
+
     // Login routes redirect to unified login
     Route::get('/login', function () {
         return redirect()->route('login');
@@ -438,9 +441,6 @@ Route::prefix('manager')->group(function () {
         Route::post('/bookings/checkout-company-group/{company}', [\App\Http\Controllers\ReceptionController::class, 'checkoutCompanyGroup'])->name('admin.bookings.checkout-company-group');
         // Checkout Bill (Manager/Reception Operations)
         Route::get('/bookings/{booking}/checkout-bill', [\App\Http\Controllers\ServiceRequestController::class, 'generateCheckoutBill'])->name('admin.bookings.checkout-bill');
-
-        // Unified Logout Route
-        Route::post('/logout', [App\Http\Controllers\EmergencyAuthController::class, 'logout'])->name('admin.logout');
     });
 });
 

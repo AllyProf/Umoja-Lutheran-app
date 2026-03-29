@@ -731,12 +731,15 @@ class KitchenController extends Controller
                 ->select(DB::raw('SUM(stock_receipts.quantity_received_packages * product_variants.items_per_package) as total_received'))
                 ->first()->total_received ?? 0;
 
+            $packageUnits = ProductVariant::getPackageUnits();
+            $unitsList = "'" . implode("','", $packageUnits) . "'";
+
             // 2. Total Received from Shopping List Purchases
             $shoppingListReceived = DB::table('shopping_list_items')
                 ->join('product_variants', 'shopping_list_items.product_variant_id', '=', 'product_variants.id')
                 ->where('shopping_list_items.product_id', $product->id)
                 ->where('shopping_list_items.is_purchased', true)
-                ->sum(DB::raw('CASE WHEN (unit = "crates" OR unit = "carton" OR unit = "packages" OR unit = "Sado" OR unit = "Debe" OR unit = "Kiroba" OR unit = "boxes") THEN purchased_quantity * product_variants.items_per_package ELSE purchased_quantity END'));
+                ->sum(DB::raw("CASE WHEN LOWER(unit) IN ($unitsList) THEN purchased_quantity * product_variants.items_per_package ELSE purchased_quantity END"));
 
             $totalReceived = (float) $receiptsReceived + (float) $shoppingListReceived;
 
