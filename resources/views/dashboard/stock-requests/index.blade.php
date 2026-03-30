@@ -3,9 +3,12 @@
 @php
     $type = request('type');
     $title = 'All Stock Requests';
-    if ($type === 'drink') $title = 'Beverage Requests';
-    elseif ($type === 'food') $title = 'Kitchen Requests';
-    elseif ($type === 'housekeeping') $title = 'Housekeeping Requests';
+    if ($type === 'drink')
+        $title = 'Beverage Requests';
+    elseif ($type === 'food')
+        $title = 'Kitchen Requests';
+    elseif ($type === 'housekeeping')
+        $title = 'Housekeeping Requests';
 @endphp
 
 @section('title', $title)
@@ -73,9 +76,9 @@
                                                     {{ number_format($request->quantity, 1) }}
                                                     @php
                                                         $unit = $request->unit;
-                                                        if($unit === 'packages') {
+                                                        if ($unit === 'packages') {
                                                             $unit = $request->productVariant->packaging_name ?? 'Crates';
-                                                        } elseif($unit === 'bottles') {
+                                                        } elseif ($unit === 'bottles') {
                                                             $unit = 'Individual Units';
                                                         }
                                                     @endphp
@@ -100,22 +103,27 @@
                                                     @endphp
                                                     <small class="text-muted">Rev: {{ number_format($revenue, 2) }}</small><br>
                                                     <small class="text-muted">Cost: {{ number_format($cost, 2) }}</small><br>
-                                                    <strong class="{{ $profit >= 0 ? 'text-success' : 'text-danger' }}" style="font-size: 0.85em;">
+                                                    <strong class="{{ $profit >= 0 ? 'text-success' : 'text-danger' }}"
+                                                        style="font-size: 0.85em;">
                                                         Profit: {{ number_format($profit, 2) }}
                                                     </strong>
                                                 @elseif($isKitchenOrHouse)
                                                     @if($request->status === 'completed')
                                                         <span class="text-muted">—</span>
                                                     @elseif($request->unit_cost > 0)
-                                                        <small class="text-muted">Unit: {{ number_format($request->unit_cost, 2) }}</small><br>
-                                                        <strong class="text-primary" style="font-size: 0.9em;">Total: {{ number_format($request->total_cost, 2) }}</strong>
+                                                        <small class="text-muted">Unit:
+                                                            {{ number_format($request->unit_cost, 2) }}</small><br>
+                                                        <strong class="text-primary" style="font-size: 0.9em;">Total:
+                                                            {{ number_format($request->total_cost, 2) }}</strong>
                                                     @else
                                                         <span class="badge badge-light text-muted">N/A (Legacy)</span>
                                                     @endif
                                                 @else
                                                     @if($request->unit_cost > 0)
-                                                        <small class="text-muted">Unit: {{ number_format($request->unit_cost, 2) }}</small><br>
-                                                        <strong class="text-primary" style="font-size: 0.9em;">Total: {{ number_format($request->total_cost, 2) }}</strong>
+                                                        <small class="text-muted">Unit:
+                                                            {{ number_format($request->unit_cost, 2) }}</small><br>
+                                                        <strong class="text-primary" style="font-size: 0.9em;">Total:
+                                                            {{ number_format($request->total_cost, 2) }}</strong>
                                                     @else
                                                         <span class="badge badge-light text-muted">N/A</span>
                                                     @endif
@@ -140,7 +148,7 @@
                                                 @endif
 
                                                 {{-- Manager Actions --}}
-                                                @if((Auth::guard('staff')->user()->isManager() || Auth::guard('staff')->user()->isSuperAdmin()) && $request->status === 'pending_manager')
+                                                @if((Auth::guard('staff')->user()->isManager() || Auth::guard('staff')->user()->isSuperAdmin()) && in_array($request->status, ['pending_manager', 'pending_accountant']))
                                                     <form action="{{ route('stock-requests.approve', $request) }}" method="POST"
                                                         class="d-inline">
                                                         @csrf
@@ -154,7 +162,7 @@
                                                 {{-- Global Reject Action for Accountant/Manager --}}
                                                 @if(
                                                         (Auth::guard('staff')->user()->role === 'accountant' && $request->status === 'pending_accountant') ||
-                                                        ((Auth::guard('staff')->user()->isManager() || Auth::guard('staff')->user()->isSuperAdmin()) && $request->status === 'pending_manager')
+                                                        ((Auth::guard('staff')->user()->isManager() || Auth::guard('staff')->user()->isSuperAdmin()) && in_array($request->status, ['pending_manager', 'pending_accountant']))
                                                     )
                                                     <button type="button" class="btn btn-sm btn-danger" data-toggle="modal"
                                                         data-target="#rejectModal{{ $request->id }}">

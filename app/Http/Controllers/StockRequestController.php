@@ -94,8 +94,9 @@ class StockRequestController extends Controller
     public function store(Request $request)
     {
         $user = Auth::guard('staff')->user();
-        $isChef = ($user->role === 'head_chef');
-        $isHousekeeper = ($user->role === 'housekeeper');
+        $normalizedRole = strtolower(trim($user->role ?? ''));
+        $isChef = in_array($normalizedRole, ['head_chef', 'head chef', 'chef']);
+        $isHousekeeper = ($normalizedRole === 'housekeeper');
 
         $request->validate([
             'items' => 'required|array|min:1',
@@ -193,8 +194,9 @@ class StockRequestController extends Controller
     public function rowTemplate()
     {
         $user = Auth::guard('staff')->user();
-        $isChef = ($user->role === 'head_chef');
-        $isHousekeeper = ($user->role === 'housekeeper');
+        $normalizedRole = strtolower(trim($user->role ?? ''));
+        $isChef = in_array($normalizedRole, ['head_chef', 'head chef', 'chef']);
+        $isHousekeeper = ($normalizedRole === 'housekeeper');
         $index = (int) request('index', 1);
 
         $query = ProductVariant::with('product')->where('is_active', true);
@@ -245,8 +247,8 @@ class StockRequestController extends Controller
             abort(403, 'Only managers can approve requests.');
         }
 
-        if ($stockRequest->status !== 'pending_manager') {
-            return redirect()->back()->with('error', 'This request is not pending manager approval.');
+        if (!in_array($stockRequest->status, ['pending_manager', 'pending_accountant'])) {
+            return redirect()->back()->with('error', 'This request is not pending manager or accountant approval.');
         }
 
         $stockRequest->update([
