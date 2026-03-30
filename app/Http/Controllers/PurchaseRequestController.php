@@ -16,9 +16,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Services\InventoryService;
 
 class PurchaseRequestController extends Controller
 {
+    protected $inventoryService;
+
+    public function __construct(InventoryService $inventoryService)
+    {
+        $this->inventoryService = $inventoryService;
+    }
     /**
      * Show purchase request form
      */
@@ -368,12 +375,20 @@ class PurchaseRequestController extends Controller
                     }
 
                     // Add to inventory (only for housekeeping and food/kitchen department)
+                    $itemName = $item->product_name;
+                    $category = $item->category ?? 'other';
+                    $useManualKg = $item->received_quantity_kg > 0;
+                    $quantity = $useManualKg ? $item->received_quantity_kg : ($item->purchased_quantity ?? $item->quantity ?? 0);
+                    $unit = $useManualKg ? 'kg' : ($item->unit ?? 'pcs');
+                    $variant = $item->productVariant;
+                    $notes = 'Received from purchase request: ' . ($item->purchaseRequest->item_name ?? $itemName);
+
                     if (strtolower(trim($staffDeptName)) === 'housekeeping') {
-                        $this->addToInventory($item, $staff);
+                        $this->inventoryService->updateHousekeepingInventory($itemName, $quantity, $unit, $category, $staff->id, $notes, $variant);
                     } elseif (strtolower(trim($staffDeptName)) === 'food' || strtolower(trim($staffDeptName)) === 'kitchen') {
-                        $this->addToKitchenInventory($item, $staff);
+                        $this->inventoryService->updateKitchenInventory($itemName, $quantity, $unit, $category, $staff->id, $notes, $item->expiry_date, $variant);
                     } elseif (strtolower(trim($staffDeptName)) === 'bar') {
-                        $this->addToBarInventory($item, $staff);
+                        $this->inventoryService->createBarTransfer($itemName, $quantity, $unit, $item->unit_price, $item->purchased_cost, $staff->id, $item->expiry_date, $variant);
                     }
 
                     $receivedCount++;
@@ -397,164 +412,6 @@ class PurchaseRequestController extends Controller
                 'message' => 'Error receiving items: ' . $e->getMessage(),
             ], 500);
         }
-    }
-
-    /**
-     * Add received item to inventory
-     */
-    private function addToInventory($shoppingListItem, $staff)
-    {
-        $itemName = $shoppingListItem->product_name;
-        $category = $shoppingListItem->category ?? 'other';
-
-        // Priority: Manual KG measurement if exists
-        $useManualKg = $shoppingListItem->received_quantity_kg > 0;
-        $quantity = $useManualKg ? $shoppingListItem->received_quantity_kg : ($shoppingListItem->purchased_quantity ?? $shoppingListItem->quantity ?? 0);
-        $unit = $useManualKg ? 'kg' : ($shoppingListItem->unit ?? 'pcs');
-
-        if ($quantity <= 0) {
-            return; // Skip if no quantity
-        }
-
-        // Handle packaging for items if linked to a variant
-        $variant = $shoppingListItem->productVariant;
-        if ($variant && in_array(strtolower($unit), ['crates', 'crate', 'carton', 'packages', 'package'])) {
-            $itemsPerPackage = $variant->items_per_package ?? 1;
-            $quantity *= $itemsPerPackage;
-            $unit = $variant->measurement ?: 'pcs'; // Convert to base unit (e.g., pcs)
-        }
-
-        // Find or create inventory item (Match by name to avoid duplicates if category varies slightly)
-        $inventoryItem = HousekeepingInventoryItem::where('name', $itemName)->first();
-
-        if (!$inventoryItem) {
-            $inventoryItem = HousekeepingInventoryItem::create([
-                'name' => $itemName,
-                'category' => $category,
-                'unit' => $unit,
-                'current_stock' => 0,
-                'minimum_stock' => 0,
-            ]);
-        }
-
-        // Add received quantity to stock
-        $inventoryItem->current_stock += $quantity;
-        $inventoryItem->save();
-
-        // Create stock movement log
-        InventoryStockMovement::create([
-            'inventory_item_id' => $inventoryItem->id,
-            'movement_type' => 'supply',
-            'quantity' => $quantity,
-            'performed_by' => $staff->id,
-            'notes' => 'Received from purchase request: ' . ($shoppingListItem->purchaseRequest->item_name ?? $itemName),
-        ]);
-    }
-
-    /**
-     * Add received item to kitchen inventory
-     */
-    private function addToKitchenInventory($shoppingListItem, $staff)
-    {
-        $itemName = $shoppingListItem->product_name;
-        $category = $shoppingListItem->category ?? 'other';
-
-        // Priority: Manual KG measurement if exists
-        $useManualKg = $shoppingListItem->received_quantity_kg > 0;
-        $quantity = $useManualKg ? $shoppingListItem->received_quantity_kg : ($shoppingListItem->purchased_quantity ?? $shoppingListItem->quantity ?? 0);
-        $unit = $useManualKg ? 'kg' : ($shoppingListItem->unit ?? 'pcs');
-
-        $expiryDate = $shoppingListItem->expiry_date;
-
-        if ($quantity <= 0) {
-            return; // Skip if no quantity
-        }
-
-        // Handle packaging for kitchen items if linked to a variant
-        $variant = $shoppingListItem->productVariant;
-        if ($variant && in_array(strtolower($unit), ['crates', 'crate', 'carton', 'packages', 'package'])) {
-            $itemsPerPackage = $variant->items_per_package ?? 1;
-            $quantity *= $itemsPerPackage;
-            $unit = $variant->measurement ?: 'pcs'; // Convert to base unit
-        }
-
-        // Find or create kitchen inventory item
-        $inventoryItem = KitchenInventoryItem::firstOrCreate(
-            [
-                'name' => $itemName,
-            ],
-            [
-                'category' => $category,
-                'unit' => $unit,
-                'current_stock' => 0,
-                'minimum_stock' => 0,
-            ]
-        );
-
-        // Add received quantity to stock and update expiry date if provided
-        $inventoryItem->current_stock += $quantity;
-        if ($expiryDate) {
-            $inventoryItem->expiry_date = $expiryDate;
-        }
-        $inventoryItem->save();
-
-        // Create stock movement log
-        KitchenStockMovement::create([
-            'inventory_item_id' => $inventoryItem->id,
-            'movement_type' => 'supply',
-            'quantity' => $quantity,
-            'performed_by' => $staff->id,
-            'movement_date' => now(),
-            'expiry_date' => $expiryDate,
-            'notes' => 'Received from purchase request: ' . ($shoppingListItem->purchaseRequest->item_name ?? $itemName),
-        ]);
-    }
-
-    /**
-     * Add received item to bar inventory (as a completed stock transfer)
-     */
-    private function addToBarInventory($shoppingListItem, $staff)
-    {
-        $variant = $shoppingListItem->productVariant;
-        if (!$variant) {
-            return; // Cannot add to bar inventory without product link
-        }
-
-        // Priority: Manual KG measurement if exists
-        $useManualKg = $shoppingListItem->received_quantity_kg > 0;
-        $quantity = $useManualKg ? $shoppingListItem->received_quantity_kg : ($shoppingListItem->purchased_quantity ?? $shoppingListItem->quantity ?? 0);
-
-        if ($quantity <= 0) {
-            return;
-        }
-
-        // Determine unit
-        $isPackage = in_array(strtolower($shoppingListItem->unit), ['crates', 'crate', 'carton', 'packages', 'package']);
-        $unit = $useManualKg ? 'kg' : ($isPackage ? 'packages' : 'bottles');
-
-        // Create a completed stock transfer to represent adding to bar stock
-        $transfer = StockTransfer::create([
-            'transfer_reference' => StockTransfer::generateReference(),
-            'product_id' => $variant->product_id,
-            'product_variant_id' => $variant->id,
-            'quantity_transferred' => $quantity,
-            'quantity_unit' => $unit,
-            'transferred_by' => 1, // System / Admin
-            'received_by' => $staff->id,
-            'status' => 'completed',
-            'transfer_date' => now(),
-            'received_at' => now(),
-            'notes' => 'Directly received from purchase: ' . $shoppingListItem->product_name,
-            'unit_cost' => $shoppingListItem->unit_price,
-            'total_cost' => $shoppingListItem->purchased_cost,
-            'selling_price_per_pic' => $variant->selling_price_per_pic,
-            'selling_price_per_serving' => $variant->selling_price_per_serving,
-            'servings_per_pic' => $variant->servings_per_pic,
-            'expiry_date' => $shoppingListItem->expiry_date,
-        ]);
-
-        $transfer->calculateRevenueProjections();
-        $transfer->save();
     }
 
     /**

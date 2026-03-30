@@ -10,8 +10,19 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
+use App\Services\NotificationService;
+use App\Services\InventoryService;
+
 class StockRequestController extends Controller
 {
+    protected $notificationService;
+    protected $inventoryService;
+
+    public function __construct(NotificationService $notificationService, InventoryService $inventoryService)
+    {
+        $this->notificationService = $notificationService;
+        $this->inventoryService = $inventoryService;
+    }
     /**
      * Display a listing of stock requests.
      */
@@ -168,7 +179,7 @@ class StockRequestController extends Controller
                 $storedUnitCost = $unitPrice * ($variant->items_per_package ?? 1);
             }
 
-            StockRequest::create([
+            $stockRequest = StockRequest::create([
                 'requested_by' => $user->id,
                 'product_variant_id' => $item['product_variant_id'],
                 'quantity' => $item['quantity'],
@@ -178,6 +189,9 @@ class StockRequestController extends Controller
                 'unit_cost' => $storedUnitCost,
                 'total_cost' => $totalCost,
             ]);
+
+            // Notify Accountant or Manager
+            $this->notificationService->createStockRequestCreatedNotification($stockRequest);
         }
 
         $count = count($request->items);
@@ -234,6 +248,8 @@ class StockRequestController extends Controller
             'accountant_approved_at' => Carbon::now(),
         ]);
 
+        $this->notificationService->createStockRequestPassedToManagerNotification($stockRequest);
+
         return redirect()->back()->with('success', 'Request verified and forwarded to Manager.');
     }
 
@@ -257,6 +273,8 @@ class StockRequestController extends Controller
             'manager_approved_at' => Carbon::now(),
         ]);
 
+        $this->notificationService->createStockRequestStatusUpdateNotification($stockRequest, 'approved');
+
         return redirect()->back()->with('success', 'Request approved. Storekeeper can now distribute.');
     }
 
@@ -273,6 +291,8 @@ class StockRequestController extends Controller
             'status' => 'rejected',
             'rejection_reason' => $request->rejection_reason,
         ]);
+
+        $this->notificationService->createStockRequestStatusUpdateNotification($stockRequest, 'rejected');
 
         return redirect()->back()->with('error', 'Request has been rejected.');
     }
@@ -351,6 +371,30 @@ class StockRequestController extends Controller
                 'distributed_at' => Carbon::now(),
                 'stock_transfer_id' => $transfer->id,
             ]);
+
+            $this->notificationService->createStockRequestStatusUpdateNotification($stockRequest, 'completed');
+
+            // Update Department Inventory if it's an internal request (Kitchen/Housekeeping)
+            if ($isInternal) {
+                $itemName = $stockRequest->productVariant->product->name;
+                // If it's a variant like '500ml', append it
+                if ($stockRequest->productVariant->variant_name && strtolower($stockRequest->productVariant->variant_name) !== 'standard') {
+                    $itemName .= ' - ' . $stockRequest->productVariant->variant_name;
+                }
+
+                $quantity = $stockRequest->quantity;
+                $unit = $stockRequest->unit;
+                $category = $stockRequest->productVariant->product->category;
+                $staffId = $stockRequest->requested_by;
+                $notes = "Internal supply from Store: Stock Request #{$stockRequest->id}";
+                $variant = $stockRequest->productVariant;
+
+                if (in_array($receiverRole, ['head_chef', 'chef'])) {
+                    $this->inventoryService->updateKitchenInventory($itemName, $quantity, $unit, $category, $staffId, $notes, null, $variant);
+                } elseif (in_array($receiverRole, ['housekeeper', 'linen_keeper'])) {
+                    $this->inventoryService->updateHousekeepingInventory($itemName, $quantity, $unit, $category, $staffId, $notes, $variant);
+                }
+            }
 
             DB::commit();
             return redirect()->back()->with('success', 'Products distributed successfully. Stock transfer created.');

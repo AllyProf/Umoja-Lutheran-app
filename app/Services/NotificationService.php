@@ -26,7 +26,7 @@ class NotificationService
         }
         return $path;
     }
-    
+
     /**
      * Create a notification for new booking
      */
@@ -44,7 +44,7 @@ class NotificationService
             'notifiable_type' => Booking::class,
             'link' => $this->getRelativeUrl('admin.bookings.index') . '?ref=' . $booking->booking_reference,
         ]);
-        
+
         // Notify reception
         Notification::create([
             'type' => 'booking',
@@ -65,7 +65,7 @@ class NotificationService
     public function createPaymentNotification(Booking $booking, $user = null): void
     {
         $message = "Payment completed for booking #{$booking->booking_reference} by {$booking->guest_name}";
-        
+
         // Notify manager
         Notification::create([
             'type' => 'payment',
@@ -78,7 +78,7 @@ class NotificationService
             'notifiable_type' => Booking::class,
             'link' => $this->getRelativeUrl('admin.bookings.index') . '?ref=' . $booking->booking_reference,
         ]);
-        
+
         // Notify reception
         Notification::create([
             'type' => 'payment',
@@ -116,7 +116,7 @@ class NotificationService
     {
         $booking = $serviceRequest->booking;
         $service = $serviceRequest->service;
-        
+
         Notification::create([
             'type' => 'service_request',
             'title' => 'New Service Request',
@@ -140,7 +140,7 @@ class NotificationService
         }
 
         $service = $serviceRequest->service;
-        
+
         // All requests start as pending and require reception approval
         Notification::create([
             'type' => 'service_request',
@@ -167,19 +167,19 @@ class NotificationService
             'completed' => "Your service request for {$service->name} has been completed",
             'cancelled' => "Your service request for {$service->name} has been cancelled",
         ];
-        
+
         $icons = [
             'approved' => 'fa-check',
             'completed' => 'fa-check-circle',
             'cancelled' => 'fa-times',
         ];
-        
+
         $colors = [
             'approved' => 'success',
             'completed' => 'success',
             'cancelled' => 'warning',
         ];
-        
+
         Notification::create([
             'type' => 'service_request',
             'title' => 'Service Request ' . ucfirst($status),
@@ -221,38 +221,38 @@ class NotificationService
     {
         $serviceName = $serviceCatalog->service_name;
         $editorName = $editor->name ?? 'Manager';
-        
+
         // Determine which roles should be notified based on service type
         $serviceKey = strtolower($serviceCatalog->service_key ?? '');
         $rolesToNotify = ['reception']; // Reception always needs to know
-        
+
         // Add department-specific roles based on service type
         if (str_contains($serviceKey, 'bar') || str_contains($serviceKey, 'drink') || str_contains($serviceKey, 'beverage')) {
             $rolesToNotify[] = 'bar_keeper';
         }
-        
+
         if (str_contains($serviceKey, 'food') || str_contains($serviceKey, 'restaurant') || str_contains($serviceKey, 'kitchen') || str_contains($serviceKey, 'meal')) {
             $rolesToNotify[] = 'head_chef';
         }
-        
+
         // Build change message
         $changes = [];
         if (isset($oldValues['service_name']) && $oldValues['service_name'] !== $serviceCatalog->service_name) {
             $changes[] = "name changed from '{$oldValues['service_name']}' to '{$serviceCatalog->service_name}'";
         }
         if (isset($oldValues['price_tanzanian']) && $oldValues['price_tanzanian'] != $serviceCatalog->price_tanzanian) {
-            $changes[] = "Tanzanian price changed from " . number_format($oldValues['price_tanzanian'], 2) . " to " . number_format($serviceCatalog->price_tanzanian, 2);
+            $changes[] = "Tanzanian price changed from " . number_format((float) $oldValues['price_tanzanian'], 2) . " to " . number_format((float) $serviceCatalog->price_tanzanian, 2);
         }
         if (isset($oldValues['price_international']) && $oldValues['price_international'] != $serviceCatalog->price_international) {
-            $changes[] = "International price changed";
+            $changes[] = "International price changed from " . number_format((float) $oldValues['price_international'], 2) . " to " . number_format((float) $serviceCatalog->price_international, 2);
         }
         if (isset($oldValues['is_active']) && $oldValues['is_active'] != $serviceCatalog->is_active) {
             $status = $serviceCatalog->is_active ? 'activated' : 'deactivated';
             $changes[] = "service {$status}";
         }
-        
+
         $changeMessage = !empty($changes) ? " Changes: " . implode(', ', $changes) : "";
-        
+
         // Create notifications for each role
         foreach ($rolesToNotify as $role) {
             Notification::create([
@@ -270,8 +270,107 @@ class NotificationService
     }
 
     /**
-     * Get notifications for a user
+     * Create a notification for new stock request
      */
+    public function createStockRequestCreatedNotification(\App\Models\StockRequest $stockRequest): void
+    {
+        $requesterName = $stockRequest->requester->name ?? 'Staff';
+        $productName = $stockRequest->productVariant->product->name ?? 'Product';
+
+        $role = 'accountant';
+        $isInternal = in_array(strtolower(str_replace(' ', '_', $stockRequest->requester->role ?? '')), ['head_chef', 'housekeeper']);
+
+        if ($isInternal) {
+            $role = 'manager';
+        }
+
+        Notification::create([
+            'type' => 'stock_request',
+            'title' => 'New Stock Request',
+            'message' => "New request for {$stockRequest->quantity} {$stockRequest->unit} of {$productName} from {$requesterName}",
+            'icon' => 'fa-shopping-cart',
+            'color' => 'primary',
+            'role' => $role,
+            'notifiable_id' => $stockRequest->id,
+            'notifiable_type' => \App\Models\StockRequest::class,
+            'link' => $this->getRelativeUrl('stock-requests.index'),
+        ]);
+    }
+
+    /**
+     * Create a notification when stock request is passed to manager
+     */
+    public function createStockRequestPassedToManagerNotification(\App\Models\StockRequest $stockRequest): void
+    {
+        $productName = $stockRequest->productVariant->product->name ?? 'Product';
+
+        Notification::create([
+            'type' => 'stock_request',
+            'title' => 'Stock Request Pending Approval',
+            'message' => "Stock request for {$productName} has been verified and is pending your approval",
+            'icon' => 'fa-share',
+            'color' => 'info',
+            'role' => 'manager',
+            'notifiable_id' => $stockRequest->id,
+            'notifiable_type' => \App\Models\StockRequest::class,
+            'link' => $this->getRelativeUrl('stock-requests.index'),
+        ]);
+    }
+
+    /**
+     * Create a notification when stock request status is updated (Approved/Rejected/Distributed)
+     */
+    public function createStockRequestStatusUpdateNotification(\App\Models\StockRequest $stockRequest, string $status): void
+    {
+        $productName = $stockRequest->productVariant->product->name ?? 'Product';
+        $requester = $stockRequest->requested_by;
+
+        $messages = [
+            'approved' => "Your stock request for {$productName} has been approved and is ready for distribution",
+            'rejected' => "Your stock request for {$productName} has been rejected. Reason: " . ($stockRequest->rejection_reason ?? 'None provided'),
+            'completed' => "Your stock request for {$productName} has been distributed",
+        ];
+
+        $icons = [
+            'approved' => 'fa-check-circle',
+            'rejected' => 'fa-times-circle',
+            'completed' => 'fa-truck',
+        ];
+
+        $colors = [
+            'approved' => 'success',
+            'rejected' => 'danger',
+            'completed' => 'info',
+        ];
+
+        // Notify the requester
+        Notification::create([
+            'type' => 'stock_request',
+            'title' => 'Stock Request ' . ucfirst($status),
+            'message' => $messages[$status] ?? "Your stock request status has been updated to " . $status,
+            'icon' => $icons[$status] ?? 'fa-info-circle',
+            'color' => $colors[$status] ?? 'primary',
+            'user_id' => $requester,
+            'notifiable_id' => $stockRequest->id,
+            'notifiable_type' => \App\Models\StockRequest::class,
+            'link' => $this->getRelativeUrl('stock-requests.index'),
+        ]);
+
+        // If approved, also notify storekeeper
+        if ($status === 'approved') {
+            Notification::create([
+                'type' => 'stock_request',
+                'title' => 'New Approved Stock Request',
+                'message' => "Order for {$productName} is ready to be distributed",
+                'icon' => 'fa-box',
+                'color' => 'warning',
+                'role' => 'storekeeper',
+                'notifiable_id' => $stockRequest->id,
+                'notifiable_type' => \App\Models\StockRequest::class,
+                'link' => $this->getRelativeUrl('stock-requests.index'),
+            ]);
+        }
+    }
     public function getNotificationsForUser($user, int $limit = 10): \Illuminate\Database\Eloquent\Collection
     {
         return Notification::forUser($user)
@@ -329,40 +428,48 @@ class NotificationService
     {
         // Define action-required types based on user role
         $actionRequiredTypes = [];
-        
+
         // Get user role - handle both Staff and Guest models
         $userRole = $user->role ?? 'guest';
-        
+
         if ($userRole === 'reception') {
             // Reception needs to act on: service requests (pending), new bookings, extension requests, issue reports
             $actionRequiredTypes = ['service_request', 'booking', 'extension_request', 'issue_report'];
         } elseif ($userRole === 'manager' || $userRole === 'super_admin') {
-            // Admin needs to act on: new bookings, maintenance, extension requests, issue reports
-            $actionRequiredTypes = ['booking', 'maintenance', 'extension_request', 'issue_report'];
-        } elseif ($userRole === 'bar_keeper') {
-            // Bar keeper needs to act on: booking notifications (for special requests), service requests
-            $actionRequiredTypes = ['booking', 'service_request'];
-        } elseif ($userRole === 'head_chef') {
-            // Head chef needs to act on: booking notifications (for special requests), service requests
-            $actionRequiredTypes = ['booking', 'service_request'];
+            // Admin needs to act on: new bookings, maintenance, extension requests, issue reports, stock requests
+            $actionRequiredTypes = ['booking', 'maintenance', 'extension_request', 'issue_report', 'stock_request'];
+        } elseif ($userRole === 'bar_keeper' || $userRole === 'bar keeper') {
+            // Bar keeper needs to act on: booking notifications (for special requests), service requests, stock requests (status updates)
+            $actionRequiredTypes = ['booking', 'service_request', 'stock_request'];
+        } elseif ($userRole === 'head_chef' || $userRole === 'head chef') {
+            // Head chef needs to act on: booking notifications (for special requests), service requests, stock requests (status updates)
+            $actionRequiredTypes = ['booking', 'service_request', 'stock_request'];
+        } elseif ($userRole === 'housekeeper') {
+            $actionRequiredTypes = ['booking', 'service_request', 'stock_request'];
+        } elseif ($userRole === 'storekeeper') {
+            // Storekeeper needs to act on approved stock requests
+            $actionRequiredTypes = ['stock_request'];
+        } elseif ($userRole === 'accountant') {
+            // Accountant needs to act on new stock requests
+            $actionRequiredTypes = ['stock_request'];
         } elseif ($userRole === 'guest' || $userRole === 'customer') {
             // Customers see status updates as actionable so they pop up
             $actionRequiredTypes = ['service_request', 'extension_request', 'payment', 'issue_report'];
         }
-        
+
         if (empty($actionRequiredTypes)) {
             return Notification::whereIn('type', [])->get();
         }
-        
+
         $notifications = Notification::forUser($user)
             ->whereIn('type', $actionRequiredTypes)
             ->unread()
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
-        
+
         // Filter out notifications for resolved issues
-        return $notifications->filter(function($notification) {
+        return $notifications->filter(function ($notification) {
             // If it's an issue_report notification, check if the issue is resolved
             if ($notification->notifiable_type === \App\Models\IssueReport::class && $notification->notifiable_id) {
                 $issue = \App\Models\IssueReport::find($notification->notifiable_id);
@@ -373,7 +480,7 @@ class NotificationService
             return true;
         });
     }
-    
+
     /**
      * Mark notification as read when action is taken
      * This is called when a service request is approved/rejected, extension is handled, etc.
@@ -384,11 +491,11 @@ class NotificationService
             ->where('notifiable_id', $notifiableId)
             ->where('type', $type)
             ->unread();
-        
+
         if ($role) {
             $query->where('role', $role);
         }
-        
+
         $query->update([
             'is_read' => true,
             'read_at' => now(),

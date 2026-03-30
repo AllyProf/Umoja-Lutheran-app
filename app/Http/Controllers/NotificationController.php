@@ -65,7 +65,7 @@ class NotificationController extends Controller
             if (!$request->ajax() && !$request->wantsJson()) {
                 $user = Auth::user();
                 $userRole = $user->role ?? 'customer';
-                
+
                 if ($userRole === 'manager') {
                     return redirect()->route('admin.dashboard');
                 } elseif ($userRole === 'reception') {
@@ -73,7 +73,7 @@ class NotificationController extends Controller
                 }
                 return redirect()->route('customer.dashboard');
             }
-            
+
             $user = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
             if (!$user) {
                 return response()->json([
@@ -81,12 +81,14 @@ class NotificationController extends Controller
                     'message' => 'User not authenticated'
                 ], 401);
             }
-            
+
             $notifications = $this->notificationService->getActionableNotifications($user);
+            $unreadCount = $this->notificationService->getUnreadCount($user);
 
             return response()->json([
                 'success' => true,
-                'notifications' => $notifications->map(function($notification) {
+                'unread_count' => $unreadCount,
+                'notifications' => $notifications->map(function ($notification) {
                     return [
                         'id' => $notification->id,
                         'type' => $notification->type,
@@ -103,7 +105,7 @@ class NotificationController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error fetching notifications',
@@ -121,11 +123,11 @@ class NotificationController extends Controller
         if (!$user) {
             return redirect()->route('login');
         }
-        
+
         // Get all notifications for the user
         $query = \App\Models\Notification::forUser($user)
             ->orderBy('created_at', 'desc');
-        
+
         // Filter by read status
         if ($request->has('filter')) {
             if ($request->filter === 'unread') {
@@ -134,21 +136,21 @@ class NotificationController extends Controller
                 $query->where('is_read', true);
             }
         }
-        
+
         // Filter by type
         if ($request->has('type') && $request->type) {
             $query->where('type', $request->type);
         }
-        
+
         $notifications = $query->paginate(20);
-        
+
         // Get statistics
         $stats = [
             'total' => \App\Models\Notification::forUser($user)->count(),
             'unread' => \App\Models\Notification::forUser($user)->unread()->count(),
             'read' => \App\Models\Notification::forUser($user)->where('is_read', true)->count(),
         ];
-        
+
         return view('dashboard.customer-notifications', [
             'role' => 'customer',
             'userName' => $user->name ?? 'Guest User',

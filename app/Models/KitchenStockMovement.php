@@ -18,6 +18,7 @@ class KitchenStockMovement extends Model
         'total_amount',
         'movement_date',
         'expiry_date',
+        'performed_by',
         'notes',
     ];
 

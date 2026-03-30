@@ -1422,35 +1422,39 @@
           }
         })
         .then(function(data) {
-          if (data.success && data.notifications && data.notifications.length > 0) {
-            let newNotificationsCount = 0;
-            data.notifications.forEach(function(notification) {
-              if (!shownToastIds.has(notification.id) && !notification.is_read) {
-                // Add to queue instead of showing immediately
-                showToastNotification(notification);
-                newNotificationsCount++;
-              }
-            });
-            
-            // Update badge count if there are new notifications
-            if (newNotificationsCount > 0) {
-              const badge = document.querySelector('.notification-badge');
-              if (badge) {
-                const currentCount = parseInt(badge.textContent.trim().replace('+', '')) || 0;
-                const newCount = currentCount + newNotificationsCount;
-                badge.textContent = newCount > 99 ? '99+' : newCount;
-                updateNotificationTitle();
-              } else {
-                // Create badge if it doesn't exist
-                const notificationLink = document.querySelector('.app-nav__item[data-toggle="dropdown"]');
-                if (notificationLink) {
-                  const newBadge = document.createElement('span');
-                  newBadge.className = 'badge badge-danger notification-badge';
-                  newBadge.style.cssText = 'position: absolute; top: -5px; right: -8px; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; min-width: 18px; height: 18px; text-align: center; line-height: 14px; z-index: 1000; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);';
-                  newBadge.textContent = newNotificationsCount > 99 ? '99+' : newNotificationsCount;
-                  notificationLink.appendChild(newBadge);
-                  updateNotificationTitle();
+          if (data.success) {
+            if (data.notifications && data.notifications.length > 0) {
+              data.notifications.forEach(function(notification) {
+                if (!shownToastIds.has(notification.id) && !notification.is_read) {
+                  // Add to queue instead of showing immediately
+                  showToastNotification(notification);
                 }
+              });
+            }
+            
+            // Update badge count using the unread_count from response (always if success)
+            if (typeof data.unread_count !== 'undefined') {
+              const unreadCount = data.unread_count;
+              const badge = document.querySelector('.notification-badge');
+              
+              if (unreadCount > 0) {
+                if (badge) {
+                  badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                } else {
+                  // Create badge if it doesn't exist
+                  const notificationLink = document.querySelector('.app-nav__item[data-toggle="dropdown"]');
+                  if (notificationLink) {
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'badge badge-danger notification-badge';
+                    newBadge.style.cssText = 'position: absolute; top: -5px; right: -8px; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; min-width: 18px; height: 18px; text-align: center; line-height: 14px; z-index: 1000; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);';
+                    newBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                    notificationLink.appendChild(newBadge);
+                  }
+                }
+                updateNotificationTitle();
+              } else if (badge) {
+                badge.remove();
+                updateNotificationTitle();
               }
             }
           }
@@ -1461,7 +1465,7 @@
             console.error('Error fetching actionable notifications:', error);
           }
         });
-      }, 30000);
+      }, 15000);
     </script>
     @yield('scripts')
   
