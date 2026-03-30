@@ -39,7 +39,7 @@
                             <thead class="thead-light">
                                 <tr>
                                     <th>Name / Brand</th>
-                                    <th>Main Type</th>
+                                    <th>Category Group</th>
                                     <th>Departments & Categories</th>
                                     <th>Variants</th>
                                     <th>Actions</th>
@@ -52,7 +52,14 @@
                                             <strong class="text-primary">{{ $product->name }}</strong>
                                         </td>
                                         <td>
-                                            <span class="badge badge-secondary">{{ ucfirst($product->type) }}</span>
+                                            @php
+                                                $displayType = $product->type;
+                                                if ($displayType === 'drink')
+                                                    $displayType = 'beverage';
+                                                elseif ($displayType === 'food')
+                                                    $displayType = 'kitchen';
+                                            @endphp
+                                            <span class="badge badge-secondary">{{ ucfirst($displayType) }}</span>
                                         </td>
                                         <td>
                                             @if($product->departments->count() > 0)

@@ -139,15 +139,15 @@ class ProductController extends Controller
         DB::beginTransaction();
         try {
             // Determine valid type (drink, food, housekeeping)
-            $type = 'drink'; // Default
-            $foodCategories = ['food', 'meat_poultry', 'seafood', 'pantry', 'dairy', 'baking', 'vegetables', 'spices', 'sauces', 'bakery'];
-            $beverageCategories = ['spirits', 'wines', 'non_alcoholic_beverage', 'alcoholic_beverage', 'energy_drinks', 'juices', 'water', 'hot_beverages', 'cocktails'];
+            $foodCategories = ['food', 'meat_poultry', 'seafood', 'pantry', 'dairy', 'baking', 'vegetables', 'spices', 'sauces', 'bakery', 'pantry_baking', 'spices_herbs', 'oils_fats', 'snacks', 'kitchen'];
+            $beverageCategories = ['spirits', 'wines', 'alcoholic_beverage', 'non_alcoholic_beverage', 'energy_drinks', 'juices', 'water', 'hot_beverages', 'cocktails', 'soda', 'soft_drinks'];
+            $housekeepingCategories = ['cleaning_supplies', 'linens', 'amenities', 'housekeeping'];
 
             if (in_array($validated['category'], $foodCategories)) {
                 $type = 'food';
             } elseif (in_array($validated['category'], $beverageCategories)) {
                 $type = 'drink';
-            } elseif ($validated['category'] === 'cleaning_supplies') {
+            } elseif (in_array($validated['category'], $housekeepingCategories)) {
                 $type = 'housekeeping';
             } else {
                 $type = $validated['type'] ?? 'general';
@@ -297,15 +297,15 @@ class ProductController extends Controller
         DB::beginTransaction();
         try {
             // Determine type
-            $type = 'drink';
-            $foodCategories = ['food', 'meat_poultry', 'seafood', 'pantry', 'dairy', 'baking', 'vegetables', 'spices', 'sauces', 'bakery'];
-            $beverageCategories = ['spirits', 'wines', 'non_alcoholic_beverage', 'alcoholic_beverage', 'energy_drinks', 'juices', 'water', 'hot_beverages', 'cocktails'];
+            $foodCategories = ['food', 'meat_poultry', 'seafood', 'pantry', 'dairy', 'baking', 'vegetables', 'spices', 'sauces', 'bakery', 'pantry_baking', 'spices_herbs', 'oils_fats', 'snacks', 'kitchen'];
+            $beverageCategories = ['spirits', 'wines', 'non_alcoholic_beverage', 'alcoholic_beverage', 'energy_drinks', 'juices', 'water', 'hot_beverages', 'cocktails', 'soda', 'soft_drinks'];
+            $housekeepingCategories = ['cleaning_supplies', 'linens', 'amenities', 'housekeeping'];
 
             if (in_array($validated['category'], $foodCategories)) {
                 $type = 'food';
             } elseif (in_array($validated['category'], $beverageCategories)) {
                 $type = 'drink';
-            } elseif ($validated['category'] === 'cleaning_supplies') {
+            } elseif (in_array($validated['category'], $housekeepingCategories)) {
                 $type = 'housekeeping';
             } else {
                 $type = $validated['type'] ?? 'general';
