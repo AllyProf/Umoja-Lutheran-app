@@ -70,22 +70,24 @@ class StockRequestController extends Controller
         $query = ProductVariant::with('product')
             ->where('is_active', true);
 
+        $sharedCategories = ['cleaning_supplies', 'other', 'stationery'];
+
         if ($isChef) {
-            // Chef requests food and kitchen items
-            $query->whereHas('product', function ($q) {
-                $q->whereIn('category', ['food', 'kitchen'])
+            // Chef requests food, kitchen items and shared supplies
+            $query->whereHas('product', function ($q) use ($sharedCategories) {
+                $q->whereIn('category', array_merge(['food', 'kitchen'], $sharedCategories))
                     ->orWhere('type', 'kitchen');
             });
         } elseif ($isHousekeeper) {
-            // Housekeeper requests cleaning supplies and linens
+            // Housekeeper requests cleaning supplies, linens and housekeeping
             $query->whereHas('product', function ($q) {
-                $q->whereIn('category', ['cleaning_supplies', 'linens', 'housekeeping'])
+                $q->whereIn('category', ['cleaning_supplies', 'linens', 'housekeeping', 'other'])
                     ->orWhere('type', 'housekeeping');
             });
         } else {
-            // Others (Counter/Bar) request beverages
-            $query->whereHas('product', function ($q) {
-                $q->whereIn('category', ['non_alcoholic_beverage', 'alcoholic_beverage', 'drinks', 'beverage']);
+            // Others (Counter/Bar) request beverages + shared cleaning supplies
+            $query->whereHas('product', function ($q) use ($sharedCategories) {
+                $q->whereIn('category', array_merge(['non_alcoholic_beverage', 'alcoholic_beverage', 'drinks', 'beverage'], $sharedCategories));
             });
         }
 
