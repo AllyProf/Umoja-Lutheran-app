@@ -737,16 +737,9 @@ Route::prefix('bar-keeper')->group(function () {
         // Reports
         Route::get('/reports', [\App\Http\Controllers\BarKeeperController::class, 'reports'])->name('bar-keeper.reports');
 
-        // Recorded Items
-        // Product Management
+        // Product Management (Read Only for Bar Keeper)
         Route::get('/products', [\App\Http\Controllers\ProductController::class, 'index'])->name('bar-keeper.products.index');
-        Route::get('/products/create', [\App\Http\Controllers\ProductController::class, 'create'])->name('bar-keeper.products.create');
-        Route::post('/products', [\App\Http\Controllers\ProductController::class, 'store'])->name('bar-keeper.products.store');
         Route::get('/products/{product}', [\App\Http\Controllers\ProductController::class, 'show'])->name('bar-keeper.products.show');
-        Route::get('/products/{product}/edit', [\App\Http\Controllers\ProductController::class, 'edit'])->name('bar-keeper.products.edit');
-        Route::put('/products/{product}', [\App\Http\Controllers\ProductController::class, 'update'])->name('bar-keeper.products.update');
-        Route::delete('/products/{product}', [\App\Http\Controllers\ProductController::class, 'destroy'])->name('bar-keeper.products.destroy');
-        Route::delete('/products/variants/{variant}', [\App\Http\Controllers\ProductController::class, 'destroyVariant'])->name('bar-keeper.products.variants.destroy');
 
         Route::get('/recorded-items', [\App\Http\Controllers\BarKeeperController::class, 'recordedItems'])->name('bar-keeper.recorded-items');
 

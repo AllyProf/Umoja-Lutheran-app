@@ -89,11 +89,13 @@ $routePrefix = request()->is('bar-keeper*') ? 'bar-keeper' : 'admin';
     <div class="tile shadow-sm">
       <div class="tile-title-w-btn mb-4">
         <h3 class="title">Product Inventory</h3>
+        @if($role !== 'bar_keeper')
         <div class="btn-group">
           <a class="btn btn-primary shadow-sm" href="{{ route($routePrefix . '.products.create') }}">
             <i class="fa fa-plus"></i> Register New Product
           </a>
         </div>
+        @endif
       </div>
       
       <!-- Filters -->
@@ -239,9 +241,10 @@ $routePrefix = request()->is('bar-keeper*') ? 'bar-keeper' : 'admin';
 
                       <div class="card-footer bg-white border-top-0 p-3 d-flex">
                         <div class="btn-group w-100 shadow-sm border rounded">
-                            <button class="btn btn-sm btn-white text-primary rounded-left py-2" onclick="event.stopPropagation(); viewProduct({{ $product->id }})" title="View Details" style="border: none;">
-                              <i class="fa fa-eye"></i>
+                            <button class="btn btn-sm btn-white text-primary {{ $role === 'bar_keeper' ? 'rounded' : 'rounded-left' }} py-2 w-100" onclick="event.stopPropagation(); viewProduct({{ $product->id }})" title="View Details" style="border: none;">
+                              <i class="fa fa-eye"></i> View
                             </button>
+                            @if($role !== 'bar_keeper')
                             <a href="{{ route($routePrefix . '.products.edit', $product) }}" class="btn btn-sm btn-white text-info py-2" onclick="event.stopPropagation();" title="Edit Family" style="border: none; border-left: 1px solid #eee; border-right: 1px solid #eee;">
                               <i class="fa fa-edit"></i>
                             </a>
@@ -249,6 +252,7 @@ $routePrefix = request()->is('bar-keeper*') ? 'bar-keeper' : 'admin';
                              <button class="btn btn-sm btn-white text-danger rounded-right py-2" onclick="event.stopPropagation(); deleteVariant({{ $variant->id }})" title="Delete Variant" style="border: none;">
                               <i class="fa fa-trash"></i>
                             </button>
+                            @endif
                         </div>
                       </div>
                     </div>
@@ -267,10 +271,12 @@ $routePrefix = request()->is('bar-keeper*') ? 'bar-keeper' : 'admin';
       <div class="text-center py-5">
         <i class="fa fa-cube fa-5x text-muted mb-4 opacity-25"></i>
         <h3 class="mb-2">No Products Registered Yet</h3>
-        <p class="text-muted mb-4">Start your bar inventory by registering your products and sizes.</p>
+        <p class="text-muted mb-4">No beverage products have been registered in the system yet.</p>
+        @if($role !== 'bar_keeper')
         <a href="{{ route($routePrefix . '.products.create') }}" class="btn btn-primary btn-lg px-5 shadow">
           <i class="fa fa-plus"></i> Register First Product
         </a>
+        @endif
       </div>
       @endif
       
