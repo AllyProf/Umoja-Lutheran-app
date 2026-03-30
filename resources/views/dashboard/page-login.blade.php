@@ -95,7 +95,7 @@
         </div>
         <div class="form-group btn-container">
             <button type="submit" id="login-btn" class="btn btn-primary btn-block">
-              <span id="login-btn-text"><i class="fa fa-sign-in fa-lg fa-fw"></i>LOGIN v4.1</span>
+              <span id="login-btn-text"><i class="fa fa-sign-in fa-lg fa-fw"></i>SIGN IN</span>
               <span id="login-btn-spinner" style="display: none;">
                 <i class="fa fa-spinner fa-spin fa-lg fa-fw"></i> SIGNING IN...
               </span>
