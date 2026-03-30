@@ -250,3 +250,28 @@
         </div>
     </div>
 @endsection
+
+@section('scripts')
+    <script>
+        $(document).ready(function () {
+            $('.confirm-submit').on('click', function (e) {
+                e.preventDefault();
+                var $button = $(this);
+                var message = $button.data('confirm') || 'Are you sure you want to proceed?';
+                var $form = $button.closest('form');
+
+                if (typeof showConfirmDialog === 'function') {
+                    showConfirmDialog('Confirm Action', message, 'Yes, proceed', 'Cancel', function (result) {
+                        if (result.isConfirmed) {
+                            $form.submit();
+                        }
+                    });
+                } else {
+                    if (confirm(message)) {
+                        $form.submit();
+                    }
+                }
+            });
+        });
+    </script>
+@endsection
