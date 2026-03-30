@@ -898,6 +898,11 @@ Route::prefix('storekeeper')->group(function () {
 
         // Purchase Request Management
         Route::get('/purchase-requests', [\App\Http\Controllers\StorekeeperController::class, 'purchaseRequests'])->name('storekeeper.purchase-requests');
+        Route::get('/purchase-requests/create', [\App\Http\Controllers\PurchaseRequestController::class, 'create'])->name('storekeeper.purchase-requests.create');
+        Route::post('/purchase-requests', [\App\Http\Controllers\PurchaseRequestController::class, 'store'])->name('storekeeper.purchase-requests.store');
+        Route::get('/purchase-requests/emergency', [\App\Http\Controllers\PurchaseRequestController::class, 'createEmergency'])->name('storekeeper.purchase-requests.emergency');
+        Route::post('/purchase-requests/emergency', [\App\Http\Controllers\PurchaseRequestController::class, 'storeEmergency'])->name('storekeeper.purchase-requests.emergency.store');
+        Route::get('/purchase-requests/my-requests', [\App\Http\Controllers\PurchaseRequestController::class, 'myRequests'])->name('storekeeper.purchase-requests.my');
 
         // Stock Receipts (Receiving items)
         Route::get('/stock-receipts', [\App\Http\Controllers\StockReceiptController::class, 'index'])->name('storekeeper.stock-receipts.index');

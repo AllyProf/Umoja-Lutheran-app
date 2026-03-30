@@ -27,15 +27,19 @@ class PurchaseRequest extends Model
         'edited_by',
         'last_edited_at',
         'last_changes',
+        'is_emergency',
+        'estimated_cost',
     ];
 
     protected $casts = [
         'quantity' => 'decimal:2',
+        'estimated_cost' => 'decimal:2',
+        'is_emergency' => 'boolean',
         'approved_at' => 'datetime',
         'last_edited_at' => 'datetime',
         'last_changes' => 'array',
     ];
-    
+
     /**
      * Get the staff member who last edited this request
      */
@@ -67,7 +71,7 @@ class PurchaseRequest extends Model
     {
         return $this->belongsTo(ShoppingList::class);
     }
-    
+
     /**
      * Get department name for this purchase request
      * Cleaning supplies and Water → Housekeeping Department
@@ -76,17 +80,17 @@ class PurchaseRequest extends Model
     public function getDepartmentName(): string
     {
         $category = strtolower($this->category ?? '');
-        
+
         // Cleaning supplies always go to Housekeeping
         if (in_array($category, ['cleaning_supplies'])) {
             return 'Housekeeping';
         }
-        
+
         // For other categories, use the requester's department
         if ($this->requestedBy) {
             return $this->requestedBy->getDepartmentName();
         }
-        
+
         // Fallback based on category
         $categoryToDepartment = [
             'linens' => 'Housekeeping',
@@ -94,7 +98,7 @@ class PurchaseRequest extends Model
             'food' => 'Kitchen',
             'other' => 'Reception',
         ];
-        
+
         return $categoryToDepartment[$category] ?? 'Reception';
     }
 }
