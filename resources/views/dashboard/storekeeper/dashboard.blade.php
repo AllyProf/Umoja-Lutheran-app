@@ -69,6 +69,13 @@
                             <span>View Inventory</span>
                         </a>
                     </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ route('storekeeper.purchase-requests.emergency') }}"
+                            class="btn btn-danger btn-block p-4 shadow-sm d-flex flex-column align-items-center">
+                            <i class="fa fa-ambulance fa-2x mb-2"></i>
+                            <span>Emergency Purchase</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

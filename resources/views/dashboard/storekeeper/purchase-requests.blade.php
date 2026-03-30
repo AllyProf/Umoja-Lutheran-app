@@ -47,6 +47,9 @@
                                 <i class="fa fa-shopping-basket"></i> Add Selected to Shopping List
                             </button>
                         @endif
+                        <a href="{{ route('storekeeper.purchase-requests.emergency') }}" class="btn btn-sm btn-danger mr-2">
+                            <i class="fa fa-ambulance"></i> Emergency Purchase
+                        </a>
                         <a href="{{ route('storekeeper.shopping-list.create') }}" class="btn btn-sm btn-primary">
                             <i class="fa fa-plus-circle"></i> Create New List
                         </a>

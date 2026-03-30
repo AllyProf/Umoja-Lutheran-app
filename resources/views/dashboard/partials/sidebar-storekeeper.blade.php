@@ -34,6 +34,14 @@
     </a>
 </li>
 
+<li>
+    <a class="app-menu__item {{ str_contains($activePage, 'storekeeper/purchase-requests/emergency') ? 'active' : '' }}"
+        href="{{ route('storekeeper.purchase-requests.emergency') }}">
+        <i class="app-menu__icon fa fa-ambulance text-danger"></i>
+        <span class="app-menu__label">Emergency Purchase</span>
+    </a>
+</li>
+
 
 
 <li class="treeview {{ str_contains($activePage, 'storekeeper/shopping-lists') ? 'is-expanded' : '' }}">
