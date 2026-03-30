@@ -140,8 +140,8 @@
                                                     <form action="{{ route('stock-requests.pass-to-manager', $request) }}"
                                                         method="POST" class="d-inline">
                                                         @csrf
-                                                        <button type="submit" class="btn btn-sm btn-info text-white"
-                                                            onclick="return confirm('Forward this request to Manager?')">
+                                                        <button type="submit" class="btn btn-sm btn-info text-white confirm-submit"
+                                                            data-confirm="Forward this request to Manager?">
                                                             <i class="fa fa-share"></i> Pass to Manager
                                                         </button>
                                                     </form>
@@ -152,8 +152,8 @@
                                                     <form action="{{ route('stock-requests.approve', $request) }}" method="POST"
                                                         class="d-inline">
                                                         @csrf
-                                                        <button type="submit" class="btn btn-sm btn-success"
-                                                            onclick="return confirm('Approve this request?')">
+                                                        <button type="submit" class="btn btn-sm btn-success confirm-submit"
+                                                            data-confirm="Approve this request?">
                                                             <i class="fa fa-check"></i> Approve
                                                         </button>
                                                     </form>
@@ -209,8 +209,8 @@
                                                     <form action="{{ route('stock-requests.distribute', $request) }}" method="POST"
                                                         class="d-inline">
                                                         @csrf
-                                                        <button type="submit" class="btn btn-sm btn-primary"
-                                                            onclick="return confirm('Distribute these items to Counter?')">
+                                                        <button type="submit" class="btn btn-sm btn-primary confirm-submit"
+                                                            data-confirm="Distribute these items to Counter?">
                                                             <i class="fa fa-truck"></i> Distribute
                                                         </button>
                                                     </form>

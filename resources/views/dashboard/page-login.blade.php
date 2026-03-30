@@ -12,6 +12,9 @@
   <link rel="stylesheet" type="text/css"
     href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
   <title>Login - {{ config('app.name') }}</title>
+  <!-- SweetAlert2 -->
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
@@ -26,26 +29,28 @@
   <section class="login-content">
     <!-- Return to Home removed -->
 
-    <!-- Success/Error Messages -->
-    @if(session('success'))
-      <div class="alert alert-success alert-dismissible fade show" role="alert"
-        style="margin-bottom: 20px; border-radius: 6px;">
-        <i class="fa fa-check-circle"></i> {{ session('success') }}
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-    @endif
+    <!-- Success/Error Messages handled by SweetAlert2 -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        @if(session('success'))
+          Swal.fire({
+            icon: 'success',
+            title: 'Success!',
+            text: "{{ session('success') }}",
+            confirmButtonColor: '#940000'
+          });
+        @endif
 
-    @if(session('error'))
-      <div class="alert alert-danger alert-dismissible fade show" role="alert"
-        style="margin-bottom: 20px; border-radius: 6px;">
-        <i class="fa fa-exclamation-circle"></i> {{ session('error') }}
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-    @endif
+        @if(session('error'))
+          Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: "{{ session('error') }}",
+            confirmButtonColor: '#940000'
+          });
+        @endif
+      });
+    </script>
 
     <div class="logo">
       <h1 style="color: #940000 !important;">{{ config('app.name') }}</h1>
