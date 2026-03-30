@@ -288,6 +288,10 @@
                                             <option value="Carton">Carton</option>
                                             <option value="Crate">Crate</option>
                                             <option value="Kg">Kg</option>
+                                            <option value="L">L (Litre)</option>
+                                            <option value="Dozen">Dozen</option>
+                                            <option value="Piece">Piece</option>
+                                            <option value="Packet">Packet</option>
                                             <option value="Bunch">Bunch</option>
                                         </select>
                                     </div>

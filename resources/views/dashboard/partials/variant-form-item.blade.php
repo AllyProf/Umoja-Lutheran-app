@@ -73,6 +73,11 @@
                         </option>
                         <option value="Crate" {{ $variant->purchasing_unit == 'Crate' ? 'selected' : '' }}>Crate</option>
                         <option value="Kg" {{ $variant->purchasing_unit == 'Kg' ? 'selected' : '' }}>Kg</option>
+                        <option value="L" {{ $variant->purchasing_unit == 'L' ? 'selected' : '' }}>L (Litre)</option>
+                        <option value="Dozen" {{ $variant->purchasing_unit == 'Dozen' ? 'selected' : '' }}>Dozen</option>
+                        <option value="Piece" {{ $variant->purchasing_unit == 'Piece' ? 'selected' : '' }}>Piece</option>
+                        <option value="Packet" {{ $variant->purchasing_unit == 'Packet' ? 'selected' : '' }}>Packet
+                        </option>
                         <option value="Bunch" {{ $variant->purchasing_unit == 'Bunch' ? 'selected' : '' }}>Bunch</option>
                     </select>
                 </div>
