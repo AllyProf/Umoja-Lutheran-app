@@ -1963,7 +1963,8 @@ class AdminController extends Controller
         $allKitchenIngredients = DB::table('products')
             ->where(function ($q) {
                 $q->where('category', 'food')
-                    ->orWhere('type', 'kitchen');
+                    ->orWhere('type', 'kitchen')
+                    ->orWhere('type', 'housekeeping');
             })
             ->orderBy('name')
             ->get()

@@ -28,7 +28,7 @@ class ProductController extends Controller
             $query->where('type', 'drink');
         } else {
             // Managers can filter by type
-            if ($request->has('type') && in_array($request->type, ['drink', 'food'])) {
+            if ($request->has('type') && in_array($request->type, ['drink', 'food', 'housekeeping', 'general'])) {
                 $query->where('type', $request->type);
             }
         }
@@ -138,17 +138,19 @@ class ProductController extends Controller
 
         DB::beginTransaction();
         try {
-            // Determine valid type (drink or food)
+            // Determine valid type (drink, food, housekeeping)
             $type = 'drink'; // Default
-            if (isset($validated['type'])) {
-                if ($validated['type'] === 'food' || $validated['type'] === 'kitchen') {
-                    $type = 'food';
-                }
-            }
-            // Auto-detect from category if needed
             $foodCategories = ['food', 'meat_poultry', 'seafood', 'pantry', 'dairy', 'baking', 'vegetables', 'spices', 'sauces', 'bakery'];
+            $beverageCategories = ['spirits', 'wines', 'non_alcoholic_beverage', 'alcoholic_beverage', 'energy_drinks', 'juices', 'water', 'hot_beverages', 'cocktails'];
+
             if (in_array($validated['category'], $foodCategories)) {
                 $type = 'food';
+            } elseif (in_array($validated['category'], $beverageCategories)) {
+                $type = 'drink';
+            } elseif ($validated['category'] === 'cleaning_supplies') {
+                $type = 'housekeeping';
+            } else {
+                $type = $validated['type'] ?? 'general';
             }
 
             // 1. Create Parent Product (Brand)
@@ -297,8 +299,16 @@ class ProductController extends Controller
             // Determine type
             $type = 'drink';
             $foodCategories = ['food', 'meat_poultry', 'seafood', 'pantry', 'dairy', 'baking', 'vegetables', 'spices', 'sauces', 'bakery'];
+            $beverageCategories = ['spirits', 'wines', 'non_alcoholic_beverage', 'alcoholic_beverage', 'energy_drinks', 'juices', 'water', 'hot_beverages', 'cocktails'];
+
             if (in_array($validated['category'], $foodCategories)) {
                 $type = 'food';
+            } elseif (in_array($validated['category'], $beverageCategories)) {
+                $type = 'drink';
+            } elseif ($validated['category'] === 'cleaning_supplies') {
+                $type = 'housekeeping';
+            } else {
+                $type = $validated['type'] ?? 'general';
             }
 
             // Update Parent Product

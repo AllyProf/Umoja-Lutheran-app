@@ -58,7 +58,7 @@ class KitchenController extends Controller
     public function create()
     {
         // Get relevant products to suggest (Beverages, Food, Snacks, etc.)
-        $products = Product::whereIn('type', ['drink', 'food', 'kitchen'])
+        $products = Product::whereIn('type', ['drink', 'food', 'kitchen', 'housekeeping'])
             ->orWhereIn('category', [
                 'beverages',
                 'non_alcoholic_beverage',
@@ -203,7 +203,7 @@ class KitchenController extends Controller
         $shoppingList->load(['items.product', 'items.productVariant']);
 
         // Get relevant products to suggest (reusing logic from create)
-        $products = Product::whereIn('type', ['drink', 'food', 'kitchen'])
+        $products = Product::whereIn('type', ['drink', 'food', 'kitchen', 'housekeeping'])
             ->orWhereIn('category', [
                 'beverages',
                 'non_alcoholic_beverage',
@@ -719,6 +719,7 @@ class KitchenController extends Controller
         // 1. Existing Products
         $products = Product::where('category', 'food')
             ->orWhere('type', 'kitchen')
+            ->orWhere('type', 'housekeeping')
             ->orderBy('name')
             ->get();
 
