@@ -434,6 +434,7 @@ function viewProduct(id) {
   });
 }
 
+@if($role !== 'bar_keeper')
 function deleteVariant(id) {
     Swal.fire({
         title: 'Are you sure?',
@@ -493,5 +494,6 @@ function deleteProduct(id) {
         }
     });
 }
+@endif
 </script>
 @endsection
