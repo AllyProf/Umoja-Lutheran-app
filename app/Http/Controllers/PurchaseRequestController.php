@@ -984,10 +984,10 @@ class PurchaseRequestController extends Controller
 
         $manager = Auth::guard('staff')->user();
 
-        if ($manager->role !== 'manager' && !$manager->isSuperAdmin()) {
+        if ($manager->role !== 'manager' && $manager->role !== 'storekeeper' && !$manager->isSuperAdmin()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized. Only managers can add requests to shopping list.',
+                'message' => 'Unauthorized. Only managers and storekeepers can add requests to shopping list.',
             ], 403);
         }
 

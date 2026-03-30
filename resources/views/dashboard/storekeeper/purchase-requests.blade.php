@@ -35,20 +35,38 @@
 
                 <div class="tile-title-w-btn mb-3">
                     <h3 class="title">
-                        @if($tab === 'pending') Pending Requests @else In-Progress Requests @endif
+                        @if ($tab === 'pending')
+                            Pending Requests
+                        @else
+                            In-Progress Requests
+                        @endif
                     </h3>
-                    @if($tab === 'pending' && $requests->count() > 0)
+                    <div class="d-flex align-items-center">
+                        @if ($tab === 'approved')
+                            <button id="addToShoppingListBtn" class="btn btn-success btn-sm mr-2" disabled>
+                                <i class="fa fa-shopping-basket"></i> Add Selected to Shopping List
+                            </button>
+                        @endif
                         <a href="{{ route('storekeeper.shopping-list.create') }}" class="btn btn-sm btn-primary">
-                            <i class="fa fa-list-alt"></i> Create Shopping List
+                            <i class="fa fa-plus-circle"></i> Create New List
                         </a>
-                    @endif
+                    </div>
                 </div>
 
-                @if($requests->count() > 0)
+                @if ($requests->count() > 0)
                     <div class="table-responsive">
-                        <table class="table table-hover table-bordered">
+                        <table class="table table-hover table-bordered" id="requestsTable">
                             <thead class="thead-light">
                                 <tr>
+                                    @if($tab === 'approved')
+                                        <th style="width: 30px;">
+                                            <div class="animated-checkbox">
+                                                <label class="mb-0">
+                                                    <input type="checkbox" id="selectAll"><span class="label-text"></span>
+                                                </label>
+                                            </div>
+                                        </th>
+                                    @endif
                                     <th>#</th>
                                     <th>Item</th>
                                     <th>Quantity</th>
@@ -59,11 +77,30 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($requests as $i => $req)
+                                @foreach ($requests as $i => $req)
                                     <tr>
+                                        @if($tab === 'approved')
+                                            <td>
+                                                <div class="animated-checkbox">
+                                                    <label class="mb-0">
+                                                        @if($req->status === 'approved')
+                                                            <input type="checkbox" class="request-checkbox" value="{{ $req->id }}"><span
+                                                                class="label-text"></span>
+                                                        @else
+                                                            <i class="fa fa-lock text-muted" title="Already on a list or purchased"></i>
+                                                        @endif
+                                                    </label>
+                                                </div>
+                                            </td>
+                                        @endif
                                         <td>{{ $requests->firstItem() + $i }}</td>
-                                        <td><strong>{{ $req->item_name }}</strong><br><small
-                                                class="text-muted">{{ $req->description }}</small></td>
+                                        <td>
+                                            <strong>{{ $req->item_name }}</strong>
+                                            @if($req->is_emergency)
+                                                <span class="badge badge-danger ml-1" title="Emergency Request">⚠️</span>
+                                            @endif
+                                            <br><small class="text-muted">{{ $req->description }}</small>
+                                        </td>
                                         <td>{{ $req->quantity }} {{ $req->unit }}</td>
                                         <td><span
                                                 class="badge badge-info">{{ $req->requestedBy?->getDepartmentName() ?? 'N/A' }}</span>
@@ -104,4 +141,77 @@
         </div>
     </div>
 
+@endsection
+
+@section('scripts')
+    <script src="{{ asset('dashboard_assets/js/plugins/bootstrap-notify.min.js') }}"></script>
+    <script src="{{ asset('dashboard_assets/js/plugins/sweetalert.min.js') }}"></script>
+    <script>
+        $(document).ready(function () {
+            // Select All functionality
+            $('#selectAll').on('change', function () {
+                $('.request-checkbox').prop('checked', $(this).prop('checked'));
+                toggleActionButton();
+            });
+
+            $('.request-checkbox').on('change', function () {
+                toggleActionButton();
+
+                // Update Select All state
+                var allChecked = $('.request-checkbox:checked').length === $('.request-checkbox').length;
+                $('#selectAll').prop('checked', allChecked);
+            });
+
+            function toggleActionButton() {
+                var checkedCount = $('.request-checkbox:checked').length;
+                $('#addToShoppingListBtn').prop('disabled', checkedCount === 0);
+
+                if (checkedCount > 0) {
+                    $('#addToShoppingListBtn').html('<i class="fa fa-shopping-basket"></i> Add ' + checkedCount + ' to Shopping List');
+                } else {
+                    $('#addToShoppingListBtn').html('<i class="fa fa-shopping-basket"></i> Add Selected to Shopping List');
+                }
+            }
+
+            // Add to Shopping List AJAX
+            $('#addToShoppingListBtn').on('click', function () {
+                var requestIds = [];
+                $('.request-checkbox:checked').each(function () {
+                    requestIds.push($(this).val());
+                });
+
+                if (requestIds.length === 0) return;
+
+                swal({
+                    title: "Prepare Shopping List?",
+                    text: "This will pre-fill a new shopping list with the " + requestIds.length + " selected items.",
+                    type: "info",
+                    showCancelButton: true,
+                    confirmButtonText: "Yes, proceed",
+                    showLoaderOnConfirm: true
+                }, function () {
+                    $.ajax({
+                        url: "{{ route('admin.purchase-requests.add-to-shopping-list') }}",
+                        method: 'POST',
+                        data: {
+                            request_ids: requestIds,
+                            _token: "{{ csrf_token() }}"
+                        },
+                        success: function (response) {
+                            if (response.success \u0026\u0026 response.redirect_url) {
+                        swal("Redirecting...", response.message, "success");
+                        window.location.href = response.redirect_url;
+                    } else {
+                        swal("Error!", response.message, "error");
+                    }
+                },
+                    error: function (xhr) {
+                        var errorMsg = xhr.responseJSON?.message || 'Failed to process request.';
+                        swal("Error!", errorMsg, "error");
+                    }
+                });
+        });
+        });
+    });
+    </script>
 @endsection
