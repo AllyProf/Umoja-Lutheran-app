@@ -1849,7 +1849,7 @@ class AdminController extends Controller
         // Then we match them by name to estimate current stock.
 
         $allTransfers = \App\Models\StockTransfer::with(['product', 'productVariant'])
-            ->where('status', 'completed')
+            ->whereIn('status', ['completed', 'pending'])
             ->get();
 
         $stockMap = [];
@@ -1872,7 +1872,8 @@ class AdminController extends Controller
 
             // Normalize to bottles/items
             $itemsPerPackage = $transfer->productVariant->items_per_package ?? 1;
-            $quantity = ($transfer->quantity_unit === 'packages')
+            $pkgUnits = ['crate', 'crates', 'soda crate', 'soda crates', 'carton', 'cartons', 'package', 'packages', 'box', 'boxes', 'unit', 'units', 'sado', 'debe', 'kiroba', 'case', 'cases', 'bundle', 'bundles', 'pic', 'pics', 'pcs'];
+            $quantity = (in_array(strtolower($transfer->quantity_unit), $pkgUnits))
                 ? $transfer->quantity_transferred * $itemsPerPackage
                 : $transfer->quantity_transferred;
 
@@ -2052,9 +2053,9 @@ class AdminController extends Controller
     {
         $barCategories = ['alcoholic_beverage', 'non_alcoholic_beverage', 'water', 'juices', 'energy_drinks', 'food', 'restaurant'];
 
-        // Fetch ALL completed transfers (Global IN to Bar)
+        // Fetch ALL completed/pending transfers (Global IN to Bar)
         $allTransfers = StockTransfer::with(['product', 'productVariant'])
-            ->where('status', 'completed')
+            ->whereIn('status', ['completed', 'pending'])
             ->get();
 
         $stockMap = [];
@@ -2081,7 +2082,8 @@ class AdminController extends Controller
             }
 
             $itemsPerPackage = $transfer->productVariant->items_per_package ?? 1;
-            $quantity = ($transfer->quantity_unit === 'packages')
+            $pkgUnits = ['crate', 'crates', 'soda crate', 'soda crates', 'carton', 'cartons', 'package', 'packages', 'box', 'boxes', 'unit', 'units', 'sado', 'debe', 'kiroba', 'case', 'cases', 'bundle', 'bundles', 'pic', 'pics', 'pcs'];
+            $quantity = (in_array(strtolower($transfer->quantity_unit), $pkgUnits))
                 ? $transfer->quantity_transferred * $itemsPerPackage
                 : $transfer->quantity_transferred;
 

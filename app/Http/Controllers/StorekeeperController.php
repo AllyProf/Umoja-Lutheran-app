@@ -102,7 +102,7 @@ class StorekeeperController extends Controller
                 $transfersOut = DB::table('stock_transfers')
                     ->join('product_variants', 'stock_transfers.product_variant_id', '=', 'product_variants.id')
                     ->where('stock_transfers.product_variant_id', $variant->id)
-                    ->where('stock_transfers.status', 'completed')
+                    ->whereIn('stock_transfers.status', ['completed', 'pending'])
                     ->sum(DB::raw("CASE WHEN LOWER(quantity_unit) IN ($unitsList) THEN quantity_transferred * product_variants.items_per_package ELSE quantity_transferred END"));
 
                 $variant->current_stock = $totalIn - (float) $transfersOut;
@@ -136,7 +136,7 @@ class StorekeeperController extends Controller
 
                 $transfersOut = DB::table('stock_transfers')
                     ->where('product_variant_id', $variant->id)
-                    ->where('status', 'completed')
+                    ->whereIn('status', ['completed', 'pending'])
                     ->join('product_variants', 'stock_transfers.product_variant_id', '=', 'product_variants.id')
                     ->sum(DB::raw("CASE WHEN LOWER(quantity_unit) IN ($unitsList) THEN quantity_transferred * product_variants.items_per_package ELSE quantity_transferred END"));
 

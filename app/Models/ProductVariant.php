@@ -170,7 +170,7 @@ class ProductVariant extends Model
      */
     public static function getPackageUnits()
     {
-        return ['crate', 'crates', 'carton', 'cartons', 'package', 'packages', 'box', 'boxes', 'unit', 'units', 'sado', 'debe', 'kiroba', 'case', 'cases', 'bundle', 'bundles'];
+        return ['crate', 'crates', 'soda crate', 'soda crates', 'carton', 'cartons', 'package', 'packages', 'box', 'boxes', 'unit', 'units', 'sado', 'debe', 'kiroba', 'case', 'cases', 'bundle', 'bundles', 'pic', 'pics', 'pcs'];
     }
 
     public function getCurrentStock()
