@@ -92,6 +92,17 @@
                         <option value="Pieces" {{ $variant->receiving_unit == 'Pieces' ? 'selected' : '' }}>Pieces
                         </option>
                         <option value="Tray" {{ $variant->receiving_unit == 'Tray' ? 'selected' : '' }}>Tray</option>
+                        <option value="Sado" {{ $variant->receiving_unit == 'Sado' ? 'selected' : '' }}>Sado</option>
+                        <option value="Debe" {{ $variant->receiving_unit == 'Debe' ? 'selected' : '' }}>Debe</option>
+                        <option value="Kiroba" {{ $variant->receiving_unit == 'Kiroba' ? 'selected' : '' }}>Kiroba
+                        </option>
+                        <option value="Carton" {{ $variant->receiving_unit == 'Carton' ? 'selected' : '' }}>Carton
+                        </option>
+                        <option value="Crate" {{ $variant->receiving_unit == 'Crate' ? 'selected' : '' }}>Crate</option>
+                        <option value="Dozen" {{ $variant->receiving_unit == 'Dozen' ? 'selected' : '' }}>Dozen</option>
+                        <option value="Packet" {{ $variant->receiving_unit == 'Packet' ? 'selected' : '' }}>Packet
+                        </option>
+                        <option value="Bunch" {{ $variant->receiving_unit == 'Bunch' ? 'selected' : '' }}>Bunch</option>
                     </select>
                 </div>
                 <div class="col-md-12 mt-2 ratio-entry-section">

@@ -304,6 +304,14 @@
                                             <option value="Litres">Litres</option>
                                             <option value="Pieces">Pieces</option>
                                             <option value="Tray">Tray</option>
+                                            <option value="Sado">Sado</option>
+                                            <option value="Debe">Debe</option>
+                                            <option value="Kiroba">Kiroba</option>
+                                            <option value="Carton">Carton</option>
+                                            <option value="Crate">Crate</option>
+                                            <option value="Dozen">Dozen</option>
+                                            <option value="Packet">Packet</option>
+                                            <option value="Bunch">Bunch</option>
                                         </select>
                                     </div>
                                     <div class="col-md-12 mt-2 ratio-entry-section">
