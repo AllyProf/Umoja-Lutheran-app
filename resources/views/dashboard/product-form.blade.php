@@ -104,11 +104,8 @@
                 </div>
 
                 <!-- 2. Product Variants -->
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="mb-3">
                     <h4 class="text-secondary mb-0"><i class="fa fa-cubes"></i> Product Variants</h4>
-                    <button class="btn btn-primary" type="button" onclick="addVariant()">
-                        <i class="fa fa-plus-circle"></i> Add Another Variant
-                    </button>
                 </div>
 
                 <div id="variants-container">
@@ -122,6 +119,12 @@
                             Start by adding the first variant (e.g. 350ml bottle) below.
                         </div>
                     @endif
+                </div>
+
+                <div class="text-right mt-3 mb-4">
+                    <button class="btn btn-primary btn-sm shadow-sm" type="button" onclick="addVariant()">
+                        <i class="fa fa-plus-circle"></i> Add Another Variant
+                    </button>
                 </div>
 
                 <!-- 3. Departments & Placement -->
