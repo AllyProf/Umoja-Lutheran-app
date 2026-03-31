@@ -205,6 +205,9 @@
               <td><strong>{{ $service->service_reference }}</strong></td>
               <td>
                 <span class="badge badge-info">{{ $service->service_type_name }}</span>
+                @if($service->room_name)
+                  <br><small><strong>Room:</strong> {{ $service->room_name }}</small>
+                @endif
               </td>
               <td>{{ $service->guest_name }}</td>
               <td>{{ str_replace('+255+255', '+255', $service->guest_phone ?? 'N/A') }}</td>

@@ -19,6 +19,7 @@ class DayService extends Model
         'end_time',
         'duration',
         'purpose',
+        'room_name',
         'number_of_people',
         'adult_quantity',
         'child_quantity',

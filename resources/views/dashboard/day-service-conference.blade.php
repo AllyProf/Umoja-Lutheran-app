@@ -97,12 +97,27 @@
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
+                                    <label for="room_name">Room Name <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="room_name" name="room_name" required>
+                                        <option value="">Select room...</option>
+                                        <option value="Ebenezer Hall">Ebenezer Hall</option>
+                                        <option value="Ukumbi wa kati">Ukumbi wa kati</option>
+                                        <option value="Seminer Room">Seminer Room</option>
+                                        <option value="Board Room">Board Room</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
                                     <label for="duration">Duration</label>
                                     <input class="form-control" type="text" id="duration" name="duration"
                                         placeholder="e.g., 2 hours">
                                 </div>
                             </div>
-                            <div class="col-md-8">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
                                 <div class="form-group">
                                     <label for="purpose">Purpose of Meeting</label>
                                     <input class="form-control" type="text" id="purpose" name="purpose"

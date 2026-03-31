@@ -267,6 +267,7 @@
                     <p><strong>Vehicle:</strong> {{ $dayService->vehicle_name }}</p>
                     <p><strong>Plate No:</strong> {{ $dayService->plate_number }}</p>
                 @elseif($serviceTypeKey === 'conference_room')
+                    <p><strong>Room Name:</strong> {{ $dayService->room_name }}</p>
                     <p><strong>End Time:</strong>
                         {{ $dayService->end_time ? \Carbon\Carbon::parse($dayService->end_time)->format('h:i A') : 'N/A' }}
                     </p>
