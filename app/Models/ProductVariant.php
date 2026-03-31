@@ -213,4 +213,29 @@ class ProductVariant extends Model
 
         return $totalIn - (float) $transfersOut;
     }
+
+    /**
+     * Determine if stock level is low based on user thresholds or explicit minimum
+     */
+    public function isLowStock($currentStock)
+    {
+        // If an explicit minimum stock level is set, use it as primary source of truth
+        if ($this->minimum_stock_level > 0) {
+            return (float) $currentStock <= (float) $this->minimum_stock_level;
+        }
+
+        // Default logic based on unit type if no minimum is set
+        $unit = strtolower($this->receiving_unit ?? 'pcs');
+
+        if ($unit === 'kg') {
+            return (float) $currentStock < 2.0;
+        }
+
+        if (in_array($unit, ['pcs', 'pieces', 'piece', 'bottle', 'bottles'])) {
+            return (float) $currentStock <= 2.0;
+        }
+
+        // Fallback for other units (Grams, Litres, etc.)
+        return (float) $currentStock < 2.0;
+    }
 }

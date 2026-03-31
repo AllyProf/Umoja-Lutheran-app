@@ -97,7 +97,7 @@
                             $itemsPerPackage = $variant->items_per_package > 0 ? $variant->items_per_package : 1;
                             $packages = floor($totalStock / $itemsPerPackage);
                             $remItems = $totalStock % $itemsPerPackage;
-                            $isLowStock = $variant->minimum_stock_level > 0 && $totalStock <= $variant->minimum_stock_level;
+                            $isLowStock = $variant->isLowStock($totalStock);
                         @endphp
                         <div class="col-md-4 mb-4">
                             <div class="card h-100 product-card border shadow-sm {{ $isLowStock ? 'border-danger' : '' }}" style="{{ $isLowStock ? 'border-left: 5px solid #dc3545 !important; background-color: #fff8f8;' : '' }}">

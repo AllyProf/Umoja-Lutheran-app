@@ -147,7 +147,7 @@ class StorekeeperController extends Controller
 
                 $currentStock = ((float) $receiptsIn + (float) $shoppingIn + (float) $returnsIn) - (float) $transfersOut;
 
-                if ($variant->minimum_stock_level > 0 && $currentStock <= $variant->minimum_stock_level) {
+                if ($variant->isLowStock($currentStock)) {
                     $lowStockCount++;
                 }
             }
