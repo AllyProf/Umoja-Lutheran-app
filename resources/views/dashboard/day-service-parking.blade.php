@@ -139,6 +139,13 @@
                                             value="{{ number_format($parkingService->price_tanzanian, 2, '.', '') }}"
                                             min="0" required>
                                     </div>
+                                    <div class="form-check mt-2">
+                                        <label class="form-check-label">
+                                            <input class="form-check-input" type="checkbox" id="custom_amount"
+                                                onchange="calculateAmount()">
+                                            <strong>Enter Custom Amount</strong>
+                                        </label>
+                                    </div>
                                     <small class="form-text text-muted" id="amount_conversion"></small>
                                     <small class="form-text text-info">
                                         <i class="fa fa-info-circle"></i> Recommended:
@@ -318,6 +325,12 @@
                 calculatedAmount = currentPrice * numVehicles;
             } else {
                 calculatedAmount = currentPrice;
+            }
+
+            const customAmountCheckBox = document.getElementById('custom_amount');
+            if (customAmountCheckBox && customAmountCheckBox.checked) {
+                // If custom amount is checked, don't overwrite manual changes
+                return;
             }
 
             if (amountInput) {
