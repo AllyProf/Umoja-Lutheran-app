@@ -92,15 +92,24 @@ class StockTransfer extends Model
 
 
     /**
-     * Calculate total quantity in bottles
+     * Calculate total quantity in discrete units (bottles/kg/pcs)
+     * Handles fractional conversion for servings/glasses.
      */
     public function getTotalBottlesAttribute()
     {
-        $total = $this->quantity_transferred;
-        if ($this->quantity_unit === 'packages') {
-            $total *= ($this->productVariant->items_per_package ?? 0);
+        $unit = strtolower($this->quantity_unit);
+        $qty = (float) $this->quantity_transferred;
+
+        if ($unit === 'packages') {
+            return $qty * ($this->productVariant->items_per_package ?? 1);
         }
-        return $total;
+
+        if (in_array($unit, ['glass', 'serving', 'servings'])) {
+            $servingsPerPic = (float) ($this->servings_per_pic ?: ($this->productVariant->servings_per_pic ?? 1));
+            return $qty / $servingsPerPic;
+        }
+
+        return $qty;
     }
 
     // Relationships
@@ -137,10 +146,11 @@ class StockTransfer extends Model
 
     public function getQuantityUnitNameAttribute()
     {
-        return match ($this->quantity_unit) {
+        return match (strtolower($this->quantity_unit)) {
             'packages' => $this->productVariant->packaging_name ?? 'Packages',
-            'bottles' => 'Bottles',
+            'bottles', 'pic' => 'Bottles',
             'units' => 'Units',
+            'glass', 'serving' => 'Glass/Serving',
             default => ucfirst($this->quantity_unit),
         };
     }
@@ -222,15 +232,15 @@ class StockTransfer extends Model
         $this->servings_per_pic = $this->servings_per_pic ?? $this->productVariant->servings_per_pic ?? 1;
 
         // Calculate expected revenue for PIC sale (must multiply by total discrete items, not packages)
-        $this->expected_revenue_pic_sale = $this->total_bottles * $this->selling_price_per_pic;
+        $this->expected_revenue_pic_sale = (float) ($this->total_bottles * $this->selling_price_per_pic);
 
         // Calculate expected revenue for serving sale
-        $totalServings = $this->total_bottles * $this->servings_per_pic;
-        $this->expected_revenue_serving_sale = $totalServings * $this->selling_price_per_serving;
+        $totalServings = (float) ($this->total_bottles * $this->servings_per_pic);
+        $this->expected_revenue_serving_sale = (float) ($totalServings * $this->selling_price_per_serving);
 
         // Calculate profits
-        $this->expected_profit_pic_sale = $this->expected_revenue_pic_sale - $this->total_cost;
-        $this->expected_profit_serving_sale = $this->expected_revenue_serving_sale - $this->total_cost;
+        $this->expected_profit_pic_sale = (float) (($this->expected_revenue_pic_sale ?? 0) - ($this->total_cost ?? 0));
+        $this->expected_profit_serving_sale = (float) (($this->expected_revenue_serving_sale ?? 0) - ($this->total_cost ?? 0));
     }
 
     public function getProfitDifferenceAttribute()

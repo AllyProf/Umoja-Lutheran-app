@@ -91,33 +91,17 @@ class StockTransferController extends Controller
         $availableStock = [];
         foreach ($products as $product) {
             foreach ($product->variants as $variant) {
-                // Calculate total packages received
-                $totalPackagesReceived = \App\Models\StockReceipt::where('product_variant_id', $variant->id)
-                    ->sum('quantity_received_packages');
+                $availableBaseUnits = $variant->getCurrentStock();
+                $itemsPerPkg = $variant->items_per_package > 0 ? $variant->items_per_package : 1;
 
-                // Calculate total packages transferred
-                $totalPackagesTransferred = StockTransfer::where('product_variant_id', $variant->id)
-                    ->where('quantity_unit', 'packages')
-                    ->where('status', '!=', 'cancelled')
-                    ->sum('quantity_transferred');
-
-                // Calculate total bottles transferred and convert to packages
-                $totalBottlesTransferred = StockTransfer::where('product_variant_id', $variant->id)
-                    ->where('quantity_unit', 'bottles')
-                    ->where('status', '!=', 'cancelled')
-                    ->sum('quantity_transferred');
-
-                $bottlesToPackages = $variant->items_per_package > 0
-                    ? floor($totalBottlesTransferred / $variant->items_per_package)
-                    : 0;
-
-                // Available packages and bottles
-                $availablePackages = max(0, $totalPackagesReceived - ($totalPackagesTransferred + $bottlesToPackages));
-                $availableBottles = $availablePackages * ($variant->items_per_package ?? 0);
+                $availablePackages = floor($availableBaseUnits / $itemsPerPkg);
+                $availableBottles = $availableBaseUnits; // total base units (btls/kg/pcs)
+                $availableServings = $availableBaseUnits * ($variant->servings_per_pic ?: 1);
 
                 $availableStock[$variant->id] = [
-                    'packages' => $availablePackages,
-                    'bottles' => $availableBottles,
+                    'packages' => (float) $availablePackages,
+                    'bottles' => (float) $availableBottles,
+                    'servings' => (float) $availableServings,
                 ];
             }
         }
@@ -134,7 +118,7 @@ class StockTransferController extends Controller
             'product_id' => 'required|exists:products,id',
             'product_variant_id' => 'required|exists:product_variants,id',
             'quantity_transferred' => 'required|numeric|min:0.01',
-            'quantity_unit' => 'required|in:packages,bottles,pic',
+            'quantity_unit' => 'required|in:packages,bottles,pic,glass,serving',
             'received_by' => 'required|exists:staffs,id',
             'transfer_date' => 'required|date',
             'expiry_date' => 'nullable|date',

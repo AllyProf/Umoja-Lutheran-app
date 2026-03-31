@@ -170,13 +170,12 @@ class ProductVariant extends Model
      */
     public static function getPackageUnits()
     {
-        return ['crate', 'crates', 'soda crate', 'soda crates', 'carton', 'cartons', 'package', 'packages', 'box', 'boxes', 'unit', 'units', 'sado', 'debe', 'kiroba', 'case', 'cases', 'bundle', 'bundles', 'pic', 'pics', 'pcs'];
+        return ['crate', 'crates', 'soda crate', 'soda crates', 'carton', 'cartons', 'package', 'packages', 'box', 'boxes', 'unit', 'units', 'sado', 'debe', 'kiroba', 'case', 'cases', 'bundle', 'bundles', 'pic', 'pics', 'pcs', 'tray', 'dozen', 'packet', 'bunch', 'bottle', 'bottles'];
     }
 
     public function getCurrentStock()
     {
         $packageUnits = self::getPackageUnits();
-        $unitsList = "'" . implode("','", $packageUnits) . "'";
 
         // 1. Total In (Receipts + Shopping List)
         $receiptsIn = \DB::table('stock_receipts')
@@ -190,11 +189,19 @@ class ProductVariant extends Model
             ->join('products', 'shopping_list_items.product_id', '=', 'products.id')
             ->where('shopping_list_items.product_variant_id', $this->id)
             ->where('shopping_list_items.is_purchased', true)
-            ->sum(\DB::raw("CASE 
-                WHEN (received_quantity_kg > 0) THEN received_quantity_kg 
-                WHEN LOWER(unit) IN ($unitsList) AND (products.category != 'food' OR products.category IS NULL) THEN purchased_quantity * product_variants.items_per_package 
-                ELSE purchased_quantity 
-            END"));
+            ->get();
+
+        $totalShoppingIn = 0;
+        foreach ($shoppingIn as $item) {
+            $unit = strtolower($item->unit ?? '');
+            if ($item->received_quantity_kg > 0) {
+                $totalShoppingIn += $item->received_quantity_kg;
+            } elseif (in_array($unit, $packageUnits) && ($this->product->category != 'food' || $this->product->category === null)) {
+                $totalShoppingIn += $item->purchased_quantity * ($this->items_per_package ?: 1);
+            } else {
+                $totalShoppingIn += $item->purchased_quantity;
+            }
+        }
 
         // 1.5 Total Returned
         $returnsIn = \DB::table('stock_returns')
@@ -202,16 +209,29 @@ class ProductVariant extends Model
             ->where('status', 'received')
             ->sum('quantity');
 
-        $totalIn = (float) $receiptsIn + (float) $shoppingIn + (float) $returnsIn;
+        $totalIn = (float) $receiptsIn + (float) $totalShoppingIn + (float) $returnsIn;
 
-        // 2. Total Out (Transfers)
-        $transfersOut = \DB::table('stock_transfers')
-            ->join('product_variants', 'stock_transfers.product_variant_id', '=', 'product_variants.id')
-            ->where('stock_transfers.product_variant_id', $this->id)
-            ->whereIn('stock_transfers.status', ['completed', 'pending'])
-            ->sum(\DB::raw("CASE WHEN LOWER(quantity_unit) IN ($unitsList) THEN quantity_transferred * product_variants.items_per_package ELSE quantity_transferred END"));
+        // 2. Total Out (Transfers) - Correctly handling different unit types
+        $transfersOutGroups = \DB::table('stock_transfers')
+            ->where('product_variant_id', $this->id)
+            ->whereIn('status', ['completed', 'pending'])
+            ->select('quantity_unit', \DB::raw('SUM(quantity_transferred) as total'))
+            ->groupBy('quantity_unit')
+            ->get();
 
-        return $totalIn - (float) $transfersOut;
+        $totalTransferredOut = 0;
+        foreach ($transfersOutGroups as $group) {
+            $unit = strtolower($group->quantity_unit);
+            if (in_array($unit, $packageUnits)) {
+                $totalTransferredOut += $group->total * ($this->items_per_package ?: 1);
+            } elseif (in_array($unit, ['glass', 'serving', 'servings'])) {
+                $totalTransferredOut += $group->total / ($this->servings_per_pic ?: 1);
+            } else {
+                $totalTransferredOut += $group->total;
+            }
+        }
+
+        return $totalIn - (float) $totalTransferredOut;
     }
 
     /**

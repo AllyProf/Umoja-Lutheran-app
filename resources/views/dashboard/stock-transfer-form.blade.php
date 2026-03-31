@@ -121,8 +121,10 @@
                                 data-variant-id="{{ $variant->id }}"
                                 onchange="updateQuantityHint({{ $product->id }}, {{ $variant->id }}, this.value)">
                                 <option value="packages">Pkgs</option>
-                                <option value="bottles">Btls</option>
-                                <option value="pic">PIC</option>
+                                <option value="bottles">{{ in_array($product->category, ['food', 'vegetables', 'meat_poultry']) ? 'Units' : 'Btls' }}</option>
+                                @if(($variant->servings_per_pic > 1 || $variant->can_sell_as_serving) && $product->category !== 'housekeeping')
+                                  <option value="glass">Glass/Srv</option>
+                                @endif
                               </select>
                             </div>
 
@@ -257,13 +259,16 @@
 
       const packagingName = checkbox.dataset.packagingName || 'Packages';
       const packagingLower = packagingName.toLowerCase();
-      const available = availableStock[variantId] || { packages: 0, bottles: 0 };
+      const available = availableStock[variantId] || { packages: 0, bottles: 0, servings: 0 };
 
       if (unit === 'packages') {
         quantityHint.textContent = `Max: ${available.packages} ${packagingLower}`;
         quantityInput.max = available.packages;
+      } else if (unit === 'glass' || unit === 'serving') {
+        quantityHint.textContent = `Max: ${available.servings} servings`;
+        quantityInput.max = available.servings;
       } else {
-        quantityHint.textContent = `Max: ${available.bottles} bottles`;
+        quantityHint.textContent = `Max: ${available.bottles} base units`;
         quantityInput.max = available.bottles;
       }
     }
@@ -285,22 +290,24 @@
       const servingsPic = parseInt(checkbox.dataset.servingsPic) || 1;
       const itemsPerPkg = parseInt(checkbox.dataset.itemsPerPackage) || 1;
 
-      // Calculate total PICs involved
-      let totalPics = 0;
+      // Calculate total base units (BTLS/KG) involved
+      let totalBaseUnits = 0;
       if (unit === 'packages') {
-        totalPics = quantity * itemsPerPkg;
+        totalBaseUnits = quantity * itemsPerPkg;
+      } else if (unit === 'glass' || unit === 'serving') {
+        totalBaseUnits = quantity / servingsPic;
       } else {
         // bottles or pic
-        totalPics = quantity;
+        totalBaseUnits = quantity;
       }
 
-      if (totalPics > 0 && (pricePic > 0 || priceServing > 0)) {
-        const revPic = totalPics * pricePic;
-        const revServing = (totalPics * servingsPic) * priceServing;
+      if (totalBaseUnits > 0 && (pricePic > 0 || priceServing > 0)) {
+        const revPic = totalBaseUnits * pricePic;
+        const revServing = (totalBaseUnits * servingsPic) * priceServing;
 
         let html = `<strong>Revenue Potential:</strong><br>`;
-        if (pricePic > 0) html += `Sell as PIC: ${revPic.toLocaleString()} TSH<br>`;
-        if (priceServing > 0) html += `Sell as Serving: ${revServing.toLocaleString()} TSH`;
+        if (pricePic > 0) html += `Sell as Full Unit: ${revPic.toLocaleString()} TSH<br>`;
+        if (priceServing > 0) html += `Sell as Glass/Srv: ${revServing.toLocaleString()} TSH`;
 
         if (pricePic > 0 && priceServing > 0) {
           const diff = revServing - revPic;

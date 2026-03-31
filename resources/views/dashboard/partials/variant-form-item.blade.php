@@ -162,10 +162,10 @@
                     style="{{ ($variant->can_sell_as_serving) ? '' : 'display:none;' }}">
                     <div class="form-group mb-0 p-2 rounded" style="background: #fff9c4; border: 1px dashed #fbc02d;">
                         <label class="control-label font-weight-bold text-dark mb-1"><i class="fa fa-calculator"></i>
-                            Servings Per Bottle</label>
+                            Servings Per <span class="servings-unit-label">Bottle</span></label>
                         <input type="number" class="form-control" name="variants[{{ $index }}][servings]"
                             value="{{ $variant->servings_per_pic }}" min="1">
-                        <small class="text-muted">How many glasses in one bottle?</small>
+                        <small class="text-muted">How many glasses/servings in one unit?</small>
                     </div>
                 </div>
             </div>

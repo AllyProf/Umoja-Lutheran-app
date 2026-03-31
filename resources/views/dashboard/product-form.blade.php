@@ -329,10 +329,10 @@
                             <div class="col-md-12 pricing-glass bg-light p-2 rounded mb-3 servings-section"
                                 style="display: none; border: 1px dashed #d6d8db;">
                                 <label class="small font-weight-bold text-warning"><i class="fa fa-glass"></i> SERVINGS PER
-                                    BOTTLE</label>
+                                    <span class="servings-unit-label">BOTTLE</span></label>
                                 <input type="number" class="form-control servings-input" name="variants[INDEX][servings]"
-                                    placeholder="How many shots/glasses in one bottle?">
-                                <small class="text-muted">Required for tracking stock when selling by glass.</small>
+                                    placeholder="How many glasses/servings in one unit?">
+                                <small class="text-muted">Required for tracking stock when selling by serving/glass.</small>
                             </div>
                         </div>
                     </div>
@@ -548,16 +548,23 @@
                 const receivingSelect = card.querySelector('.receiving-unit-select');
                 const ratioInput = card.querySelector('.items-per-package-input');
 
-                // Selling details (Pricing & Type) - Hidden for both Food and Housekeeping
-                if (isFood || isHousekeeping) {
+                // Selling details (Pricing & Type) - Hidden for Housekeeping, Optional for Food
+                if (isHousekeeping) {
                     sellingTypeSection.style.display = 'none';
                     sellingMethodSelect.removeAttribute('required');
-                    
                     if (servingsSection) servingsSection.style.display = 'none';
-                    
-                    // Hide Drink Pricing
                     card.querySelectorAll('.drink-only-section').forEach(el => el.style.display = 'none');
+                } else if (isFood) {
+                    // ALLOW Selling Logic for food (e.g. Fruit -> Juice)
+                    sellingTypeSection.style.display = 'block';
+                    sellingMethodSelect.removeAttribute('required'); // Keep optional for general food
+                    
+                    // Show Pricing (so they can set Glass Price)
+                    card.querySelectorAll('.drink-only-section').forEach(el => el.style.display = 'block');
+                    
+                    togglePricing(sellingMethodSelect);
                 } else {
+                    // Beverages
                     sellingTypeSection.style.display = 'block';
                     sellingMethodSelect.setAttribute('required', 'required');
                     
@@ -565,6 +572,24 @@
                     card.querySelectorAll('.drink-only-section').forEach(el => el.style.display = 'block');
                     
                     togglePricing(sellingMethodSelect); // Reset servings display based on selling method
+                }
+
+                // Update Servings Label based on unit
+                const updateServingsLabel = () => {
+                    const label = card.querySelector('.servings-unit-label');
+                    if (!label) return;
+                    
+                    if (isFood || isBeverage) {
+                        const unitValue = receivingSelect.value || 'Unit';
+                        label.textContent = unitValue.charAt(0).toUpperCase() + unitValue.slice(1).toLowerCase();
+                    } else {
+                        label.textContent = 'Bottle';
+                    }
+                };
+
+                if (receivingSelect) {
+                    receivingSelect.addEventListener('change', updateServingsLabel);
+                    updateServingsLabel(); // Initial call
                 }
 
                 // Volume/Weight vs Food Units
