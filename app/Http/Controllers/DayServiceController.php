@@ -498,35 +498,38 @@ class DayServiceController extends Controller
             ->value('total_pending') ?? 0;
 
         // Pending items from sub-requests (Bar/Restaurant)
-        $pendingItems = \App\Models\ServiceRequest::whereHas('dayService', function ($q) use ($request) {
-            // Apply same basic filters to the linked day service
-            if ($request->filled('tab')) {
-                $tab = $request->tab;
-                if ($tab === 'swimming')
-                    $q->where('service_type', 'swimming');
-                elseif ($tab === 'parking')
-                    $q->where('service_type', 'parking');
-                elseif ($tab === 'garden')
-                    $q->where('service_type', 'garden');
-                elseif ($tab === 'conference_room')
-                    $q->where('service_type', 'conference_room');
-            }
-        })->where('payment_status', 'pending')->sum('total_price_tsh');
+        $pendingItems = \App\Models\ServiceRequest::join('day_services', 'service_requests.day_service_id', '=', 'day_services.id')
+            ->where('service_requests.payment_status', 'pending');
+
+        if ($request->filled('tab')) {
+            $tab = $request->tab;
+            if ($tab === 'swimming')
+                $pendingItems->where('day_services.service_type', 'swimming');
+            elseif ($tab === 'parking')
+                $pendingItems->where('day_services.service_type', 'parking');
+            elseif ($tab === 'garden')
+                $pendingItems->where('day_services.service_type', 'garden');
+            elseif ($tab === 'conference_room')
+                $pendingItems->where('day_services.service_type', 'conference_room');
+        }
+        $pendingItems = $pendingItems->sum('service_requests.total_price_tsh');
 
         // Paid items from sub-requests (Bar/Restaurant usage revenue)
-        $paidItemsRevenue = \App\Models\ServiceRequest::whereHas('dayService', function ($q) use ($request) {
-            if ($request->filled('tab')) {
-                $tab = $request->tab;
-                if ($tab === 'swimming')
-                    $q->where('service_type', 'swimming');
-                elseif ($tab === 'parking')
-                    $q->where('service_type', 'parking');
-                elseif ($tab === 'garden')
-                    $q->where('service_type', 'garden');
-                elseif ($tab === 'conference_room')
-                    $q->where('service_type', 'conference_room');
-            }
-        })->where('payment_status', 'paid')->sum('total_price_tsh');
+        $paidItemsRevenue = \App\Models\ServiceRequest::join('day_services', 'service_requests.day_service_id', '=', 'day_services.id')
+            ->where('service_requests.payment_status', 'paid');
+
+        if ($request->filled('tab')) {
+            $tab = $request->tab;
+            if ($tab === 'swimming')
+                $paidItemsRevenue->where('day_services.service_type', 'swimming');
+            elseif ($tab === 'parking')
+                $paidItemsRevenue->where('day_services.service_type', 'parking');
+            elseif ($tab === 'garden')
+                $paidItemsRevenue->where('day_services.service_type', 'garden');
+            elseif ($tab === 'conference_room')
+                $paidItemsRevenue->where('day_services.service_type', 'conference_room');
+        }
+        $paidItemsRevenue = $paidItemsRevenue->sum('service_requests.total_price_tsh');
 
         $statistics = [
             'total_services' => $statsData->total ?? 0,

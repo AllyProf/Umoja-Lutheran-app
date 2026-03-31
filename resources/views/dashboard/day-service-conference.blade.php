@@ -290,9 +290,38 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            swal("Success!", data.message, "success", function () {
-                                if (data.receipt_url) window.open(data.receipt_url, '_blank');
-                                window.location.href = '{{ $role === "reception" ? route("reception.day-services.index") : route("admin.day-services.index") }}';
+                            swal({
+                                title: "Success!",
+                                text: data.message,
+                                type: "success",
+                                showCancelButton: true,
+                                confirmButtonClass: "btn-success",
+                                confirmButtonText: "View Receipt",
+                                cancelButtonText: "View All Services",
+                                closeOnConfirm: false,
+                                closeOnCancel: false
+                            }, function (isConfirm) {
+                                if (isConfirm) {
+                                    if (data.receipt_url) {
+                                        window.open(data.receipt_url, '_blank');
+                                    }
+                                    swal({
+                                        title: "What's next?",
+                                        text: "The receipt is opening in a new tab.",
+                                        type: "info",
+                                        showCancelButton: true,
+                                        confirmButtonText: "Register Another",
+                                        cancelButtonText: "Back to List",
+                                    }, function (isNextConfirm) {
+                                        if (isNextConfirm) {
+                                            location.reload();
+                                        } else {
+                                            window.location.assign('{{ $role === "reception" ? route("reception.day-services.index") : route("admin.day-services.index") }}');
+                                        }
+                                    });
+                                } else {
+                                    window.location.assign('{{ $role === "reception" ? route("reception.day-services.index") : route("admin.day-services.index") }}');
+                                }
                             });
                         } else {
                             swal("Error!", data.message || "An error occurred.", "error");
