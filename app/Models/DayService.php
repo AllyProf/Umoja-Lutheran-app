@@ -25,6 +25,7 @@ class DayService extends Model
         'child_quantity',
         'service_date',
         'service_time',
+        'expected_checkout_date',
         'items_ordered',
         'package_items',
         'amount',
@@ -47,6 +48,7 @@ class DayService extends Model
     protected $casts = [
         'service_date' => 'date',
         'service_time' => 'datetime',
+        'expected_checkout_date' => 'date',
         'amount' => 'decimal:2',
         'amount_paid' => 'decimal:2',
         'exchange_rate' => 'decimal:4',
@@ -106,13 +108,23 @@ class DayService extends Model
             return $overrides[$normalizedKey];
         }
 
-        // If no override, try catalog
-        $catalogItem = \App\Models\ServiceCatalog::where('service_key', $this->service_type)
-            ->orWhere('service_key', 'LIKE', '%' . $serviceKey . '%')
-            ->first();
+        // If no override, try catalog (using static cache to avoid N+1 queries)
+        static $catalogCache = null;
+        if ($catalogCache === null) {
+            $catalogCache = \App\Models\ServiceCatalog::all()->keyBy(function ($item) {
+                return strtolower($item->service_key);
+            })->toArray();
+        }
 
-        if ($catalogItem) {
-            return $catalogItem->service_name;
+        if (isset($catalogCache[$normalizedKey])) {
+            return $catalogCache[$normalizedKey]['service_name'];
+        }
+
+        // Try fuzzy match in the already loaded cache
+        foreach ($catalogCache as $key => $item) {
+            if (str_contains($normalizedKey, $key) || str_contains($key, $normalizedKey)) {
+                return $item['service_name'];
+            }
         }
 
         // Fallback

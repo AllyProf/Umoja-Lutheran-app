@@ -20,7 +20,7 @@
       <div class="tile-title-w-btn mb-3">
         <h3 class="title">Pending Payment Services</h3>
         <div class="btn-group">
-          <a class="btn btn-primary" href="{{ $role === 'reception' ? route('reception.day-services.create') : route('admin.day-services.create') }}">
+          <a class="btn btn-primary" href="{{ $role === 'reception' ? route('reception.day-services.index') : route('admin.day-services.index') }}">
             <i class="fa fa-plus"></i> Register Service
           </a>
           <a class="btn btn-info" href="{{ $role === 'reception' ? route('reception.day-services.index') : route('admin.day-services.index') }}">
@@ -59,6 +59,12 @@
               <td>
                 {{ $service->service_date->format('M d, Y') }}<br>
                 <small class="text-muted">{{ $service->service_time }}</small>
+                @if(in_array($service->service_type, ['parking', 'conference_room']) && $service->expected_checkout_date)
+                    <br><span class="badge badge-secondary">
+                        <i class="fa fa-calendar"></i> 
+                        {{ $service->service_date->diffInDays($service->expected_checkout_date) ?: 1 }} Day(s)
+                    </span>
+                @endif
               </td>
               <td>{{ $service->number_of_people }}</td>
               <td>{{ Str::limit($service->items_ordered ?? 'N/A', 50) }}</td>
@@ -98,7 +104,7 @@
         <i class="fa fa-check-circle fa-5x text-success mb-3"></i>
         <h3>No Pending Payments</h3>
         <p class="text-muted">All services have been paid.</p>
-        <a href="{{ $role === 'reception' ? route('reception.day-services.create') : route('admin.day-services.create') }}" class="btn btn-primary mt-3">
+        <a href="{{ $role === 'reception' ? route('reception.day-services.index') : route('admin.day-services.index') }}" class="btn btn-primary mt-3">
           <i class="fa fa-plus"></i> Register New Service
         </a>
       </div>
@@ -243,7 +249,10 @@ function viewService(serviceId) {
               <tr><td><strong>Service Type:</strong></td><td><span class="badge badge-info">${service.service_type_name}</span></td></tr>
               <tr><td><strong>Date:</strong></td><td>${serviceDate}</td></tr>
               <tr><td><strong>Time:</strong></td><td>${service.service_time}</td></tr>
-              <tr><td><strong>Number of People:</strong></td><td>${service.number_of_people}</td></tr>
+              <tr><td><strong>Number of ${service.service_type === 'parking' ? 'Vehicles' : 'People'}:</strong></td><td>${service.number_of_people}</td></tr>
+              ${service.vehicle_name ? `<tr><td><strong>Vehicle:</strong></td><td>${service.vehicle_name}</td></tr>` : ''}
+              ${service.plate_number ? `<tr><td><strong>Plate No:</strong></td><td>${service.plate_number}</td></tr>` : ''}
+              ${service.expected_checkout_date ? `<tr><td><strong>Checkout Date:</strong></td><td>${service.expected_checkout_date}</td></tr>` : ''}
               ${service.items_ordered ? `<tr><td><strong>Items Ordered:</strong></td><td>${service.items_ordered}</td></tr>` : ''}
             </table>
           </div>

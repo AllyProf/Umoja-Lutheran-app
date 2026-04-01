@@ -201,9 +201,10 @@
                 <label for="quantity_received_packages">Quantity Received (<span
                     id="packaging_label_input">Packages</span>) <span class="text-danger">*</span></label>
                 <input class="form-control" type="number" id="quantity_received_packages"
-                  name="quantity_received_packages" min="1" required oninput="updateCalculations()"
-                  placeholder="e.g., 10">
-                <small class="form-text text-muted" id="packaging_hint">Select variant to see packaging type</small>
+                  name="quantity_received_packages" min="0.01" step="0.01" required oninput="updateCalculations()"
+                  placeholder="e.g., 10 or 8.5">
+                <small class="form-text text-muted" id="packaging_hint">For fruits (Passion/Oranges), enter actual KG
+                  received here.</small>
               </div>
             </div>
           </div>
@@ -704,7 +705,7 @@
         // Normalize buying price to per-unit cost
         let unitBuyingPrice = buyingPrice;
         if (priceType === 'package' && itemsPerPackage > 0) {
-            unitBuyingPrice = buyingPrice / itemsPerPackage;
+          unitBuyingPrice = buyingPrice / itemsPerPackage;
         }
 
         // For PIC/Food system, items per package is 1 or we treat quantity as total

@@ -25,7 +25,6 @@
                         action="{{ $role === 'reception' ? route('reception.day-services.store') : route('admin.day-services.store') }}">
                         @csrf
                         <input type="hidden" name="service_type" value="conference_room">
-                        <input type="hidden" name="payment_status" value="paid">
                         <input type="hidden" name="guest_type" id="guest_type" value="tanzanian">
 
                         <h4 class="mb-4 mt-4"><i class="fa fa-user"></i> Guest Information</h4>
@@ -92,6 +91,15 @@
                                     <input class="form-control" type="time" id="end_time" name="end_time">
                                 </div>
                             </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="expected_checkout_date">Expected Checkout Date</label>
+                                    <input class="form-control" type="date" id="expected_checkout_date"
+                                        name="expected_checkout_date" oninput="calculateAmount()">
+                                    <small class="text-muted">For multi-day conference <span id="days_count_label"
+                                            class="badge badge-info ml-1" style="display:none;"></span></small>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="row">
@@ -128,55 +136,97 @@
 
                         <h4 class="mb-4 mt-4"><i class="fa fa-dollar"></i> Payment Information</h4>
 
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="amount">Amount <span class="text-danger">*</span></label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text" id="currency_symbol">TZS</span>
-                                        </div>
-                                        <input class="form-control" type="number" step="0.01" id="amount" name="amount"
-                                            value="{{ number_format($conferenceService->price_tanzanian, 2, '.', '') }}"
-                                            min="0" required>
-                                    </div>
-                                    <small class="form-text text-info">
-                                        <i class="fa fa-info-circle"></i> Recommended:
-                                        <span
-                                            id="recommended_amount_tzs">{{ number_format($conferenceService->price_tanzanian, 2) }}
-                                            TZS</span>
-                                        @if($conferenceService->price_international)
-                                            / <span
-                                                id="recommended_amount_usd">${{ number_format($conferenceService->price_international, 2) }}
-                                                USD</span>
-                                        @endif
-                                        ({{ str_replace('_', ' ', $conferenceService->pricing_type) }})
-                                    </small>
+                        <div class="form-group">
+                            <label class="font-weight-bold">Payment Status <span class="text-danger">*</span></label>
+                            <div class="d-flex p-3 border rounded bg-light">
+                                <div class="custom-control custom-radio custom-control-inline mr-4">
+                                    <input type="radio" id="status_paid" name="payment_status" value="paid"
+                                        class="custom-control-input" checked onchange="togglePaymentFields()">
+                                    <label class="custom-control-label text-success font-weight-bold" for="status_paid">
+                                        <i class="fa fa-check-circle"></i> Paid Now
+                                    </label>
                                 </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="payment_method">Payment Method <span class="text-danger">*</span></label>
-                                    <select class="form-control" id="payment_method" name="payment_method" required>
-                                        <option value="">Select payment method...</option>
-                                        <option value="cash">Cash</option>
-                                        <option value="card">Card</option>
-                                        <option value="mobile">Mobile Money</option>
-                                        <option value="bank">Bank Transfer</option>
-                                    </select>
+                                <div class="custom-control custom-radio custom-control-inline">
+                                    <input type="radio" id="status_pending" name="payment_status" value="pending"
+                                        class="custom-control-input" onchange="togglePaymentFields()">
+                                    <label class="custom-control-label text-warning font-weight-bold" for="status_pending">
+                                        <i class="fa fa-clock-o"></i> Pay Later (Pending)
+                                    </label>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label for="amount_paid">Amount Paid <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text" id="paid_currency_symbol">TZS</span>
+                        <div id="payment_details_section">
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="amount">Amount <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text" id="currency_symbol">TZS</span>
+                                            </div>
+                                            <input class="form-control" type="number" step="0.01" id="amount" name="amount"
+                                                value="{{ number_format($conferenceService->price_tanzanian, 2, '.', '') }}"
+                                                min="0" required>
+                                        </div>
+                                        <small class="form-text text-info">
+                                            <i class="fa fa-info-circle"></i> Recommended:
+                                            <span
+                                                id="recommended_amount_tzs">{{ number_format($conferenceService->price_tanzanian, 2) }}
+                                                TZS</span>
+                                            @if($conferenceService->price_international)
+                                                / <span
+                                                    id="recommended_amount_usd">${{ number_format($conferenceService->price_international, 2) }}
+                                                    USD</span>
+                                            @endif
+                                            ({{ str_replace('_', ' ', $conferenceService->pricing_type) }})
+                                        </small>
+                                    </div>
                                 </div>
-                                <input class="form-control" type="number" step="0.01" id="amount_paid" name="amount_paid"
-                                    value="{{ number_format($conferenceService->price_tanzanian, 2, '.', '') }}" min="0"
-                                    required>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="payment_method">Payment Method <span
+                                                class="text-danger">*</span></label>
+                                        <select class="form-control" id="payment_method" name="payment_method" required>
+                                            <option value="">Select payment method...</option>
+                                            <option value="cash">Cash</option>
+                                            <option value="card">Card</option>
+                                            <option value="mobile">Mobile Money</option>
+                                            <option value="bank">Bank Transfer</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="amount_paid">Amount Paid <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="paid_currency_symbol">TZS</span>
+                                    </div>
+                                    <input class="form-control" type="number" step="0.01" id="amount_paid"
+                                        name="amount_paid"
+                                        value="{{ number_format($conferenceService->price_tanzanian, 2, '.', '') }}" min="0"
+                                        required>
+                                </div>
+                            </div>
+
+                            <div class="row" id="payment_provider_fields" style="display:none;">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="payment_provider">Payment Provider (Optional)</label>
+                                        <input class="form-control" type="text" id="payment_provider"
+                                            name="payment_provider" placeholder="e.g., M-Pesa, CRDB, NMB">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="payment_reference">Transaction Reference</label>
+                                        <input class="form-control" type="text" id="payment_reference"
+                                            name="payment_reference" placeholder="Enter reference number">
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -207,70 +257,179 @@
 @section('scripts')
     <script src="{{ asset('dashboard_assets/js/plugins/sweetalert.min.js') }}"></script>
     <script>
+        // Move to global scope so inline oninput can find it
+        let numberPeopleInput;
+        let amountInput;
+        let amountPaidInput;
+        let priceTanzanian;
+        let pricingType;
+
+        // Define calculateDuration first so it's available
+        function calculateDuration() {
+            const startTime = document.getElementById('service_time').value;
+            const endTime = document.getElementById('end_time').value;
+            const checkoutDate = document.getElementById('expected_checkout_date').value;
+            const durationInput = document.getElementById('duration');
+
+            // If there's a checkout date, multi-day logic handles Duration (calculated in calculateAmount)
+            if (checkoutDate) return;
+
+            const unitsInput = document.getElementById('number_of_people');
+
+            if (startTime && endTime) {
+                const start = new Date(`2000-01-01T${startTime}:00`);
+                const end = new Date(`2000-01-01T${endTime}:00`);
+
+                if (end > start) {
+                    const diffMs = end - start;
+                    const diffHrs = diffMs / (1000 * 60 * 60);
+                    const roundedHrs = Math.round(diffHrs * 10) / 10;
+
+                    durationInput.value = `${roundedHrs} ${roundedHrs === 1 ? 'hour' : 'hours'}`;
+
+                    // Only update units/price automatically if it's per_hour
+                    if (pricingType === 'per_hour') {
+                        unitsInput.value = Math.max(1, Math.ceil(roundedHrs));
+                        calculateAmount();
+                    } else {
+                        unitsInput.value = 1;
+                        calculateAmount();
+                    }
+                } else {
+                    durationInput.value = '';
+                }
+            }
+        }
+
+        // Define calculateAmount first
+        function calculateAmount() {
+            if (!numberPeopleInput) {
+                numberPeopleInput = document.getElementById('number_of_people');
+                amountInput = document.getElementById('amount');
+                amountPaidInput = document.getElementById('amount_paid');
+                priceTanzanian = {{ $conferenceService->price_tanzanian }};
+                pricingType = '{{ $conferenceService->pricing_type }}';
+            }
+
+            const units = parseInt(numberPeopleInput.value) || 1;
+            const serviceDateStr = document.getElementById('service_date').value;
+            const checkoutDateStr = document.getElementById('expected_checkout_date').value;
+            let calculatedAmount = 0;
+            let diffDays = 1;
+
+            if (checkoutDateStr) {
+                const startDate = new Date(serviceDateStr);
+                const endDate = new Date(checkoutDateStr);
+                const diffTime = endDate - startDate;
+                diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (diffDays < 1) diffDays = 1;
+
+                const daysLabel = document.getElementById('days_count_label');
+                if (daysLabel) {
+                    daysLabel.innerText = diffDays + ' Day(s)';
+                    daysLabel.style.display = 'inline-block';
+                }
+
+                // Also update the duration input field
+                const durationInput = document.getElementById('duration');
+                if (durationInput) {
+                    durationInput.value = diffDays + (diffDays === 1 ? ' Day' : ' Days');
+                }
+            } else {
+                const daysLabel = document.getElementById('days_count_label');
+                if (daysLabel) daysLabel.style.display = 'none';
+
+                // Trigger hourly duration calculation if both times are set
+                calculateDuration();
+            }
+
+            if (pricingType === 'per_person' || pricingType === 'per_hour') {
+                calculatedAmount = priceTanzanian * units * diffDays;
+            } else {
+                calculatedAmount = priceTanzanian * diffDays;
+            }
+
+            amountInput.value = calculatedAmount.toFixed(2);
+
+            // Update Recommended Amount text
+            document.getElementById('recommended_amount_tzs').innerText =
+                new Intl.NumberFormat().format(calculatedAmount) + ' TZS' + (diffDays > 1 ? ' (' + diffDays + ' Days)' : '');
+
+            const isPaid = document.getElementById('status_paid').checked;
+            if (isPaid) {
+                amountPaidInput.value = calculatedAmount.toFixed(2);
+            } else {
+                amountPaidInput.value = "0.00";
+            }
+        }
+
+        // Expose globally for HTML onclick attributes
+        window.calculateAmount = calculateAmount;
+        window.calculateDuration = calculateDuration;
+
+        // Define global for radio buttons
+        window.togglePaymentFields = function () {
+            const isPaid = document.getElementById('status_paid').checked;
+            const paymentMethod = document.getElementById('payment_method').value;
+            const amountPaidInput = document.getElementById('amount_paid');
+            const amountInput = document.getElementById('amount');
+
+            if (isPaid) {
+                $('#payment_details_section').show();
+                amountPaidInput.value = amountInput.value;
+                document.getElementById('payment_method').required = true;
+                
+                // Toggle provider fields based on method (Hide for cash or empty)
+                if (paymentMethod === 'cash' || !paymentMethod) {
+                    $('#payment_provider_fields').hide();
+                } else {
+                    $('#payment_provider_fields').show();
+                }
+            } else {
+                // We keep amount input visible but hide payment details
+                $('#payment_details_section').hide();
+                $('#payment_provider_fields').hide();
+                amountPaidInput.value = "0.00";
+                document.getElementById('payment_method').required = false;
+            }
+        };
+
         $(document).ready(function () {
             const form = document.getElementById('conferenceForm');
-            const numberPeopleInput = document.getElementById('number_of_people');
-            const amountInput = document.getElementById('amount');
-            const amountPaidInput = document.getElementById('amount_paid');
 
-            const priceTanzanian = {{ $conferenceService->price_tanzanian }};
-            const pricingType = '{{ $conferenceService->pricing_type }}';
+            // Initialize global variables on load
+            numberPeopleInput = document.getElementById('number_of_people');
+            amountInput = document.getElementById('amount');
+            amountPaidInput = document.getElementById('amount_paid');
+            priceTanzanian = {{ $conferenceService->price_tanzanian }};
+            pricingType = '{{ $conferenceService->pricing_type }}';
 
-            function calculateAmount() {
-                const units = parseInt(numberPeopleInput.value) || 1;
-                let calculatedAmount = 0;
+            document.getElementById('payment_method').addEventListener('change', togglePaymentFields);
 
-                if (pricingType === 'per_person' || pricingType === 'per_hour') {
-                    calculatedAmount = priceTanzanian * units;
-                } else {
-                    calculatedAmount = priceTanzanian;
+            if (numberPeopleInput) numberPeopleInput.addEventListener('input', calculateAmount);
+            const serviceDateInput = document.getElementById('service_date');
+            if (serviceDateInput) serviceDateInput.addEventListener('input', calculateAmount);
+            const checkoutDateInput = document.getElementById('expected_checkout_date');
+            if (checkoutDateInput) checkoutDateInput.addEventListener('input', calculateAmount);
+
+            if (amountInput) amountInput.addEventListener('input', function () {
+                const isPaid = document.getElementById('status_paid').checked;
+                if (isPaid) {
+                    amountPaidInput.value = amountInput.value;
                 }
-
-                amountInput.value = calculatedAmount.toFixed(2);
-                amountPaidInput.value = calculatedAmount.toFixed(2);
-            }
-
-            numberPeopleInput.addEventListener('input', calculateAmount);
-
-            amountInput.addEventListener('input', function () {
-                amountPaidInput.value = amountInput.value;
             });
 
-            function calculateDuration() {
-                const startTime = document.getElementById('service_time').value;
-                const endTime = document.getElementById('end_time').value;
-                const durationInput = document.getElementById('duration');
-                const unitsInput = document.getElementById('number_of_people');
-
-                if (startTime && endTime) {
-                    const start = new Date(`2000-01-01T${startTime}:00`);
-                    const end = new Date(`2000-01-01T${endTime}:00`);
-
-                    if (end > start) {
-                        const diffMs = end - start;
-                        const diffHrs = diffMs / (1000 * 60 * 60);
-                        const roundedHrs = Math.round(diffHrs * 10) / 10;
-
-                        durationInput.value = `${roundedHrs} ${roundedHrs === 1 ? 'hour' : 'hours'}`;
-
-                        // Only update units/price automatically if it's per_hour
-                        if (pricingType === 'per_hour') {
-                            unitsInput.value = Math.max(1, Math.ceil(roundedHrs));
-                            calculateAmount();
-                        } else {
-                            unitsInput.value = 1;
-                            calculateAmount();
-                        }
-                    } else {
-                        durationInput.value = '';
-                    }
-                }
+            const serviceTimeInput = document.getElementById('service_time');
+            if (serviceTimeInput) {
+                serviceTimeInput.addEventListener('input', calculateDuration);
+                serviceTimeInput.addEventListener('change', calculateDuration);
             }
-
-            document.getElementById('service_time').addEventListener('input', calculateDuration);
-            document.getElementById('end_time').addEventListener('input', calculateDuration);
-            document.getElementById('service_time').addEventListener('change', calculateDuration);
-            document.getElementById('end_time').addEventListener('change', calculateDuration);
+            
+            const endTimeInput = document.getElementById('end_time');
+            if (endTimeInput) {
+                endTimeInput.addEventListener('input', calculateDuration);
+                endTimeInput.addEventListener('change', calculateDuration);
+            }
 
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
@@ -309,29 +468,47 @@
                                         title: "What's next?",
                                         text: "The receipt is opening in a new tab.",
                                         type: "info",
-                                        showCancelButton: true,
-                                        confirmButtonText: "Register Another",
-                                        cancelButtonText: "Back to List",
-                                    }, function (isNextConfirm) {
-                                        if (isNextConfirm) {
-                                            location.reload();
-                                        } else {
-                                            window.location.assign('{{ $role === "reception" ? route("reception.day-services.index") : route("admin.day-services.index") }}');
-                                        }
+                                        confirmButtonText: "Back to List"
+                                    }, function () {
+                                        window.location.href = data.redirect;
                                     });
                                 } else {
-                                    window.location.assign('{{ $role === "reception" ? route("reception.day-services.index") : route("admin.day-services.index") }}');
+                                    window.location.href = data.redirect;
                                 }
                             });
                         } else {
-                            swal("Error!", data.message || "An error occurred.", "error");
                             submitBtn.disabled = false;
                             submitBtn.innerHTML = '<i class="fa fa-check"></i> Register & Verify Payment';
+                            
+                            swal("Error!", data.message || "An error occurred during registration.", "error");
+
+                            if (data.errors) {
+                                let alertHtml = '<div class="alert alert-danger"><ul class="mb-0">';
+                                for (let field in data.errors) {
+                                    alertHtml += `<li>${data.errors[field][0]}</li>`;
+                                }
+                                alertHtml += '</ul></div>';
+                                document.getElementById('formAlert').innerHTML = alertHtml;
+                                window.scrollTo(0, 0);
+                            }
                         }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fa fa-check"></i> Register & Verify Payment';
+                        swal("Error!", "A connection error occurred. Please try again.", "error");
                     });
             });
 
-            calculateAmount();
+            // Trigger calculations on load
+            togglePaymentFields();
+            if (document.getElementById('expected_checkout_date').value) {
+                calculateAmount();
+            } else {
+                calculateDuration();
+                calculateAmount();
+            }
         });
     </script>
 @endsection

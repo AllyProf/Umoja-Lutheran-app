@@ -69,7 +69,8 @@
                                         <option value="alcoholic_beverage" {{ (old('category', $product->category ?? '') == 'alcoholic_beverage') ? 'selected' : '' }}>Beers / Ciders</option>
                                         <option value="cocktails" {{ (old('category', $product->category ?? '') == 'cocktails') ? 'selected' : '' }}>Cocktails</option>
                                         <option value="non_alcoholic_beverage" {{ (old('category', $product->category ?? '') == 'non_alcoholic_beverage') ? 'selected' : '' }}>Soft Drinks / Sodas</option>
-                                        <option value="cleaning_supplies" {{ (old('category', $product->category ?? '') == 'cleaning_supplies') ? 'selected' : '' }}>Housekeeping (Cleaning materials)</option>
+                                        <option value="cleaning_supplies" {{ (old('category', $product->category ?? '') == 'cleaning_supplies') ? 'selected' : '' }}>Housekeeping (Cleaning materials)
+                                        </option>
                                         <option value="energy_drinks" {{ (old('category', $product->category ?? '') == 'energy_drinks') ? 'selected' : '' }}>Energy Drinks</option>
                                         <option value="water" {{ (old('category', $product->category ?? '') == 'water') ? 'selected' : '' }}>Water</option>
                                         <option value="juices" {{ (old('category', $product->category ?? '') == 'juices') ? 'selected' : '' }}>Juices</option>
@@ -83,10 +84,12 @@
                             <div class="col-md-12" id="returnableSection" style="display: none;">
                                 <div class="form-group">
                                     <div class="custom-control custom-checkbox">
-                                        <input type="checkbox" class="custom-control-input" id="is_returnable" name="is_returnable" value="1" {{ old('is_returnable', $product->is_returnable ?? false) ? 'checked' : '' }}>
+                                        <input type="checkbox" class="custom-control-input" id="is_returnable"
+                                            name="is_returnable" value="1" {{ old('is_returnable', $product->is_returnable ?? false) ? 'checked' : '' }}>
                                         <label class="custom-control-label font-weight-bold" for="is_returnable">
-                                            <i class="fa fa-undo text-info"></i> Is Returnable? 
-                                            <span class="text-muted small ml-1">(Check if this item is used and then returned to store, e.g. Brooms, Linens)</span>
+                                            <i class="fa fa-undo text-info"></i> Is Returnable?
+                                            <span class="text-muted small ml-1">(Check if this item is used and then
+                                                returned to store, e.g. Brooms, Linens)</span>
                                         </label>
                                     </div>
                                 </div>
@@ -132,97 +135,103 @@
                     <div class="card-header bg-light">
                         <h5 class="mb-0"><i class="fa fa-sitemap text-primary mr-2"></i> Departments & Placement</h5>
                     </div>
-                    <div class="card-body">
-                        <p class="text-muted small mb-3">Select which departments this product belongs to and assign a
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <p class="text-muted small mb-0">Select which departments this product belongs to and assign a
                             department-specific category.</p>
-                        <div class="row">
-                            @foreach($departments as $dept)
-                                @php
-                                    $isChecked = false;
-                                    $assignedCategory = '';
-                                    if ($isEdit && $product->departments) {
-                                        $pivot = $product->departments->firstWhere('id', $dept->id);
-                                        if ($pivot) {
-                                            $isChecked = true;
-                                            $assignedCategory = $pivot->pivot->category;
-                                        }
+                        <button type="button" class="btn btn-outline-info btn-sm" onclick="selectAllDepartments()">
+                            <i class="fa fa-check-square"></i> Mark as Shared (All)
+                        </button>
+                    </div>
+                    <div class="row">
+                        @foreach($departments as $dept)
+                            @php
+                                $isChecked = false;
+                                $assignedCategory = '';
+                                if ($isEdit && $product->departments) {
+                                    $pivot = $product->departments->firstWhere('id', $dept->id);
+                                    if ($pivot) {
+                                        $isChecked = true;
+                                        $assignedCategory = $pivot->pivot->category;
                                     }
-                                @endphp
-                                <div class="col-md-4 mb-3">
-                                    <div class="border rounded p-3 {{ $isChecked ? 'bg-light border-primary' : '' }}"
-                                        id="dept-card-{{ $dept->id }}">
-                                        <div class="custom-control custom-checkbox mb-2">
-                                            <input type="checkbox" class="custom-control-input dept-checkbox"
-                                                id="dept_{{ $dept->id }}" name="departments[]" value="{{ $dept->id }}" {{ $isChecked ? 'checked' : '' }} onchange="toggleDeptCategory({{ $dept->id }})">
-                                            <label class="custom-control-label font-weight-bold"
-                                                for="dept_{{ $dept->id }}">{{ $dept->name }}</label>
-                                        </div>
-                                        <div id="dept-category-{{ $dept->id }}"
-                                            style="display: {{ $isChecked ? 'block' : 'none' }};">
-                                            <label class="small text-muted mb-1">Category in {{ $dept->name }}</label>
-                                            <select class="form-control form-control-sm"
-                                                name="department_categories[{{ $dept->id }}]" {{ $isChecked ? 'required' : '' }}>
-                                                <option value="">Select...</option>
-                                                @if($dept->code === 'bar')
-                                                    <option value="alcoholic_beverage" {{ $assignedCategory == 'alcoholic_beverage' ? 'selected' : '' }}>Beers / Ciders</option>
-                                                    <option value="spirits" {{ $assignedCategory == 'spirits' ? 'selected' : '' }}>
-                                                        Spirits</option>
-                                                    <option value="wines" {{ $assignedCategory == 'wines' ? 'selected' : '' }}>Wines
-                                                    </option>
-                                                    <option value="water" {{ $assignedCategory == 'water' ? 'selected' : '' }}>Water
-                                                    </option>
-                                                    <option value="non_alcoholic_beverage" {{ $assignedCategory == 'non_alcoholic_beverage' ? 'selected' : '' }}>Soft Drinks
-                                                    </option>
-                                                    <option value="cleaning_supplies" {{ $assignedCategory == 'cleaning_supplies' ? 'selected' : '' }}>Housekeeping
-                                                    </option>
-                                                    <option value="juices" {{ $assignedCategory == 'juices' ? 'selected' : '' }}>
-                                                        Juices</option>
-                                                @elseif($dept->code === 'kitchen')
-                                                    <option value="food" {{ $assignedCategory == 'food' ? 'selected' : '' }}>General
-                                                        Food</option>
-                                                    <option value="meat_poultry" {{ $assignedCategory == 'meat_poultry' ? 'selected' : '' }}>Meat & Poultry</option>
-                                                    <option value="seafood" {{ $assignedCategory == 'seafood' ? 'selected' : '' }}>
-                                                        Seafood & Fish</option>
-                                                    <option value="vegetables" {{ $assignedCategory == 'vegetables' ? 'selected' : '' }}>Vegetables & Fruits</option>
-                                                    <option value="dairy" {{ $assignedCategory == 'dairy' ? 'selected' : '' }}>Dairy &
-                                                        Eggs</option>
-                                                    <option value="pantry_baking" {{ $assignedCategory == 'pantry_baking' ? 'selected' : '' }}>Pantry & Baking</option>
-                                                    <option value="spices_herbs" {{ $assignedCategory == 'spices_herbs' ? 'selected' : '' }}>Spices & Herbs</option>
-                                                    <option value="oils_fats" {{ $assignedCategory == 'oils_fats' ? 'selected' : '' }}>Oils & Fats</option>
-                                                @elseif($dept->code === 'housekeeping')
-                                                    <option value="cleaning_supplies" {{ $assignedCategory == 'cleaning_supplies' ? 'selected' : '' }}>Cleaning Supplies</option>
-                                                    <option value="linens" {{ $assignedCategory == 'linens' ? 'selected' : '' }}>
-                                                        Linens / Towels</option>
-                                                    <option value="amenities" {{ $assignedCategory == 'amenities' ? 'selected' : '' }}>Guest Amenities</option>
-                                                @else
-                                                    <option value="other" {{ $assignedCategory == 'other' ? 'selected' : '' }}>Other
-                                                    </option>
-                                                @endif
-                                            </select>
-                                        </div>
+                                }
+                            @endphp
+                            <div class="col-md-4 mb-3">
+                                <div class="border rounded p-3 {{ $isChecked ? 'bg-light border-primary' : '' }}"
+                                    id="dept-card-{{ $dept->id }}">
+                                    <div class="custom-control custom-checkbox mb-2">
+                                        <input type="checkbox" class="custom-control-input dept-checkbox"
+                                            id="dept_{{ $dept->id }}" name="departments[]" value="{{ $dept->id }}" {{ $isChecked ? 'checked' : '' }} onchange="toggleDeptCategory({{ $dept->id }})">
+                                        <label class="custom-control-label font-weight-bold"
+                                            for="dept_{{ $dept->id }}">{{ $dept->name }}</label>
+                                    </div>
+                                    <div id="dept-category-{{ $dept->id }}"
+                                        style="display: {{ $isChecked ? 'block' : 'none' }};">
+                                        <label class="small text-muted mb-1">Category in {{ $dept->name }}</label>
+                                        <select class="form-control form-control-sm"
+                                            name="department_categories[{{ $dept->id }}]" {{ $isChecked ? 'required' : '' }}>
+                                            <option value="">Select...</option>
+                                            @if($dept->code === 'bar')
+                                                <option value="alcoholic_beverage" {{ $assignedCategory == 'alcoholic_beverage' ? 'selected' : '' }}>Beers / Ciders</option>
+                                                <option value="spirits" {{ $assignedCategory == 'spirits' ? 'selected' : '' }}>
+                                                    Spirits</option>
+                                                <option value="wines" {{ $assignedCategory == 'wines' ? 'selected' : '' }}>Wines
+                                                </option>
+                                                <option value="water" {{ $assignedCategory == 'water' ? 'selected' : '' }}>Water
+                                                </option>
+                                                <option value="non_alcoholic_beverage" {{ $assignedCategory == 'non_alcoholic_beverage' ? 'selected' : '' }}>Soft Drinks
+                                                </option>
+                                                <option value="cleaning_supplies" {{ $assignedCategory == 'cleaning_supplies' ? 'selected' : '' }}>Housekeeping
+                                                </option>
+                                                <option value="juices" {{ $assignedCategory == 'juices' ? 'selected' : '' }}>
+                                                    Juices</option>
+                                            @elseif($dept->code === 'kitchen')
+                                                <option value="food" {{ $assignedCategory == 'food' ? 'selected' : '' }}>General
+                                                    Food</option>
+                                                <option value="meat_poultry" {{ $assignedCategory == 'meat_poultry' ? 'selected' : '' }}>Meat & Poultry</option>
+                                                <option value="seafood" {{ $assignedCategory == 'seafood' ? 'selected' : '' }}>
+                                                    Seafood & Fish</option>
+                                                <option value="vegetables" {{ $assignedCategory == 'vegetables' ? 'selected' : '' }}>
+                                                    Vegetables & Fruits</option>
+                                                <option value="dairy" {{ $assignedCategory == 'dairy' ? 'selected' : '' }}>Dairy &
+                                                    Eggs</option>
+                                                <option value="pantry_baking" {{ $assignedCategory == 'pantry_baking' ? 'selected' : '' }}>Pantry & Baking</option>
+                                                <option value="spices_herbs" {{ $assignedCategory == 'spices_herbs' ? 'selected' : '' }}>Spices & Herbs</option>
+                                                <option value="oils_fats" {{ $assignedCategory == 'oils_fats' ? 'selected' : '' }}>
+                                                    Oils & Fats</option>
+                                            @elseif($dept->code === 'housekeeping')
+                                                <option value="cleaning_supplies" {{ $assignedCategory == 'cleaning_supplies' ? 'selected' : '' }}>Cleaning Supplies</option>
+                                                <option value="linens" {{ $assignedCategory == 'linens' ? 'selected' : '' }}>
+                                                    Linens / Towels</option>
+                                                <option value="amenities" {{ $assignedCategory == 'amenities' ? 'selected' : '' }}>
+                                                    Guest Amenities</option>
+                                            @else
+                                                <option value="other" {{ $assignedCategory == 'other' ? 'selected' : '' }}>Other
+                                                </option>
+                                            @endif
+                                        </select>
                                     </div>
                                 </div>
-                            @endforeach
-                        </div>
+                            </div>
+                        @endforeach
                     </div>
                 </div>
+        </div>
 
-                <div class="card bg-light border-0 mt-4 mb-5">
-                    <div class="card-body text-center">
-                        <button class="btn btn-success btn-lg px-5 icon-btn shadow" type="submit">
-                            <i class="fa fa-check-circle"></i> {{ $isEdit ? 'Update Products' : 'Save Products' }}
-                        </button>
-                        <a class="btn btn-outline-secondary btn-lg ml-3"
-                            href="{{ route($routePrefix . '.products.index') }}">
-                            <i class="fa fa-times"></i> Cancel
-                        </a>
-                    </div>
-                </div>
-            </form>
-            <div class="text-center pb-5">
-                <span class="text-muted small">v2.1-beverage-ratio-fix</span>
+        <div class="card bg-light border-0 mt-4 mb-5">
+            <div class="card-body text-center">
+                <button class="btn btn-success btn-lg px-5 icon-btn shadow" type="submit">
+                    <i class="fa fa-check-circle"></i> {{ $isEdit ? 'Update Products' : 'Save Products' }}
+                </button>
+                <a class="btn btn-outline-secondary btn-lg ml-3" href="{{ route($routePrefix . '.products.index') }}">
+                    <i class="fa fa-times"></i> Cancel
+                </a>
             </div>
         </div>
+        </form>
+        <div class="text-center pb-5">
+            <span class="text-muted small">v2.1-beverage-ratio-fix</span>
+        </div>
+    </div>
     </div>
 
     <!-- Template for New Variant -->
@@ -253,8 +262,8 @@
                             <div class="col-md-6 form-group volume-weight-section">
                                 <label class="small font-weight-bold text-muted">VOLUME/WEIGHT</label>
                                 <div class="input-group">
-                                    <input type="number" class="form-control measurement-input" name="variants[INDEX][measurement]"
-                                        placeholder="e.g. 500" step="any">
+                                    <input type="number" class="form-control measurement-input"
+                                        name="variants[INDEX][measurement]" placeholder="e.g. 500" step="any">
                                     <div class="input-group-append">
                                         <select class="form-control bg-light unit-select" name="variants[INDEX][unit]"
                                             style="max-width: 80px;">
@@ -279,11 +288,13 @@
                             </div>
 
                             <!-- Food Units (Hidden by default, shown for food items) -->
-                            <div class="col-md-12 form-group food-units-section" style="display: none; border-left: 3px solid #ff9800; padding-left: 10px;">
+                            <div class="col-md-12 form-group food-units-section"
+                                style="display: none; border-left: 3px solid #ff9800; padding-left: 10px;">
                                 <div class="row">
                                     <div class="col-md-6">
                                         <label class="small font-weight-bold text-muted">PURCHASING UNIT</label>
-                                        <select class="form-control purchasing-unit-select" name="variants[INDEX][purchasing_unit]">
+                                        <select class="form-control purchasing-unit-select"
+                                            name="variants[INDEX][purchasing_unit]">
                                             <option value="">Select Unit</option>
                                             <option value="Sado">Sado</option>
                                             <option value="Debe">Debe</option>
@@ -300,12 +311,15 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="small font-weight-bold text-muted">RECEIVING UNIT</label>
-                                        <select class="form-control receiving-unit-select" name="variants[INDEX][receiving_unit]">
+                                        <select class="form-control receiving-unit-select"
+                                            name="variants[INDEX][receiving_unit]">
                                             <option value="">Select Unit</option>
                                             <option value="Kg">Kg</option>
                                             <option value="Grams">Grams</option>
                                             <option value="Litres">Litres</option>
                                             <option value="Pieces">Pieces</option>
+                                            <option value="pcs">pcs</option>
+                                            <option value="PIC">PIC</option>
                                             <option value="Tray">Tray</option>
                                             <option value="Sado">Sado</option>
                                             <option value="Debe">Debe</option>
@@ -318,9 +332,14 @@
                                         </select>
                                     </div>
                                     <div class="col-md-12 mt-2 ratio-entry-section">
-                                        <label class="small font-weight-bold text-warning"><i class="fa fa-balance-scale"></i> RATIO: How many Receiving Units in 1 Purchasing Unit?</label>
-                                        <input type="number" class="form-control items-per-package-input" name="variants[INDEX][items_per_package]" placeholder="e.g. 5 (5 Kg per 1 Sado)" step="0.01" value="1">
-                                        <small class="text-muted">Used to automatically calculate total received inventory.</small>
+                                        <label class="small font-weight-bold text-warning"><i
+                                                class="fa fa-balance-scale"></i> RATIO: How many Receiving Units in 1
+                                            Purchasing Unit?</label>
+                                        <input type="number" class="form-control items-per-package-input"
+                                            name="variants[INDEX][items_per_package]" placeholder="e.g. 5 (5 Kg per 1 Sado)"
+                                            step="0.01" value="1">
+                                        <small class="text-muted">Used to automatically calculate total received
+                                            inventory.</small>
                                     </div>
                                 </div>
                             </div>
@@ -340,7 +359,8 @@
                     <!-- Right Column: Image & Pricing -->
                     <div class="col-md-5">
                         <div class="row h-100">
-                             <div class="col-md-12 d-flex flex-column justify-content-center align-items-center border-bottom pb-3 mb-3">
+                            <div
+                                class="col-md-12 d-flex flex-column justify-content-center align-items-center border-bottom pb-3 mb-3">
                                 <label class="small font-weight-bold text-muted w-100 text-center">PRODUCT IMAGE</label>
                                 <div class="image-upload-wrapper text-center">
                                     <div class="preview-box mb-2 shadow-sm rounded overflow-hidden"
@@ -350,20 +370,27 @@
                                     </div>
                                     <label class="btn btn-sm btn-outline-primary btn-file mb-0">
                                         <i class="fa fa-camera"></i> Choose <input type="file" style="display: none;"
-                                            name="variants[INDEX][image]" accept="image/*" onchange="previewVariantImage(this)">
+                                            name="variants[INDEX][image]" accept="image/*"
+                                            onchange="previewVariantImage(this)">
                                     </label>
                                 </div>
                             </div>
-                            
+
                             <!-- Initial Pricing (Drinks Only) -->
                             <div class="col-md-12 drink-only-section">
                                 <div class="form-group mb-2">
-                                    <label class="small font-weight-bold text-primary"><i class="fa fa-money-bill"></i> SELLING PRICE / PIC (TSH)</label>
-                                    <input type="number" class="form-control border-primary" name="variants[INDEX][selling_price_per_pic]" placeholder="Set price per bottle" min="0">
+                                    <label class="small font-weight-bold text-primary"><i class="fa fa-money-bill"></i>
+                                        SELLING PRICE / PIC (TSH)</label>
+                                    <input type="number" class="form-control border-primary"
+                                        name="variants[INDEX][selling_price_per_pic]" placeholder="Set price per bottle"
+                                        min="0">
                                 </div>
                                 <div class="form-group mb-0 pricing-glass" style="display: none;">
-                                    <label class="small font-weight-bold text-info"><i class="fa fa-glass"></i> SELLING PRICE / GLASS (TSH)</label>
-                                    <input type="number" class="form-control border-info" name="variants[INDEX][selling_price_per_serving]" placeholder="Set price per glass" min="0">
+                                    <label class="small font-weight-bold text-info"><i class="fa fa-glass"></i> SELLING
+                                        PRICE / GLASS (TSH)</label>
+                                    <input type="number" class="form-control border-info"
+                                        name="variants[INDEX][selling_price_per_serving]" placeholder="Set price per glass"
+                                        min="0">
                                 </div>
                             </div>
                         </div>
@@ -420,7 +447,7 @@
             variantCount++;
             const msg = document.getElementById('no-variants-msg');
             if (msg) msg.style.display = 'none';
-            
+
             checkFoodCategory();
         }
 
@@ -469,6 +496,15 @@
             }
         });
 
+        function selectAllDepartments() {
+            document.querySelectorAll('.dept-checkbox').forEach(checkbox => {
+                if (!checkbox.checked) {
+                    checkbox.checked = true;
+                    toggleDeptCategory(checkbox.value);
+                }
+            });
+        }
+
         function toggleDeptCategory(deptId) {
             const checkbox = document.getElementById('dept_' + deptId);
             const card = document.getElementById('dept-card-' + deptId);
@@ -485,7 +521,7 @@
                 select.removeAttribute('required');
                 select.value = ''; // Reset selection
             }
-            
+
             checkFoodCategory();
         }
 
@@ -493,15 +529,15 @@
             let isFood = false;
             let isBeverage = false;
             let isHousekeeping = false;
-            
+
             // 1. Check main Category dropdown
             const mainCategory = document.getElementById('categorySelect').value;
-            const foodCategories = ['food', 'meat_poultry', 'seafood', 'vegetables', 'dairy', 'pantry_baking', 'spices_herbs', 'oils_fats', 'snacks', 'kitchen'];
+            const foodCategories = ['food', 'meat_poultry', 'seafood', 'vegetables', 'dairy', 'pantry_baking', 'spices_herbs', 'oils_fats', 'snacks', 'kitchen', 'other'];
             const beverageCategories = ['spirits', 'wines', 'alcoholic_beverage', 'non_alcoholic_beverage', 'energy_drinks', 'water', 'juices', 'hot_beverages', 'cocktails', 'soda', 'soft_drinks'];
-            
+
             console.log("Checking categories... Main:", mainCategory);
 
-            if (foodCategories.includes(mainCategory)) {
+            if (foodCategories.includes(mainCategory) || mainCategory === 'juices') {
                 isFood = true;
             }
             if (beverageCategories.includes(mainCategory) || mainCategory.includes('drink') || mainCategory.includes('beverage') || mainCategory.includes('soda')) {
@@ -510,7 +546,7 @@
             if (mainCategory === 'cleaning_supplies' || mainCategory === 'linens') {
                 isHousekeeping = true;
             }
-            
+
             // 2. Check if any active department select has a 'food' related category selected (for overrides)
             const selects = document.querySelectorAll('.dept-checkbox:checked ~ div select');
             selects.forEach(select => {
@@ -539,7 +575,7 @@
                 const volumeWeightSection = card.querySelector('.volume-weight-section');
                 const foodUnitsSection = card.querySelector('.food-units-section');
                 const servingsSection = card.querySelector('.servings-section');
-                
+
                 // Inputs
                 const measurementInput = card.querySelector('.measurement-input');
                 const unitSelect = card.querySelector('.unit-select');
@@ -548,37 +584,42 @@
                 const receivingSelect = card.querySelector('.receiving-unit-select');
                 const ratioInput = card.querySelector('.items-per-package-input');
 
-                // Selling details (Pricing & Type) - Hidden for Housekeeping, Optional for Food
-                if (isHousekeeping) {
+                // Selling details (Pricing & Type) - Hidden for Categories that don't EVER sell
+                const hideSellingWhole = (isHousekeeping || (mainCategory === 'food' && !isBeverage) || mainCategory === 'snacks');
+                const hideSellingMethod = (hideSellingWhole || mainCategory === 'non_alcoholic_beverage' || mainCategory === 'water' || mainCategory === 'energy_drinks');
+
+                if (hideSellingWhole) {
                     sellingTypeSection.style.display = 'none';
                     sellingMethodSelect.removeAttribute('required');
                     if (servingsSection) servingsSection.style.display = 'none';
                     card.querySelectorAll('.drink-only-section').forEach(el => el.style.display = 'none');
-                } else if (isFood) {
-                    // ALLOW Selling Logic for food (e.g. Fruit -> Juice)
+                } else if (isFood || isBeverage) {
                     sellingTypeSection.style.display = 'block';
-                    sellingMethodSelect.removeAttribute('required'); // Keep optional for general food
-                    
-                    // Show Pricing (so they can set Glass Price)
+
+                    // Hide "Selling Method" (By Glass/Pic) for specific categories (Sodas AND Juices)
+                    if (hideSellingMethod || mainCategory === 'juices') {
+                        sellingMethodSelect.value = 'mixed'; // Default to mixed for Juices to allow both prices
+                        sellingMethodSelect.closest('.form-group').style.display = 'none';
+                    } else {
+                        sellingMethodSelect.closest('.form-group').style.display = 'block';
+                    }
+
+                    sellingMethodSelect.removeAttribute('required');
                     card.querySelectorAll('.drink-only-section').forEach(el => el.style.display = 'block');
-                    
                     togglePricing(sellingMethodSelect);
                 } else {
-                    // Beverages
+                    // Default / Other
                     sellingTypeSection.style.display = 'block';
                     sellingMethodSelect.setAttribute('required', 'required');
-                    
-                    // Show Drink Pricing
                     card.querySelectorAll('.drink-only-section').forEach(el => el.style.display = 'block');
-                    
-                    togglePricing(sellingMethodSelect); // Reset servings display based on selling method
+                    togglePricing(sellingMethodSelect);
                 }
 
                 // Update Servings Label based on unit
                 const updateServingsLabel = () => {
                     const label = card.querySelector('.servings-unit-label');
                     if (!label) return;
-                    
+
                     if (isFood || isBeverage) {
                         const unitValue = receivingSelect.value || 'Unit';
                         label.textContent = unitValue.charAt(0).toUpperCase() + unitValue.slice(1).toLowerCase();
@@ -596,22 +637,22 @@
                 if (isFood || isBeverage) {
                     volumeWeightSection.style.display = 'none';
                     if (measurementInput) measurementInput.removeAttribute('required');
-                    
+
                     foodUnitsSection.style.display = 'block';
                     purchasingSelect.setAttribute('required', 'required');
                     receivingSelect.setAttribute('required', 'required');
-                    
+
                     // Ratio Entry
                     const ratioSection = card.querySelector('.ratio-entry-section');
                     if (ratioSection) {
                         // For food, ratio is 1:1 behind scenes (per user request 48d97bab)
                         // For beverages, ratio is visible and required (e.g. 24 bottles per crate)
-                        if (isFood) {
+                        if (isFood && receivingSelect && (receivingSelect.value.toLowerCase() === 'kg' || receivingSelect.value.toLowerCase() === 'grams' || mainCategory === 'juices')) {
                             ratioSection.style.display = 'none';
                             if (ratioInput) ratioInput.value = '1';
                         } else {
                             ratioSection.style.display = 'block';
-                            if (ratioInput && ratioInput.value === '1') ratioInput.value = '24'; // Default for beverages
+                            if (ratioInput && isBeverage && ratioInput.value === '1' && mainCategory !== 'juices') ratioInput.value = '24';
                         }
                     }
                 } else {
@@ -627,16 +668,16 @@
             });
         }
 
-        // Attach event listener to all department category selects
-        document.querySelectorAll('select[name^="department_categories"]').forEach(select => {
+        // Attach event listener to all department category selects and receiving units
+        document.querySelectorAll('select[name^="department_categories"], .receiving-unit-select').forEach(select => {
             select.addEventListener('change', checkFoodCategory);
         });
-        
+
         // Attach event listener to main category select
         document.getElementById('categorySelect').addEventListener('change', checkFoodCategory);
-        
+
         // Initial check on load for edit mode
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             setTimeout(checkFoodCategory, 500); // Small delay to ensure variants are loaded
         });
     </script>

@@ -45,14 +45,15 @@
             </div>
         </div>
 
-        <div class="col-md-4 selling-type-section">
+        <div class="col-md-4 selling-type-section"
+            style="{{ ($product->category == 'juices') ? 'display:none;' : '' }}">
             <div class="form-group">
                 <label class="control-label font-weight-bold">SELLING TYPE</label>
                 <select class="form-control selling-method-select" name="variants[{{ $index }}][selling_method]"
                     onchange="togglePricing(this)" required>
                     <option value="pic" {{ ($variant->can_sell_as_pic && !$variant->can_sell_as_serving) ? 'selected' : '' }}>Per Bottle / Item Only</option>
                     <option value="glass" {{ (!$variant->can_sell_as_pic && $variant->can_sell_as_serving) ? 'selected' : '' }}>Per Glass / Tot Only</option>
-                    <option value="mixed" {{ ($variant->can_sell_as_pic && $variant->can_sell_as_serving) ? 'selected' : '' }}>Mixed (Both Bottle & Glass)</option>
+                    <option value="mixed" {{ ($variant->can_sell_as_pic || $product->category == 'juices') ? 'selected' : '' }}>Mixed (Both Bottle & Glass)</option>
                 </select>
             </div>
         </div>
@@ -89,7 +90,12 @@
                         <option value="Grams" {{ $variant->receiving_unit == 'Grams' ? 'selected' : '' }}>Grams</option>
                         <option value="Litres" {{ $variant->receiving_unit == 'Litres' ? 'selected' : '' }}>Litres
                         </option>
-                        <option value="Pieces" {{ $variant->receiving_unit == 'Pieces' ? 'selected' : '' }}>Pieces
+                        <option value="Pieces" {{ strtolower($variant->receiving_unit) == 'pieces' ? 'selected' : '' }}>
+                            Pieces
+                        </option>
+                        <option value="pcs" {{ strtolower($variant->receiving_unit) == 'pcs' ? 'selected' : '' }}>pcs
+                        </option>
+                        <option value="PIC" {{ strtolower($variant->receiving_unit) == 'pic' ? 'selected' : '' }}>PIC
                         </option>
                         <option value="Tray" {{ $variant->receiving_unit == 'Tray' ? 'selected' : '' }}>Tray</option>
                         <option value="Sado" {{ $variant->receiving_unit == 'Sado' ? 'selected' : '' }}>Sado</option>
@@ -105,11 +111,12 @@
                         <option value="Bunch" {{ $variant->receiving_unit == 'Bunch' ? 'selected' : '' }}>Bunch</option>
                     </select>
                 </div>
-                <div class="col-md-12 mt-2 ratio-entry-section">
+                <div class="col-md-12 mt-2 ratio-entry-section"
+                    style="{{ ($product->category == 'juices' || $variant->receiving_unit == 'Kg') ? 'display:none;' : '' }}">
                     <label class="small font-weight-bold text-warning"><i class="fa fa-balance-scale"></i> RATIO: How
                         many Receiving Units in 1 Purchasing Unit?</label>
                     <input type="number" class="form-control items-per-package-input"
-                        name="variants[{{ $index }}][items_per_package]" value="{{ $variant->items_per_package }}"
+                        name="variants[{{ $index }}][items_per_package]" value="{{ $variant->items_per_package ?: 1 }}"
                         placeholder="e.g. 5 (5 Kg per 1 Sado)" step="0.01">
                     <small class="text-muted">Used to automatically calculate total received inventory.</small>
                 </div>

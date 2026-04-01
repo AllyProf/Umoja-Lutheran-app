@@ -107,7 +107,7 @@ class StockReceiptController extends Controller
             'discount_amount' => 'nullable|numeric|min:0',
             'received_date' => 'required|date',
             'expiry_date' => 'nullable|date|after_or_equal:received_date',
-            'minimum_stock_level' => 'required|integer|min:0',
+            'minimum_stock_level' => 'required|numeric|min:0',
             'minimum_stock_level_unit' => 'required|in:bottles,packages',
             'notes' => 'nullable|string',
         ]);
@@ -212,7 +212,9 @@ class StockReceiptController extends Controller
         $foodCategories = ['food', 'meat_poultry', 'seafood', 'vegetables', 'dairy', 'pantry_baking', 'spices_herbs', 'oils_fats', 'kitchen', 'snacks'];
         $isFood = in_array(strtolower($variant->product->category), $foodCategories);
 
-        $totalBottles = $isFood ? $quantityPackages : ($quantityPackages * $variant->items_per_package);
+        $totalBottles = ($isFood && !in_array(strtolower($variant->receiving_unit), ['pic', 'pcs', 'piece', 'pieces']))
+            ? $quantityPackages
+            : ($quantityPackages * ($variant->items_per_package ?: 1));
         $profitPerBottle = $sellingPrice - $buyingPrice;
         $totalBuyingCost = $totalBottles * $buyingPrice;
         $totalProfit = ($totalBottles * $sellingPrice) - $totalBuyingCost;

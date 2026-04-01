@@ -214,6 +214,13 @@
               <td data-date="{{ $service->service_date->format('Y-m-d') }}">
                 {{ $service->service_date->format('M d, Y') }}<br>
                 <small class="text-muted">{{ $service->service_time }}</small>
+                @if(in_array($service->service_type, ['parking', 'conference_room']) && $service->expected_checkout_date)
+                    <br><span class="badge badge-secondary">
+                        <i class="fa fa-calendar"></i> 
+                        {{ $service->service_date->diffInDays($service->expected_checkout_date) ?: 1 }} Day(s)
+                    </span>
+                    <br><small class="text-muted">Until {{ $service->expected_checkout_date->format('M d, Y') }}</small>
+                @endif
               </td>
               <td>{{ $service->number_of_people }}</td>
               <td>

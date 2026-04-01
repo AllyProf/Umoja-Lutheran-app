@@ -266,6 +266,15 @@
                 @if($serviceTypeKey === 'parking')
                     <p><strong>Vehicle:</strong> {{ $dayService->vehicle_name }}</p>
                     <p><strong>Plate No:</strong> {{ $dayService->plate_number }}</p>
+                    @if($dayService->expected_checkout_date)
+                        <p><strong>Expected Checkout:</strong> {{ $dayService->expected_checkout_date->format('M d, Y') }}</p>
+                        @php
+                            $days = $dayService->service_date->diffInDays($dayService->expected_checkout_date);
+                            if ($days < 1)
+                                $days = 1;
+                        @endphp
+                        <p><strong>Duration:</strong> {{ $days }} Day(s)</p>
+                    @endif
                 @elseif($serviceTypeKey === 'conference_room')
                     <p><strong>Room Name:</strong> {{ $dayService->room_name }}</p>
                     <p><strong>End Time:</strong>
@@ -560,7 +569,7 @@
             @endif
             <div class="total-row">
                 <span>Payment Date:</span>
-                <span>{{ $dayService->paid_at->format('M d, Y H:i') }}</span>
+                <span>{{ $dayService->paid_at ? $dayService->paid_at->format('M d, Y H:i') : 'N/A' }}</span>
             </div>
         </div>
 

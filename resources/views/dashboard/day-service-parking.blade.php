@@ -25,7 +25,6 @@
                         action="{{ $role === 'reception' ? route('reception.day-services.store') : route('admin.day-services.store') }}">
                         @csrf
                         <input type="hidden" name="service_type" value="parking">
-                        <input type="hidden" name="payment_status" value="paid">
                         <input type="hidden" name="guest_type" id="guest_type" value="tanzanian">
 
                         <h4 class="mb-4 mt-4"><i class="fa fa-user"></i> Guest Information</h4>
@@ -112,6 +111,15 @@
                             </div>
                             <div class="col-md-3">
                                 <div class="form-group">
+                                    <label for="expected_checkout_date">Expected Checkout Date</label>
+                                    <input class="form-control" type="date" id="expected_checkout_date"
+                                        name="expected_checkout_date" oninput="calculateAmount()">
+                                    <small class="text-muted">For multi-day parking <span id="days_count_label"
+                                            class="badge badge-info ml-1" style="display:none;"></span></small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
                                     <label for="is_all_day" style="display: block;">All Day?</label>
                                     <div class="toggle-flip">
                                         <label>
@@ -163,67 +171,95 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="payment_method">Payment Method <span class="text-danger">*</span></label>
-                                    <select class="form-control" id="payment_method" name="payment_method" required>
-                                        <option value="">Select payment method...</option>
-                                        <option value="cash">Cash</option>
-                                        <option value="card">Card</option>
-                                        <option value="mobile">Mobile Money</option>
-                                        <option value="bank">Bank Transfer</option>
-                                        <option value="online">Online Payment</option>
-                                        <option value="other">Other</option>
-                                    </select>
+                                    <label class="font-weight-bold">Payment Status <span class="text-danger">*</span></label>
+                                    <div class="d-flex p-3 border rounded bg-light">
+                                        <div class="custom-control custom-radio custom-control-inline mr-4">
+                                            <input type="radio" id="status_paid" name="payment_status" value="paid"
+                                                class="custom-control-input" onchange="togglePaymentFields()">
+                                            <label class="custom-control-label text-success font-weight-bold" for="status_paid">
+                                                <i class="fa fa-check-circle"></i> Paid Now
+                                            </label>
+                                        </div>
+                                        <div class="custom-control custom-radio custom-control-inline">
+                                            <input type="radio" id="status_pending" name="payment_status" value="pending"
+                                                class="custom-control-input" checked onchange="togglePaymentFields()">
+                                            <label class="custom-control-label text-warning font-weight-bold" for="status_pending">
+                                                <i class="fa fa-clock-o"></i> Pay Later (Pending)
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="row" id="payment_provider_section" style="display: none;">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="payment_provider">Payment Provider</label>
-                                    <select class="form-control" id="payment_provider" name="payment_provider">
-                                        <option value="">Select provider...</option>
-                                    </select>
+                        <div id="payment_details_section" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6 payment-fields">
+                                    <div class="form-group">
+                                        <label for="payment_method">Payment Method <span
+                                                class="text-danger">*</span></label>
+                                        <select class="form-control" id="payment_method" name="payment_method" required onchange="updatePaymentProvider()">
+                                            <option value="">Select payment method...</option>
+                                            <option value="cash">Cash</option>
+                                            <option value="card">Card</option>
+                                            <option value="mobile">Mobile Money</option>
+                                            <option value="bank">Bank Transfer</option>
+                                            <option value="online">Online Payment</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 payment-fields">
+                                    <div class="form-group">
+                                        <label for="amount_paid">Amount Paid <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text" id="paid_currency_symbol">TZS</span>
+                                            </div>
+                                            <input class="form-control" type="number" step="0.01" id="amount_paid"
+                                                name="amount_paid"
+                                                value="{{ number_format($parkingService->price_tanzanian, 2, '.', '') }}" min="0">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="payment_reference">Reference Number</label>
-                                    <input class="form-control" type="text" id="payment_reference" name="payment_reference"
-                                        placeholder="Transaction ID or Reference Number">
+
+                            <div class="row" id="payment_provider_section" style="display: none;">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="payment_provider">Payment Provider</label>
+                                        <select class="form-control" id="payment_provider" name="payment_provider">
+                                            <option value="">Select provider...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="payment_reference">Reference Number</label>
+                                        <input class="form-control" type="text" id="payment_reference"
+                                            name="payment_reference" placeholder="Transaction ID or Reference Number">
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label for="amount_paid">Amount Paid <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text" id="paid_currency_symbol">TZS</span>
-                                </div>
-                                <input class="form-control" type="number" step="0.01" id="amount_paid" name="amount_paid"
-                                    value="{{ number_format($parkingService->price_tanzanian, 2, '.', '') }}" min="0"
-                                    required>
+                            <div class="form-group">
+                                <label for="notes">Notes (Optional)</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="2"
+                                    placeholder="Vehicle plate number and details..."></textarea>
                             </div>
-                        </div>
 
-                        <div class="form-group">
-                            <label for="notes">Notes (Optional)</label>
-                            <textarea class="form-control" id="notes" name="notes" rows="2"
-                                placeholder="Vehicle plate number and details..."></textarea>
-                        </div>
+                            <div id="formAlert"></div>
 
-                        <div id="formAlert"></div>
-
-                        <div class="form-group mt-4">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fa fa-check"></i> Register & Verify Payment
-                            </button>
-                            <a href="{{ $role === 'reception' ? route('reception.dashboard') : route('admin.dashboard') }}"
-                                class="btn btn-secondary">
-                                <i class="fa fa-times"></i> Cancel
-                            </a>
-                        </div>
+                            <div class="form-group mt-4">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fa fa-check"></i> Register & Verify Payment
+                                </button>
+                                <a href="{{ $role === 'reception' ? route('reception.dashboard') : route('admin.dashboard') }}"
+                                    class="btn btn-secondary">
+                                    <i class="fa fa-times"></i> Cancel
+                                </a>
+                            </div>
                     </form>
                 </div>
             </div>
@@ -257,65 +293,86 @@
             }
 
             const numVehicles = parseInt(numberPeopleInput.value) || 1;
+            const serviceDateStr = document.getElementById('service_date').value;
+            const checkoutDateStr = document.getElementById('expected_checkout_date').value;
             const startTimeStr = document.getElementById('service_time').value;
             const endTimeStr = document.getElementById('end_time').value;
             const isAllDayCheckBox = document.getElementById('is_all_day');
 
-            const timeToMins = (t) => {
-                if (!t) return null;
-
-                let hrs, mins;
-                const ampmMatch = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
-
-                if (ampmMatch) {
-                    hrs = parseInt(ampmMatch[1]);
-                    mins = parseInt(ampmMatch[2]);
-                    const meridiem = ampmMatch[3].toUpperCase();
-                    if (meridiem === 'PM' && hrs < 12) hrs += 12;
-                    if (meridiem === 'AM' && hrs === 12) hrs = 0;
-                } else {
-                    const p = t.split(':');
-                    hrs = parseInt(p[0]);
-                    mins = parseInt(p[1]);
-                }
-                return hrs * 60 + mins;
-            };
-
-            const startMins = timeToMins(startTimeStr);
-            const endMins = timeToMins(endTimeStr);
-            const dayStartMins = timeToMins(dayStartTime);
-            const dayEndMins = timeToMins(dayEndTime);
-
             let currentPrice = priceTanzanian;
 
-            // Check if duration spans Day/Night boundary
-            let spansBoth = false;
-            if (startMins !== null && endMins !== null) {
-                const startInDay = (startMins >= dayStartMins && startMins <= dayEndMins);
-                const endInDay = (endMins >= dayStartMins && endMins <= dayEndMins);
+            // Priority 1: multi-day stays
+            if (checkoutDateStr) {
+                const startDate = new Date(serviceDateStr);
+                const endDate = new Date(checkoutDateStr);
+                const diffTime = endDate - startDate;
+                let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (diffDays < 1) diffDays = 1;
 
-                if (startInDay !== endInDay) {
-                    spansBoth = true;
+                const daysLabel = document.getElementById('days_count_label');
+                if (daysLabel) {
+                    daysLabel.innerText = diffDays + ' Day(s)';
+                    daysLabel.style.display = 'inline-block';
                 }
-                console.log(`Start: ${startMins}, End: ${endMins}, DayStart: ${dayStartMins}, DayEnd: ${dayEndMins}, Spans: ${spansBoth}`);
-            }
 
-            if ((isAllDayCheckBox && isAllDayCheckBox.checked) || spansBoth) {
-                currentPrice = priceTanzanian + priceNight;
-                if (isAllDayCheckBox && spansBoth) isAllDayCheckBox.checked = true;
-
-                const label = spansBoth ? ' TZS (Day + Night Span Applied)' : ' TZS (All Day: Day + Night)';
+                currentPrice = (priceTanzanian + priceNight) * diffDays;
                 document.getElementById('recommended_amount_tzs').innerText =
-                    new Intl.NumberFormat().format(currentPrice) + label;
-            } else if (startMins !== null) {
-                if (startMins >= dayStartMins && startMins <= dayEndMins) {
-                    currentPrice = priceTanzanian;
+                    new Intl.NumberFormat().format(priceTanzanian + priceNight) + ' TZS x ' + diffDays + ' Days';
+            } else {
+                // Priority 2: single-day span
+                const timeToMins = (t) => {
+                    if (!t) return null;
+
+                    let hrs, mins;
+                    const ampmMatch = t.match(/(\d+):(\d+)\s*(AM|PM)/i);
+
+                    if (ampmMatch) {
+                        hrs = parseInt(ampmMatch[1]);
+                        mins = parseInt(ampmMatch[2]);
+                        const meridiem = ampmMatch[3].toUpperCase();
+                        if (meridiem === 'PM' && hrs < 12) hrs += 12;
+                        if (meridiem === 'AM' && hrs === 12) hrs = 0;
+                    } else {
+                        const p = t.split(':');
+                        hrs = parseInt(p[0]);
+                        mins = parseInt(p[1]);
+                    }
+                    return hrs * 60 + mins;
+                };
+
+                const startMins = timeToMins(startTimeStr);
+                const endMins = timeToMins(endTimeStr);
+                const dayStartMins = timeToMins(dayStartTime);
+                const dayEndMins = timeToMins(dayEndTime);
+
+                // Check if duration spans Day/Night boundary
+                let spansBoth = false;
+                if (startMins !== null && endMins !== null) {
+                    const startInDay = (startMins >= dayStartMins && startMins <= dayEndMins);
+                    const endInDay = (endMins >= dayStartMins && endMins <= dayEndMins);
+
+                    if (startInDay !== endInDay) {
+                        spansBoth = true;
+                    }
+                }
+
+                if ((isAllDayCheckBox && isAllDayCheckBox.checked) || spansBoth) {
+                    currentPrice = priceTanzanian + priceNight;
+                    if (isAllDayCheckBox && spansBoth) isAllDayCheckBox.checked = true;
+
+                    const label = spansBoth ? ' TZS (Day + Night Span Applied)' : ' TZS (All Day: Day + Night)';
                     document.getElementById('recommended_amount_tzs').innerText =
-                        new Intl.NumberFormat().format(priceTanzanian) + ' TZS (Day)';
-                } else {
-                    currentPrice = priceNight;
-                    document.getElementById('recommended_amount_tzs').innerText =
-                        new Intl.NumberFormat().format(priceNight) + ' TZS (Night)';
+                        new Intl.NumberFormat().format(currentPrice) + label;
+                } else if (startMins !== null) {
+                    if (startMins >= dayStartMins && startMins <= dayEndMins) {
+                        currentPrice = priceTanzanian;
+                        document.getElementById('recommended_amount_tzs').innerText =
+                            new Intl.NumberFormat().format(priceTanzanian) + ' TZS (Day)';
+                    } else {
+                        currentPrice = priceNight;
+                        document.getElementById('recommended_amount_tzs').innerText =
+                            new Intl.NumberFormat().format(priceNight) + ' TZS (Night)';
+                    }
                 }
             }
 
@@ -329,13 +386,38 @@
 
             const customAmountCheckBox = document.getElementById('custom_amount');
             if (customAmountCheckBox && customAmountCheckBox.checked) {
-                // If custom amount is checked, don't overwrite manual changes
                 return;
             }
 
             if (amountInput) {
                 amountInput.value = calculatedAmount.toFixed(2);
-                amountPaidInput.value = calculatedAmount.toFixed(2);
+                const isPaid = document.getElementById('status_paid').checked;
+                if (isPaid) {
+                    amountPaidInput.value = calculatedAmount.toFixed(2);
+                } else {
+                    amountPaidInput.value = '0.00';
+                }
+            }
+        }
+
+        function togglePaymentFields() {
+            const isPaid = document.getElementById('status_paid').checked;
+            const methodSelect = document.getElementById('payment_method');
+            const amountPaidField = document.getElementById('amount_paid');
+            const amountInput = document.getElementById('amount');
+
+            if (isPaid) {
+                $('#payment_details_section').show();
+                methodSelect.required = true;
+                amountPaidField.value = amountInput ? amountInput.value : '0.00';
+                amountPaidField.readOnly = false;
+            } else {
+                $('#payment_details_section').hide();
+                methodSelect.required = false;
+                methodSelect.value = '';
+                amountPaidField.value = '0.00';
+                amountPaidField.readOnly = true;
+                $('#payment_provider_section').hide();
             }
         }
 
@@ -358,6 +440,7 @@
 
             // Initial calculation
             calculateAmount();
+            togglePaymentFields();
 
             function updatePaymentProvider() {
                 const paymentMethod = paymentMethodSelect.value;
@@ -419,7 +502,7 @@
                                 cancelButtonText: "View All Services",
                                 closeOnConfirm: false,
                                 closeOnCancel: false
-                            }, function(isConfirm) {
+                            }, function (isConfirm) {
                                 if (isConfirm) {
                                     if (data.receipt_url) {
                                         window.open(data.receipt_url, '_blank');
@@ -431,7 +514,7 @@
                                         showCancelButton: true,
                                         confirmButtonText: "Register Another",
                                         cancelButtonText: "Back to List",
-                                    }, function(isNextConfirm) {
+                                    }, function (isNextConfirm) {
                                         if (isNextConfirm) {
                                             location.reload();
                                         } else {

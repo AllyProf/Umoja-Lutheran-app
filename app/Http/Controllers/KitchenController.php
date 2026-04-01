@@ -462,12 +462,13 @@ class KitchenController extends Controller
                 }
 
                 $receivedKg = isset($data['received_quantity_kg']) ? (float) $cleanNumeric($data['received_quantity_kg']) : 0;
+                $isFood = in_array($item->category, $foodCategories);
 
                 $updateData = [
-                    'purchased_quantity' => $boughtQty,
+                    'purchased_quantity' => ($isFood && $receivedKg > 0 && $boughtQty <= 0) ? 1 : $boughtQty, // Use 1 as placeholder if only weight is known
                     'purchased_cost' => $cost,
                     'expiry_date' => $expiryDate,
-                    'is_purchased' => $isFound && $boughtQty > 0,
+                    'is_purchased' => $isFound && ($boughtQty > 0 || ($isFood && $receivedKg > 0)),
                     'is_found' => $isFound,
                     'received_quantity_kg' => $receivedKg > 0 ? $receivedKg : null
                 ];
@@ -514,10 +515,10 @@ class KitchenController extends Controller
             $amountUsed = $totalCost;
             $amountRemaining = $budgetAmount - $amountUsed;
 
-            $shoppingList->total_actual_cost = $totalCost;
-            $shoppingList->budget_amount = $budgetAmount;
-            $shoppingList->amount_used = $amountUsed;
-            $shoppingList->amount_remaining = $amountRemaining;
+            $shoppingList->total_actual_cost = (float) $totalCost;
+            $shoppingList->budget_amount = (float) $budgetAmount;
+            $shoppingList->amount_used = (float) $amountUsed;
+            $shoppingList->amount_remaining = (float) $amountRemaining;
 
             // Save market name if provided
             if ($request->has('market_name')) {

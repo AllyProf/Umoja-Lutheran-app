@@ -182,7 +182,7 @@ class ProductVariant extends Model
             ->join('product_variants', 'stock_receipts.product_variant_id', '=', 'product_variants.id')
             ->join('products', 'stock_receipts.product_id', '=', 'products.id')
             ->where('stock_receipts.product_variant_id', $this->id)
-            ->sum(\DB::raw('CASE WHEN products.category = "food" THEN quantity_received_packages ELSE (quantity_received_packages * product_variants.items_per_package) END'));
+            ->sum(\DB::raw('CASE WHEN products.category = "food" AND LOWER(product_variants.receiving_unit) NOT IN ("pic", "pcs", "piece", "pieces") THEN quantity_received_packages ELSE (quantity_received_packages * product_variants.items_per_package) END'));
 
         $shoppingIn = \DB::table('shopping_list_items')
             ->join('product_variants', 'shopping_list_items.product_variant_id', '=', 'product_variants.id')

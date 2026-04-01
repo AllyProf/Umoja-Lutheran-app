@@ -152,6 +152,7 @@ class DayServiceController extends Controller
             'child_quantity' => 'nullable|integer|min:0',
             'service_date' => 'required|date',
             'service_time' => 'required',
+            'expected_checkout_date' => 'nullable|date|after_or_equal:service_date',
             'is_all_day' => 'nullable|boolean',
             'items_ordered' => 'nullable|string',
             'package_items' => 'nullable|string', // Can be JSON string or array
@@ -199,41 +200,80 @@ class DayServiceController extends Controller
                 $priceDay = $parkingConfig->price_tanzanian;
                 $priceNight = $parkingConfig->night_price_tanzanian ?? $priceDay;
 
-                // Robust time parsing using Carbon
-                $parseToMins = function ($t) {
-                    if (!$t)
-                        return null;
-                    try {
-                        $c = \Carbon\Carbon::parse($t);
-                        return $c->hour * 60 + $c->minute;
-                    } catch (\Exception $e) {
-                        return null;
-                    }
-                };
+                // Handle Daily Pricing based on checkout date
+                if ($request->filled('expected_checkout_date')) {
+                    $startDate = \Carbon\Carbon::parse($validated['service_date']);
+                    $endDate = \Carbon\Carbon::parse($validated['expected_checkout_date']);
+                    $days = $startDate->diffInDays($endDate);
+                    if ($days < 1)
+                        $days = 1; // Minimum of 1 day
 
-                $startMins = $parseToMins($serviceTime);
-                $endMins = $parseToMins($endTime);
-                $dayStartMins = $parseToMins($dayStart);
-                $dayEndMins = $parseToMins($dayEnd);
-
-                // Check for spanning Day/Night
-                $spansBoth = false;
-                if ($startMins !== null && $endMins !== null && $dayStartMins !== null && $dayEndMins !== null) {
-                    $startInDay = ($startMins >= $dayStartMins && $startMins <= $dayEndMins);
-                    $endInDay = ($endMins >= $dayStartMins && $endMins <= $dayEndMins);
-                    if ($startInDay !== $endInDay) {
-                        $spansBoth = true;
-                    }
-                }
-
-                if ($isAllDay || $spansBoth) {
-                    $unitPrice = $priceDay + $priceNight;
+                    $unitPrice = ($priceDay + $priceNight) * $days;
                 } else {
-                    // If it's outside day hours, it's night
-                    $isNight = ($startMins < $dayStartMins || $startMins > $dayEndMins);
-                    $unitPrice = $isNight ? $priceNight : $priceDay;
+                    // Robust time parsing using Carbon
+                    $parseToMins = function ($t) {
+                        if (!$t)
+                            return null;
+                        try {
+                            $c = \Carbon\Carbon::parse($t);
+                            return $c->hour * 60 + $c->minute;
+                        } catch (\Exception $e) {
+                            return null;
+                        }
+                    };
+
+                    $startMins = $parseToMins($serviceTime);
+                    $endMins = $parseToMins($endTime);
+                    $dayStartMins = $parseToMins($dayStart);
+                    $dayEndMins = $parseToMins($dayEnd);
+
+                    // Check for spanning Day/Night
+                    $spansBoth = false;
+                    if ($startMins !== null && $endMins !== null && $dayStartMins !== null && $dayEndMins !== null) {
+                        $startInDay = ($startMins >= $dayStartMins && $startMins <= $dayEndMins);
+                        $endInDay = ($endMins >= $dayStartMins && $endMins <= $dayEndMins);
+                        if ($startInDay !== $endInDay) {
+                            $spansBoth = true;
+                        }
+                    }
+
+                    if ($isAllDay || $spansBoth) {
+                        $unitPrice = $priceDay + $priceNight;
+                    } else {
+                        // If it's outside day hours, it's night
+                        $isNight = ($startMins < $dayStartMins || $startMins > $dayEndMins);
+                        $unitPrice = $isNight ? $priceNight : $priceDay;
+                    }
                 }
             }
+        }
+
+        // Handle conference room multi-day pricing
+        if ($validated['service_type'] === 'conference_room') {
+            if ($request->filled('expected_checkout_date')) {
+                $startDate = \Carbon\Carbon::parse($validated['service_date']);
+                $endDate = \Carbon\Carbon::parse($validated['expected_checkout_date']);
+                $days = $startDate->diffInDays($endDate);
+                if ($days < 1)
+                    $days = 1;
+
+                $conferenceConfig = \App\Models\ServiceCatalog::where('service_key', 'conference_room')->first();
+                if ($conferenceConfig) {
+                    $basePrice = $conferenceConfig->price_tanzanian;
+                    $pricingType = $conferenceConfig->pricing_type;
+
+                    if ($pricingType === 'per_person' || $pricingType === 'per_hour') {
+                        $unitPrice = $basePrice * $validated['number_of_people'] * $days;
+                    } else {
+                        $unitPrice = $basePrice * $days;
+                    }
+                }
+            }
+        }
+
+        // Apply calculated unitPrice to final amount if set
+        if (isset($unitPrice)) {
+            $validated['amount'] = $unitPrice;
         }
 
         // For swimming, payment is required
@@ -298,6 +338,7 @@ class DayServiceController extends Controller
             'child_quantity' => $validated['child_quantity'] ?? null,
             'service_date' => $validated['service_date'],
             'service_time' => $validated['service_time'],
+            'expected_checkout_date' => $validated['expected_checkout_date'] ?? null,
             'is_all_day' => $request->has('is_all_day'),
             'end_time' => $validated['end_time'] ?? null,
             'duration' => $validated['duration'] ?? null,
@@ -549,7 +590,7 @@ class DayServiceController extends Controller
     {
         $pendingServices = DayService::with('registeredBy')
             ->where('payment_status', 'pending')
-            ->whereIn('service_type', ['restaurant', 'bar'])
+            ->whereIn('service_type', ['restaurant', 'bar', 'parking', 'conference_room'])
             ->orderBy('service_date', 'desc')
             ->orderBy('service_time', 'desc')
             ->paginate(20);

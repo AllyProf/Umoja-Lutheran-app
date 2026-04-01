@@ -22,7 +22,7 @@ class StockReceipt extends Model
     ];
 
     protected $casts = [
-        'quantity_received_packages' => 'integer',
+        'quantity_received_packages' => 'decimal:2',
         'buying_price_per_bottle' => 'decimal:2',
         'selling_price_per_bottle' => 'decimal:2',
         'discount_amount' => 'decimal:2',
@@ -74,7 +74,7 @@ class StockReceipt extends Model
 
     public function getDiscountTypeNameAttribute()
     {
-        return match($this->discount_type) {
+        return match ($this->discount_type) {
             'percentage' => 'Percentage',
             'fixed' => 'Fixed Amount',
             'none' => 'None',

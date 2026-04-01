@@ -43,7 +43,7 @@
     <a class="app-menu__item {{ str_contains($activePage, 'bar-keeper/products') ? 'active' : '' }}"
         href="{{ route('bar-keeper.products.index') }}">
         <i class="app-menu__icon fa fa-cube"></i>
-        <span class="app-menu__label">Products & Registration</span>
+        <span class="app-menu__label">Products</span>
     </a>
 </li>
 <li>
@@ -78,29 +78,7 @@
     </a>
 </li>
 
-{{-- 4. PURCHASING --}}
-<li class="treeview-item-header"
-    style="padding: 10px 20px; color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-top: 10px;">
-    Purchasing</li>
 
-<li class="treeview {{ str_contains($activePage, 'purchase-requests') ? 'is-expanded' : '' }}">
-    <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-shopping-cart"></i><span
-            class="app-menu__label">Requests</span><i class="treeview-indicator fa fa-angle-right"></i></a>
-    <ul class="treeview-menu">
-        <li><a class="treeview-item {{ str_contains($activePage, 'create') ? 'active' : '' }}"
-                href="{{ route('bar-keeper.purchase-requests.create') }}"><i class="icon fa fa-plus-circle"></i> New
-                Request</a></li>
-        <li><a class="treeview-item {{ str_contains($activePage, 'my-requests') ? 'active' : '' }}"
-                href="{{ route('bar-keeper.purchase-requests.my') }}"><i class="icon fa fa-list-alt"></i> My
-                Requests</a></li>
-        <li><a class="treeview-item {{ str_contains($activePage, 'history') ? 'active' : '' }}"
-                href="{{ route('bar-keeper.purchase-requests.history') }}"><i class="icon fa fa-history"></i> Purchase
-                History</a></li>
-        <li><a class="treeview-item {{ str_contains($activePage, 'templates') ? 'active' : '' }}"
-                href="{{ route('bar-keeper.purchase-requests.templates') }}"><i class="icon fa fa-book"></i>
-                Templates</a></li>
-    </ul>
-</li>
 
 {{-- 5. REPORTS & TOOLS --}}
 <li class="treeview-item-header"
@@ -115,13 +93,7 @@
     </a>
 </li>
 
-<li>
-    <a class="app-menu__item {{ str_contains($activePage, 'exchange-rates') ? 'active' : '' }}"
-        href="{{ route('exchange-rates') }}">
-        <i class="app-menu__icon fa fa-money"></i>
-        <span class="app-menu__label">Exchange Rates</span>
-    </a>
-</li>
+
 
 {{-- 6. ACCOUNT --}}
 <li class="treeview-item-header"

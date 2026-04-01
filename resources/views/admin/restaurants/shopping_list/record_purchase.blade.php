@@ -75,6 +75,7 @@
                             <ul class="mb-0">
                                 <li>Check <strong>Found</strong> if the item was purchased, uncheck if missing</li>
                                 <li>Enter the <strong>Unit Price</strong> (per item) OR the <strong>Total Cost</strong>. The other will calculate automatically.</li>
+                                <li>For fruits (Passion, Oranges, etc.), you can leave "Bought" as 1 and just enter the **Total Cost** and **Measured (KG)**.</li>
                                 <li>If an item was skipped, uncheck "Found" and leave quantities as 0</li>
                             </ul>
                         </div>
