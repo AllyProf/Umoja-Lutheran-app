@@ -99,6 +99,8 @@ class DayService extends Model
             'garden' => 'Garden Service',
             'conference' => 'Conference Room',
             'conference_room' => 'Conference Room',
+            'projector' => 'Projector Service',
+            'music' => 'Music / Sound System',
             'restaurant' => 'Restaurant',
             'bar' => 'Bar',
             'other' => 'Other',

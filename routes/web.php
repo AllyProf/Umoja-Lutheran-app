@@ -198,6 +198,8 @@ Route::prefix('manager')->group(function () {
         Route::get('/day-services/parking', [\App\Http\Controllers\DayServiceController::class, 'parkingService'])->name('admin.day-services.parking');
         Route::get('/day-services/garden', [\App\Http\Controllers\DayServiceController::class, 'gardenService'])->name('admin.day-services.garden');
         Route::get('/day-services/conference', [\App\Http\Controllers\DayServiceController::class, 'conferenceRoomService'])->name('admin.day-services.conference');
+        Route::get('/day-services/projector', [\App\Http\Controllers\DayServiceController::class, 'projectorService'])->name('admin.day-services.projector');
+        Route::get('/day-services/music', [\App\Http\Controllers\DayServiceController::class, 'musicService'])->name('admin.day-services.music');
         Route::get('/day-services/pending', [\App\Http\Controllers\DayServiceController::class, 'pending'])->name('admin.day-services.pending');
         Route::get('/day-services/reports', [\App\Http\Controllers\DayServiceController::class, 'reports'])->name('admin.day-services.reports');
         Route::get('/day-services/reports/download', [\App\Http\Controllers\DayServiceController::class, 'downloadReport'])->name('admin.day-services.reports.download');
@@ -575,6 +577,8 @@ Route::prefix('reception')->group(function () {
         Route::get('/day-services/parking', [\App\Http\Controllers\DayServiceController::class, 'parkingService'])->name('reception.day-services.parking');
         Route::get('/day-services/garden', [\App\Http\Controllers\DayServiceController::class, 'gardenService'])->name('reception.day-services.garden');
         Route::get('/day-services/conference', [\App\Http\Controllers\DayServiceController::class, 'conferenceRoomService'])->name('reception.day-services.conference');
+        Route::get('/day-services/projector', [\App\Http\Controllers\DayServiceController::class, 'projectorService'])->name('reception.day-services.projector');
+        Route::get('/day-services/music', [\App\Http\Controllers\DayServiceController::class, 'musicService'])->name('reception.day-services.music');
         Route::get('/day-services/pending', [\App\Http\Controllers\DayServiceController::class, 'pending'])->name('reception.day-services.pending');
         Route::get('/day-services/reports', [\App\Http\Controllers\DayServiceController::class, 'reports'])->name('reception.day-services.reports');
         Route::get('/day-services/reports/download', [\App\Http\Controllers\DayServiceController::class, 'downloadReport'])->name('reception.day-services.reports.download');

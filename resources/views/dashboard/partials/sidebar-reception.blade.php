@@ -74,6 +74,10 @@
         Garden</a></li>
     <li><a class="treeview-item" href="{{ route('reception.day-services.conference') }}"><i
           class="icon fa fa-briefcase"></i> Conference Room</a></li>
+    <li><a class="treeview-item" href="{{ route('reception.day-services.projector') }}"><i
+          class="icon fa fa-video-camera"></i> Projector</a></li>
+    <li><a class="treeview-item" href="{{ route('reception.day-services.music') }}"><i class="icon fa fa-music"></i>
+        Music / Sound System</a></li>
   </ul>
 </li>
 

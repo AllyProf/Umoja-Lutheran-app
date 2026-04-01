@@ -125,6 +125,42 @@ class DayServiceController extends Controller
     }
 
     /**
+     * Show projector service registration page
+     */
+    public function projectorService()
+    {
+        $user = Auth::guard('staff')->user();
+        $role = strtolower($user->role ?? 'manager');
+
+        $projectorService = \App\Models\ServiceCatalog::where('service_key', 'projector')->first();
+
+        if (!$projectorService) {
+            return redirect()->route($role === 'reception' ? 'reception.service-catalog.index' : 'admin.service-catalog.index')
+                ->with('error', 'Projector service is not configured in the catalog. Please register it first.');
+        }
+
+        return view('dashboard.day-service-projector', compact('role', 'projectorService'));
+    }
+
+    /**
+     * Show music service registration page
+     */
+    public function musicService()
+    {
+        $user = Auth::guard('staff')->user();
+        $role = strtolower($user->role ?? 'manager');
+
+        $musicService = \App\Models\ServiceCatalog::where('service_key', 'music')->first();
+
+        if (!$musicService) {
+            return redirect()->route($role === 'reception' ? 'reception.service-catalog.index' : 'admin.service-catalog.index')
+                ->with('error', 'Music service is not configured in the catalog. Please register it first.');
+        }
+
+        return view('dashboard.day-service-music', compact('role', 'musicService'));
+    }
+
+    /**
      * Store new day service
      */
     public function store(Request $request)
