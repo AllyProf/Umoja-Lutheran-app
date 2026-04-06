@@ -263,7 +263,7 @@ class BarKeeperController extends Controller
                 // Extract the side (mboga)
                 $side = trim(str_ireplace(strtolower($matchedBase), '', $nameLower));
                 if (empty($side)) {
-                    continue; // Skip plain version as requested
+                    $side = 'Plain'; // Replaced 'Kavu (Plain)' with 'Plain'
                 }
                 $side = ucwords($side);
 
