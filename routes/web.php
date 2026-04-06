@@ -628,6 +628,10 @@ Route::prefix('reception')->group(function () {
         // Corporate Group Checkout
         Route::post('/bookings/checkout-company-group/{company}', [\App\Http\Controllers\ReceptionController::class, 'checkoutCompanyGroup'])->name('reception.bookings.checkout-company-group');
         Route::post('/bookings/checkout-company-payment/{company}', [\App\Http\Controllers\ReceptionController::class, 'processCompanyPayment'])->name('reception.bookings.checkout-company-payment');
+
+        // Shift Handovers
+        Route::get('/shift-handovers', [\App\Http\Controllers\ReceptionController::class, 'shiftHandovers'])->name('reception.shift-handovers');
+        Route::post('/shift-handovers/{shiftClosure}/acknowledge', [\App\Http\Controllers\ReceptionController::class, 'acknowledgeShiftClosure'])->name('reception.shift-handovers.acknowledge');
     });
 
     // Checkout Bill (Reception Operations)
@@ -718,6 +722,17 @@ Route::prefix('bar-keeper')->group(function () {
         Route::post('/profile/update', [\App\Http\Controllers\ProfileController::class, 'updateProfile'])->name('bar-keeper.profile.update');
         Route::post('/profile/update-photo', [\App\Http\Controllers\ProfileController::class, 'updatePhoto'])->name('bar-keeper.profile.update-photo');
         Route::post('/profile/update-password', [\App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('bar-keeper.profile.update-password');
+        Route::post('/profile/update-notifications', [\App\Http\Controllers\ProfileController::class, 'updateNotificationPreferences'])->name('bar-keeper.profile.update-notifications');
+
+        Route::post('/logout', [AuthController::class, 'logout'])->name('bar-keeper.logout');
+
+        // Shift Closure Routes
+        Route::get('/shift-summary', [\App\Http\Controllers\BarKeeperController::class, 'getShiftSummary'])->name('bar-keeper.shift-summary');
+        Route::post('/open-shift', [\App\Http\Controllers\BarKeeperController::class, 'openShift'])->name('bar-keeper.open-shift');
+        Route::post('/close-shift', [\App\Http\Controllers\BarKeeperController::class, 'closeShift'])->name('bar-keeper.close-shift');
+
+        // Complete a Guest Order (Service Request)
+        Route::put('/orders/{serviceRequest}/complete', [\App\Http\Controllers\BarKeeperController::class, 'completeOrder'])->name('bar-keeper.orders.complete');
 
         Route::post('/logout', [AuthController::class, 'logout'])->name('bar-keeper.logout');
 
@@ -1003,10 +1018,16 @@ Route::middleware(['check.auth'])->prefix('stock-requests')->group(function () {
     Route::get('/create', [\App\Http\Controllers\StockRequestController::class, 'create'])->name('stock-requests.create');
     Route::get('/row-template', [\App\Http\Controllers\StockRequestController::class, 'rowTemplate'])->name('stock-requests.row-template');
     Route::post('/', [\App\Http\Controllers\StockRequestController::class, 'store'])->name('stock-requests.store');
+
+    // Batch distribution and printing
+    Route::get('/batch/{batchId}/distribute', [\App\Http\Controllers\StockRequestController::class, 'batchDistribute'])->name('stock-requests.batch-distribute');
+    Route::post('/batch/{batchId}/distribute', [\App\Http\Controllers\StockRequestController::class, 'batchDistribute'])->name('stock-requests.batch-distribute.submit');
+    Route::get('/batch/{batchId}/print', [\App\Http\Controllers\StockRequestController::class, 'batchPrint'])->name('stock-requests.batch-print');
     Route::post('/{stockRequest}/pass-to-manager', [\App\Http\Controllers\StockRequestController::class, 'passToManager'])->name('stock-requests.pass-to-manager');
     Route::post('/{stockRequest}/approve', [\App\Http\Controllers\StockRequestController::class, 'approve'])->name('stock-requests.approve');
     Route::post('/{stockRequest}/reject', [\App\Http\Controllers\StockRequestController::class, 'reject'])->name('stock-requests.reject');
     Route::post('/{stockRequest}/distribute', [\App\Http\Controllers\StockRequestController::class, 'distribute'])->name('stock-requests.distribute');
+    Route::get('/{stockRequest}/print', [\App\Http\Controllers\StockRequestController::class, 'printNote'])->name('stock-requests.print');
     Route::get('/pending-counts', [\App\Http\Controllers\StockRequestController::class, 'pendingCounts'])->name('stock-requests.pending-counts');
 });
 

@@ -12,6 +12,8 @@ class StockRequest extends Model
 
     protected $fillable = [
         'requested_by',
+        'batch_id',
+        'batch_reference',
         'product_variant_id',
         'quantity',
         'unit',

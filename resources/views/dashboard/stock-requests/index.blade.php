@@ -55,7 +55,33 @@
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    @php $currentBatch = null; @endphp
                                     @forelse($stockRequests as $request)
+                                        @if($request->batch_id && $request->batch_id !== $currentBatch)
+                                            @php $currentBatch = $request->batch_id; @endphp
+                                            <tr class="table-light">
+                                                <td colspan="7" class="py-2">
+                                                    <i class="fa fa-folder-open text-warning"></i>
+                                                    <strong>Batch: {{ $request->batch_reference ?? 'N/A' }}</strong>
+                                                    <small
+                                                        class="text-muted ml-2">({{ $request->created_at->format('M d, Y H:i') }})</small>
+                                                </td>
+                                                <td class="text-end py-1">
+                                                    @if(Auth::guard('staff')->user()->role === 'storekeeper' && $request->status === 'approved')
+                                                        <a href="{{ route('stock-requests.batch-distribute', $request->batch_id) }}"
+                                                            class="btn btn-xs btn-primary shadow-sm">
+                                                            <i class="fa fa-truck"></i> Distribute Batch
+                                                        </a>
+                                                    @endif
+                                                    @if($request->status === 'completed')
+                                                        <a href="{{ route('stock-requests.batch-print', $request->batch_id) }}"
+                                                            class="btn btn-xs btn-secondary shadow-sm" target="_blank">
+                                                            <i class="fa fa-print"></i> Print Batch Receipt
+                                                        </a>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endif
                                         <tr>
                                             <td>{{ $request->id }}</td>
                                             <td>{{ $request->created_at ? $request->created_at->format('M d, Y H:i') : 'N/A' }}

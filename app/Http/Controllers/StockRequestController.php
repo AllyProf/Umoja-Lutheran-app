@@ -53,7 +53,7 @@ class StockRequestController extends Controller
             });
         }
 
-        $stockRequests = $query->latest()->paginate(20);
+        $stockRequests = $query->orderBy('batch_id', 'desc')->orderBy('created_at', 'desc')->paginate(25);
 
         return view('dashboard.stock-requests.index', compact('stockRequests'));
     }
@@ -162,6 +162,12 @@ class StockRequestController extends Controller
                 ->with('error_list', $errors);
         }
 
+        $batchId = (string) \Illuminate\Support\Str::uuid();
+        $today = date('ymd');
+        $lastBatch = StockRequest::where('batch_reference', 'like', "REQ-$today-%")->orderBy('batch_reference', 'desc')->first();
+        $nextNum = $lastBatch ? (int) substr($lastBatch->batch_reference, -3) + 1 : 1;
+        $batchRef = "REQ-$today-" . str_pad($nextNum, 3, '0', STR_PAD_LEFT);
+
         foreach ($request->items as $item) {
             $variant = ProductVariant::find($item['product_variant_id']);
             $unitPrice = $variant ? $variant->getLatestUnitCost() : 0;
@@ -187,6 +193,8 @@ class StockRequestController extends Controller
 
             $stockRequest = StockRequest::create([
                 'requested_by' => $user->id,
+                'batch_id' => $batchId,
+                'batch_reference' => $batchRef,
                 'product_variant_id' => $item['product_variant_id'],
                 'quantity' => $item['quantity'],
                 'unit' => $item['unit'],
@@ -433,5 +441,125 @@ class StockRequestController extends Controller
         }
 
         return view('dashboard.stock-requests.print', compact('stockRequest', 'suggestedUnitCost'));
+    }
+
+    /**
+     * Storekeeper distributes a batch of products.
+     */
+    public function batchDistribute(Request $request, $batchId)
+    {
+        if (Auth::guard('staff')->user()->role !== 'storekeeper') {
+            abort(403, 'Only storekeepers can distribute products.');
+        }
+
+        $stockRequests = StockRequest::where('batch_id', $batchId)
+            ->where('status', 'approved')
+            ->get();
+
+        if ($stockRequests->isEmpty()) {
+            return redirect()->route('stock-requests.index')->with('error', 'No approved items found in this batch.');
+        }
+
+        if ($request->isMethod('get')) {
+            $batchReference = $stockRequests->first()->batch_reference;
+            return view('dashboard.stock-requests.batch_distribute', compact('stockRequests', 'batchId', 'batchReference'));
+        }
+
+        $request->validate([
+            'items' => 'required|array',
+            'items.*.id' => 'required|exists:stock_requests,id',
+            'items.*.quantity_issued' => 'required|numeric|min:0',
+            'items.*.unit_cost' => 'required|numeric|min:0',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            foreach ($request->input('items') as $itemData) {
+                $stockRequest = $stockRequests->find($itemData['id']);
+                if (!$stockRequest)
+                    continue;
+
+                $quantityIssued = (float) $itemData['quantity_issued'];
+                if ($quantityIssued <= 0)
+                    continue;
+
+                $unitCost = (float) $itemData['unit_cost'];
+                $totalCost = $quantityIssued * $unitCost;
+
+                $stockRequest->loadMissing('requester');
+                $receiverRole = strtolower(str_replace(' ', '_', $stockRequest->requester->role ?? ''));
+                $isInternal = in_array($receiverRole, ['head_chef', 'housekeeper', 'linen_keeper']);
+
+                $transferStatus = $isInternal ? 'completed' : 'pending';
+                $receivedAt = $isInternal ? Carbon::now() : null;
+
+                $transfer = StockTransfer::create([
+                    'transfer_reference' => StockTransfer::generateReference(),
+                    'product_id' => $stockRequest->productVariant->product_id,
+                    'product_variant_id' => $stockRequest->product_variant_id,
+                    'quantity_transferred' => $quantityIssued,
+                    'quantity_unit' => $stockRequest->unit,
+                    'unit_cost' => $unitCost,
+                    'transferred_by' => Auth::guard('staff')->id(),
+                    'received_by' => $stockRequest->requested_by,
+                    'status' => $transferStatus,
+                    'transfer_date' => Carbon::now(),
+                    'received_at' => $receivedAt,
+                    'notes' => 'Batch Requisition ' . $stockRequest->batch_reference,
+                ]);
+
+                if (method_exists($transfer, 'calculateRevenueProjections')) {
+                    $transfer->calculateRevenueProjections();
+                    $transfer->save();
+                }
+
+                $stockRequest->update([
+                    'status' => 'completed',
+                    'quantity_issued' => $quantityIssued,
+                    'unit_cost' => $unitCost,
+                    'total_cost' => $totalCost,
+                    'storekeeper_id' => Auth::guard('staff')->id(),
+                    'distributed_at' => Carbon::now(),
+                    'stock_transfer_id' => $transfer->id,
+                ]);
+
+                $this->notificationService->createStockRequestStatusUpdateNotification($stockRequest, 'completed');
+
+                if ($isInternal) {
+                    $itemName = $stockRequest->productVariant->product->name;
+                    if ($stockRequest->productVariant->variant_name && strtolower($stockRequest->productVariant->variant_name) !== 'standard') {
+                        $itemName .= ' - ' . $stockRequest->productVariant->variant_name;
+                    }
+                    if (in_array($receiverRole, ['head_chef', 'chef'])) {
+                        $this->inventoryService->updateKitchenInventory($itemName, $quantityIssued, $stockRequest->unit, $stockRequest->productVariant->product->category, $stockRequest->requested_by, "Issued from Store: Batch {$stockRequest->batch_reference}", null, $stockRequest->productVariant);
+                    } elseif (in_array($receiverRole, ['housekeeper', 'linen_keeper'])) {
+                        $this->inventoryService->updateHousekeepingInventory($itemName, $quantityIssued, $stockRequest->unit, $stockRequest->productVariant->product->category, $stockRequest->requested_by, "Issued from Store: Batch {$stockRequest->batch_reference}", $stockRequest->productVariant);
+                    }
+                }
+            }
+
+            DB::commit();
+            return redirect()->route('stock-requests.batch-print', $batchId)
+                ->with('success', 'Batch items issued successfully. Print the Requisition Note below.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Failed to distribute batch: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Print consolidated requisition note for a batch.
+     */
+    public function batchPrint($batchId)
+    {
+        $stockRequests = StockRequest::where('batch_id', $batchId)
+            ->with(['requester', 'productVariant.product', 'manager', 'storekeeper', 'accountant'])
+            ->get();
+
+        if ($stockRequests->isEmpty()) {
+            abort(404, 'Batch not found.');
+        }
+
+        return view('dashboard.stock-requests.batch_print', compact('stockRequests', 'batchId'));
     }
 }
