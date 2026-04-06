@@ -112,10 +112,17 @@
                                     <div class="d-flex justify-content-between align-items-start mb-3">
                                         <div style="max-width: {{ $isLowStock ? '70%' : '100%' }};">
                                             <h5 class="product-title mb-1 font-weight-bold" style="color: #900;">
-                                                {{ $product->category === 'cleaning_supplies' ? trim(str_ireplace(['(ml)', 'ml', '(l)', 'l'], '', $variant->variant_name)) : $variant->variant_name }}
+                                                @php
+                                                    $vName = $product->category === 'cleaning_supplies' ? trim(str_ireplace(['(ml)', 'ml', '(l)', 'l'], '', $variant->variant_name)) : $variant->variant_name;
+                                                @endphp
+                                                @if(strtolower($vName) === 'standard' || strtolower($vName) === strtolower($product->name))
+                                                    {{ $product->name }}
+                                                @else
+                                                    {{ $product->name }} <span class="text-muted" style="font-size: 0.8em;">- {{ $vName }}</span>
+                                                @endif
                                             </h5>
                                             <div class="text-muted small">
-                                                {{ $product->name }} • {{ ucfirst($product->category_name) }}
+                                                {{ ucfirst($product->category_name) }}
                                             </div>
                                         </div>
                                         @if($product->category !== 'food' && $product->category !== 'cleaning_supplies' && $variant->measurement && !in_array(strtolower(trim($variant->measurement)), ['ml', '0 ml', '0ml', '0']))
@@ -154,7 +161,7 @@
                                             @endif
                                         </div>
 
-                                    @if($product->category !== 'food' && $product->category !== 'cleaning_supplies')
+                                    @if($isBeverage)
                                     <div class="row no-gutters text-center border rounded overflow-hidden pricing-info">
                                         <div class="col border-right p-2 bg-light-gray">
                                             <div class="small text-muted mb-1 text-uppercase font-weight-bold" style="font-size: 10px;">Bottle Price</div>

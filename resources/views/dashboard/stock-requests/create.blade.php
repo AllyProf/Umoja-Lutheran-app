@@ -1,9 +1,13 @@
 @extends('dashboard.layouts.app')
 
 @php
-    $requestType = 'Beverage';
-    $itemType = 'Beverage';
-    $cardItemLabel = 'Beverage';
+    $userRole = strtolower(trim(Auth::guard('staff')->user()->role ?? ''));
+    $isBarKeeper = in_array($userRole, ['bar_keeper', 'bar keeper', 'bartender']);
+
+    $requestType = $isBarKeeper ? 'Counter' : 'Beverage';
+    $itemType = $isBarKeeper ? 'Item / Product' : 'Beverage';
+    $cardItemLabel = $isBarKeeper ? 'Stock' : 'Beverage';
+
     if ($isChef) {
         $requestType = 'Internal';
         $cardItemLabel = 'Kitchen';
@@ -141,12 +145,16 @@
                     <div class="card-body">
                         <h4 class="card-title">How it works</h4>
                         <ul class="list-icons">
-                            @if(!$isChef)
+                            @php
+                                $userRole = Auth::guard('staff')->user()->role ?? '';
+                                $skipAccountant = in_array(strtolower($userRole), ['bar_keeper', 'bar keeper', 'bartender', 'head_chef', 'housekeeper']);
+                            @endphp
+                            @if(!$skipAccountant)
                                 <li><i class="fa fa-chevron-right text-info"></i> Verified by <strong>Accountant</strong> first.
                                 </li>
                             @endif
                             <li><i class="fa fa-chevron-right text-info"></i> <strong>Manager</strong> must approve.</li>
-                            <li><i class="fa fa-chevron-right text-info"></i> <strong>Storekeeper</strong> distributes
+                            <li><i class="fa fa-chevron-right text-info"></i> <strong>Storekeeper</strong> issues
                                 items.</li>
                             <li><i class="fa fa-chevron-right text-info"></i> You'll be notified once ready.</li>
                         </ul>

@@ -404,34 +404,75 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
-        // Check if product has stock receipts
+        // Explicitly load variants to check them
+        $product->load('variants');
+        $variantIds = $product->variants->pluck('id')->toArray();
+
+        // 1. Check if product has stock receipts directly on the product model
+        $hasHistory = false;
         if ($product->stockReceipts()->count() > 0) {
+            $hasHistory = true;
+        }
+
+        // 2. Check if product has shopping list items
+        if (!$hasHistory && $product->shoppingListItems()->count() > 0) {
+            $hasHistory = true;
+        }
+
+        // 3. Check if variants are used in any significant tables
+        if (!$hasHistory && !empty($variantIds)) {
+            // Check Stock Requests
+            if (
+                \DB::table('stock_requests')->whereIn('product_variant_id', $variantIds)->exists() ||
+                \DB::table('stock_transfers')->whereIn('product_variant_id', $variantIds)->exists() ||
+                \DB::table('stock_returns')->whereIn('product_variant_id', $variantIds)->exists() ||
+                \DB::table('purchase_requests')->whereIn('product_variant_id', $variantIds)->exists()
+            ) {
+                $hasHistory = true;
+            }
+        }
+
+        if ($hasHistory) {
             if (request()->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cannot delete product with existing stock receipts.',
+                    'message' => 'Cannot delete product because it is already used in stock transactions (Receipts, Requests, or Transfers). Tip: You can deactivate it instead.',
                 ], 422);
             }
             return redirect()->route($this->getRoutePrefix() . '.products.index')
-                ->with('error', 'Cannot delete product with existing stock receipts.');
+                ->with('error', 'Cannot delete product because it is already used in stock transactions (Receipts, Requests, or Transfers). Tip: You can deactivate it instead.');
         }
 
-        // Delete image
-        if ($product->image) {
-            Storage::disk('public')->delete($product->image);
+        try {
+            // Delete product variants first if possible to prevent dangling rows
+            $product->variants()->delete();
+
+            // Delete image
+            if ($product->image) {
+                Storage::disk('public')->delete($product->image);
+            }
+
+            $product->delete();
+
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Product deleted successfully!',
+                ]);
+            }
+
+            return redirect()->route($this->getRoutePrefix() . '.products.index')
+                ->with('success', 'Product deleted successfully!');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete product due to existing data linkages in the system.',
+                ], 422);
+            }
+            return redirect()->route($this->getRoutePrefix() . '.products.index')
+                ->with('error', 'Cannot delete product due to existing data linkages in the system.');
         }
-
-        $product->delete();
-
-        if (request()->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Product deleted successfully!',
-            ]);
-        }
-
-        return redirect()->route($this->getRoutePrefix() . '.products.index')
-            ->with('success', 'Product deleted successfully!');
     }
 
     /**
@@ -442,31 +483,59 @@ class ProductController extends Controller
         $variant = ProductVariant::findOrFail($id);
         $product = $variant->product;
 
-        // Check if variant has specific dependencies if needed (like order items)
-        // For now, allow delete.
+        // Check dependencies
+        $hasHistory = \DB::table('stock_requests')->where('product_variant_id', $id)->exists() ||
+            \DB::table('stock_transfers')->where('product_variant_id', $id)->exists() ||
+            \DB::table('stock_returns')->where('product_variant_id', $id)->exists() ||
+            \DB::table('purchase_requests')->where('product_variant_id', $id)->exists() ||
+            \DB::table('stock_receipts')->where('product_variant_id', $id)->exists() ||
+            \DB::table('shopping_list_items')->where('product_variant_id', $id)->exists();
 
-        $variant->delete();
-
-        // If parent product has no more variants, delete it too? 
-        // Or keep it empty? Let's keep it for now, or check count.
-        if ($product->variants()->count() === 0) {
-            $product->delete();
-            return response()->json([
-                'success' => true,
-                'message' => 'Variant and empty brand family deleted successfully!',
-                'reload' => true
-            ]);
+        if ($hasHistory) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete variant because it is used in stock transactions.',
+                ], 422);
+            }
+            return back()->with('error', 'Cannot delete variant because it is used in stock transactions.');
         }
 
-        if (request()->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Product variant deleted successfully!',
-                'reload' => true
-            ]);
-        }
+        try {
+            $variant->delete();
 
-        return back()->with('success', 'Variant deleted successfully!');
+            // If parent product has no more variants, delete it too? 
+            if ($product->variants()->count() === 0) {
+                try {
+                    $product->delete();
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Variant and empty brand family deleted successfully!',
+                        'reload' => true
+                    ]);
+                } catch (\Exception $e) {
+                    // Just catch if product delete fails, at least variant is gone
+                }
+            }
+
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Product variant deleted successfully!',
+                    'reload' => true
+                ]);
+            }
+
+            return back()->with('success', 'Variant deleted successfully!');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete variant due to existing system records.',
+                ], 422);
+            }
+            return back()->with('error', 'Cannot delete variant due to existing system records.');
+        }
     }
 
     /**

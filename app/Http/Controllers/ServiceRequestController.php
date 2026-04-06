@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Service;
 use App\Models\ServiceRequest;
+use App\Models\ShiftClosure;
 use App\Models\Booking;
 use App\Models\User;
 use App\Services\CurrencyExchangeService;
@@ -30,12 +31,12 @@ class ServiceRequestController extends Controller
     {
         // Exclude food and drinks categories as they have an independent ordering section
         $excludeCategories = [
-            'food', 
-            'restaurant', 
-            'alcoholic_beverage', 
-            'non_alcoholic_beverage', 
-            'water', 
-            'juices', 
+            'food',
+            'restaurant',
+            'alcoholic_beverage',
+            'non_alcoholic_beverage',
+            'water',
+            'juices',
             'energy_drinks',
             'drinks',
             'beverage'
@@ -100,7 +101,7 @@ class ServiceRequestController extends Controller
                 $booking = Booking::where('id', $request->booking_id)
                     ->where('guest_email', $user->email)
                     ->first();
-                    
+
                 if (!$booking) {
                     return response()->json([
                         'success' => false,
@@ -111,12 +112,12 @@ class ServiceRequestController extends Controller
 
             // Get service
             $service = null;
-            
+
             // Check if this is a generic bar or food order by looking up the service
             if (is_numeric($request->service_id)) {
                 $service = Service::find($request->service_id);
             }
-            
+
             // If service not found by ID, try to find by name for generic orders
             if (!$service) {
                 // Try to find Generic Bar Order
@@ -124,7 +125,7 @@ class ServiceRequestController extends Controller
                 if ($barService && $request->product_id) {
                     $service = $barService;
                 }
-                
+
                 // Try to find Generic Food Order
                 if (!$service) {
                     $foodService = Service::where('name', 'Generic Food Order')->first();
@@ -133,10 +134,22 @@ class ServiceRequestController extends Controller
                     }
                 }
             }
-            
+
             // Determine if this is a generic bar or food order
             $isGenericBar = $service && $service->name === 'Generic Bar Order';
             $isGenericFood = $service && $service->name === 'Generic Food Order';
+
+            // --- Shift Validation for Staff ---
+            if (Auth::guard('staff')->check() && ($isGenericBar || $isGenericFood || ($service && in_array($service->category, ['alcoholic_beverage', 'non_alcoholic_beverage', 'water', 'juices', 'energy_drinks', 'soft_drinks', 'beers', 'wines', 'spirits', 'cocktails', 'drinks', 'liquor', 'food', 'restaurant', 'traditional', 'bites', 'snacks', 'chai', 'fruit_salad'])))) {
+                $staffId = Auth::guard('staff')->id();
+                $activeShift = ShiftClosure::where('staff_id', $staffId)->where('status', 'active')->exists();
+                if (!$activeShift) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Huna shift iliyofunguliwa. Tafadhali fungua shift kwanza kwenye Dashboard.'
+                    ], 403);
+                }
+            }
 
             // Get quantities
             $adultQuantity = $request->adult_quantity ?? 0;
@@ -154,7 +167,7 @@ class ServiceRequestController extends Controller
                 $product = \App\Models\Product::find($request->product_id);
                 $variant = \App\Models\ProductVariant::find($request->product_variant_id);
                 $sellingMethod = $request->selling_method ?? 'pic';
-                
+
                 if ($product && $variant) {
                     $unitName = $sellingMethod === 'serving' ? ($variant->selling_unit_name ?? 'Glass') : 'Bottle';
                     $itemName = $product->name . " ($unitName)";
@@ -165,35 +178,35 @@ class ServiceRequestController extends Controller
                     $additionalData['product_id'] = $product->id;
                     $additionalData['product_variant_id'] = $variant->id;
                     $additionalData['selling_method'] = $sellingMethod;
-                    
+
                     // Get price from variant primarily
                     if ($sellingMethod === 'serving') {
-                        $unitPrice = (float)$variant->selling_price_per_serving;
+                        $unitPrice = (float) $variant->selling_price_per_serving;
                     } else {
-                        $unitPrice = (float)$variant->selling_price_per_pic;
+                        $unitPrice = (float) $variant->selling_price_per_pic;
                     }
-                    
+
                     // Fallback to StockReceipt if variant prices are not set
                     if ($unitPrice <= 0) {
                         $latestReceipt = \App\Models\StockReceipt::where('product_variant_id', $variant->id)
                             ->orderBy('received_date', 'desc')
                             ->first();
-                        $unitPrice = $latestReceipt ? (float)$latestReceipt->selling_price_per_bottle : 0;
+                        $unitPrice = $latestReceipt ? (float) $latestReceipt->selling_price_per_bottle : 0;
                     }
-                    
+
                     $totalPrice = $unitPrice * $quantity;
 
                     // --- Real-time Stock Validation ---
                     $allTransfers = \App\Models\StockTransfer::where('status', 'completed')
                         ->where('product_variant_id', $variant->id)
                         ->get();
-                    
+
                     // Get all sales for this specific variant
                     $allSales = \App\Models\ServiceRequest::where('status', 'completed')
                         ->get()
-                        ->filter(function($s) use ($variant) {
-                            return isset($s->service_specific_data['product_variant_id']) && 
-                                   (int)$s->service_specific_data['product_variant_id'] === $variant->id;
+                        ->filter(function ($s) use ($variant) {
+                            return isset($s->service_specific_data['product_variant_id']) &&
+                                (int) $s->service_specific_data['product_variant_id'] === $variant->id;
                         });
 
                     $currentStockPics = 0;
@@ -216,11 +229,11 @@ class ServiceRequestController extends Controller
 
                     // Calculate consumption of current request
                     $requestedCons = ($sellingMethod === 'pic') ? $quantity : ($quantity / ($variant->servings_per_pic > 0 ? $variant->servings_per_pic : 1));
-                    
+
                     if ($requestedCons > ($currentStockPics + 0.001)) {
                         $availableWhole = floor($currentStockPics);
                         return response()->json([
-                            'success' => false, 
+                            'success' => false,
                             'message' => "Insufficient stock. Only " . ($availableWhole > 0 ? $availableWhole : '0') . " bottles/units available."
                         ], 400);
                     }
@@ -232,12 +245,12 @@ class ServiceRequestController extends Controller
                 // Cleaned up Food ordering logic via Recipes
                 $extraData = $request->input('service_specific_data', []);
                 $foodId = $extraData['food_id'] ?? null;
-                
+
                 if ($foodId) {
                     $recipe = \App\Models\Recipe::find($foodId);
                     if ($recipe) {
                         $itemName = $recipe->name;
-                        $unitPrice = (float)$recipe->selling_price ?? 0;
+                        $unitPrice = (float) $recipe->selling_price ?? 0;
                         $totalPrice = $unitPrice * $quantity;
                         $additionalData['food_id'] = $recipe->id;
                     }
@@ -249,13 +262,13 @@ class ServiceRequestController extends Controller
                     $totalPrice = 0;
                 } else {
                     $serviceAgeGroup = $service->age_group ?? 'both';
-                    
+
                     if ($serviceAgeGroup === 'both' && $service->child_price_tsh && $service->child_price_tsh > 0) {
                         // Service supports both adult and child pricing
                         $adultTotal = ($service->price_tsh ?? 0) * $adultQuantity;
                         $childTotal = ($service->child_price_tsh ?? 0) * $childQuantity;
                         $totalPrice = $adultTotal + $childTotal;
-                        
+
                         // If no adult/child quantities provided, use single quantity
                         if ($adultQuantity === 0 && $childQuantity === 0) {
                             $totalPrice = ($service->price_tsh ?? 0) * $quantity;
@@ -274,9 +287,9 @@ class ServiceRequestController extends Controller
                     'message' => 'Service or item not found.',
                 ], 404);
             }
-            
+
             $booking = $booking ?? null; // Ensure $booking is defined for notifications even if null
-            
+
             // Calculate unit price for storage (average or single)
             $unitPrice = $quantity > 0 ? ($totalPrice / $quantity) : 0;
 
@@ -284,7 +297,7 @@ class ServiceRequestController extends Controller
             $serviceSpecificData = [];
             if ($request->has('service_specific_data') && is_array($request->service_specific_data)) {
                 $serviceSpecificData = $request->service_specific_data;
-                
+
                 // Validate required fields based on service configuration
                 if ($service && $service->required_fields && is_array($service->required_fields)) {
                     foreach ($service->required_fields as $field) {
@@ -321,7 +334,7 @@ class ServiceRequestController extends Controller
                     $paymentStatus = ($paymentTiming === 'later' ? 'pending' : 'paid');
                 }
             }
-            
+
             $serviceRequest = ServiceRequest::create([
                 'booking_id' => $isWalkIn ? null : $booking->id,
                 'service_id' => $service ? $service->id : null,
@@ -350,7 +363,7 @@ class ServiceRequestController extends Controller
                 try {
                     $notificationService = new NotificationService();
                     $notificationService->createServiceRequestNotification($serviceRequest->load(['booking.room', 'service']));
-                    
+
                     // Also notify customer that their request was submitted
                     $notificationService->createServiceRequestConfirmationNotification($serviceRequest->load(['booking.room', 'service']), $user);
                 } catch (\Exception $e) {
@@ -377,7 +390,7 @@ class ServiceRequestController extends Controller
                 $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
                     ->where('is_active', true)
                     ->get();
-                
+
                 foreach ($managersAndAdmins as $staff) {
                     // Check if user has notifications enabled
                     if ($staff->isNotificationEnabled('service_request')) {
@@ -409,13 +422,13 @@ class ServiceRequestController extends Controller
                 'message' => 'Service request submitted! Call to confirm: 0677155156 - Reception, 0677155157 - Manager.',
                 'service_request' => $serviceRequest->load('service')
             ]);
-            
+
         } catch (\Exception $e) {
             \Log::error('Service request error: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
                 'request_data' => $request->all()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while processing your request. Please try again or contact reception.',
@@ -431,11 +444,11 @@ class ServiceRequestController extends Controller
     {
         try {
             $user = Auth::guard('staff')->user();
-            
+
             // Get today's date range
             $today = Carbon::today();
             $thisMonth = Carbon::now()->startOfMonth();
-            
+
             // Get exchange rate for currency conversion
             $exchangeRate = 2500; // Default fallback rate
             try {
@@ -444,35 +457,35 @@ class ServiceRequestController extends Controller
             } catch (\Exception $e) {
                 \Log::warning('Failed to get exchange rate, using default', ['error' => $e->getMessage()]);
             }
-            
+
             // Calculate total revenue (bookings + service requests + day services)
             $totalBookingRevenueTZS = Booking::whereIn('payment_status', ['paid', 'partial'])
                 ->whereNotNull('amount_paid')
                 ->where('amount_paid', '>', 0)
                 ->get()
-                ->sum(function($booking) use ($exchangeRate) {
+                ->sum(function ($booking) use ($exchangeRate) {
                     return ($booking->amount_paid ?? 0) * ($booking->locked_exchange_rate ?? $exchangeRate);
                 });
             $totalServiceRevenueTZS = ServiceRequest::where('status', 'completed')->sum('total_price_tsh');
-            $totalDayServiceRevenueTZS = \App\Models\DayService::where('payment_status', 'paid')->get()->sum(function($s) use ($exchangeRate) {
+            $totalDayServiceRevenueTZS = \App\Models\DayService::where('payment_status', 'paid')->get()->sum(function ($s) use ($exchangeRate) {
                 $amount = $s->amount_paid ?? $s->amount ?? 0;
                 return $s->guest_type === 'tanzanian' ? $amount : ($amount * ($s->exchange_rate ?? $exchangeRate));
             });
             $totalRevenueTZS = $totalBookingRevenueTZS + $totalServiceRevenueTZS + $totalDayServiceRevenueTZS;
-            
+
             // Calculate today's revenue (using paid_at if available)
             $todayBookingRevenueTZS = Booking::whereIn('payment_status', ['paid', 'partial'])
                 ->whereNotNull('amount_paid')
                 ->where('amount_paid', '>', 0)
-                ->where(function($q) use ($today) {
+                ->where(function ($q) use ($today) {
                     $q->whereDate('paid_at', $today)
-                      ->orWhere(function($subQ) use ($today) {
-                          $subQ->whereNull('paid_at')
-                               ->whereDate('created_at', $today);
-                      });
+                        ->orWhere(function ($subQ) use ($today) {
+                            $subQ->whereNull('paid_at')
+                                ->whereDate('created_at', $today);
+                        });
                 })
                 ->get()
-                ->sum(function($booking) use ($exchangeRate) {
+                ->sum(function ($booking) use ($exchangeRate) {
                     return ($booking->amount_paid ?? 0) * ($booking->locked_exchange_rate ?? $exchangeRate);
                 });
             $todayServiceRevenueTZS = ServiceRequest::where('status', 'completed')
@@ -480,12 +493,12 @@ class ServiceRequestController extends Controller
                 ->sum('total_price_tsh');
             $todayDayServiceRevenueTZS = \App\Models\DayService::where('payment_status', 'paid')
                 ->whereDate('paid_at', $today)
-                ->get()->sum(function($s) use ($exchangeRate) {
+                ->get()->sum(function ($s) use ($exchangeRate) {
                     $amount = $s->amount_paid ?? $s->amount ?? 0;
                     return $s->guest_type === 'tanzanian' ? $amount : ($amount * ($s->exchange_rate ?? $exchangeRate));
                 });
             $todayRevenueTZS = $todayBookingRevenueTZS + $todayServiceRevenueTZS + $todayDayServiceRevenueTZS;
-            
+
             // Statistics
             $stats = [
                 'total_rooms' => \App\Models\Room::count(),
@@ -501,27 +514,27 @@ class ServiceRequestController extends Controller
                 'pending_extensions' => Booking::where('extension_status', 'pending')->count(),
                 'room_issues' => \App\Models\IssueReport::where('status', '!=', 'resolved')->count(),
             ];
-            
+
             // Recent bookings
             $recentBookings = Booking::with(['room', 'company'])
                 ->orderBy('created_at', 'desc')
                 ->limit(10)
                 ->get();
-            
+
             // Pending Requests
             $pendingRequests = ServiceRequest::with(['booking.room', 'service'])
                 ->where('status', 'pending')
                 ->orderBy('requested_at', 'asc')
                 ->limit(5)
                 ->get();
-            
+
             // Today's Requests
             $todayRequests = ServiceRequest::with(['booking.room', 'service'])
                 ->whereDate('requested_at', $today)
                 ->orderBy('requested_at', 'desc')
                 ->limit(5)
                 ->get();
-            
+
             // Pending Extensions
             $pendingExtensions = Booking::where('extension_status', 'pending')
                 ->with(['room'])
@@ -534,11 +547,11 @@ class ServiceRequestController extends Controller
                 $month = Carbon::now()->subMonths($i);
                 $monthStart = $month->copy()->startOfMonth();
                 $monthEnd = $month->copy()->endOfMonth();
-                
+
                 $mBookingRevTZS = Booking::whereBetween('created_at', [$monthStart, $monthEnd])
                     ->where('payment_status', 'paid')
                     ->get()
-                    ->sum(function($b) use ($exchangeRate) {
+                    ->sum(function ($b) use ($exchangeRate) {
                         return ($b->amount_paid ?? $b->total_price ?? 0) * ($b->locked_exchange_rate ?? $exchangeRate);
                     });
                 $mServiceRevTZS = ServiceRequest::where('status', 'completed')
@@ -546,11 +559,11 @@ class ServiceRequestController extends Controller
                     ->sum('total_price_tsh');
                 $mDayServiceRevTZS = \App\Models\DayService::where('payment_status', 'paid')
                     ->whereBetween('paid_at', [$monthStart, $monthEnd])
-                    ->get()->sum(function($s) use ($exchangeRate) {
+                    ->get()->sum(function ($s) use ($exchangeRate) {
                         $amount = $s->amount_paid ?? $s->amount ?? 0;
                         return $s->guest_type === 'tanzanian' ? $amount : ($amount * ($s->exchange_rate ?? $exchangeRate));
                     });
-                
+
                 $revenueData[] = [
                     'month' => $month->format('M Y'),
                     'revenue' => $mBookingRevTZS + $mServiceRevTZS + $mDayServiceRevTZS
@@ -564,7 +577,7 @@ class ServiceRequestController extends Controller
                 'Completed' => Booking::where('status', 'completed')->count(),
                 'Cancelled' => Booking::where('status', 'cancelled')->count(),
             ];
-            
+
             $role = $this->getRole();
             return view('dashboard.reception-dashboard', [
                 'role' => $role,
@@ -579,7 +592,7 @@ class ServiceRequestController extends Controller
                 'bookingStatusData' => $bookingStatusData,
                 'exchangeRate' => $exchangeRate,
             ]);
-            
+
         } catch (\Exception $e) {
             \Log::error('Reception dashboard error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to load dashboard.');
@@ -618,7 +631,7 @@ class ServiceRequestController extends Controller
         $exchangeRate = $currencyService->getUsdToTshRate();
 
         // Prepare service requests data for JavaScript
-        $serviceRequestsData = $serviceRequests->map(function($req) use ($currencyService) {
+        $serviceRequestsData = $serviceRequests->map(function ($req) use ($currencyService) {
             return [
                 'id' => $req->id,
                 'booking_reference' => $req->booking->booking_reference ?? 'WALK-IN',
@@ -685,7 +698,7 @@ class ServiceRequestController extends Controller
         // Update the service request first
         $serviceRequest->update($updateData);
         $serviceRequest = $serviceRequest->fresh();
-        
+
         // Mark the notification as read when action is taken (approve/cancel/complete)
         if (in_array($request->status, ['approved', 'completed', 'cancelled'])) {
             try {
@@ -700,18 +713,18 @@ class ServiceRequestController extends Controller
                 \Log::error('Failed to mark service request notification as read: ' . $e->getMessage());
             }
         }
-        
+
         // Now recalculate booking total service charges after status update
         // Only include approved and completed service requests
         $booking = $serviceRequest->booking->fresh();
         $totalServiceCharges = $booking->serviceRequests()
             ->whereIn('status', ['approved', 'completed'])
             ->sum('total_price_tsh');
-        
+
         $booking->update([
             'total_service_charges_tsh' => $totalServiceCharges
         ]);
-        
+
         // Log for debugging
         \Log::info('Service request status updated', [
             'service_request_id' => $serviceRequest->id,
@@ -726,10 +739,10 @@ class ServiceRequestController extends Controller
         try {
             $booking = $serviceRequest->booking->fresh();
             $user = \App\Models\Guest::where('email', $booking->guest_email)->first();
-            
+
             if ($user && in_array($request->status, ['approved', 'completed', 'cancelled'])) {
                 $notificationService = new NotificationService();
-                
+
                 if ($request->status === 'approved') {
                     $notificationService->createServiceRequestStatusUpdateNotification($serviceRequest, $user, 'approved');
                 } elseif ($request->status === 'completed') {
@@ -768,7 +781,7 @@ class ServiceRequestController extends Controller
                     $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
                         ->where('is_active', true)
                         ->get();
-                    
+
                     foreach ($managersAndAdmins as $staff) {
                         // Check if user has notifications enabled
                         if ($staff->isNotificationEnabled('service_request')) {
@@ -807,7 +820,7 @@ class ServiceRequestController extends Controller
         ]);
 
         $isRoomCharge = $request->payment_method === 'room_charge';
-        
+
         // Prevent room charge for walk-ins
         if ($isRoomCharge && $serviceRequest->is_walk_in) {
             return response()->json([
@@ -815,7 +828,7 @@ class ServiceRequestController extends Controller
                 'message' => 'Walk-in orders cannot be charged to a room. Please select a valid payment method.'
             ], 422);
         }
-        
+
         // Items to settle (start with this one)
         $itemsToSettle = [$serviceRequest];
         $totalCollected = $serviceRequest->total_price_tsh;
@@ -827,7 +840,7 @@ class ServiceRequestController extends Controller
                 ->where('payment_status', 'pending')
                 ->where('id', '!=', $serviceRequest->id)
                 ->get();
-            
+
             foreach ($others as $other) {
                 $itemsToSettle[] = $other;
                 $totalCollected += $other->total_price_tsh;
@@ -838,7 +851,7 @@ class ServiceRequestController extends Controller
                 ->where('payment_status', 'pending')
                 ->where('id', '!=', $serviceRequest->id)
                 ->get();
-            
+
             foreach ($others as $other) {
                 $itemsToSettle[] = $other;
                 $totalCollected += $other->total_price_tsh;
@@ -870,7 +883,8 @@ class ServiceRequestController extends Controller
                     'user_agent' => $request->userAgent(),
                 ]);
             }
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+        }
 
         return response()->json([
             'success' => true,
@@ -887,7 +901,7 @@ class ServiceRequestController extends Controller
     {
         // Get authenticated user (guest or staff)
         $user = Auth::guard('guest')->user() ?? Auth::user();
-        
+
         // Verify booking belongs to logged-in customer
         if ($user && ($user->role === 'customer' || $user instanceof \App\Models\Guest) && $booking->guest_email !== $user->email) {
             return response()->json([
@@ -915,11 +929,11 @@ class ServiceRequestController extends Controller
     {
         // Get authenticated user from staff or guest guard
         $user = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
-        
+
         if (!$user) {
             abort(403, 'Unauthorized access. Please login.');
         }
-        
+
         // Verify booking belongs to logged-in customer or user is reception/admin/manager
         if ($user instanceof \App\Models\Guest && $booking->guest_email !== $user->email) {
             abort(403, 'Unauthorized access.');
@@ -932,7 +946,7 @@ class ServiceRequestController extends Controller
         $paymentResponsibility = $booking->payment_responsibility ?? 'company';
         $isGuestWithSelfPaidServices = $isGuestViewingCorporate && $paymentResponsibility === 'self';
         $isGuestWithCompanyPaidServices = $isGuestViewingCorporate && $paymentResponsibility === 'company';
-        
+
         // For staff viewing corporate bookings, also handle payment responsibility
         $isStaffViewingCorporate = $isStaff && $isCorporateBooking;
         $isStaffViewingSelfPaid = $isStaffViewingCorporate && $paymentResponsibility === 'self';
@@ -951,7 +965,7 @@ class ServiceRequestController extends Controller
             $currencyService = new \App\Services\CurrencyExchangeService();
             $exchangeRate = $currencyService->getUsdToTshRate();
         }
-        
+
         // Initialize display variables for corporate bookings
         $displayRoomPriceTsh = null;
         $displayBaseRoomPriceUsd = null;
@@ -959,19 +973,19 @@ class ServiceRequestController extends Controller
         $displayExtensionCostTsh = null;
         $displayExtensionNights = null;
         $displayOriginalNights = null;
-        
+
         // For guests with company-paid services, skip room charge calculations for guest's bill
         // Also for staff viewing company-paid corporate bookings
         // But we still need to calculate display values for transparency
         if ($isGuestWithCompanyPaidServices || $isStaffViewingCompanyPaid) {
             // Calculate display values for bill breakdown (even though company pays)
-            $originalCheckOutDate = $booking->original_check_out 
-                ? \Carbon\Carbon::parse($booking->original_check_out) 
+            $originalCheckOutDate = $booking->original_check_out
+                ? \Carbon\Carbon::parse($booking->original_check_out)
                 : \Carbon\Carbon::parse($booking->check_out);
             $displayOriginalNights = $booking->check_in->diffInDays($originalCheckOutDate);
             $displayBaseRoomPriceUsd = $booking->room ? ($booking->room->price_per_night * $displayOriginalNights) : 0;
             $displayRoomPriceTsh = $displayBaseRoomPriceUsd * $exchangeRate;
-            
+
             $displayExtensionCostUsd = 0;
             $displayExtensionCostTsh = 0;
             $displayExtensionNights = 0;
@@ -984,7 +998,7 @@ class ServiceRequestController extends Controller
                     $displayExtensionCostTsh = $displayExtensionCostUsd * $exchangeRate;
                 }
             }
-            
+
             // Guest's bill (zero since company pays)
             $roomPriceTsh = 0;
             $baseRoomPriceUsd = 0;
@@ -1005,15 +1019,15 @@ class ServiceRequestController extends Controller
             $extensionCostTsh = 0;
             $extensionNights = 0;
             $originalNights = $booking->check_in->diffInDays($booking->check_out);
-            
+
             // For self-paid responsibility, the guest is responsible for ALL services
             // even if they were charged to the room (payment_method = room_charge)
             $selfPaidServiceRequests = $serviceRequests;
             $totalServiceChargesTsh = $selfPaidServiceRequests->sum('total_price_tsh');
-            
+
             // Calculate total bill (only services, no room charges)
             $totalBillTsh = $totalServiceChargesTsh;
-            
+
             // Calculate amount paid (only from service payments, not room payments)
             // For self-paid services, amount_paid in booking might include room payments
             // So we need to calculate from service requests instead
@@ -1025,7 +1039,7 @@ class ServiceRequestController extends Controller
                 }
             }
             $amountPaidUsd = $amountPaidTsh > 0 ? $amountPaidTsh / $exchangeRate : 0;
-            
+
             // Calculate outstanding balance
             $outstandingBalanceTsh = max(0, $totalBillTsh - $amountPaidTsh);
         } elseif ($isStaffViewingCorporate) {
@@ -1039,9 +1053,9 @@ class ServiceRequestController extends Controller
                 $extensionCostTsh = 0;
                 $extensionNights = 0;
                 $originalNights = $booking->check_in->diffInDays($booking->check_out);
-                
+
                 // Only count unpaid self-paid service requests
-                $unpaidServiceRequests = $serviceRequests->filter(function($sr) {
+                $unpaidServiceRequests = $serviceRequests->filter(function ($sr) {
                     $paymentMethod = $sr->payment_method ?? null;
                     $paymentStatus = $sr->payment_status ?? 'pending';
                     return $paymentMethod !== 'room_charge' && $paymentStatus !== 'paid';
@@ -1070,18 +1084,18 @@ class ServiceRequestController extends Controller
             // Calculate extension cost if extension was approved
             $extensionCostUsd = 0;
             $extensionNights = 0;
-            
+
             if ($booking->extension_status === 'approved') {
                 if ($booking->extension_requested_to && $booking->original_check_out) {
                     $originalCheckOut = \Carbon\Carbon::parse($booking->original_check_out);
                     $requestedCheckOut = \Carbon\Carbon::parse($booking->extension_requested_to);
                     $extensionNights = $originalCheckOut->diffInDays($requestedCheckOut);
-                    
+
                     if ($extensionNights > 0 && $booking->room) {
                         $extensionCostUsd = $booking->room->price_per_night * $extensionNights;
                     }
                 }
-                
+
                 // Ensure extension cost doesn't exceed total_price, and base price is the remainder
                 $extensionCostUsd = min($extensionCostUsd, $booking->total_price);
                 $baseRoomPriceUsd = $booking->total_price - $extensionCostUsd;
@@ -1089,35 +1103,35 @@ class ServiceRequestController extends Controller
                 // No extension, whole total_price is the base room price
                 $baseRoomPriceUsd = $booking->total_price;
             }
-            
+
             $extensionCostTsh = $extensionCostUsd * $exchangeRate;
             $roomPriceTsh = $baseRoomPriceUsd * $exchangeRate;
 
             // Calculate original nights (excluding extension) for display
-            $originalCheckOutDate = $booking->original_check_out 
-                ? \Carbon\Carbon::parse($booking->original_check_out) 
+            $originalCheckOutDate = $booking->original_check_out
+                ? \Carbon\Carbon::parse($booking->original_check_out)
                 : \Carbon\Carbon::parse($booking->check_out);
             $originalNights = $booking->check_in->diffInDays($originalCheckOutDate);
-            
+
             $totalServiceChargesTsh = $serviceRequests->sum('total_price_tsh');
-            
+
             // Calculate total bill (room + extension + services)
             $totalBillTsh = $roomPriceTsh + $extensionCostTsh + $totalServiceChargesTsh;
-            
+
             // Calculate amount paid (Booking deposit/payment + any settled service payments)
             $amountPaidUsd = $booking->amount_paid ?? 0;
             $amountPaidTsh = $amountPaidUsd * $exchangeRate;
-            
+
             // Add payments for completed/paid services
             foreach ($serviceRequests as $sr) {
                 if ($sr->payment_status === 'paid') {
                     $amountPaidTsh += $sr->total_price_tsh;
                 }
             }
-            
+
             // Update USD for display consistency
             $amountPaidUsd = $amountPaidTsh / $exchangeRate;
-            
+
             // Calculate outstanding balance
             $outstandingBalanceTsh = max(0, $totalBillTsh - $amountPaidTsh);
         }
@@ -1133,7 +1147,7 @@ class ServiceRequestController extends Controller
         if ($user instanceof \App\Models\Staff) {
             $rawRole = $user->role ?? '';
             $normalizedRole = strtolower(str_replace([' ', '_'], '', trim($rawRole)));
-            
+
             if ($normalizedRole === 'superadmin' || $rawRole === 'super_admin' || strtolower($rawRole) === 'super admin') {
                 $userRole = 'Super Administrator';
             } elseif ($normalizedRole === 'manager' || $rawRole === 'manager') {
@@ -1150,7 +1164,7 @@ class ServiceRequestController extends Controller
         if ($user instanceof \App\Models\Staff) {
             $rawRole = $user->role ?? '';
             $normalizedRole = strtolower(str_replace([' ', '_'], '', trim($rawRole)));
-            
+
             if ($normalizedRole === 'superadmin' || $rawRole === 'super_admin' || strtolower($rawRole) === 'super admin') {
                 $roleForView = 'super_admin';
             } elseif ($normalizedRole === 'manager' || $rawRole === 'manager') {
@@ -1161,9 +1175,9 @@ class ServiceRequestController extends Controller
         } elseif ($user instanceof \App\Models\Guest) {
             $roleForView = 'customer';
         }
-        
+
         // Display values are already calculated above if needed
-        
+
         return view('dashboard.checkout-bill', [
             'role' => $roleForView,
             'userName' => $user->name ?? 'Guest User',
@@ -1204,49 +1218,49 @@ class ServiceRequestController extends Controller
     public function serviceHistory(Request $request)
     {
         $user = Auth::user();
-        
+
         // Get all service requests for customer's bookings
-        $query = ServiceRequest::whereHas('booking', function($q) use ($user) {
+        $query = ServiceRequest::whereHas('booking', function ($q) use ($user) {
             $q->where('guest_email', $user->email);
         })
-        ->with(['service', 'booking.room'])
-        ->orderBy('created_at', 'desc');
-        
+            ->with(['service', 'booking.room'])
+            ->orderBy('created_at', 'desc');
+
         // Filter by status
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);
         }
-        
+
         // Filter by service
         if ($request->has('service_id') && $request->service_id) {
             $query->where('service_id', $request->service_id);
         }
-        
+
         $serviceRequests = $query->paginate(20);
-        
+
         // Get all services for filter
         $services = Service::where('is_active', true)->orderBy('name')->get();
-        
+
         // Get statistics
         $stats = [
-            'total' => ServiceRequest::whereHas('booking', function($q) use ($user) {
+            'total' => ServiceRequest::whereHas('booking', function ($q) use ($user) {
                 $q->where('guest_email', $user->email);
             })->count(),
-            'pending' => ServiceRequest::whereHas('booking', function($q) use ($user) {
+            'pending' => ServiceRequest::whereHas('booking', function ($q) use ($user) {
                 $q->where('guest_email', $user->email);
             })->where('status', 'pending')->count(),
-            'approved' => ServiceRequest::whereHas('booking', function($q) use ($user) {
+            'approved' => ServiceRequest::whereHas('booking', function ($q) use ($user) {
                 $q->where('guest_email', $user->email);
             })->where('status', 'approved')->count(),
-            'completed' => ServiceRequest::whereHas('booking', function($q) use ($user) {
+            'completed' => ServiceRequest::whereHas('booking', function ($q) use ($user) {
                 $q->where('guest_email', $user->email);
             })->where('status', 'completed')->count(),
         ];
-        
+
         // Get exchange rate
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $currencyService->getUsdToTshRate();
-        
+
         return view('dashboard.customer-service-history', [
             'role' => 'customer',
             'userName' => $user->name ?? 'Guest User',
@@ -1282,11 +1296,11 @@ class ServiceRequestController extends Controller
         $user = auth()->guard('staff')->user();
         if ($user) {
             if ($user->role === 'head_chef') {
-                $query->whereHas('service', function($q) {
+                $query->whereHas('service', function ($q) {
                     $q->whereIn('category', ['food', 'restaurant', 'kitchen']);
                 });
             } elseif ($user->role === 'bar_keeper') {
-                $query->whereHas('service', function($q) {
+                $query->whereHas('service', function ($q) {
                     $q->whereIn('category', ['alcoholic_beverage', 'non_alcoholic_beverage', 'water', 'juices', 'energy_drinks', 'soft_drinks', 'beers', 'wines', 'spirits', 'cocktails', 'drinks', 'liquor']);
                 });
             }

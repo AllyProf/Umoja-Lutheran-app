@@ -85,9 +85,10 @@ class StockRequestController extends Controller
                     ->orWhere('type', 'housekeeping');
             });
         } else {
-            // Others (Counter/Bar) request beverages + shared cleaning supplies
-            $query->whereHas('product', function ($q) use ($sharedCategories) {
-                $q->whereIn('category', array_merge(['non_alcoholic_beverage', 'alcoholic_beverage', 'drinks', 'beverage'], $sharedCategories));
+            // Others (Counter/Bar) request beverages + supplies + cleaning items
+            $barCategories = ['non_alcoholic_beverage', 'alcoholic_beverage', 'drinks', 'beverage', 'water', 'juices', 'energy_drinks', 'soft_drinks', 'beers', 'wines', 'spirits', 'cocktails', 'liquor', 'supplies', 'equipment', 'sauces', 'hot_beverages'];
+            $query->whereHas('product', function ($q) use ($barCategories, $sharedCategories) {
+                $q->whereIn('category', array_merge($barCategories, $sharedCategories));
             });
         }
 
@@ -119,7 +120,10 @@ class StockRequestController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        $status = ($isChef || $isHousekeeper) ? 'pending_manager' : 'pending_accountant';
+        $isBarKeeper = in_array($normalizedRole, ['bar_keeper', 'bar keeper', 'bartender']);
+
+        // Bar Keeper, Chef and Housekeeper all go directly to Manager
+        $status = ($isChef || $isHousekeeper || $isBarKeeper) ? 'pending_manager' : 'pending_accountant';
         $notes = $request->notes;
 
         // Stock availability check
@@ -197,9 +201,10 @@ class StockRequestController extends Controller
         }
 
         $count = count($request->items);
-        $message = ($isChef || $isHousekeeper)
-            ? "$count item(s) submitted to Manager."
-            : "$count beverage request(s) submitted to Accountant.";
+        $message = ($isChef || $isHousekeeper || $isBarKeeper)
+            ? "$count item(s) submitted to Manager for approval."
+            : "$count stock request(s) submitted to Accountant.";
+
 
         return redirect()->route('stock-requests.index')->with('success', $message);
     }
@@ -300,7 +305,7 @@ class StockRequestController extends Controller
     }
 
     /**
-     * Storekeeper distributes the products — creates a StockTransfer automatically.
+     * Storekeeper distributes the products — accepts price/quantity input from form.
      */
     public function distribute(Request $request, StockRequest $stockRequest)
     {
@@ -312,33 +317,17 @@ class StockRequestController extends Controller
             return redirect()->back()->with('error', 'Request must be approved by Manager first.');
         }
 
+        $request->validate([
+            'quantity_issued' => 'required|numeric|min:0.01',
+            'unit_cost' => 'required|numeric|min:0',
+        ]);
+
+        $quantityIssued = (float) $request->quantity_issued;
+        $unitCost = (float) $request->unit_cost;
+        $totalCost = $quantityIssued * $unitCost;
+
         DB::beginTransaction();
         try {
-            // Get the latest buying price for accurate revenue projections
-            $latestReceipt = \App\Models\StockReceipt::where('product_variant_id', $stockRequest->product_variant_id)
-                ->orderBy('received_date', 'desc')
-                ->orderBy('created_at', 'desc')
-                ->first();
-
-            $unitCost = null;
-            if ($latestReceipt) {
-                $raw_price = $latestReceipt->buying_price_per_bottle;
-                $variant = $stockRequest->productVariant;
-                $sp = $variant->selling_price_per_pic ?? 0;
-
-                // If raw price > selling price for a bottle, it's definitely a package price
-                $isPackagePrice = false;
-                if (($variant->items_per_package ?? 0) > 0 && $sp > 0 && $raw_price > $sp) {
-                    $isPackagePrice = true;
-                }
-
-                if ($stockRequest->unit === 'packages') {
-                    $unitCost = $isPackagePrice ? $raw_price : $raw_price * ($variant->items_per_package ?? 1);
-                } else {
-                    $unitCost = $isPackagePrice ? $raw_price / ($variant->items_per_package ?? 1) : $raw_price;
-                }
-            }
-
             $stockRequest->loadMissing('requester');
             $receiverRole = strtolower(str_replace(' ', '_', $stockRequest->requester->role ?? ''));
             $isInternal = in_array($receiverRole, ['head_chef', 'housekeeper', 'linen_keeper']);
@@ -350,7 +339,7 @@ class StockRequestController extends Controller
                 'transfer_reference' => StockTransfer::generateReference(),
                 'product_id' => $stockRequest->productVariant->product_id,
                 'product_variant_id' => $stockRequest->product_variant_id,
-                'quantity_transferred' => $stockRequest->quantity,
+                'quantity_transferred' => $quantityIssued,
                 'quantity_unit' => $stockRequest->unit,
                 'unit_cost' => $unitCost,
                 'transferred_by' => Auth::guard('staff')->id(),
@@ -358,10 +347,9 @@ class StockRequestController extends Controller
                 'status' => $transferStatus,
                 'transfer_date' => Carbon::now(),
                 'received_at' => $receivedAt,
-                'notes' => 'Auto-generated from Stock Request #' . $stockRequest->id,
+                'notes' => 'Requisition Note #' . $stockRequest->id,
             ]);
 
-            // Calculate revenue projections if available
             if (method_exists($transfer, 'calculateRevenueProjections')) {
                 $transfer->calculateRevenueProjections();
                 $transfer->save();
@@ -369,6 +357,9 @@ class StockRequestController extends Controller
 
             $stockRequest->update([
                 'status' => 'completed',
+                'quantity_issued' => $quantityIssued,
+                'unit_cost' => $unitCost,
+                'total_cost' => $totalCost,
                 'storekeeper_id' => Auth::guard('staff')->id(),
                 'distributed_at' => Carbon::now(),
                 'stock_transfer_id' => $transfer->id,
@@ -376,19 +367,16 @@ class StockRequestController extends Controller
 
             $this->notificationService->createStockRequestStatusUpdateNotification($stockRequest, 'completed');
 
-            // Update Department Inventory if it's an internal request (Kitchen/Housekeeping)
             if ($isInternal) {
                 $itemName = $stockRequest->productVariant->product->name;
-                // If it's a variant like '500ml', append it
                 if ($stockRequest->productVariant->variant_name && strtolower($stockRequest->productVariant->variant_name) !== 'standard') {
                     $itemName .= ' - ' . $stockRequest->productVariant->variant_name;
                 }
-
-                $quantity = $stockRequest->quantity;
+                $quantity = $quantityIssued;
                 $unit = $stockRequest->unit;
                 $category = $stockRequest->productVariant->product->category;
                 $staffId = $stockRequest->requested_by;
-                $notes = "Internal supply from Store: Stock Request #{$stockRequest->id}";
+                $notes = "Issued from Store: Requisition #{$stockRequest->id}";
                 $variant = $stockRequest->productVariant;
 
                 if (in_array($receiverRole, ['head_chef', 'chef'])) {
@@ -399,10 +387,51 @@ class StockRequestController extends Controller
             }
 
             DB::commit();
-            return redirect()->back()->with('success', 'Products distributed successfully. Stock transfer created.');
+
+            // Redirect to print after distributing
+            return redirect()->route('stock-requests.print', $stockRequest->id)
+                ->with('success', 'Items issued successfully. Print the Requisition Note below.');
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Failed to distribute: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Print the Requisition/Issue Note for a stock request.
+     */
+    public function printNote(StockRequest $stockRequest)
+    {
+        $stockRequest->loadMissing([
+            'requester',
+            'productVariant.product',
+            'manager',
+            'storekeeper',
+            'accountant',
+        ]);
+
+        // Suggest latest unit cost for pre-filling the form (if not yet distributed)
+        $suggestedUnitCost = null;
+        if ($stockRequest->status === 'approved') {
+            $latestReceipt = \App\Models\StockReceipt::where('product_variant_id', $stockRequest->product_variant_id)
+                ->orderBy('received_date', 'desc')
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            if ($latestReceipt) {
+                $raw_price = $latestReceipt->buying_price_per_bottle;
+                $variant = $stockRequest->productVariant;
+                $sp = $variant->selling_price_per_pic ?? 0;
+                $isPackagePrice = ($variant->items_per_package ?? 0) > 0 && $sp > 0 && $raw_price > $sp;
+
+                if ($stockRequest->unit === 'packages') {
+                    $suggestedUnitCost = $isPackagePrice ? $raw_price : $raw_price * ($variant->items_per_package ?? 1);
+                } else {
+                    $suggestedUnitCost = $isPackagePrice ? $raw_price / ($variant->items_per_package ?? 1) : $raw_price;
+                }
+            }
+        }
+
+        return view('dashboard.stock-requests.print', compact('stockRequest', 'suggestedUnitCost'));
     }
 }

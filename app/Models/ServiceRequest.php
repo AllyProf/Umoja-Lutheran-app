@@ -75,4 +75,12 @@ class ServiceRequest extends Model
     {
         return $this->belongsTo(Staff::class, 'approved_by');
     }
+
+    /**
+     * Get the shift closure that this request was processed in.
+     */
+    public function shiftClosure(): BelongsTo
+    {
+        return $this->belongsTo(ShiftClosure::class, 'shift_closure_id');
+    }
 }

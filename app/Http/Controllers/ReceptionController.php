@@ -6,6 +6,9 @@ use App\Models\Booking;
 use App\Models\Room;
 use App\Services\CurrencyExchangeService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Models\ShiftClosure;
+use App\Models\ServiceRequest;
 use Carbon\Carbon;
 
 class ReceptionController extends Controller
@@ -33,18 +36,18 @@ class ReceptionController extends Controller
         if ($request->has('status') && $request->status && $request->status !== 'all') {
             if ($request->status === 'expired') {
                 // Show expired bookings (pending bookings that have expired)
-                $query->where(function($q) {
-                    $q->where(function($subQ) {
+                $query->where(function ($q) {
+                    $q->where(function ($subQ) {
                         // Pending bookings that have expired
                         $subQ->where('status', 'pending')
-                             ->where('payment_status', 'pending')
-                             ->whereNotNull('expires_at')
-                             ->where('expires_at', '<=', \Carbon\Carbon::now());
-                    })->orWhere(function($subQ) {
+                            ->where('payment_status', 'pending')
+                            ->whereNotNull('expires_at')
+                            ->where('expires_at', '<=', \Carbon\Carbon::now());
+                    })->orWhere(function ($subQ) {
                         // Cancelled bookings with expiration reason
                         $subQ->where('status', 'cancelled')
-                             ->whereNotNull('cancellation_reason')
-                             ->where('cancellation_reason', 'like', '%expired%');
+                            ->whereNotNull('cancellation_reason')
+                            ->where('cancellation_reason', 'like', '%expired%');
                     });
                 });
             } else {
@@ -52,12 +55,12 @@ class ReceptionController extends Controller
             }
         } elseif (!$request->has('status') || !$request->status || $request->status === 'all') {
             // Exclude expired bookings from main list unless specifically requested
-            $query->where(function($q) {
-                $q->where(function($subQ) {
+            $query->where(function ($q) {
+                $q->where(function ($subQ) {
                     $subQ->where('status', '!=', 'pending')
-                         ->orWhere('payment_status', '!=', 'pending')
-                         ->orWhereNull('expires_at')
-                         ->orWhere('expires_at', '>', \Carbon\Carbon::now());
+                        ->orWhere('payment_status', '!=', 'pending')
+                        ->orWhereNull('expires_at')
+                        ->orWhere('expires_at', '>', \Carbon\Carbon::now());
                 });
             });
         }
@@ -76,18 +79,18 @@ class ReceptionController extends Controller
         $bookingType = $request->get('type', 'individual'); // Default to individual
         /* if ($bookingType === 'corporate') {
             $query->where('is_corporate_booking', true);
-            
+
             // Group corporate bookings by company_id
             // Get unique company IDs first
             $companyIds = (clone $query)->reorder()->whereNotNull('company_id')->distinct()->pluck('company_id');
-            
+
             // Get bookings grouped by company
             $groupedBookings = collect();
             foreach ($companyIds as $companyId) {
                 $companyBookings = Booking::with(['room', 'company', 'serviceRequests'])
                     ->where('is_corporate_booking', true)
                     ->where('company_id', $companyId);
-                
+
                 // Apply filters
                 if ($request->has('status') && $request->status) {
                     if ($request->status === 'expired') {
@@ -116,15 +119,15 @@ class ReceptionController extends Controller
                         });
                     });
                 }
-                
+
                 if ($request->has('payment_status') && $request->payment_status) {
                     $companyBookings->where('payment_status', $request->payment_status);
                 }
-                
+
                 if ($request->has('check_in_status') && $request->check_in_status) {
                     $companyBookings->where('check_in_status', $request->check_in_status);
                 }
-                
+
                 // Search by guest name, booking reference, or company name
                 if ($request->has('search') && $request->search) {
                     $search = $request->search;
@@ -138,9 +141,9 @@ class ReceptionController extends Controller
                           });
                     });
                 }
-                
+
                 $bookingsForCompany = $companyBookings->orderBy('created_at', 'desc')->get();
-                
+
                 if ($bookingsForCompany->count() > 0) {
                     $groupedBookings->push([
                         'company' => $bookingsForCompany->first()->company,
@@ -149,7 +152,7 @@ class ReceptionController extends Controller
                     ]);
                 }
             }
-            
+
             // Convert to paginator-like structure
             $bookings = new \Illuminate\Pagination\LengthAwarePaginator(
                 $groupedBookings->forPage($request->get('page', 1), 20),
@@ -159,30 +162,30 @@ class ReceptionController extends Controller
                 ['path' => $request->url(), 'query' => $request->query()]
             );
         } else { */
-            // Default to individual bookings (is_corporate_booking is false or null)
-            $query->where(function($q) {
-                $q->where('is_corporate_booking', false)
-                  ->orWhereNull('is_corporate_booking');
+        // Default to individual bookings (is_corporate_booking is false or null)
+        $query->where(function ($q) {
+            $q->where('is_corporate_booking', false)
+                ->orWhereNull('is_corporate_booking');
+        });
+
+        // Search by guest name or booking reference
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('guest_name', 'like', "%{$search}%")
+                    ->orWhere('booking_reference', 'like', "%{$search}%")
+                    ->orWhere('guest_email', 'like', "%{$search}%");
             });
-            
-            // Search by guest name or booking reference
-            if ($request->has('search') && $request->search) {
-                $search = $request->search;
-                $query->where(function($q) use ($search) {
-                    $q->where('guest_name', 'like', "%{$search}%")
-                      ->orWhere('booking_reference', 'like', "%{$search}%")
-                      ->orWhere('guest_email', 'like', "%{$search}%");
-                });
-            }
-            
-            $bookings = $query->paginate(20);
+        }
+
+        $bookings = $query->paginate(20);
 
 
         // Get statistics filtered by booking type
         /* if ($bookingType === 'corporate') {
             // For corporate bookings, count unique companies
             $baseQuery = Booking::where('is_corporate_booking', true);
-            
+
             // Apply status filter if provided
             if ($request->has('status') && $request->status == 'expired') {
                 $baseQuery->where(function($q) {
@@ -200,23 +203,23 @@ class ReceptionController extends Controller
             } else if ($request->has('status') && $request->status) {
                 $baseQuery->where('status', $request->status);
             }
-            
+
             // Count unique companies
             $totalCompanies = $baseQuery->whereNotNull('company_id')->distinct('company_id')->count('company_id');
-            
+
             // For other stats, count companies that have bookings matching the criteria
             $confirmedCompanies = (clone $baseQuery)->where('status', 'confirmed')->whereNotNull('company_id')->distinct('company_id')->count('company_id');
             $checkedInCompanies = (clone $baseQuery)->where('check_in_status', 'checked_in')->whereNotNull('company_id')->distinct('company_id')->count('company_id');
             $checkedOutCompanies = (clone $baseQuery)->where('check_in_status', 'checked_out')->whereNotNull('company_id')->distinct('company_id')->count('company_id');
-            
+
             // Also get overall stats for tabs
             $allIndividualQuery = Booking::where(function($q) {
                 $q->where('is_corporate_booking', false)
                   ->orWhereNull('is_corporate_booking');
             });
-            
+
             $allCorporateQuery = Booking::where('is_corporate_booking', true);
-            
+
             $stats = [
                 'total' => $totalCompanies,
                 'individual_total' => $allIndividualQuery->count(),
@@ -230,95 +233,95 @@ class ReceptionController extends Controller
                 'checked_out' => $checkedOutCompanies,
             ];
         } else { */
-            // For individual bookings, count individual bookings
-            // Base query for individual bookings
-            $baseQuery = Booking::where(function($q) {
-                $q->where('is_corporate_booking', false)
-                  ->orWhereNull('is_corporate_booking');
-            });
+        // For individual bookings, count individual bookings
+        // Base query for individual bookings
+        $baseQuery = Booking::where(function ($q) {
+            $q->where('is_corporate_booking', false)
+                ->orWhereNull('is_corporate_booking');
+        });
 
-            
-            // Synchronize stats with all current filters
-            $statsQuery = clone $baseQuery;
-            
-            // 1. Apply status filter (excluding expired)
-            if ($request->has('status') && $request->status && $request->status !== 'all') {
-                if ($request->status === 'expired') {
-                    $statsQuery->where(function($q) {
-                        $q->where(function($subQ) {
-                            $subQ->where('status', 'pending')
-                                 ->where('payment_status', 'pending')
-                                 ->whereNotNull('expires_at')
-                                 ->where('expires_at', '<=', \Carbon\Carbon::now());
-                        })->orWhere(function($subQ) {
-                            $subQ->where('status', 'cancelled')
-                                 ->whereNotNull('cancellation_reason')
-                                 ->where('cancellation_reason', 'like', '%expired%');
-                        });
+
+        // Synchronize stats with all current filters
+        $statsQuery = clone $baseQuery;
+
+        // 1. Apply status filter (excluding expired)
+        if ($request->has('status') && $request->status && $request->status !== 'all') {
+            if ($request->status === 'expired') {
+                $statsQuery->where(function ($q) {
+                    $q->where(function ($subQ) {
+                        $subQ->where('status', 'pending')
+                            ->where('payment_status', 'pending')
+                            ->whereNotNull('expires_at')
+                            ->where('expires_at', '<=', \Carbon\Carbon::now());
+                    })->orWhere(function ($subQ) {
+                        $subQ->where('status', 'cancelled')
+                            ->whereNotNull('cancellation_reason')
+                            ->where('cancellation_reason', 'like', '%expired%');
                     });
-                } else {
-                    $statsQuery->where('status', $request->status);
-                }
+                });
             } else {
-                // Default view (no expired)
-                $statsQuery->where(function($q) {
-                    $q->where('status', '!=', 'pending')
-                         ->orWhere('payment_status', '!=', 'pending')
-                         ->orWhereNull('expires_at')
-                         ->orWhere('expires_at', '>', \Carbon\Carbon::now());
-                });
+                $statsQuery->where('status', $request->status);
             }
+        } else {
+            // Default view (no expired)
+            $statsQuery->where(function ($q) {
+                $q->where('status', '!=', 'pending')
+                    ->orWhere('payment_status', '!=', 'pending')
+                    ->orWhereNull('expires_at')
+                    ->orWhere('expires_at', '>', \Carbon\Carbon::now());
+            });
+        }
 
-            // 2. Apply payment status filter
-            if ($request->has('payment_status') && $request->payment_status && $request->payment_status !== 'all') {
-                $statsQuery->where('payment_status', $request->payment_status);
-            }
+        // 2. Apply payment status filter
+        if ($request->has('payment_status') && $request->payment_status && $request->payment_status !== 'all') {
+            $statsQuery->where('payment_status', $request->payment_status);
+        }
 
-            // 3. Apply check-in status filter
-            if ($request->has('check_in_status') && $request->check_in_status && $request->check_in_status !== 'all') {
-                $statsQuery->where('check_in_status', $request->check_in_status);
-            }
+        // 3. Apply check-in status filter
+        if ($request->has('check_in_status') && $request->check_in_status && $request->check_in_status !== 'all') {
+            $statsQuery->where('check_in_status', $request->check_in_status);
+        }
 
-            // 4. Apply search filter
-            if ($request->has('search') && $request->search) {
-                $search = $request->search;
-                $statsQuery->where(function($q) use ($search) {
-                    $q->where('guest_name', 'like', "%{$search}%")
-                      ->orWhere('booking_reference', 'like', "%{$search}%")
-                      ->orWhere('guest_email', 'like', "%{$search}%");
-                });
-            }
-            
-            // Also get global totals for the tabs (always unfiltered by status/payment/check-in)
-            $allIndividualTotal = Booking::where(function($q) {
-                $q->where('is_corporate_booking', false)
-                  ->orWhereNull('is_corporate_booking');
-            })->count();
-            
-            $allCorporateTotal = Booking::where('is_corporate_booking', true)
-                ->whereNotNull('company_id')
-                ->distinct('company_id')
-                ->count('company_id');
-            
-            $stats = [
-                'total' => $statsQuery->count(),
-                'individual_total' => $allIndividualTotal,
-                'corporate_total' => $allCorporateTotal,
-                'pending' => (clone $statsQuery)->where('status', 'pending')->count(),
-                'confirmed' => (clone $statsQuery)->where('status', 'confirmed')->count(),
-                'cancelled' => (clone $statsQuery)->where('status', 'cancelled')->count(),
-                'completed' => (clone $statsQuery)->where('status', 'completed')->count(),
-                'expired' => (clone $statsQuery)->where('status', 'cancelled')
-                    ->whereNotNull('cancellation_reason')
-                    ->where('cancellation_reason', 'like', '%expired automatically%')
-                    ->count(),
-                'checked_in' => (clone $statsQuery)->where('check_in_status', 'checked_in')->count(),
-                'checked_out' => (clone $statsQuery)->where('check_in_status', 'checked_out')->count(),
-            ];
+        // 4. Apply search filter
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $statsQuery->where(function ($q) use ($search) {
+                $q->where('guest_name', 'like', "%{$search}%")
+                    ->orWhere('booking_reference', 'like', "%{$search}%")
+                    ->orWhere('guest_email', 'like', "%{$search}%");
+            });
+        }
+
+        // Also get global totals for the tabs (always unfiltered by status/payment/check-in)
+        $allIndividualTotal = Booking::where(function ($q) {
+            $q->where('is_corporate_booking', false)
+                ->orWhereNull('is_corporate_booking');
+        })->count();
+
+        $allCorporateTotal = Booking::where('is_corporate_booking', true)
+            ->whereNotNull('company_id')
+            ->distinct('company_id')
+            ->count('company_id');
+
+        $stats = [
+            'total' => $statsQuery->count(),
+            'individual_total' => $allIndividualTotal,
+            'corporate_total' => $allCorporateTotal,
+            'pending' => (clone $statsQuery)->where('status', 'pending')->count(),
+            'confirmed' => (clone $statsQuery)->where('status', 'confirmed')->count(),
+            'cancelled' => (clone $statsQuery)->where('status', 'cancelled')->count(),
+            'completed' => (clone $statsQuery)->where('status', 'completed')->count(),
+            'expired' => (clone $statsQuery)->where('status', 'cancelled')
+                ->whereNotNull('cancellation_reason')
+                ->where('cancellation_reason', 'like', '%expired automatically%')
+                ->count(),
+            'checked_in' => (clone $statsQuery)->where('check_in_status', 'checked_in')->count(),
+            'checked_out' => (clone $statsQuery)->where('check_in_status', 'checked_out')->count(),
+        ];
 
 
         $role = $this->getRole();
-        
+
         return view('dashboard.bookings-list', [
             'bookings' => $bookings,
             'role' => $role,
@@ -336,7 +339,7 @@ class ReceptionController extends Controller
     public function newReservation()
     {
         $rooms = Room::orderBy('room_number')->get();
-        
+
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $currencyService->getUsdToTshRate();
 
@@ -357,29 +360,29 @@ class ReceptionController extends Controller
     {
         // Filter by booking type (individual or corporate)
         $bookingType = $request->get('type', 'individual'); // Default to individual
-        
+
         $query = Booking::with('room')
             ->where('status', 'confirmed')
             ->whereIn('payment_status', ['paid', 'partial'])
-            ->where(function($q) {
+            ->where(function ($q) {
                 // Include paid bookings
                 $q->where('payment_status', 'paid')
-                  // Or partial payments where amount_paid > 0
-                  ->orWhere(function($subQ) {
-                      $subQ->where('payment_status', 'partial')
-                           ->whereNotNull('amount_paid')
-                           ->where('amount_paid', '>', 0);
-                  });
+                    // Or partial payments where amount_paid > 0
+                    ->orWhere(function ($subQ) {
+                    $subQ->where('payment_status', 'partial')
+                        ->whereNotNull('amount_paid')
+                        ->where('amount_paid', '>', 0);
+                });
             })
             ->where('check_in_status', 'pending');
 
         // Filter by booking type
         if ($bookingType === 'corporate') {
             $query->where('is_corporate_booking', true);
-            
+
             // Group corporate bookings by company_id
             $companyIds = $query->whereNotNull('company_id')->distinct()->pluck('company_id');
-            
+
             $groupedBookings = collect();
             foreach ($companyIds as $companyId) {
                 $companyBookings = Booking::with(['room', 'company', 'serviceRequests'])
@@ -387,39 +390,39 @@ class ReceptionController extends Controller
                     ->where('company_id', $companyId)
                     ->where('status', 'confirmed')
                     ->whereIn('payment_status', ['paid', 'partial'])
-                    ->where(function($q) {
+                    ->where(function ($q) {
                         $q->where('payment_status', 'paid')
-                          ->orWhere(function($subQ) {
-                              $subQ->where('payment_status', 'partial')
-                                   ->whereNotNull('amount_paid')
-                                   ->where('amount_paid', '>', 0);
-                          });
+                            ->orWhere(function ($subQ) {
+                                $subQ->where('payment_status', 'partial')
+                                    ->whereNotNull('amount_paid')
+                                    ->where('amount_paid', '>', 0);
+                            });
                     })
                     ->where('check_in_status', 'pending');
-                
+
                 // Search functionality
                 if ($request->has('search') && $request->search) {
                     $search = $request->search;
-                    $companyBookings->where(function($q) use ($search) {
+                    $companyBookings->where(function ($q) use ($search) {
                         $q->where('booking_reference', 'like', "%{$search}%")
-                          ->orWhere('guest_name', 'like', "%{$search}%")
-                          ->orWhere('guest_email', 'like', "%{$search}%")
-                          ->orWhereHas('company', function($q) use ($search) {
-                              $q->where('name', 'like', "%{$search}%")
-                                ->orWhere('email', 'like', "%{$search}%");
-                          });
+                            ->orWhere('guest_name', 'like', "%{$search}%")
+                            ->orWhere('guest_email', 'like', "%{$search}%")
+                            ->orWhereHas('company', function ($q) use ($search) {
+                                $q->where('name', 'like', "%{$search}%")
+                                    ->orWhere('email', 'like', "%{$search}%");
+                            });
                     });
                 }
-                
+
                 // Filter by check-in date
                 if ($request->has('check_in_date') && $request->check_in_date) {
                     $companyBookings->whereDate('check_in', '<=', $request->check_in_date);
                 } else {
                     $companyBookings->whereDate('check_in', '<=', Carbon::today()->addDay());
                 }
-                
+
                 $bookingsForCompany = $companyBookings->orderBy('check_in', 'asc')->get();
-                
+
                 if ($bookingsForCompany->count() > 0) {
                     $groupedBookings->push([
                         'company' => $bookingsForCompany->first()->company,
@@ -428,7 +431,7 @@ class ReceptionController extends Controller
                     ]);
                 }
             }
-            
+
             // Paginate grouped bookings manually
             $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
             $perPage = 20;
@@ -447,10 +450,10 @@ class ReceptionController extends Controller
             // Search functionality
             if ($request->has('search') && $request->search) {
                 $search = $request->search;
-                $query->where(function($q) use ($search) {
+                $query->where(function ($q) use ($search) {
                     $q->where('booking_reference', 'like', "%{$search}%")
-                      ->orWhere('guest_name', 'like', "%{$search}%")
-                      ->orWhere('guest_email', 'like', "%{$search}%");
+                        ->orWhere('guest_name', 'like', "%{$search}%")
+                        ->orWhere('guest_email', 'like', "%{$search}%");
                 });
             }
 
@@ -475,26 +478,26 @@ class ReceptionController extends Controller
                 ->where('status', 'confirmed')
                 ->whereIn('payment_status', ['paid', 'partial'])
                 ->where('check_in_status', 'pending')
-                ->where(function($q) {
+                ->where(function ($q) {
                     $q->where('payment_status', 'paid')
-                      ->orWhere(function($subQ) {
-                          $subQ->where('payment_status', 'partial')
-                               ->whereNotNull('amount_paid')
-                               ->where('amount_paid', '>', 0);
-                      });
+                        ->orWhere(function ($subQ) {
+                            $subQ->where('payment_status', 'partial')
+                                ->whereNotNull('amount_paid')
+                                ->where('amount_paid', '>', 0);
+                        });
                 })
                 ->count(),
             'corporate_total' => Booking::where('is_corporate_booking', true)
                 ->where('status', 'confirmed')
                 ->whereIn('payment_status', ['paid', 'partial'])
                 ->where('check_in_status', 'pending')
-                ->where(function($q) {
+                ->where(function ($q) {
                     $q->where('payment_status', 'paid')
-                      ->orWhere(function($subQ) {
-                          $subQ->where('payment_status', 'partial')
-                               ->whereNotNull('amount_paid')
-                               ->where('amount_paid', '>', 0);
-                      });
+                        ->orWhere(function ($subQ) {
+                            $subQ->where('payment_status', 'partial')
+                                ->whereNotNull('amount_paid')
+                                ->where('amount_paid', '>', 0);
+                        });
                 })
                 ->distinct('company_id')
                 ->count('company_id'),
@@ -522,60 +525,60 @@ class ReceptionController extends Controller
     {
         // Filter by booking type (individual or corporate)
         $bookingType = $request->get('type', 'individual'); // Default to individual
-        
+
         // Show all guests who are checked in OR checked out but not paid
         // Include bookings that are checked in (ready for check-out)
         $query = Booking::with('room')
             ->where('status', 'confirmed') // Only show confirmed bookings
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->where('check_in_status', 'checked_in')
-                  ->orWhere(function($q2) {
-                      $q2->where('check_in_status', 'checked_out')
-                         ->where('payment_status', '!=', 'paid');
-                  });
+                    ->orWhere(function ($q2) {
+                        $q2->where('check_in_status', 'checked_out')
+                            ->where('payment_status', '!=', 'paid');
+                    });
             });
 
         // Filter by booking type
         if ($bookingType === 'corporate') {
             $query->where('is_corporate_booking', true);
-            
+
             // Group corporate bookings by company_id
             $companyIds = $query->whereNotNull('company_id')->distinct()->pluck('company_id');
-            
+
             $groupedBookings = collect();
             foreach ($companyIds as $companyId) {
                 $companyBookings = Booking::with(['room', 'company', 'serviceRequests.service'])
                     ->where('is_corporate_booking', true)
                     ->where('company_id', $companyId)
                     ->where('status', 'confirmed') // Only show confirmed bookings
-                    ->where(function($q) {
+                    ->where(function ($q) {
                         // Show anyone who is checked in or recently checked out
                         $q->where('check_in_status', 'checked_in')
-                          ->orWhere('check_in_status', 'checked_out');
+                            ->orWhere('check_in_status', 'checked_out');
                     });
-                
+
                 // Search functionality
                 if ($request->has('search') && $request->search) {
                     $search = $request->search;
-                    $companyBookings->where(function($q) use ($search) {
+                    $companyBookings->where(function ($q) use ($search) {
                         $q->where('booking_reference', 'like', "%{$search}%")
-                          ->orWhere('guest_name', 'like', "%{$search}%")
-                          ->orWhere('guest_email', 'like', "%{$search}%")
-                          ->orWhereHas('company', function($q) use ($search) {
-                              $q->where('name', 'like', "%{$search}%")
-                                ->orWhere('email', 'like', "%{$search}%");
-                          });
+                            ->orWhere('guest_name', 'like', "%{$search}%")
+                            ->orWhere('guest_email', 'like', "%{$search}%")
+                            ->orWhereHas('company', function ($q) use ($search) {
+                                $q->where('name', 'like', "%{$search}%")
+                                    ->orWhere('email', 'like', "%{$search}%");
+                            });
                     });
                 }
-                
+
                 // Filter by check-out date (optional - if provided)
                 if ($request->has('check_out_date') && $request->check_out_date) {
                     $companyBookings->whereDate('check_out', '<=', $request->check_out_date);
                 }
                 // Show all checked-in bookings regardless of check-out date
-                
+
                 $bookingsForCompany = $companyBookings->orderBy('check_out', 'asc')->get();
-                
+
                 if ($bookingsForCompany->count() > 0) {
                     $groupedBookings->push([
                         'company' => $bookingsForCompany->first()->company,
@@ -584,28 +587,28 @@ class ReceptionController extends Controller
                     ]);
                 }
             }
-            
+
             // Calculate outstanding balances before pagination
             $currencyService = new CurrencyExchangeService();
             $exchangeRate = $currencyService->getUsdToTshRate();
-            
+
             // Use map to transform the collection and add totals
             $groupedBookings = $groupedBookings->map(function ($group) use ($exchangeRate) {
                 $totalOutstandingTsh = 0;
                 $totalOutstandingUsd = 0;
-                
+
                 foreach ($group['bookings'] as $booking) {
                     // Use locked exchange rate from booking, or fallback to current rate
                     $bookingExchangeRate = $booking->locked_exchange_rate ?? $exchangeRate;
-                    
+
                     // Calculate service charges
                     $serviceRequests = $booking->serviceRequests()
                         ->whereIn('status', ['approved', 'completed'])
                         ->with('service')
                         ->get();
-                    
+
                     $totalServiceChargesTsh = $serviceRequests->sum('total_price_tsh');
-                    
+
                     // Calculate extension cost if extension was approved
                     $extensionCostUsd = 0;
                     if ($booking->extension_status === 'approved' && $booking->original_check_out && $booking->extension_requested_to) {
@@ -617,11 +620,11 @@ class ReceptionController extends Controller
                         }
                     }
                     $extensionCostTsh = $extensionCostUsd * $bookingExchangeRate;
-                    
+
                     // Check payment responsibility - if self-paid, exclude service charges from company bill
                     $paymentResponsibility = $booking->payment_responsibility ?? 'company';
                     $companyResponsibleServiceChargesTsh = 0;
-                    
+
                     if ($paymentResponsibility === 'self') {
                         // Guest pays for services - exclude from company bill
                         $companyResponsibleServiceChargesTsh = 0;
@@ -629,29 +632,29 @@ class ReceptionController extends Controller
                         // Company pays for services
                         $companyResponsibleServiceChargesTsh = $totalServiceChargesTsh;
                     }
-                    
+
                     // Company's total bill (room + company-responsible services + extensions)
                     // Note: extensionCostTsh is already included in booking->total_price
                     $companyBillTsh = ($booking->total_price * $bookingExchangeRate) + $companyResponsibleServiceChargesTsh;
-                    
+
                     // Identify what portion of amount_paid was for guest-paid services
                     // Logic: If payment_responsibility is 'self', only services paid via 'cash' (bar) or any method at reception 
                     // should be considered part of the booking's amount_paid field and thus subtracted from the company's credit.
                     // For now, let's look at services that are 'paid' and NOT 'room_charge'.
                     $paidServiceRequests = $serviceRequests->where('payment_status', 'paid');
-                    
+
                     // We need to know which of these 'paid' services were recorded into 'amount_paid'.
                     // Based on our system: Reception payments always update it. 
                     // Bar payments update it if they are 'cash' (and now everything else after the fix).
-                    $servicePaymentsInAmountPaidTsh = $paidServiceRequests->filter(function($sr) {
+                    $servicePaymentsInAmountPaidTsh = $paidServiceRequests->filter(function ($sr) {
                         // If it's paid and not charged to room, it was a direct payment.
                         // We check if it was likely recorded in the booking's amount_paid.
                         return true; // Conservative approach: assume all direct service payments are in amount_paid
                     })->sum('total_price_tsh');
-                    
+
                     // Total amount recorded in the booking (includes room payments + guest service payments)
                     $totalPaidTsh = ($booking->amount_paid ?? 0) * $bookingExchangeRate;
-                    
+
                     // Calculate what the Company/Room-Payer has contributed
                     if ($paymentResponsibility === 'self') {
                         // Company only cares about the room. They should have paid $TotalRoom - $GuestServicePayments
@@ -660,12 +663,12 @@ class ReceptionController extends Controller
                         // Then companyPaid = 151.77 - 11.77 = $140. Correct.
                         // HOWEVER, if guest paid $11.77 at bar (mobile) and it DIR NOT update amount_paid,
                         // then amount_paid = $140. Then companyPaid = 140 - 11.77 = $128.23. WRONG.
-                        
+
                         // FIX: We only subtract $paidServiceChargesTsh if they are actually in $amount_paid.
                         // Since we can't be 100% sure for old data, we'll try to guess.
                         // If $amount_paid < $room_price, it's likely the guest payment isn't in there yet or room isn't paid.
-                        
-                        $companyPaidTsh = $totalPaidTsh; 
+
+                        $companyPaidTsh = $totalPaidTsh;
                         // If we treat amount_paid as the company's ledger, then anything in there is company money.
                         // But if guest pays at reception, it goes in there.
                         // Let's use a more defensive check:
@@ -677,11 +680,11 @@ class ReceptionController extends Controller
                     } else {
                         $companyPaidTsh = $totalPaidTsh;
                     }
-                    
+
                     // Company's outstanding balance
                     $companyOutstandingBalanceTsh = max(0, $companyBillTsh - $companyPaidTsh);
                     $companyOutstandingBalanceUsd = $companyOutstandingBalanceTsh / $bookingExchangeRate;
-                    
+
                     // Guest's outstanding balance (only what guest is responsible for)
                     if ($paymentResponsibility === 'self') {
                         // Guest owes only their UNPAID service charges
@@ -692,12 +695,12 @@ class ReceptionController extends Controller
                         $guestOutstandingBalanceTsh = 0;
                         $guestOutstandingBalanceUsd = 0;
                     }
-                    
+
                     // Total bill for display (room + services)
                     // Note: total_price already includes extensions if they were approved
                     $totalBillTsh = ($booking->total_price * $bookingExchangeRate) + $totalServiceChargesTsh;
                     $totalBillUsd = $totalBillTsh / $bookingExchangeRate;
-                    
+
                     // Treat very small amounts (less than $0.05 or 50 TZS) as fully paid (rounding differences)
                     $minOutstandingThresholdUsd = 0.05;
                     $minOutstandingThresholdTsh = 50;
@@ -712,36 +715,38 @@ class ReceptionController extends Controller
                     }
 
                     // Self-healing: Finalize status if checked out and balance is cleared
-                    if ($companyOutstandingBalanceTsh == 0 && $guestOutstandingBalanceTsh == 0 && 
-                        $booking->check_in_status === 'checked_out' && $booking->payment_status !== 'paid') {
+                    if (
+                        $companyOutstandingBalanceTsh == 0 && $guestOutstandingBalanceTsh == 0 &&
+                        $booking->check_in_status === 'checked_out' && $booking->payment_status !== 'paid'
+                    ) {
                         $booking->update(['payment_status' => 'paid']);
                     }
-                    
+
                     // Add to booking object for view
                     // Show guest's outstanding (only services if self-paid, 0 if company-paid)
                     $booking->outstanding_balance_tsh = $guestOutstandingBalanceTsh;
                     $booking->outstanding_balance_usd = $guestOutstandingBalanceUsd;
                     $booking->total_bill_tsh = $totalBillTsh;
                     $booking->total_bill_usd = $totalBillUsd;
-                    
+
                     // Store company's portion separately for the view
                     $booking->company_outstanding_balance_tsh = $companyOutstandingBalanceTsh;
                     $booking->company_outstanding_balance_usd = $companyOutstandingBalanceUsd;
                     $booking->guest_outstanding_balance_tsh = $guestOutstandingBalanceTsh;
                     $booking->guest_outstanding_balance_usd = $guestOutstandingBalanceUsd;
-                    
+
                     // Accumulate only company's outstanding balance for the group total
                     $totalOutstandingTsh += $companyOutstandingBalanceTsh;
                     $totalOutstandingUsd += $companyOutstandingBalanceUsd;
                 }
-                
+
                 // Add group totals to the group array
                 $group['total_outstanding_tsh'] = $totalOutstandingTsh;
                 $group['total_outstanding_usd'] = $totalOutstandingUsd;
-                
+
                 return $group;
             });
-            
+
             // Paginate grouped bookings manually
             $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
             $perPage = 20;
@@ -760,10 +765,10 @@ class ReceptionController extends Controller
             // Search functionality
             if ($request->has('search') && $request->search) {
                 $search = $request->search;
-                $query->where(function($q) use ($search) {
+                $query->where(function ($q) use ($search) {
                     $q->where('booking_reference', 'like', "%{$search}%")
-                      ->orWhere('guest_name', 'like', "%{$search}%")
-                      ->orWhere('guest_email', 'like', "%{$search}%");
+                        ->orWhere('guest_name', 'like', "%{$search}%")
+                        ->orWhere('guest_email', 'like', "%{$search}%");
                 });
             }
 
@@ -788,15 +793,15 @@ class ReceptionController extends Controller
             foreach ($bookings as $booking) {
                 // Use locked exchange rate from booking, or fallback to current rate
                 $bookingExchangeRate = $booking->locked_exchange_rate ?? $exchangeRate;
-                
+
                 // Calculate total bill (room + services + extensions)
                 $serviceRequests = $booking->serviceRequests()
                     ->whereIn('status', ['approved', 'completed'])
                     ->with('service')
                     ->get();
-                
+
                 $totalServiceChargesTsh = $serviceRequests->sum('total_price_tsh');
-                
+
                 // Calculate extension cost if extension was approved
                 $extensionCostUsd = 0;
                 if ($booking->extension_status === 'approved' && $booking->original_check_out && $booking->extension_requested_to) {
@@ -808,32 +813,32 @@ class ReceptionController extends Controller
                     }
                 }
                 $extensionCostTsh = $extensionCostUsd * $bookingExchangeRate;
-                
+
                 // Total bill
                 // Note: extensionCostTsh is already included in booking->total_price
                 $totalBillTsh = ($booking->total_price * $bookingExchangeRate) + $totalServiceChargesTsh;
-                
+
                 // Amount paid (Booking deposit + any settled service payments)
                 $amountPaidTsh = ($booking->amount_paid ?? 0) * $bookingExchangeRate;
-                
+
                 // Add payments for completed/paid services to show correct outstanding balance
                 foreach ($serviceRequests as $sr) {
                     if ($sr->payment_status === 'paid') {
                         $amountPaidTsh += $sr->total_price_tsh;
                     }
                 }
-                
+
                 // Outstanding balance
                 $outstandingBalanceTsh = max(0, $totalBillTsh - $amountPaidTsh);
                 $outstandingBalanceUsd = $outstandingBalanceTsh / $bookingExchangeRate;
-                
+
                 // Treat very small amounts (less than $0.05 or 50 TZS) as fully paid (rounding differences)
                 $minOutstandingThresholdUsd = 0.05;
                 $minOutstandingThresholdTsh = 50;
                 if ($outstandingBalanceUsd < $minOutstandingThresholdUsd || $outstandingBalanceTsh < $minOutstandingThresholdTsh) {
                     $outstandingBalanceTsh = 0;
                     $outstandingBalanceUsd = 0;
-                    
+
                     // Self-healing: Finalize status if checked out and balance is cleared
                     if ($booking->check_in_status === 'checked_out' && $booking->payment_status !== 'paid') {
                         $booking->update(['payment_status' => 'paid']);
@@ -841,7 +846,7 @@ class ReceptionController extends Controller
                         $booking->refresh();
                     }
                 }
-                
+
                 // Add to booking object for view
                 $booking->outstanding_balance_tsh = $outstandingBalanceTsh;
                 $booking->outstanding_balance_usd = $outstandingBalanceUsd;
@@ -853,21 +858,21 @@ class ReceptionController extends Controller
         // Calculate statistics
         $stats = [
             'individual_total' => Booking::where('is_corporate_booking', false)
-                ->where(function($q) {
+                ->where(function ($q) {
                     $q->where('check_in_status', 'checked_in')
-                      ->orWhere(function($q2) {
-                          $q2->where('check_in_status', 'checked_out')
-                             ->where('payment_status', '!=', 'paid');
-                      });
+                        ->orWhere(function ($q2) {
+                            $q2->where('check_in_status', 'checked_out')
+                                ->where('payment_status', '!=', 'paid');
+                        });
                 })
                 ->count(),
             'corporate_total' => Booking::where('is_corporate_booking', true)
-                ->where(function($q) {
+                ->where(function ($q) {
                     $q->where('check_in_status', 'checked_in')
-                      ->orWhere(function($q2) {
-                          $q2->where('check_in_status', 'checked_out')
-                             ->where('payment_status', '!=', 'paid');
-                      });
+                        ->orWhere(function ($q2) {
+                            $q2->where('check_in_status', 'checked_out')
+                                ->where('payment_status', '!=', 'paid');
+                        });
                 })
                 ->distinct('company_id')
                 ->count('company_id'),
@@ -894,25 +899,25 @@ class ReceptionController extends Controller
         $query = Booking::with(['room', 'serviceRequests.service'])
             ->where('status', 'confirmed')
             ->whereIn('payment_status', ['paid', 'partial'])
-            ->where(function($q) {
+            ->where(function ($q) {
                 // Include paid bookings
                 $q->where('payment_status', 'paid')
-                  // Or partial payments where amount_paid > 0
-                  ->orWhere(function($subQ) {
-                      $subQ->where('payment_status', 'partial')
-                           ->whereNotNull('amount_paid')
-                           ->where('amount_paid', '>', 0);
-                  });
+                    // Or partial payments where amount_paid > 0
+                    ->orWhere(function ($subQ) {
+                    $subQ->where('payment_status', 'partial')
+                        ->whereNotNull('amount_paid')
+                        ->where('amount_paid', '>', 0);
+                });
             })
             ->where('check_in_status', '!=', 'checked_out');
 
         // Search functionality
         if ($request->has('search') && $request->search) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('booking_reference', 'like', "%{$search}%")
-                  ->orWhere('guest_name', 'like', "%{$search}%")
-                  ->orWhere('guest_email', 'like', "%{$search}%");
+                    ->orWhere('guest_name', 'like', "%{$search}%")
+                    ->orWhere('guest_email', 'like', "%{$search}%");
             });
         }
 
@@ -945,10 +950,10 @@ class ReceptionController extends Controller
         // Search functionality
         if ($request->has('search') && $request->search) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('guest_name', 'like', "%{$search}%")
-                  ->orWhere('guest_email', 'like', "%{$search}%")
-                  ->orWhere('guest_phone', 'like', "%{$search}%");
+                    ->orWhere('guest_email', 'like', "%{$search}%")
+                    ->orWhere('guest_phone', 'like', "%{$search}%");
             });
         }
 
@@ -970,89 +975,91 @@ class ReceptionController extends Controller
     public function roomStatus()
     {
         $today = today();
-        
+
         // Load all bookings (checked_in, confirmed paid/partial, and pending bookings for future dates)
-        $rooms = Room::with(['bookings' => function($query) use ($today) {
-            $query->with(['serviceRequests.service'])
-                  ->where(function($q) use ($today) {
-                // ANY booking that is currently checked in
-                $q->where('check_in_status', 'checked_in')
-                // OR Confirmed and paid/partial bookings for current/upcoming dates
-                ->orWhere(function($subQ) use ($today) {
-                    $subQ->where('status', 'confirmed')
-                          ->whereIn('payment_status', ['paid', 'partial'])
-                          ->where(function($paymentQ) {
-                              // Include paid bookings
-                              $paymentQ->where('payment_status', 'paid')
-                                      // Or partial payments where amount_paid > 0
-                                      ->orWhere(function($partialQ) {
-                                          $partialQ->where('payment_status', 'partial')
-                                                   ->whereNotNull('amount_paid')
-                                                   ->where('amount_paid', '>', 0);
-                                      });
-                          })
-                          ->where('check_in_status', '!=', 'checked_out')
-                          ->whereDate('check_in', '<=', $today)
-                          ->whereDate('check_out', '>=', $today);
-                })
-                // OR pending bookings (waiting for payment) for future dates
-                ->orWhere(function($subQ) use ($today) {
-                    $subQ->where('status', 'pending')
-                          ->where('payment_status', 'pending')
-                          ->whereDate('check_in', '>=', $today)
-                          ->whereNull('cancelled_at');
-                })
-                // OR confirmed paid/partial bookings for future dates (upcoming check-ins)
-                ->orWhere(function($subQ) use ($today) {
-                    $subQ->where('status', 'confirmed')
-                          ->whereIn('payment_status', ['paid', 'partial'])
-                          ->where(function($paymentQ) {
-                              // Include paid bookings
-                              $paymentQ->where('payment_status', 'paid')
-                                      // Or partial payments where amount_paid > 0
-                                      ->orWhere(function($partialQ) {
-                                          $partialQ->where('payment_status', 'partial')
-                                                   ->whereNotNull('amount_paid')
-                                                   ->where('amount_paid', '>', 0);
-                                      });
-                          })
-                          ->whereDate('check_in', '>=', $today);
-                });
-            });
-        }])->orderBy('room_number')->get();
+        $rooms = Room::with([
+            'bookings' => function ($query) use ($today) {
+                $query->with(['serviceRequests.service'])
+                    ->where(function ($q) use ($today) {
+                        // ANY booking that is currently checked in
+                        $q->where('check_in_status', 'checked_in')
+                            // OR Confirmed and paid/partial bookings for current/upcoming dates
+                            ->orWhere(function ($subQ) use ($today) {
+                            $subQ->where('status', 'confirmed')
+                                ->whereIn('payment_status', ['paid', 'partial'])
+                                ->where(function ($paymentQ) {
+                                    // Include paid bookings
+                                    $paymentQ->where('payment_status', 'paid')
+                                        // Or partial payments where amount_paid > 0
+                                        ->orWhere(function ($partialQ) {
+                                        $partialQ->where('payment_status', 'partial')
+                                            ->whereNotNull('amount_paid')
+                                            ->where('amount_paid', '>', 0);
+                                    });
+                                })
+                                ->where('check_in_status', '!=', 'checked_out')
+                                ->whereDate('check_in', '<=', $today)
+                                ->whereDate('check_out', '>=', $today);
+                        })
+                            // OR pending bookings (waiting for payment) for future dates
+                            ->orWhere(function ($subQ) use ($today) {
+                            $subQ->where('status', 'pending')
+                                ->where('payment_status', 'pending')
+                                ->whereDate('check_in', '>=', $today)
+                                ->whereNull('cancelled_at');
+                        })
+                            // OR confirmed paid/partial bookings for future dates (upcoming check-ins)
+                            ->orWhere(function ($subQ) use ($today) {
+                            $subQ->where('status', 'confirmed')
+                                ->whereIn('payment_status', ['paid', 'partial'])
+                                ->where(function ($paymentQ) {
+                                    // Include paid bookings
+                                    $paymentQ->where('payment_status', 'paid')
+                                        // Or partial payments where amount_paid > 0
+                                        ->orWhere(function ($partialQ) {
+                                        $partialQ->where('payment_status', 'partial')
+                                            ->whereNotNull('amount_paid')
+                                            ->where('amount_paid', '>', 0);
+                                    });
+                                })
+                                ->whereDate('check_in', '>=', $today);
+                        });
+                    });
+            }
+        ])->orderBy('room_number')->get();
 
         // Calculate room status
-        $rooms = $rooms->map(function($room) use ($today) {
+        $rooms = $rooms->map(function ($room) use ($today) {
             // Active bookings (checked in)
-            $activeBookings = $room->bookings->filter(function($booking) {
+            $activeBookings = $room->bookings->filter(function ($booking) {
                 return $booking->check_in_status === 'checked_in';
             });
-            
+
             // Room is occupied if there's a checked-in booking OR its database status is 'occupied'
             $room->is_occupied = ($activeBookings->count() > 0) || ($room->status === 'occupied');
             $room->current_booking = $activeBookings->first();
-            
+
             // Upcoming bookings (future check-ins or pending payment bookings)
-            $upcomingBookings = $room->bookings->filter(function($booking) use ($today) {
+            $upcomingBookings = $room->bookings->filter(function ($booking) use ($today) {
                 $checkInDate = \Carbon\Carbon::parse($booking->check_in);
-                return $checkInDate->gte($today) && 
-                       ($booking->check_in_status === 'pending' || 
+                return $checkInDate->gte($today) &&
+                    ($booking->check_in_status === 'pending' ||
                         ($booking->status === 'pending' && $booking->payment_status === 'pending'));
             })->sortBy('check_in')->first();
             $room->upcoming_checkin = $upcomingBookings;
-            
+
             // Pending payment booking (for status display) - only show if check-in is within 3 days
-            $pendingPaymentBooking = $room->bookings->filter(function($booking) use ($today) {
+            $pendingPaymentBooking = $room->bookings->filter(function ($booking) use ($today) {
                 $checkInDate = \Carbon\Carbon::parse($booking->check_in);
                 $daysUntilCheckIn = $today->diffInDays($checkInDate, false);
-                return $booking->status === 'pending' && 
-                       $booking->payment_status === 'pending' &&
-                       $checkInDate->gte($today) &&
-                       $daysUntilCheckIn <= 3 && // Only show if check-in is within 3 days
-                       is_null($booking->cancelled_at);
+                return $booking->status === 'pending' &&
+                    $booking->payment_status === 'pending' &&
+                    $checkInDate->gte($today) &&
+                    $daysUntilCheckIn <= 3 && // Only show if check-in is within 3 days
+                    is_null($booking->cancelled_at);
             })->sortBy('check_in')->first();
             $room->pending_payment_booking = $pendingPaymentBooking;
-            
+
             // Check if room has any bookings that affect current availability (today or within next 3 days)
             $room->has_immediate_booking = false;
             if ($room->upcoming_checkin) {
@@ -1063,38 +1070,38 @@ class ReceptionController extends Controller
                     $room->has_immediate_booking = true;
                 }
             }
-            
+
             // Get last checked out booking for rooms that need cleaning
             $room->last_checked_out_booking = $room->bookings()
                 ->where('check_in_status', 'checked_out')
                 ->orderBy('checked_out_at', 'desc')
                 ->first();
-            
+
             return $room;
         });
 
         // Calculate statistics
         $stats = [
             'total' => $rooms->count(),
-            'available' => $rooms->filter(function($room) {
+            'available' => $rooms->filter(function ($room) {
                 // Room is available if it's marked available in DB AND not occupied by a guest
                 return $room->status === 'available' && !$room->is_occupied && !$room->has_immediate_booking;
             })->count(),
-            'occupied' => $rooms->filter(function($room) {
+            'occupied' => $rooms->filter(function ($room) {
                 return $room->is_occupied;
             })->count(),
-            'needs_cleaning' => $rooms->filter(function($room) {
+            'needs_cleaning' => $rooms->filter(function ($room) {
                 return $room->status === 'to_be_cleaned';
             })->count(),
-            'maintenance' => $rooms->filter(function($room) {
+            'maintenance' => $rooms->filter(function ($room) {
                 return $room->status === 'maintenance';
             })->count(),
-            'reserved' => $rooms->filter(function($room) {
+            'reserved' => $rooms->filter(function ($room) {
                 // Reserved if has immediate booking (within 3 days) and not occupied
                 return $room->has_immediate_booking && !$room->is_occupied;
             })->count(),
         ];
-        
+
         // Ensure availability counts any room that isn't in another state
         $accountedFor = $stats['occupied'] + $stats['needs_cleaning'] + $stats['maintenance'] + $stats['reserved'];
         if ($accountedFor < $stats['total']) {
@@ -1102,7 +1109,7 @@ class ReceptionController extends Controller
         }
 
         // Get rooms with check-out today or overdue
-        $roomsWithUrgentCheckout = $rooms->filter(function($room) use ($today) {
+        $roomsWithUrgentCheckout = $rooms->filter(function ($room) use ($today) {
             if ($room->current_booking) {
                 $checkOutDate = \Carbon\Carbon::parse($room->current_booking->check_out);
                 return $checkOutDate->lte($today);
@@ -1112,7 +1119,7 @@ class ReceptionController extends Controller
 
         // Get rooms with upcoming check-ins (next 24 hours)
         $tomorrow = \Carbon\Carbon::today()->addDay();
-        $roomsWithUpcomingCheckin = $rooms->filter(function($room) use ($today, $tomorrow) {
+        $roomsWithUpcomingCheckin = $rooms->filter(function ($room) use ($today, $tomorrow) {
             if ($room->upcoming_checkin) {
                 $checkInDate = \Carbon\Carbon::parse($room->upcoming_checkin->check_in);
                 return $checkInDate->between($today, $tomorrow);
@@ -1144,60 +1151,62 @@ class ReceptionController extends Controller
     {
         $today = Carbon::today();
         $tomorrow = Carbon::today()->addDay();
-        
+
         // Get rooms that need cleaning:
         // 1. Rooms with status 'to_be_cleaned' (already checked out)
         // 2. Rooms with bookings checking out tomorrow (1 day before check-out)
-        $query = Room::where(function($q) use ($tomorrow) {
+        $query = Room::where(function ($q) use ($tomorrow) {
             // Rooms already marked as needing cleaning
             $q->where('status', 'to_be_cleaned')
-              // OR rooms with bookings checking out tomorrow
-              ->orWhereHas('bookings', function($bookingQuery) use ($tomorrow) {
-                  $bookingQuery->where('status', 'confirmed')
-                               ->whereIn('payment_status', ['paid', 'partial'])
-                               ->where(function($paymentQ) {
-                                   $paymentQ->where('payment_status', 'paid')
-                                           ->orWhere(function($partialQ) {
-                                               $partialQ->where('payment_status', 'partial')
-                                                        ->whereNotNull('amount_paid')
-                                                        ->where('amount_paid', '>', 0);
-                                           });
-                               })
-                               ->where('check_in_status', 'checked_in')
-                               ->whereDate('check_out', $tomorrow);
-              });
+                // OR rooms with bookings checking out tomorrow
+                ->orWhereHas('bookings', function ($bookingQuery) use ($tomorrow) {
+                    $bookingQuery->where('status', 'confirmed')
+                        ->whereIn('payment_status', ['paid', 'partial'])
+                        ->where(function ($paymentQ) {
+                            $paymentQ->where('payment_status', 'paid')
+                                ->orWhere(function ($partialQ) {
+                                    $partialQ->where('payment_status', 'partial')
+                                        ->whereNotNull('amount_paid')
+                                        ->where('amount_paid', '>', 0);
+                                });
+                        })
+                        ->where('check_in_status', 'checked_in')
+                        ->whereDate('check_out', $tomorrow);
+                });
         })
-        ->with(['bookings' => function($q) use ($tomorrow) {
-            $q->where(function($bookingQ) use ($tomorrow) {
-                // Get checked out bookings (for rooms already cleaned)
-                $bookingQ->where('check_in_status', 'checked_out')
-                         ->orderBy('checked_out_at', 'desc')
-                         ->limit(1);
-            })
-            ->orWhere(function($tomorrowQ) use ($tomorrow) {
-                // Get bookings checking out tomorrow
-                $tomorrowQ->where('status', 'confirmed')
-                         ->whereIn('payment_status', ['paid', 'partial'])
-                         ->where(function($paymentQ) {
-                             $paymentQ->where('payment_status', 'paid')
-                                     ->orWhere(function($partialQ) {
-                                         $partialQ->where('payment_status', 'partial')
-                                                  ->whereNotNull('amount_paid')
-                                                  ->where('amount_paid', '>', 0);
-                                     });
-                         })
-                         ->where('check_in_status', 'checked_in')
-                         ->whereDate('check_out', $tomorrow);
-            });
-        }])
-        ->orderBy('room_number', 'asc');
+            ->with([
+                'bookings' => function ($q) use ($tomorrow) {
+                    $q->where(function ($bookingQ) use ($tomorrow) {
+                        // Get checked out bookings (for rooms already cleaned)
+                        $bookingQ->where('check_in_status', 'checked_out')
+                            ->orderBy('checked_out_at', 'desc')
+                            ->limit(1);
+                    })
+                        ->orWhere(function ($tomorrowQ) use ($tomorrow) {
+                            // Get bookings checking out tomorrow
+                            $tomorrowQ->where('status', 'confirmed')
+                                ->whereIn('payment_status', ['paid', 'partial'])
+                                ->where(function ($paymentQ) {
+                                $paymentQ->where('payment_status', 'paid')
+                                    ->orWhere(function ($partialQ) {
+                                        $partialQ->where('payment_status', 'partial')
+                                            ->whereNotNull('amount_paid')
+                                            ->where('amount_paid', '>', 0);
+                                    });
+                            })
+                                ->where('check_in_status', 'checked_in')
+                                ->whereDate('check_out', $tomorrow);
+                        });
+                }
+            ])
+            ->orderBy('room_number', 'asc');
 
         // Search functionality
         if ($request->has('search') && $request->search) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('room_number', 'like', "%{$search}%")
-                  ->orWhere('room_type', 'like', "%{$search}%");
+                    ->orWhere('room_type', 'like', "%{$search}%");
             });
         }
 
@@ -1243,7 +1252,7 @@ class ReceptionController extends Controller
 
         // Calculate additional charges only (room booking already paid via PayPal)
         // Additional charges include: services, extensions, transportation
-        
+
         $serviceRequests = $booking->serviceRequests()
             ->whereIn('status', ['approved', 'completed'])
             ->with('service')
@@ -1256,12 +1265,12 @@ class ReceptionController extends Controller
         $extensionCostUsd = 0;
         $extensionCostTsh = 0;
         $extensionNights = 0;
-        
+
         if ($booking->extension_status === 'approved' && $booking->original_check_out && $booking->extension_requested_to) {
             $originalCheckOut = \Carbon\Carbon::parse($booking->original_check_out);
             $requestedCheckOut = \Carbon\Carbon::parse($booking->extension_requested_to);
             $extensionNights = $originalCheckOut->diffInDays($requestedCheckOut);
-            
+
             if ($extensionNights > 0 && $booking->room) {
                 $extensionCostUsd = $booking->room->price_per_night * $extensionNights;
                 $extensionCostTsh = $extensionCostUsd * $exchangeRate;
@@ -1286,7 +1295,7 @@ class ReceptionController extends Controller
         $otherServiceChargesTsh = $serviceRequests
             ->where('service.category', '!=', 'transport')
             ->sum('total_price_tsh');
-        
+
         // Total additional charges (services + extension + transportation)
         // For corporate bookings with self-paid responsibility, these are the guest's ONLY charges
         // (Room is company-paid)
@@ -1335,18 +1344,18 @@ class ReceptionController extends Controller
         // Calculate outstanding balance
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $booking->locked_exchange_rate ?? $currencyService->getUsdToTshRate();
-        
+
         // Check if this is a corporate booking
         $isCorporate = $booking->is_corporate_booking ?? false;
         $paymentResponsibility = $booking->payment_responsibility ?? 'self';
-        
+
         $serviceRequests = $booking->serviceRequests()
             ->whereIn('status', ['approved', 'completed'])
             ->with('service')
             ->get();
-        
+
         $totalServiceChargesTsh = $serviceRequests->sum('total_price_tsh');
-        
+
         // Calculate extension cost if extension was approved
         $extensionCostUsd = 0;
         if ($booking->extension_status === 'approved' && $booking->original_check_out && $booking->extension_requested_to) {
@@ -1358,11 +1367,11 @@ class ReceptionController extends Controller
             }
         }
         $extensionCostTsh = $extensionCostUsd * $exchangeRate;
-        
+
         // Calculate total bill for the whole booking (Room + Services)
         // Note: extensionCostTsh is already included in booking->total_price
         $totalBookingBillTsh = ($booking->total_price * $exchangeRate) + $totalServiceChargesTsh;
-        
+
         // Calculate outstanding balance for THIS SPECIFIC payment action
         if ($isCorporate) {
             if ($paymentResponsibility === 'self') {
@@ -1371,7 +1380,7 @@ class ReceptionController extends Controller
                 // Their "portion" of the paid amount is anything above the room price.
                 $roomPriceTsh = $booking->total_price * $exchangeRate;
                 $currentPaidTsh = ($booking->amount_paid ?? 0) * $exchangeRate;
-                
+
                 // Debt = (Room + Services + Extensions) - CurrentPaid
                 // BUT we only want the guest to see their own debt.
                 // If they haven't paid anything, their debt is just (Services + Extensions).
@@ -1387,39 +1396,39 @@ class ReceptionController extends Controller
             $amountPaidTsh = ($booking->amount_paid ?? 0) * $exchangeRate;
             $outstandingBalanceTsh = max(0, $totalBookingBillTsh - $amountPaidTsh);
         }
-        
+
         $outstandingBalanceUsd = $outstandingBalanceTsh / $exchangeRate;
         $paymentAmountUsd = (float) $request->amount;
         $paymentAmountTsh = $paymentAmountUsd * $exchangeRate;
-        
+
         // Check if this payment covers the remainder of the guest's debt
         $isGuestPortionCleared = ($paymentAmountTsh >= $outstandingBalanceTsh - 50);
-        
+
         // Update money
         $newAmountPaidUsd = ($booking->amount_paid ?? 0) + $paymentAmountUsd;
         $newAmountPaidTsh = $newAmountPaidUsd * $exchangeRate;
-        
+
         // Calculate remaining balance after this payment
         $remainingBalanceTsh = max(0, $outstandingBalanceTsh - $paymentAmountTsh);
         $remainingBalanceUsd = $remainingBalanceTsh / $exchangeRate;
-        
+
         // Threshold for considering fully paid (50 TZS or $0.05)
         $minOutstandingThresholdUsd = 0.05;
         $minOutstandingThresholdTsh = 50;
-        
+
         // Check if fully paid: remaining balance is below threshold
-        $isFullyPaid = ($remainingBalanceTsh < $minOutstandingThresholdTsh) || 
-                       ($remainingBalanceUsd < $minOutstandingThresholdUsd);
-        
+        $isFullyPaid = ($remainingBalanceTsh < $minOutstandingThresholdTsh) ||
+            ($remainingBalanceUsd < $minOutstandingThresholdUsd);
+
         // For corporate bookings with self-paid responsibility, check guest portion
         if ($isCorporate && $paymentResponsibility === 'self') {
             // Guest portion is cleared if remaining balance is below threshold
             $isGuestPortionCleared = $isFullyPaid;
         }
-        
+
         // Mark services as paid if this payout covers them
         if ($isCorporate && $paymentResponsibility === 'self' && $isGuestPortionCleared) {
-            foreach($serviceRequests as $sr) {
+            foreach ($serviceRequests as $sr) {
                 if (($sr->payment_status ?? 'pending') !== 'paid') {
                     $sr->update([
                         'payment_status' => 'paid',
@@ -1429,7 +1438,7 @@ class ReceptionController extends Controller
                 }
             }
         }
-        
+
         // If booking is checked out and fully paid, ensure payment_status is 'paid'
         $finalPaymentStatus = 'partial';
         if ($isFullyPaid) {
@@ -1439,7 +1448,7 @@ class ReceptionController extends Controller
             $finalPaymentStatus = 'paid';
             $isFullyPaid = true;
         }
-        
+
         $booking->update([
             'payment_status' => $finalPaymentStatus,
             'payment_method' => $request->payment_method,
@@ -1466,7 +1475,7 @@ class ReceptionController extends Controller
             $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
                 ->where('is_active', true)
                 ->get();
-            
+
             foreach ($managersAndAdmins as $staff) {
                 if ($staff->phone && $staff->isNotificationEnabled('payment')) {
                     try {
@@ -1481,7 +1490,7 @@ class ReceptionController extends Controller
         } catch (\Exception $e) {
             \Log::error('Failed to send POS payment SMS to managers: ' . $e->getMessage());
         }
-        
+
         // Only deactivate guest account if they have checked out
         // If still checked in, keep account active so they can access dashboard and services
         if ($booking->check_in_status === 'checked_out') {
@@ -1490,7 +1499,7 @@ class ReceptionController extends Controller
                 $user->update(['is_active' => false]);
             }
         }
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Payment received successfully. Guest can now check out.',
@@ -1528,22 +1537,22 @@ class ReceptionController extends Controller
             $currencyService = new CurrencyExchangeService();
             $exchangeRate = $currencyService->getUsdToTshRate();
         }
-        
+
         // Calculate extension cost
         $extensionCostUsd = 0;
         $extensionCostTsh = 0;
-        
+
         if ($booking->extension_status === 'approved' && $booking->original_check_out && $booking->extension_requested_to) {
             $originalCheckOut = \Carbon\Carbon::parse($booking->original_check_out);
             $requestedCheckOut = \Carbon\Carbon::parse($booking->extension_requested_to);
             $extensionNights = $originalCheckOut->diffInDays($requestedCheckOut);
-            
+
             if ($extensionNights > 0 && $booking->room) {
                 $extensionCostUsd = $booking->room->price_per_night * $extensionNights;
                 $extensionCostTsh = $extensionCostUsd * $exchangeRate;
             }
         }
-        
+
         // Calculate transportation charges
         $transportationChargesTsh = 0;
         if ($booking->airport_pickup_required) {
@@ -1554,12 +1563,12 @@ class ReceptionController extends Controller
                 $transportationChargesTsh = 50000; // Default price
             }
         }
-        
+
         // Other service charges (excluding transportation)
         $otherServiceChargesTsh = $serviceRequests
             ->where('service.category', '!=', 'transport')
             ->sum('total_price_tsh');
-        
+
         // Total additional charges
         $totalAdditionalChargesTsh = $otherServiceChargesTsh + $extensionCostTsh + $transportationChargesTsh;
         $totalAdditionalChargesUsd = $totalAdditionalChargesTsh / $exchangeRate;
@@ -1569,7 +1578,7 @@ class ReceptionController extends Controller
             // Handle corporate vs individual
             if ($booking->is_corporate_booking) {
                 // Mark services as paid
-                foreach($serviceRequests as $sr) {
+                foreach ($serviceRequests as $sr) {
                     if ($sr->payment_status !== 'paid') {
                         $sr->update([
                             'payment_status' => 'paid',
@@ -1578,7 +1587,7 @@ class ReceptionController extends Controller
                         ]);
                     }
                 }
-                
+
                 $booking->update([
                     'payment_status' => $booking->payment_status === 'paid' ? 'paid' : 'partial',
                     'payment_method' => $booking->payment_method ?? 'cash',
@@ -1589,7 +1598,7 @@ class ReceptionController extends Controller
             } else {
                 // Individual marking
                 $booking->update([
-                    'payment_status' => 'paid', 
+                    'payment_status' => 'paid',
                     'payment_method' => 'cash',
                     'amount_paid' => ($booking->amount_paid ?? 0) + $totalAdditionalChargesUsd,
                     'paid_at' => now(),
@@ -1647,24 +1656,24 @@ class ReceptionController extends Controller
 
         // Filter by date range (use paid_at if available, otherwise created_at)
         if ($request->has('date_from') && $request->date_from) {
-            $query->where(function($q) use ($request) {
-                $q->where(function($subQ) use ($request) {
+            $query->where(function ($q) use ($request) {
+                $q->where(function ($subQ) use ($request) {
                     $subQ->whereNotNull('paid_at')
-                         ->whereDate('paid_at', '>=', $request->date_from);
-                })->orWhere(function($subQ) use ($request) {
+                        ->whereDate('paid_at', '>=', $request->date_from);
+                })->orWhere(function ($subQ) use ($request) {
                     $subQ->whereNull('paid_at')
-                         ->whereDate('created_at', '>=', $request->date_from);
+                        ->whereDate('created_at', '>=', $request->date_from);
                 });
             });
         }
         if ($request->has('date_to') && $request->date_to) {
-            $query->where(function($q) use ($request) {
-                $q->where(function($subQ) use ($request) {
+            $query->where(function ($q) use ($request) {
+                $q->where(function ($subQ) use ($request) {
                     $subQ->whereNotNull('paid_at')
-                         ->whereDate('paid_at', '<=', $request->date_to);
-                })->orWhere(function($subQ) use ($request) {
+                        ->whereDate('paid_at', '<=', $request->date_to);
+                })->orWhere(function ($subQ) use ($request) {
                     $subQ->whereNull('paid_at')
-                         ->whereDate('created_at', '<=', $request->date_to);
+                        ->whereDate('created_at', '<=', $request->date_to);
                 });
             });
         }
@@ -1672,11 +1681,11 @@ class ReceptionController extends Controller
         // Search functionality
         if ($request->has('search') && $request->search) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('booking_reference', 'like', "%{$search}%")
-                  ->orWhere('guest_name', 'like', "%{$search}%")
-                  ->orWhere('guest_email', 'like', "%{$search}%")
-                  ->orWhere('payment_transaction_id', 'like', "%{$search}%");
+                    ->orWhere('guest_name', 'like', "%{$search}%")
+                    ->orWhere('guest_email', 'like', "%{$search}%")
+                    ->orWhere('payment_transaction_id', 'like', "%{$search}%");
             });
         }
 
@@ -1692,26 +1701,26 @@ class ReceptionController extends Controller
             'total_paid_today' => Booking::whereIn('payment_status', ['paid', 'partial'])
                 ->whereNotNull('amount_paid')
                 ->where('amount_paid', '>', 0)
-                ->where(function($q) use ($today) {
-                    $q->where(function($subQ) use ($today) {
+                ->where(function ($q) use ($today) {
+                    $q->where(function ($subQ) use ($today) {
                         $subQ->whereNotNull('paid_at')
-                             ->whereDate('paid_at', $today);
-                    })->orWhere(function($subQ) use ($today) {
+                            ->whereDate('paid_at', $today);
+                    })->orWhere(function ($subQ) use ($today) {
                         $subQ->whereNull('paid_at')
-                             ->whereDate('created_at', $today);
+                            ->whereDate('created_at', $today);
                     });
                 })
                 ->sum('amount_paid'),
             'total_payments_today' => Booking::whereIn('payment_status', ['paid', 'partial'])
                 ->whereNotNull('amount_paid')
                 ->where('amount_paid', '>', 0)
-                ->where(function($q) use ($today) {
-                    $q->where(function($subQ) use ($today) {
+                ->where(function ($q) use ($today) {
+                    $q->where(function ($subQ) use ($today) {
                         $subQ->whereNotNull('paid_at')
-                             ->whereDate('paid_at', $today);
-                    })->orWhere(function($subQ) use ($today) {
+                            ->whereDate('paid_at', $today);
+                    })->orWhere(function ($subQ) use ($today) {
                         $subQ->whereNull('paid_at')
-                             ->whereDate('created_at', $today);
+                            ->whereDate('created_at', $today);
                     });
                 })
                 ->count(),
@@ -1752,10 +1761,10 @@ class ReceptionController extends Controller
         // Search functionality
         if ($request->has('search') && $request->search) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('booking_reference', 'like', "%{$search}%")
-                  ->orWhere('guest_name', 'like', "%{$search}%")
-                  ->orWhere('guest_email', 'like', "%{$search}%");
+                    ->orWhere('guest_name', 'like', "%{$search}%")
+                    ->orWhere('guest_email', 'like', "%{$search}%");
             });
         }
 
@@ -1791,12 +1800,12 @@ class ReceptionController extends Controller
         $startDate = $request->get('start_date');
         $endDate = $request->get('end_date');
         $download = $request->get('download');
-        
+
         // Calculate date range based on report type
         $dateRange = $this->calculateDateRange($reportType, $reportDate, $startDate, $endDate);
         $start = $dateRange['start'];
         $end = $dateRange['end'];
-        
+
         // Get bookings statistics for the period
         $bookings = [
             'checked_in' => Booking::whereBetween('checked_in_at', [$start, $end])->count(),
@@ -1811,21 +1820,21 @@ class ReceptionController extends Controller
         $paymentsQuery = Booking::whereIn('payment_status', ['paid', 'partial'])
             ->whereNotNull('amount_paid')
             ->where('amount_paid', '>', 0)
-            ->where(function($q) use ($start, $end) {
+            ->where(function ($q) use ($start, $end) {
                 // Use paid_at if available, otherwise created_at
-                $q->where(function($subQ) use ($start, $end) {
+                $q->where(function ($subQ) use ($start, $end) {
                     $subQ->whereNotNull('paid_at')
-                         ->whereDate('paid_at', '>=', $start->format('Y-m-d'))
-                         ->whereDate('paid_at', '<=', $end->format('Y-m-d'));
-                })->orWhere(function($subQ) use ($start, $end) {
+                        ->whereDate('paid_at', '>=', $start->format('Y-m-d'))
+                        ->whereDate('paid_at', '<=', $end->format('Y-m-d'));
+                })->orWhere(function ($subQ) use ($start, $end) {
                     $subQ->whereNull('paid_at')
-                         ->whereDate('created_at', '>=', $start->format('Y-m-d'))
-                         ->whereDate('created_at', '<=', $end->format('Y-m-d'));
+                        ->whereDate('created_at', '>=', $start->format('Y-m-d'))
+                        ->whereDate('created_at', '<=', $end->format('Y-m-d'));
                 });
             });
-        
+
         $payments = [
-            'total_revenue' => $paymentsQuery->get()->sum(function($booking) {
+            'total_revenue' => $paymentsQuery->get()->sum(function ($booking) {
                 return $booking->amount_paid ?? 0;
             }),
             'total_count' => $paymentsQuery->count(),
@@ -1880,14 +1889,14 @@ class ReceptionController extends Controller
             'exchangeRate' => $exchangeRate,
         ]);
     }
-    
+
     /**
      * Download report as HTML (with checkout-bill layout)
      */
     private function downloadReport($dateRange, $bookings, $payments, $serviceRequests, $recentBookings, $exchangeRate)
     {
         $filename = 'report_' . str_replace(' ', '_', strtolower($dateRange['label'])) . '_' . date('Y-m-d_His') . '.html';
-        
+
         $html = view('dashboard.report-download', [
             'dateRange' => $dateRange,
             'bookings' => $bookings,
@@ -1901,14 +1910,14 @@ class ReceptionController extends Controller
             ->header('Content-Type', 'text/html')
             ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
-    
+
     /**
      * Calculate date range based on report type
      */
     private function calculateDateRange($reportType, $reportDate = null, $startDate = null, $endDate = null)
     {
         $today = Carbon::today();
-        
+
         switch ($reportType) {
             case 'daily':
                 $date = $reportDate ? Carbon::parse($reportDate) : $today;
@@ -1917,7 +1926,7 @@ class ReceptionController extends Controller
                     'end' => $date->copy()->endOfDay(),
                     'label' => $date->format('F d, Y')
                 ];
-                
+
             case 'weekly':
                 $date = $reportDate ? Carbon::parse($reportDate) : $today;
                 return [
@@ -1925,7 +1934,7 @@ class ReceptionController extends Controller
                     'end' => $date->copy()->endOfWeek(),
                     'label' => $date->copy()->startOfWeek()->format('M d') . ' - ' . $date->copy()->endOfWeek()->format('M d, Y')
                 ];
-                
+
             case 'monthly':
                 $date = $reportDate ? Carbon::parse($reportDate) : $today;
                 return [
@@ -1933,7 +1942,7 @@ class ReceptionController extends Controller
                     'end' => $date->copy()->endOfMonth(),
                     'label' => $date->format('F Y')
                 ];
-                
+
             case 'yearly':
                 $date = $reportDate ? Carbon::parse($reportDate) : $today;
                 return [
@@ -1941,7 +1950,7 @@ class ReceptionController extends Controller
                     'end' => $date->copy()->endOfYear(),
                     'label' => $date->format('Y')
                 ];
-                
+
             case 'custom':
                 if ($startDate && $endDate) {
                     $start = Carbon::parse($startDate)->startOfDay();
@@ -1958,7 +1967,7 @@ class ReceptionController extends Controller
                     'end' => $today->copy()->endOfDay(),
                     'label' => $today->format('F d, Y')
                 ];
-                
+
             default:
                 $date = $reportDate ? Carbon::parse($reportDate) : $today;
                 return [
@@ -1975,38 +1984,38 @@ class ReceptionController extends Controller
     public function checkoutCompanyGroup($companyId)
     {
         $company = \App\Models\Company::findOrFail($companyId);
-        
+
         // Get all checked-in bookings for this company
         $bookings = \App\Models\Booking::where('company_id', $companyId)
             ->where('is_corporate_booking', true)
             ->where('check_in_status', 'checked_in')
             ->get();
-        
+
         if ($bookings->isEmpty()) {
             return response()->json([
                 'success' => false,
                 'message' => 'No checked-in bookings found for this company.',
             ], 400);
         }
-        
+
         // Check if all bookings have outstanding balance < 50 TZS
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $currencyService->getUsdToTshRate();
-        
+
         $hasOutstanding = false;
         foreach ($bookings as $booking) {
             $bookingExchangeRate = $booking->locked_exchange_rate ?? $exchangeRate;
-            
+
             $serviceRequests = $booking->serviceRequests()
                 ->whereIn('status', ['approved', 'completed'])
                 ->get();
-            
+
             $totalServiceChargesTsh = $serviceRequests->sum('total_price_tsh');
-            
+
             // Check payment responsibility - if self-paid, exclude service charges from company bill
             $paymentResponsibility = $booking->payment_responsibility ?? 'company';
             $companyResponsibleServiceChargesTsh = 0;
-            
+
             if ($paymentResponsibility === 'self') {
                 // Guest pays for services - exclude from company bill
                 $companyResponsibleServiceChargesTsh = 0;
@@ -2014,7 +2023,7 @@ class ReceptionController extends Controller
                 // Company pays for services
                 $companyResponsibleServiceChargesTsh = $totalServiceChargesTsh;
             }
-            
+
             $extensionCostUsd = 0;
             if ($booking->extension_status === 'approved' && $booking->original_check_out && $booking->extension_requested_to) {
                 $originalCheckOut = \Carbon\Carbon::parse($booking->original_check_out);
@@ -2025,27 +2034,27 @@ class ReceptionController extends Controller
                 }
             }
             $extensionCostTsh = $extensionCostUsd * $bookingExchangeRate;
-            
+
             // Company's total bill (only what company is responsible for)
             // Note: extensionCostTsh is already included in booking->total_price
             $companyBillTsh = ($booking->total_price * $bookingExchangeRate) + $companyResponsibleServiceChargesTsh;
             $amountPaidTsh = ($booking->amount_paid ?? 0) * $bookingExchangeRate;
             $outstandingBalanceTsh = max(0, $companyBillTsh - $amountPaidTsh);
-            
+
             // Treat very small amounts as fully paid
             if ($outstandingBalanceTsh >= 50) {
                 $hasOutstanding = true;
                 break;
             }
         }
-        
+
         if ($hasOutstanding) {
             return response()->json([
                 'success' => false,
                 'message' => 'Cannot check out. Some bookings have outstanding balance. Please process payments first.',
             ], 400);
         }
-        
+
         // Check out all bookings
         foreach ($bookings as $booking) {
             $booking->update([
@@ -2057,7 +2066,7 @@ class ReceptionController extends Controller
             // Mark room as needing cleaning
             if ($booking->room) {
                 $booking->room->update(['status' => 'to_be_cleaned']);
-                
+
                 // Create cleaning log entry
                 \App\Models\RoomCleaningLog::create([
                     'room_id' => $booking->room->id,
@@ -2065,7 +2074,7 @@ class ReceptionController extends Controller
                 ]);
             }
         }
-        
+
         return response()->json([
             'success' => true,
             'message' => 'All guests from ' . $company->name . ' have been checked out successfully!',
@@ -2084,50 +2093,51 @@ class ReceptionController extends Controller
             'payment_provider' => 'nullable|string|max:100',
             'payment_reference' => 'nullable|string|max:100',
         ]);
-        
+
         $company = \App\Models\Company::findOrFail($companyId);
-        
+
         // Get all checked-in bookings for this company
         $bookings = \App\Models\Booking::where('company_id', $companyId)
             ->where('is_corporate_booking', true)
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->where('check_in_status', 'checked_in')
-                  ->orWhere(function($q2) {
-                      $q2->where('check_in_status', 'checked_out')
-                         ->where('payment_status', '!=', 'paid');
-                  });
+                    ->orWhere(function ($q2) {
+                        $q2->where('check_in_status', 'checked_out')
+                            ->where('payment_status', '!=', 'paid');
+                    });
             })
             ->get();
-        
+
         if ($bookings->isEmpty()) {
             return response()->json([
                 'success' => false,
                 'message' => 'No bookings found for this company.',
             ], 400);
         }
-        
+
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $currencyService->getUsdToTshRate();
-        
+
         // Calculate total outstanding balance
         $companyBookingsData = [];
         $totalCompanyOutstandingUsd = 0;
-        
+
         foreach ($bookings as $booking) {
             $bookingExchangeRate = $booking->locked_exchange_rate ?? $exchangeRate;
             $serviceRequests = $booking->serviceRequests()->whereIn('status', ['approved', 'completed'])->get();
             $paymentResponsibility = $booking->payment_responsibility ?? 'company';
             $companyServiceChargesTsh = ($paymentResponsibility === 'self') ? 0 : $serviceRequests->sum('total_price_tsh');
-            
+
             $extensionCostUsd = 0;
             if ($booking->extension_status === 'approved' && $booking->original_check_out && $booking->extension_requested_to) {
                 $nights = \Carbon\Carbon::parse($booking->original_check_out)->diffInDays($booking->extension_requested_to);
-                if ($nights > 0 && $booking->room) $extensionCostUsd = $booking->room->price_per_night * $nights;
+                if ($nights > 0 && $booking->room)
+                    $extensionCostUsd = $booking->room->price_per_night * $nights;
             }
-            
+
             $companyBillTsh = ($booking->total_price * $bookingExchangeRate) + $companyServiceChargesTsh;
             $totalPaidTsh = ($booking->amount_paid ?? 0) * $bookingExchangeRate;
-            
+
             // Calculate company's contribution using the same capping logic as in the view
             $companyPaidTsh = $totalPaidTsh;
             if ($paymentResponsibility === 'self') {
@@ -2138,10 +2148,10 @@ class ReceptionController extends Controller
                     $companyPaidTsh = $roomPriceTsh;
                 }
             }
-            
+
             $outstandingTsh = max(0, $companyBillTsh - $companyPaidTsh);
             $outstandingUsd = $outstandingTsh / $bookingExchangeRate;
-            
+
             if ($outstandingTsh > 50) {
                 $companyBookingsData[] = [
                     'booking' => $booking,
@@ -2153,43 +2163,44 @@ class ReceptionController extends Controller
                 $totalCompanyOutstandingUsd += $outstandingUsd;
             }
         }
-        
+
         $paymentAmountUsd = (float) $request->amount;
-        
+
         // Relaxed validation: Allow any payment up to the total outstanding (allowing partial payments)
         if ($paymentAmountUsd > $totalCompanyOutstandingUsd + 0.1) {
-             return response()->json([
+            return response()->json([
                 'success' => false,
-                'message' => 'Payment amount ($' . number_format($paymentAmountUsd, 2) . ') exceed company outstanding balance ($'.number_format($totalCompanyOutstandingUsd, 2).').',
+                'message' => 'Payment amount ($' . number_format($paymentAmountUsd, 2) . ') exceed company outstanding balance ($' . number_format($totalCompanyOutstandingUsd, 2) . ').',
             ], 400);
         }
-        
+
         // Process payments
         $remainingPaymentUsd = $paymentAmountUsd;
         foreach ($companyBookingsData as $data) {
-            if ($remainingPaymentUsd <= 0) break;
+            if ($remainingPaymentUsd <= 0)
+                break;
 
             $booking = $data['booking'];
             $bookingExchangeRate = $data['bookingExchangeRate'];
-            
+
             // Pay as much as possible for this booking
             $payForThisBookingUsd = min($remainingPaymentUsd, $data['outstanding_usd']);
             $remainingPaymentUsd -= $payForThisBookingUsd;
-            
+
             // Increment amount_paid
             $newAmountPaidUsd = ($booking->amount_paid ?? 0) + $payForThisBookingUsd;
-            
+
             // Check if fully paid (including services if company-responsible)
             $totalServiceChargesTsh = $data['total_service_charges_tsh'];
             $totalBillTsh = ($booking->total_price * $bookingExchangeRate) + ($data['responsibility'] === 'company' ? $totalServiceChargesTsh : 0);
-            
+
             // For 'self' responsibility, fully paid means room is paid
             if ($data['responsibility'] === 'self') {
                 $totalBillTsh = ($booking->total_price * $bookingExchangeRate);
             }
 
-            $isFullyPaid = ( ($newAmountPaidUsd * $bookingExchangeRate) >= ($totalBillTsh - 50) );
-            
+            $isFullyPaid = (($newAmountPaidUsd * $bookingExchangeRate) >= ($totalBillTsh - 50));
+
             $booking->update([
                 'payment_status' => $isFullyPaid ? 'paid' : 'partial',
                 'payment_method' => $request->payment_method,
@@ -2200,7 +2211,7 @@ class ReceptionController extends Controller
                 'total_service_charges_tsh' => $totalServiceChargesTsh,
             ]);
         }
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Company bill paid successfully!',
@@ -2214,15 +2225,15 @@ class ReceptionController extends Controller
     {
         try {
             $company = \App\Models\Company::findOrFail($companyId);
-            
+
             // Get all confirmed bookings for this company that are checked in or recently checked out
             $bookings = Booking::with(['room', 'serviceRequests.service'])
                 ->where('company_id', $companyId)
                 ->where('is_corporate_booking', true)
                 ->where('status', 'confirmed')
-                ->where(function($q) {
+                ->where(function ($q) {
                     $q->where('check_in_status', 'checked_in')
-                      ->orWhere('check_in_status', 'checked_out');
+                        ->orWhere('check_in_status', 'checked_out');
                 })
                 ->orderBy('check_in', 'asc')
                 ->get();
@@ -2233,7 +2244,7 @@ class ReceptionController extends Controller
 
             $currencyService = new CurrencyExchangeService();
             $exchangeRate = $currencyService->getUsdToTshRate();
-            
+
             $groupData = [
                 'company' => $company,
                 'bookings' => [],
@@ -2249,21 +2260,21 @@ class ReceptionController extends Controller
 
             foreach ($bookings as $booking) {
                 $bookingExchangeRate = $booking->locked_exchange_rate ?? $exchangeRate;
-                
+
                 // Calculate service charges
                 $serviceRequests = $booking->serviceRequests()
                     ->whereIn('status', ['approved', 'completed'])
                     ->get();
-                
+
                 // Check payment responsibility
                 $paymentResponsibility = $booking->payment_responsibility ?? 'company';
-                
-                $companyResponsibleServiceTsh = ($paymentResponsibility === 'company') 
-                    ? $serviceRequests->sum('total_price_tsh') 
+
+                $companyResponsibleServiceTsh = ($paymentResponsibility === 'company')
+                    ? $serviceRequests->sum('total_price_tsh')
                     : 0;
-                
-                $guestResponsibleServiceTsh = ($paymentResponsibility === 'self') 
-                    ? $serviceRequests->sum('total_price_tsh') 
+
+                $guestResponsibleServiceTsh = ($paymentResponsibility === 'self')
+                    ? $serviceRequests->sum('total_price_tsh')
                     : 0;
 
                 // Extension cost
@@ -2277,16 +2288,16 @@ class ReceptionController extends Controller
                     }
                 }
                 $extensionCostTsh = $extensionCostUsd * $bookingExchangeRate;
-                
+
                 // Total room bill (including extensions)
-                $roomBillUsd = $booking->total_price; 
+                $roomBillUsd = $booking->total_price;
                 $roomBillTsh = $roomBillUsd * $bookingExchangeRate;
 
                 // Company's bill for THIS booking
                 $companyBookingBillTsh = $roomBillTsh + $companyResponsibleServiceTsh;
-                
+
                 $totalPaidTsh = ($booking->amount_paid ?? 0) * $bookingExchangeRate;
-                
+
                 $companyBookingPaidTsh = $totalPaidTsh;
                 if ($paymentResponsibility === 'self' && $totalPaidTsh > $roomBillTsh) {
                     $companyBookingPaidTsh = $roomBillTsh;
@@ -2333,6 +2344,58 @@ class ReceptionController extends Controller
             \Log::error('Error generating company group bill: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to generate bill: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Show shift handovers (closures from Counter/Chef)
+     */
+    public function shiftHandovers()
+    {
+        $role = $this->getRole();
+        $handovers = ShiftClosure::with(['staff', 'receiver'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return view('dashboard.reception-shift-handovers', [
+            'handovers' => $handovers,
+            'role' => $role,
+            'userName' => auth()->user()->name ?? 'Staff',
+            'userRole' => $role === 'manager' ? 'Manager' : 'Reception',
+        ]);
+    }
+
+    /**
+     * Acknowledge/Receive a shift handover
+     */
+    public function acknowledgeShiftClosure(Request $request, ShiftClosure $shiftClosure)
+    {
+        $shiftClosure->update([
+            'status' => 'acknowledged',
+            'receiver_id' => Auth::guard('staff')->id(),
+            'notes' => $shiftClosure->notes . "\n[Received by Reception at " . now() . "]"
+        ]);
+
+        return redirect()->back()->with('success', 'Shift handover acknowledged successfully.');
+    }
+
+    /**
+     * View individual sales for a specific shift closure
+     */
+    public function viewShiftSales(ShiftClosure $shiftClosure)
+    {
+        $role = $this->getRole();
+        $sales = ServiceRequest::with(['service', 'booking.room'])
+            ->where('shift_closure_id', $shiftClosure->id)
+            ->orderBy('completed_at', 'desc')
+            ->get();
+
+        return view('dashboard.reception-shift-sales', [
+            'shiftClosure' => $shiftClosure,
+            'sales' => $sales,
+            'role' => $role,
+            'userName' => auth()->user()->name ?? 'Staff',
+            'userRole' => $role === 'manager' ? 'Manager' : 'Reception',
+        ]);
     }
 }
 

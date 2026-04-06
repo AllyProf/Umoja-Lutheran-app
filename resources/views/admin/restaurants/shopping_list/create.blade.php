@@ -63,9 +63,8 @@
                         <table class="table table-bordered" id="itemsTable">
                             <thead>
                                 <tr>
-                                    <th width="25%">Item / Ingredient</th>
-                                    <th width="15%">Category</th>
-                                    <th width="10%">Quantity</th>
+                                    <th width="35%">Item / Ingredient</th>
+                                    <th width="15%">Quantity</th>
                                     <th width="15%">Unit</th>
                                     <th width="15%">Est. Unit Price</th>
                                     <th width="15%">Total Est. Price</th>
@@ -118,91 +117,54 @@
             });
 
             tr.innerHTML = `
-                                                                        <td>
-                                                                            <div class="input-group mb-2">
-                                                                                <select class="form-control product-select" name="items[${rowCount}][product_id]" onchange="updateProductVariants(this, ${rowCount})">
-                                                                                    ${productOptions}
-                                                                                </select>
-                                                                                <input type="text" class="form-control product-manual d-none" name="items[${rowCount}][product_name]" placeholder="Item Name">
-                                                                                <div class="input-group-append">
-                                                                                    <button class="btn btn-outline-secondary" type="button" onclick="toggleManual(this, ${rowCount})" title="Toggle Search/Type"><i class="fa fa-pencil"></i></button>
-                                                                                </div>
-                                                                            </div>
-                                                                            <!-- Variant Selection -->
-                                                                            <div class="variant-container" id="variant-container-${rowCount}" style="display:none;">
-                                                                                <select class="form-control form-control-sm variant-select" name="items[${rowCount}][product_variant_id]" onchange="updateVariantDetails(this, ${rowCount})">
-                                                                                    <option value="">-- Select Variant --</option>
-                                                                                </select>
-                                                                            </div>
-                                                                        </td>
-                                                                        <td>
-                                                                            <select class="form-control" name="items[${rowCount}][category]" id="cat-${rowCount}">
-                                                                                <option value="">Select Category</option>
-                                                                                <option value="meat_poultry">Meat & Poultry</option>
-                                                                                <option value="seafood">Seafood & Fish</option>
-                                                                                <option value="vegetables">Vegetables & Fruits</option>
-                                                                                <option value="dairy">Dairy & Eggs</option>
-                                                                                <option value="pantry_baking">Pantry & Baking</option>
-                                                                                <option value="spices_herbs">Spices & Herbs</option>
-                                                                                <option value="grains_pasta">Grains & Pasta</option>
-                                                                                <option value="bakery">Bakery & Bread</option>
-                                                                                <option value="oils_fats">Oils & Fats</option>
-                                                                                <option value="snacks">Snacks / Bites</option>
-                                                                                <option value="frozen_foods">Frozen Foods</option>
-                                                                                <option value="canned_goods">Canned & Packaged Goods</option>
-                                                                                <option value="beverages">Beverages (General)</option>
-                                                                                <option value="non_alcoholic_beverage">Soda / Soft Drinks</option>
-                                                                            <option value="cleaning_supplies">Housekeeping (Cleaning)</option>
-                                                                                <option value="energy_drinks">Energy Drinks</option>
-                                                                                <option value="juices">Juices</option>
-                                                                                <option value="water">Water</option>
-                                                                                <option value="alcoholic_beverage">Beer / Cider</option>
-                                                                                <option value="wines">Wines</option>
-                                                                                <option value="spirits">Spirits</option>
-                                                                                <option value="hot_beverages">Hot Beverages</option>
-                                                                                <option value="cocktails">Cocktails</option>
-                                                                                <option value="kitchen_disposables">Kitchen Disposables</option>
-                                                                                <option value="cleaning_supplies">Cleaning Supplies</option>
-                                                                                <option value="linens">Linens</option>
-                                                                                <option value="food">General Food</option>
-                                                                                <option value="other">Other</option>
-                                                                            </select>
-                                                                        </td>
+                                                                                                <td>
+                                                                                                    <div class="input-group mb-2">
+                                                                                                        <select class="form-control product-select" name="items[${rowCount}][product_id]" onchange="updateProductVariants(this, ${rowCount})">
+                                                                                                            ${productOptions}
+                                                                                                        </select>
+                                                                                                        <input type="text" class="form-control product-manual d-none" name="items[${rowCount}][product_name]" placeholder="Item Name">
+                                                                                                        <div class="input-group-append">
+                                                                                                            <button class="btn btn-outline-secondary" type="button" onclick="toggleManual(this, ${rowCount})" title="Toggle Search/Type"><i class="fa fa-pencil"></i></button>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                </td>
+                                                                                                <input type="hidden" name="items[${rowCount}][category]" id="cat-${rowCount}" value="other">
+                                                                                                <input type="hidden" name="items[${rowCount}][product_variant_id]" id="variant-${rowCount}" value="">
+                                                                                                            <td>
+                                                                                        <input type="number" step="0.01" class="form-control item-quantity" name="items[${rowCount}][quantity]" required placeholder="Qty" onchange="updateLineTotal(${rowCount})">
+                                                                                    </td>
                                                                                     <td>
-                                                                <input type="number" step="0.01" class="form-control item-quantity" name="items[${rowCount}][quantity]" required placeholder="Qty" onchange="updateLineTotal(${rowCount})">
-                                                            </td>
-                                                            <td>
-                                                                <select class="form-control unit-select-dropdown" name="items[${rowCount}][unit]" id="unit-${rowCount}">
-                                                                    <option value="pcs">Pieces (pcs)</option>
-                                                                    <option value="liters">Liters (L)</option>
-                                                                    <option value="ml">Milliliters (ml)</option>
-                                                                    <option value="kg">Kilograms (kg)</option>
-                                                                    <option value="g">Grams (g)</option>
-                                                                    <option value="Sado">Sado</option>
-                                                                    <option value="Debe">Debe</option>
-                                                                    <option value="boxes">Boxes</option>
-                                                                    <option value="bottles">PIC (Bottle)</option>
-                                                                    <option value="rolls">Rolls</option>
-                                                                    <option value="packs">Packs</option>
-                                                                    <option value="cartons">Cartons</option>
-                                                                    <option value="bags">Bags</option>
-                                                                    <option value="bunches">Bunches</option>
-                                                                    <option value="crates">Crates</option>
-                                                                    <option value="trays">Trays</option>
-                                                                     <option value="other">Other</option>
-                                                                    <option value="custom">Custom Unit</option>
-                                                                </select>
-                                                            </td>
-                                                            <td>
-                                                                <input type="number" step="0.01" class="form-control est-unit-price" placeholder="Price/Unit" onchange="updateLineTotal(${rowCount})">
-                                                            </td>
-                                                            <td>
-                                                                <input type="number" step="0.01" class="form-control estimated-price-input total-est-price" name="items[${rowCount}][estimated_price]" placeholder="0.00" onchange="calculateTotal()">
-                                                            </td>            </td>
-                                                                        <td>
-                                                                            <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(${rowCount})"><i class="fa fa-trash"></i></button>
-                                                                        </td>
-                                                                    `;
+                                                                                        <select class="form-control unit-select-dropdown" name="items[${rowCount}][unit]" id="unit-${rowCount}">
+                                                                                            <option value="pcs">Pieces (pcs)</option>
+                                                                                            <option value="liters">Liters (L)</option>
+                                                                                            <option value="ml">Milliliters (ml)</option>
+                                                                                            <option value="kg">Kilograms (kg)</option>
+                                                                                            <option value="g">Grams (g)</option>
+                                                                                            <option value="Sado">Sado</option>
+                                                                                            <option value="Debe">Debe</option>
+                                                                                            <option value="boxes">Boxes</option>
+                                                                                            <option value="bottles">PIC (Bottle)</option>
+                                                                                            <option value="rolls">Rolls</option>
+                                                                                            <option value="packs">Packs</option>
+                                                                                            <option value="cartons">Cartons</option>
+                                                                                            <option value="bags">Bags</option>
+                                                                                            <option value="bunches">Bunches</option>
+                                                                                            <option value="crates">Crates</option>
+                                                                                            <option value="trays">Trays</option>
+                                                                                             <option value="other">Other</option>
+                                                                                            <option value="custom">Custom Unit</option>
+                                                                                        </select>
+                                                                                    </td>
+                                                                                    <td>
+                                                                                        <input type="number" step="0.01" class="form-control est-unit-price" placeholder="Price/Unit" onchange="updateLineTotal(${rowCount})">
+                                                                                    </td>
+                                                                                    <td>
+                                                                                        <input type="number" step="0.01" class="form-control estimated-price-input total-est-price" name="items[${rowCount}][estimated_price]" placeholder="0.00" onchange="calculateTotal()">
+                                                                                    </td>            </td>
+                                                                                                <td>
+                                                                                                    <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(${rowCount})"><i class="fa fa-trash"></i></button>
+                                                                                                </td>
+                                                                                            `;
 
             tbody.appendChild(tr);
             rowCount++;
@@ -234,14 +196,9 @@
 
         function updateProductVariants(select, id) {
             const productId = select.value;
-            const row = document.getElementById(`row-${id}`);
-            const variantContainer = document.getElementById(`variant-container-${id}`);
-            const variantSelect = row.querySelector('.variant-select');
             const categorySelect = document.getElementById(`cat-${id}`);
-
-            // Reset variant select
-            variantSelect.innerHTML = '<option value="">-- Select Variant --</option>';
-            variantContainer.style.display = 'none';
+            const unitSelect = document.getElementById(`unit-${id}`);
+            const variantSelect = document.getElementById(`variant-${id}`);
 
             if (!productId) return;
 
@@ -249,88 +206,39 @@
             const product = availableProducts.find(p => p.id == productId);
             if (product) {
                 // Update category
-                categorySelect.value = product.category || 'other';
+                if (categorySelect) categorySelect.value = product.category || 'other';
 
-                // Populate variants if they exist
-                if (product.variants && product.variants.length > 0) {
-                    variantContainer.style.display = 'block';
-                    product.variants.forEach(v => {
-                        const variantName = v.variant_name || '';
+                // Automatically select unit based on product variant
+                if (unitSelect && product.variants && product.variants.length > 0) {
+                    const firstVariant = product.variants[0];
+                    if (variantSelect) variantSelect.value = firstVariant.id;
 
-                        // Smart Label for Food vs Drinks
-                        let label = variantName;
-                        let unit = v.unit || v.receiving_unit || '';
-                        let measurement = v.measurement || '';
+                    // Prioritize purchasing_unit as requested
+                    let unit = firstVariant.purchasing_unit || firstVariant.receiving_unit || firstVariant.measurement || '';
 
-                        // If it's a food category, prioritize receiving_unit and clean up "0 ml"
-                        const foodCategories = ['food', 'meat_poultry', 'seafood', 'vegetables', 'dairy', 'pantry_baking', 'spices_herbs', 'oils_fats', 'kitchen'];
-                        const isFood = foodCategories.includes(product.category);
-
-                        if (isFood) {
-                            // Fix "0 ml" or just "ml" issue for food
-                            if (unit.toLowerCase() === 'ml' || measurement.toLowerCase().includes('ml')) {
-                                unit = 'Kg'; // Default weight for food ingredients
-                                measurement = '';
+                    if (unit) {
+                        let found = false;
+                        for (let i = 0; i < unitSelect.options.length; i++) {
+                            if (unitSelect.options[i].value.toLowerCase() === unit.toLowerCase() ||
+                                (unitSelect.options[i].value === 'liters' && (unit.toLowerCase() === 'l' || unit.toLowerCase() === 'litre' || unit.toLowerCase() === 'litres')) ||
+                                (unitSelect.options[i].value === 'pcs' && (unit.toLowerCase() === 'piece' || unit.toLowerCase() === 'pieces'))) {
+                                unitSelect.value = unitSelect.options[i].value;
+                                found = true;
+                                break;
                             }
-
-                            if (measurement && !measurement.toString().startsWith('0')) {
-                                label += ` (${measurement} ${unit})`;
-                            } else if (unit && unit.toLowerCase() !== 'kg') {
-                                label += ` (${unit})`;
-                            }
-                        } else if (product.category === 'cleaning_supplies') {
-                            // Housekeeping: omit unit and skip measurement if it's just "ml" to keep labels clean
-                            if (measurement && measurement.toLowerCase() !== 'ml') {
-                                label += ` (${measurement})`;
-                            }
-                        } else {
-                            // Standard Drink/Other label
-                            if (measurement) label += ` ${measurement}`;
-                            if (unit) label += ` ${unit}`;
                         }
 
-                        const option = document.createElement('option');
-                        option.value = v.id;
-                        option.textContent = label.trim();
-                        option.setAttribute('data-unit', unit);
-                        variantSelect.appendChild(option);
-                    });
-                }
-            }
-        }
-
-        function updateVariantDetails(select, id) {
-            const option = select.options[select.selectedIndex];
-            const unitSelect = document.getElementById(`unit-${id}`);
-            const categorySelect = document.getElementById(`cat-${id}`);
-            const foodCategories = ['food', 'meat_poultry', 'seafood', 'vegetables', 'dairy', 'pantry_baking', 'spices_herbs', 'oils_fats', 'kitchen'];
-
-            if (option.value) {
-                const unit = option.getAttribute('data-unit');
-                if (unit && unitSelect) {
-                    // Try to find matching unit in dropdown
-                    let found = false;
-                    for (let i = 0; i < unitSelect.options.length; i++) {
-                        if (unitSelect.options[i].value.toLowerCase() === unit.toLowerCase() ||
-                            (unitSelect.options[i].value === 'liters' && unit.toLowerCase() === 'l')) {
-                            unitSelect.value = unitSelect.options[i].value;
-                            found = true;
-                            break;
+                        // Fallbacks for common names if exact match not found
+                        if (!found) {
+                            if (unit.toLowerCase().includes('sado')) unitSelect.value = 'Sado';
+                            else if (unit.toLowerCase().includes('debe')) unitSelect.value = 'Debe';
+                            else if (unit.toLowerCase().includes('kg')) unitSelect.value = 'kg';
+                            else if (unit.toLowerCase().includes('ltr')) unitSelect.value = 'liters';
+                            else if (unit.toLowerCase().includes('ml')) unitSelect.value = 'ml';
+                            else if (unit.toLowerCase().includes('carton')) unitSelect.value = 'cartons';
+                            else if (unit.toLowerCase().includes('box')) unitSelect.value = 'boxes';
                         }
                     }
-
-                    // Fallback for common units if not found exactly
-                    if (!found) {
-                        if (unit.toLowerCase().includes('sado')) unitSelect.value = 'Sado';
-                        else if (unit.toLowerCase().includes('kg')) unitSelect.value = 'kg';
-                        else if (unit.toLowerCase().includes('ltr')) unitSelect.value = 'liters';
-                        else if (unit.toLowerCase().includes('ml')) unitSelect.value = 'ml';
-                    }
-                }
-
-                // If its food and no unit was found/set, default to Sado as per user request
-                if (foodCategories.includes(categorySelect.value) && (!unitSelect.value || unitSelect.value === 'pcs')) {
-                    unitSelect.value = 'Sado';
                 }
             }
         }
@@ -540,21 +448,21 @@
             sortedCategories.forEach(cat => {
                 const catTitle = cat.charAt(0).toUpperCase() + cat.slice(1).replace('_', ' ');
                 let html = `<div class="category-section mb-4" data-category="${cat}">
-                                            <h6 class="border-bottom pb-2 font-weight-bold text-primary">${catTitle}</h6>
-                                            <div class="row">`;
+                                                                    <h6 class="border-bottom pb-2 font-weight-bold text-primary">${catTitle}</h6>
+                                                                    <div class="row">`;
 
                 grouped[cat].forEach(item => {
                     const uniqueId = item.variantId ? `v-${item.variantId}` : `p-${item.productId}`;
                     html += `<div class="col-md-4 mb-2 product-item" data-name="${item.displayName.toLowerCase()}" data-category-name="${item.categoryName}">
-                                                <div class="custom-control custom-checkbox p-2 border rounded hover-bg-light">
-                                                    <input type="checkbox" class="custom-control-input product-check" 
-                                                        id="bulk-${uniqueId}" 
-                                                        data-product-id="${item.productId}" 
-                                                        data-variant-id="${item.variantId}"
-                                                        onchange="updateSelectedCount()">
-                                                    <label class="custom-control-label d-block cursor-pointer" for="bulk-${uniqueId}">${item.displayName}</label>
-                                                </div>
-                                            </div>`;
+                                                                        <div class="custom-control custom-checkbox p-2 border rounded hover-bg-light">
+                                                                            <input type="checkbox" class="custom-control-input product-check" 
+                                                                                id="bulk-${uniqueId}" 
+                                                                                data-product-id="${item.productId}" 
+                                                                                data-variant-id="${item.variantId}"
+                                                                                onchange="updateSelectedCount()">
+                                                                            <label class="custom-control-label d-block cursor-pointer" for="bulk-${uniqueId}">${item.displayName}</label>
+                                                                        </div>
+                                                                    </div>`;
                 });
 
                 html += `</div></div>`;

@@ -74,7 +74,7 @@
     <a class="app-menu__item {{ str_contains($activePage, 'stock-requests') ? 'active' : '' }}"
         href="{{ route('stock-requests.index') }}">
         <i class="app-menu__icon fa fa-paper-plane"></i>
-        <span class="app-menu__label">Beverage Requests</span>
+        <span class="app-menu__label">Stock Requests</span>
     </a>
 </li>
 

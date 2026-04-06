@@ -462,6 +462,8 @@ class KitchenController extends Controller
                 }
 
                 $receivedKg = isset($data['received_quantity_kg']) ? (float) $cleanNumeric($data['received_quantity_kg']) : 0;
+
+                $foodCategories = ['food', 'meat_poultry', 'seafood', 'vegetables', 'dairy', 'pantry_baking', 'spices_herbs', 'oils_fats', 'kitchen', 'snacks'];
                 $isFood = in_array($item->category, $foodCategories);
 
                 $updateData = [
@@ -477,7 +479,6 @@ class KitchenController extends Controller
                 $finalUnitPrice = $unitPrice;
 
                 // For food/kitchen items with measured KG, the true unit price is per KG
-                $foodCategories = ['food', 'meat_poultry', 'seafood', 'vegetables', 'dairy', 'pantry_baking', 'spices_herbs', 'oils_fats', 'kitchen', 'snacks'];
                 if (in_array($item->category, $foodCategories) && $receivedKg > 0 && $cost > 0) {
                     $finalUnitPrice = $cost / $receivedKg;
                 } elseif ($unitPrice) {
@@ -552,6 +553,12 @@ class KitchenController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error updating purchase: ' . $e->getMessage()
+                ], 422);
+            }
             return back()->with('error', 'Error updating purchase: ' . $e->getMessage());
         }
     }

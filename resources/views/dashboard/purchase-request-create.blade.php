@@ -153,6 +153,12 @@
                                 <option value="spirits" {{ $preItem['category'] == 'spirits' ? 'selected' : '' }}>Spirits</option>
                                 <option value="wines" {{ $preItem['category'] == 'wines' ? 'selected' : '' }}>Wines</option>
                                 <option value="water" {{ $preItem['category'] == 'water' ? 'selected' : '' }}>Water</option>
+                                <option value="supplies" {{ $preItem['category'] == 'supplies' ? 'selected' : '' }}>Counter
+                                  Supplies (Napkins/Bags/etc)</option>
+                                <option value="equipment" {{ $preItem['category'] == 'equipment' ? 'selected' : '' }}>Equipment /
+                                  Vyombo</option>
+                                <option value="sauces" {{ $preItem['category'] == 'sauces' ? 'selected' : '' }}>Sauces / Viungo
+                                </option>
                               </optgroup>
                             @endif
                             <optgroup label="Other">
@@ -274,6 +280,9 @@
                               <option value="spirits">Spirits</option>
                               <option value="wines">Wines</option>
                               <option value="water">Water</option>
+                              <option value="supplies">Counter Supplies (Napkins/Bags/etc)</option>
+                              <option value="equipment">Equipment / Vyombo</option>
+                              <option value="sauces">Sauces / Viungo</option>
                             </optgroup>
                           @endif
                           <optgroup label="Other">
@@ -368,119 +377,122 @@
       // Add new item row
       $('#addItemBtn').on('click', function () {
         const newRow = `
-              <div class="item-row mb-4" style="border: 1px solid #dee2e6; padding: 20px; border-radius: 8px; background: #f8f9fa;">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                  <h5 class="mb-0"><i class="fa fa-cube"></i> Item <span class="item-number">${itemIndex + 1}</span></h5>
-                  <button type="button" class="btn btn-sm btn-danger remove-item-btn">
-                    <i class="fa fa-trash"></i> Remove
-                  </button>
-                </div>
-
-                <div class="row">
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label>Item Name <span class="text-danger">*</span></label>
-                      <input type="text" class="form-control item-name" name="items[${itemIndex}][item_name]" required placeholder="e.g., Soap, Towel, Drinking Water">
-                    </div>
+                <div class="item-row mb-4" style="border: 1px solid #dee2e6; padding: 20px; border-radius: 8px; background: #f8f9fa;">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0"><i class="fa fa-cube"></i> Item <span class="item-number">${itemIndex + 1}</span></h5>
+                    <button type="button" class="btn btn-sm btn-danger remove-item-btn">
+                      <i class="fa fa-trash"></i> Remove
+                    </button>
                   </div>
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label>Category</label>
-                      <select class="form-control item-category" name="items[${itemIndex}][category]" onchange="toggleWaterSizeField(this)">
-                        <option value="">Select Category</option>
-                        @if($routePrefix === 'bar-keeper')
-                          <optgroup label="Bar & Beverages">
-                            <option value="non_alcoholic_beverage">Soda / Soft Drinks</option>
-                            <option value="energy_drinks">Energy Drinks</option>
-                            <option value="juices">Juices</option>
-                            <option value="water">Water</option>
-                            <option value="alcoholic_beverage">Beer / Cider</option>
-                            <option value="wines">Wines</option>
-                            <option value="spirits">Spirits</option>
-                            <option value="hot_beverages">Hot Beverages</option>
-                            <option value="cocktails">Cocktails</option>
-                          </optgroup>
-                        @elseif($routePrefix === 'chef-master')
-                          <optgroup label="Kitchen & Food">
-                            <option value="meat_poultry">Meat & Poultry</option>
-                            <option value="seafood">Seafood & Fish</option>
-                            <option value="vegetables">Vegetables & Fruits</option>
-                            <option value="dairy">Dairy & Eggs</option>
-                            <option value="pantry_baking">Pantry & Baking</option>
-                            <option value="food">General Food</option>
-                          </optgroup>
-                        @else
-                          <option value="cleaning_supplies">Cleaning Supplies</option>
-                          <option value="linens">Linens</option>
+
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label>Item Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control item-name" name="items[${itemIndex}][item_name]" required placeholder="e.g., Soap, Towel, Drinking Water">
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label>Category</label>
+                        <select class="form-control item-category" name="items[${itemIndex}][category]" onchange="toggleWaterSizeField(this)">
+                          <option value="">Select Category</option>
+                          @if($routePrefix === 'bar-keeper')
+                            <optgroup label="Bar & Beverages">
+                              <option value="non_alcoholic_beverage">Soda / Soft Drinks</option>
+                              <option value="energy_drinks">Energy Drinks</option>
+                              <option value="juices">Juices</option>
+                              <option value="water">Water</option>
+                              <option value="alcoholic_beverage">Beer / Cider</option>
+                              <option value="wines">Wines</option>
+                              <option value="spirits">Spirits</option>
+                              <option value="hot_beverages">Hot Beverages</option>
+                              <option value="cocktails">Cocktails</option>
+                              <option value="supplies">Counter Supplies</option>
+                              <option value="equipment">Equipment / Vyombo</option>
+                              <option value="sauces">Sauces / Viungo</option>
+                            </optgroup>
+                          @elseif($routePrefix === 'chef-master')
+                            <optgroup label="Kitchen & Food">
+                              <option value="meat_poultry">Meat & Poultry</option>
+                              <option value="seafood">Seafood & Fish</option>
+                              <option value="vegetables">Vegetables & Fruits</option>
+                              <option value="dairy">Dairy & Eggs</option>
+                              <option value="pantry_baking">Pantry & Baking</option>
+                              <option value="food">General Food</option>
+                            </optgroup>
+                          @else
+                            <option value="cleaning_supplies">Cleaning Supplies</option>
+                            <option value="linens">Linens</option>
+                            <option value="other">Other</option>
+                          @endif
                           <option value="other">Other</option>
-                        @endif
-                        <option value="other">Other</option>
-                      </select>
+                        </select>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div class="row">
-                  <div class="col-md-3">
-                    <div class="form-group">
-                      <label>Unit <span class="text-danger">*</span></label>
-                      <select class="form-control item-unit" name="items[${itemIndex}][unit]" required onchange="toggleCustomUnit(this)">
-                        <option value="pcs">Pieces (pcs)</option>
-                        <option value="liters">Liters (L)</option>
-                        <option value="ml">Milliliters (ml)</option>
-                        <option value="kg">Kilograms (kg)</option>
-                        <option value="g">Grams (g)</option>
-                        <option value="boxes">Boxes</option>
-                        <option value="bottles">PIC (Bottle)</option>
-                        <option value="rolls">Rolls</option>
-                        <option value="packs">Packs</option>
-                        <option value="cartons">Cartons</option>
-                        <option value="bags">Bags</option>
-                        <option value="other">Other</option>
-                        <option value="custom">Custom Unit</option>
-                      </select>
+                  <div class="row">
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label>Unit <span class="text-danger">*</span></label>
+                        <select class="form-control item-unit" name="items[${itemIndex}][unit]" required onchange="toggleCustomUnit(this)">
+                          <option value="pcs">Pieces (pcs)</option>
+                          <option value="liters">Liters (L)</option>
+                          <option value="ml">Milliliters (ml)</option>
+                          <option value="kg">Kilograms (kg)</option>
+                          <option value="g">Grams (g)</option>
+                          <option value="boxes">Boxes</option>
+                          <option value="bottles">PIC (Bottle)</option>
+                          <option value="rolls">Rolls</option>
+                          <option value="packs">Packs</option>
+                          <option value="cartons">Cartons</option>
+                          <option value="bags">Bags</option>
+                          <option value="other">Other</option>
+                          <option value="custom">Custom Unit</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-3 custom-unit-field" style="display: none;">
+                      <div class="form-group">
+                        <label>Specify Unit <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control item-custom-unit" name="items[${itemIndex}][custom_unit]" placeholder="e.g., gallons, ounces, etc.">
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label>Quantity <span class="text-danger">*</span></label>
+                        <input type="number" step="1" class="form-control item-quantity" name="items[${itemIndex}][quantity]" required min="1">
+                      </div>
+                    </div>
+                    <div class="col-md-3 water-size-field" style="display: none;">
+                      <div class="form-group">
+                        <label>Water Size <span class="text-danger">*</span></label>
+                        <select class="form-control item-water-size" name="items[${itemIndex}][water_size]">
+                          <option value="small">Small</option>
+                          <option value="large">Large</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label>Priority <span class="text-danger">*</span></label>
+                        <select class="form-control item-priority" name="items[${itemIndex}][priority]" required>
+                          <option value="low">Low</option>
+                          <option value="medium" selected>Medium</option>
+                          <option value="high">High</option>
+                          <option value="urgent">Urgent</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
-                  <div class="col-md-3 custom-unit-field" style="display: none;">
-                    <div class="form-group">
-                      <label>Specify Unit <span class="text-danger">*</span></label>
-                      <input type="text" class="form-control item-custom-unit" name="items[${itemIndex}][custom_unit]" placeholder="e.g., gallons, ounces, etc.">
-                    </div>
-                  </div>
-                  <div class="col-md-3">
-                    <div class="form-group">
-                      <label>Quantity <span class="text-danger">*</span></label>
-                      <input type="number" step="1" class="form-control item-quantity" name="items[${itemIndex}][quantity]" required min="1">
-                    </div>
-                  </div>
-                  <div class="col-md-3 water-size-field" style="display: none;">
-                    <div class="form-group">
-                      <label>Water Size <span class="text-danger">*</span></label>
-                      <select class="form-control item-water-size" name="items[${itemIndex}][water_size]">
-                        <option value="small">Small</option>
-                        <option value="large">Large</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div class="col-md-3">
-                    <div class="form-group">
-                      <label>Priority <span class="text-danger">*</span></label>
-                      <select class="form-control item-priority" name="items[${itemIndex}][priority]" required>
-                        <option value="low">Low</option>
-                        <option value="medium" selected>Medium</option>
-                        <option value="high">High</option>
-                        <option value="urgent">Urgent</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
 
-                <div class="form-group">
-                  <label>Reason <span class="text-danger">*</span></label>
-                  <textarea class="form-control item-reason" name="items[${itemIndex}][reason]" rows="2" required placeholder="Why do you need this item? (e.g., Running low, about to finish, etc.)"></textarea>
+                  <div class="form-group">
+                    <label>Reason <span class="text-danger">*</span></label>
+                    <textarea class="form-control item-reason" name="items[${itemIndex}][reason]" rows="2" required placeholder="Why do you need this item? (e.g., Running low, about to finish, etc.)"></textarea>
+                  </div>
                 </div>
-              </div>
-          `;
+            `;
 
         $('#itemsContainer').append(newRow);
         itemIndex++;
@@ -762,124 +774,127 @@
         const isCustomUnit = itemData.unit && !standardUnits.includes(itemData.unit);
 
         const itemRow = `
-              <div class="item-row mb-4" style="border: 1px solid #dee2e6; padding: 20px; border-radius: 8px; background: #f8f9fa;">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                  <h5 class="mb-0"><i class="fa fa-cube"></i> Item <span class="item-number">${index + 1}</span></h5>
-                  <button type="button" class="btn btn-sm btn-danger remove-item-btn">
-                    <i class="fa fa-trash"></i> Remove
-                  </button>
-                </div>
+                <div class="item-row mb-4" style="border: 1px solid #dee2e6; padding: 20px; border-radius: 8px; background: #f8f9fa;">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0"><i class="fa fa-cube"></i> Item <span class="item-number">${index + 1}</span></h5>
+                    <button type="button" class="btn btn-sm btn-danger remove-item-btn">
+                      <i class="fa fa-trash"></i> Remove
+                    </button>
+                  </div>
 
-                <div class="row">
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label>Item Name <span class="text-danger">*</span></label>
-                      <input type="text" class="form-control item-name" name="items[${index}][item_name]" required value="${itemData.item_name || ''}">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label>Item Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control item-name" name="items[${index}][item_name]" required value="${itemData.item_name || ''}">
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label>Category</label>
+                        <select class="form-control item-category" name="items[${index}][category]" onchange="toggleWaterSizeField(this)">
+                          <option value="">Select Category</option>
+                          @if($routePrefix === 'bar-keeper')
+                            <optgroup label="Bar & Beverages">
+                              <option value="non_alcoholic_beverage" ${itemData.category === 'non_alcoholic_beverage' ? 'selected' : ''}>Soda / Soft Drinks</option>
+                              <option value="energy_drinks" ${itemData.category === 'energy_drinks' ? 'selected' : ''}>Energy Drinks</option>
+                              <option value="juices" ${itemData.category === 'juices' ? 'selected' : ''}>Juices</option>
+                              <option value="water" ${itemData.category === 'water' ? 'selected' : ''}>Water</option>
+                              <option value="alcoholic_beverage" ${itemData.category === 'alcoholic_beverage' ? 'selected' : ''}>Beer / Cider</option>
+                              <option value="wines" ${itemData.category === 'wines' ? 'selected' : ''}>Wines</option>
+                              <option value="spirits" ${itemData.category === 'spirits' ? 'selected' : ''}>Spirits</option>
+                              <option value="hot_beverages" ${itemData.category === 'hot_beverages' ? 'selected' : ''}>Hot Beverages</option>
+                              <option value="cocktails" ${itemData.category === 'cocktails' ? 'selected' : ''}>Cocktails</option>
+                              <option value="supplies" ${itemData.category === 'supplies' ? 'selected' : ''}>Counter Supplies</option>
+                              <option value="equipment" ${itemData.category === 'equipment' ? 'selected' : ''}>Equipment / Vyombo</option>
+                              <option value="sauces" ${itemData.category === 'sauces' ? 'selected' : ''}>Sauces / Viungo</option>
+                            </optgroup>
+                          @elseif($routePrefix === 'chef-master')
+                            <optgroup label="Kitchen & Food">
+                              <option value="meat_poultry" ${itemData.category === 'meat_poultry' ? 'selected' : ''}>Meat & Poultry</option>
+                              <option value="seafood" ${itemData.category === 'seafood' ? 'selected' : ''}>Seafood & Fish</option>
+                              <option value="vegetables" ${itemData.category === 'vegetables' ? 'selected' : ''}>Vegetables & Fruits</option>
+                              <option value="dairy" ${itemData.category === 'dairy' ? 'selected' : ''}>Dairy & Eggs</option>
+                              <option value="pantry_baking" ${itemData.category === 'pantry_baking' ? 'selected' : ''}>Pantry & Baking</option>
+                              <option value="food" ${itemData.category === 'food' ? 'selected' : ''}>General Food</option>
+                              <option value="oils_fats" ${itemData.category === 'oils_fats' ? 'selected' : ''}>Cooking Oil & Fats</option>
+                            </optgroup>
+                          @else
+                            <option value="cleaning_supplies" ${itemData.category === 'cleaning_supplies' ? 'selected' : ''}>Cleaning Supplies</option>
+                            <option value="linens" ${itemData.category === 'linens' ? 'selected' : ''}>Linens</option>
+                          @endif
+                          <option value="other" ${itemData.category === 'other' || !itemData.category ? 'selected' : ''}>Other</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label>Category</label>
-                      <select class="form-control item-category" name="items[${index}][category]" onchange="toggleWaterSizeField(this)">
-                        <option value="">Select Category</option>
-                        @if($routePrefix === 'bar-keeper')
-                          <optgroup label="Bar & Beverages">
-                            <option value="non_alcoholic_beverage" ${itemData.category === 'non_alcoholic_beverage' ? 'selected' : ''}>Soda / Soft Drinks</option>
-                            <option value="energy_drinks" ${itemData.category === 'energy_drinks' ? 'selected' : ''}>Energy Drinks</option>
-                            <option value="juices" ${itemData.category === 'juices' ? 'selected' : ''}>Juices</option>
-                            <option value="water" ${itemData.category === 'water' ? 'selected' : ''}>Water</option>
-                            <option value="alcoholic_beverage" ${itemData.category === 'alcoholic_beverage' ? 'selected' : ''}>Beer / Cider</option>
-                            <option value="wines" ${itemData.category === 'wines' ? 'selected' : ''}>Wines</option>
-                            <option value="spirits" ${itemData.category === 'spirits' ? 'selected' : ''}>Spirits</option>
-                            <option value="hot_beverages" ${itemData.category === 'hot_beverages' ? 'selected' : ''}>Hot Beverages</option>
-                            <option value="cocktails" ${itemData.category === 'cocktails' ? 'selected' : ''}>Cocktails</option>
-                          </optgroup>
-                        @elseif($routePrefix === 'chef-master')
-                          <optgroup label="Kitchen & Food">
-                            <option value="meat_poultry" ${itemData.category === 'meat_poultry' ? 'selected' : ''}>Meat & Poultry</option>
-                            <option value="seafood" ${itemData.category === 'seafood' ? 'selected' : ''}>Seafood & Fish</option>
-                            <option value="vegetables" ${itemData.category === 'vegetables' ? 'selected' : ''}>Vegetables & Fruits</option>
-                            <option value="dairy" ${itemData.category === 'dairy' ? 'selected' : ''}>Dairy & Eggs</option>
-                            <option value="pantry_baking" ${itemData.category === 'pantry_baking' ? 'selected' : ''}>Pantry & Baking</option>
-                            <option value="food" ${itemData.category === 'food' ? 'selected' : ''}>General Food</option>
-                            <option value="oils_fats" ${itemData.category === 'oils_fats' ? 'selected' : ''}>Cooking Oil & Fats</option>
-                          </optgroup>
-                        @else
-                          <option value="cleaning_supplies" ${itemData.category === 'cleaning_supplies' ? 'selected' : ''}>Cleaning Supplies</option>
-                          <option value="linens" ${itemData.category === 'linens' ? 'selected' : ''}>Linens</option>
-                        @endif
-                        <option value="other" ${itemData.category === 'other' || !itemData.category ? 'selected' : ''}>Other</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
 
-                <div class="row">
-                  <div class="col-md-3">
-                    <div class="form-group">
-                      <label>Unit <span class="text-danger">*</span></label>
-                      <select class="form-control item-unit" name="items[${index}][unit]" required>
-                        <option value="pcs" ${itemData.unit === 'pcs' ? 'selected' : ''}>Pieces (pcs)</option>
-                        <option value="liters" ${itemData.unit === 'liters' ? 'selected' : ''}>Liters (L)</option>
-                        <option value="ml" ${itemData.unit === 'ml' ? 'selected' : ''}>Milliliters (ml)</option>
-                        <option value="kg" ${itemData.unit === 'kg' ? 'selected' : ''}>Kilograms (kg)</option>
-                        <option value="g" ${itemData.unit === 'g' ? 'selected' : ''}>Grams (g)</option>
-                        <option value="boxes" ${itemData.unit === 'boxes' ? 'selected' : ''}>Boxes</option>
-                        <option value="bottles" ${itemData.unit === 'bottles' ? 'selected' : ''}>Bottles</option>
-                        <option value="rolls" ${itemData.unit === 'rolls' ? 'selected' : ''}>Rolls</option>
-                        <option value="packs" ${itemData.unit === 'packs' ? 'selected' : ''}>Packs</option>
-                        <option value="cartons" ${itemData.unit === 'cartons' ? 'selected' : ''}>Cartons</option>
-                        <option value="bags" ${itemData.unit === 'bags' ? 'selected' : ''}>Bags</option>
-                        <option value="other" ${itemData.unit === 'other' ? 'selected' : ''}>Other</option>
-                        <option value="custom" ${isCustomUnit ? 'selected' : ''}>Custom Unit</option>
-                      </select>
+                  <div class="row">
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label>Unit <span class="text-danger">*</span></label>
+                        <select class="form-control item-unit" name="items[${index}][unit]" required>
+                          <option value="pcs" ${itemData.unit === 'pcs' ? 'selected' : ''}>Pieces (pcs)</option>
+                          <option value="liters" ${itemData.unit === 'liters' ? 'selected' : ''}>Liters (L)</option>
+                          <option value="ml" ${itemData.unit === 'ml' ? 'selected' : ''}>Milliliters (ml)</option>
+                          <option value="kg" ${itemData.unit === 'kg' ? 'selected' : ''}>Kilograms (kg)</option>
+                          <option value="g" ${itemData.unit === 'g' ? 'selected' : ''}>Grams (g)</option>
+                          <option value="boxes" ${itemData.unit === 'boxes' ? 'selected' : ''}>Boxes</option>
+                          <option value="bottles" ${itemData.unit === 'bottles' ? 'selected' : ''}>Bottles</option>
+                          <option value="rolls" ${itemData.unit === 'rolls' ? 'selected' : ''}>Rolls</option>
+                          <option value="packs" ${itemData.unit === 'packs' ? 'selected' : ''}>Packs</option>
+                          <option value="cartons" ${itemData.unit === 'cartons' ? 'selected' : ''}>Cartons</option>
+                          <option value="bags" ${itemData.unit === 'bags' ? 'selected' : ''}>Bags</option>
+                          <option value="other" ${itemData.unit === 'other' ? 'selected' : ''}>Other</option>
+                          <option value="custom" ${isCustomUnit ? 'selected' : ''}>Custom Unit</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-3 custom-unit-field" style="display: ${isCustomUnit ? 'block' : 'none'};">
+                      <div class="form-group">
+                        <label>Specify Unit <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control item-custom-unit" name="items[${index}][custom_unit]" value="${isCustomUnit ? itemData.unit : ''}" ${isCustomUnit ? 'required' : ''} placeholder="e.g., gallons, ounces, etc.">
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label>Quantity <span class="text-danger">*</span></label>
+                        <input type="number" step="1" class="form-control item-quantity" name="items[${index}][quantity]" required min="1" value="${itemData.quantity || ''}">
+                      </div>
+                    </div>
+                    <div class="col-md-3 water-size-field" style="display: ${itemData.category === 'water' && itemData.unit === 'pcs' ? 'block' : 'none'};">
+                      <div class="form-group">
+                        <label>Water Size</label>
+                        <select class="form-control item-water-size" name="items[${index}][water_size]" ${itemData.category === 'water' && itemData.unit === 'pcs' ? 'required' : ''}>
+                          <option value="">Select Size</option>
+                          <option value="small" ${itemData.water_size === 'small' ? 'selected' : ''}>Small</option>
+                          <option value="large" ${itemData.water_size === 'large' ? 'selected' : ''}>Large</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
-                  <div class="col-md-3 custom-unit-field" style="display: ${isCustomUnit ? 'block' : 'none'};">
-                    <div class="form-group">
-                      <label>Specify Unit <span class="text-danger">*</span></label>
-                      <input type="text" class="form-control item-custom-unit" name="items[${index}][custom_unit]" value="${isCustomUnit ? itemData.unit : ''}" ${isCustomUnit ? 'required' : ''} placeholder="e.g., gallons, ounces, etc.">
-                    </div>
-                  </div>
-                  <div class="col-md-3">
-                    <div class="form-group">
-                      <label>Quantity <span class="text-danger">*</span></label>
-                      <input type="number" step="1" class="form-control item-quantity" name="items[${index}][quantity]" required min="1" value="${itemData.quantity || ''}">
-                    </div>
-                  </div>
-                  <div class="col-md-3 water-size-field" style="display: ${itemData.category === 'water' && itemData.unit === 'pcs' ? 'block' : 'none'};">
-                    <div class="form-group">
-                      <label>Water Size</label>
-                      <select class="form-control item-water-size" name="items[${index}][water_size]" ${itemData.category === 'water' && itemData.unit === 'pcs' ? 'required' : ''}>
-                        <option value="">Select Size</option>
-                        <option value="small" ${itemData.water_size === 'small' ? 'selected' : ''}>Small</option>
-                        <option value="large" ${itemData.water_size === 'large' ? 'selected' : ''}>Large</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
 
-                <div class="row">
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label>Priority <span class="text-danger">*</span></label>
-                      <select class="form-control item-priority" name="items[${index}][priority]" required>
-                        <option value="low" ${itemData.priority === 'low' ? 'selected' : ''}>Low</option>
-                        <option value="medium" ${itemData.priority === 'medium' ? 'selected' : ''}>Medium</option>
-                        <option value="high" ${itemData.priority === 'high' ? 'selected' : ''}>High</option>
-                        <option value="urgent" ${itemData.priority === 'urgent' ? 'selected' : ''}>Urgent</option>
-                      </select>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label>Priority <span class="text-danger">*</span></label>
+                        <select class="form-control item-priority" name="items[${index}][priority]" required>
+                          <option value="low" ${itemData.priority === 'low' ? 'selected' : ''}>Low</option>
+                          <option value="medium" ${itemData.priority === 'medium' ? 'selected' : ''}>Medium</option>
+                          <option value="high" ${itemData.priority === 'high' ? 'selected' : ''}>High</option>
+                          <option value="urgent" ${itemData.priority === 'urgent' ? 'selected' : ''}>Urgent</option>
+                        </select>
+                      </div>
                     </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label>Reason <span class="text-danger">*</span></label>
-                      <textarea class="form-control item-reason" name="items[${index}][reason]" rows="2" required placeholder="Why do you need this item?">${itemData.reason || ''}</textarea>
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label>Reason <span class="text-danger">*</span></label>
+                        <textarea class="form-control item-reason" name="items[${index}][reason]" rows="2" required placeholder="Why do you need this item?">${itemData.reason || ''}</textarea>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-          `;
+            `;
 
         $('#itemsContainer').append(itemRow);
       }

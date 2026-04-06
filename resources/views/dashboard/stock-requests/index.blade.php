@@ -206,20 +206,87 @@
 
                                                 {{-- Storekeeper Actions --}}
                                                 @if(Auth::guard('staff')->user()->role === 'storekeeper' && $request->status === 'approved')
-                                                    <form action="{{ route('stock-requests.distribute', $request) }}" method="POST"
-                                                        class="d-inline">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-sm btn-primary confirm-submit"
-                                                            data-confirm="Distribute these items to Counter?">
-                                                            <i class="fa fa-truck"></i> Distribute
-                                                        </button>
-                                                    </form>
+                                                    <button type="button" class="btn btn-sm btn-primary" data-toggle="modal"
+                                                        data-target="#distributeModal{{ $request->id }}">
+                                                        <i class="fa fa-truck"></i> Issue Items
+                                                    </button>
+
+                                                    <!-- Distribution Modal -->
+                                                    <div class="modal fade" id="distributeModal{{ $request->id }}" tabindex="-1"
+                                                        role="dialog" aria-hidden="true">
+                                                        <div class="modal-dialog" role="document">
+                                                            <div class="modal-content">
+                                                                <form action="{{ route('stock-requests.distribute', $request) }}"
+                                                                    method="POST">
+                                                                    @csrf
+                                                                    <div class="modal-header bg-primary text-white">
+                                                                        <h5 class="modal-title"><i class="fa fa-file-text"></i>
+                                                                            Issue Items — Requisition #{{ $request->id }}</h5>
+                                                                        <button type="button" class="close text-white"
+                                                                            data-dismiss="modal"><span>&times;</span></button>
+                                                                    </div>
+                                                                    <div class="modal-body">
+                                                                        <div class="alert alert-light border mb-3">
+                                                                            <strong>Item:</strong>
+                                                                            {{ $request->productVariant->product->name ?? 'N/A' }}
+                                                                            {{ $request->productVariant->variant_name ? '(' . $request->productVariant->variant_name . ')' : '' }}<br>
+                                                                            <strong>Requested By:</strong>
+                                                                            {{ $request->requester->name ?? 'N/A' }}<br>
+                                                                            <strong>Qty Requested:</strong>
+                                                                            {{ number_format($request->quantity, 1) }}
+                                                                            {{ $request->unit }}
+                                                                        </div>
+                                                                        <div class="form-group">
+                                                                            <label><strong>Quantity to Issue <span
+                                                                                        class="text-danger">*</span></strong></label>
+                                                                            <input type="number" step="0.01" min="0.01"
+                                                                                name="quantity_issued"
+                                                                                class="form-control form-control-lg"
+                                                                                value="{{ $request->quantity }}" required
+                                                                                placeholder="Qty Issued">
+                                                                            <small class="text-muted">You can issue less than
+                                                                                requested if stock is limited.</small>
+                                                                        </div>
+                                                                        <div class="form-group">
+                                                                            <label><strong>Unit Price (TSH) <span
+                                                                                        class="text-danger">*</span></strong></label>
+                                                                            @php
+                                                                                $suggestedCost = $request->unit_cost > 0 ? $request->unit_cost : null;
+                                                                            @endphp
+                                                                            <input type="number" step="0.01" min="0"
+                                                                                name="unit_cost"
+                                                                                class="form-control form-control-lg unit-cost-input"
+                                                                                value="{{ $suggestedCost }}" required
+                                                                                placeholder="Unit Price">
+                                                                            @if($suggestedCost)
+                                                                                <small class="text-success"><i
+                                                                                        class="fa fa-info-circle"></i> Suggested price
+                                                                                    from last purchase.</small>
+                                                                            @endif
+                                                                        </div>
+                                                                        <div class="alert alert-info"
+                                                                            id="totalDisplay{{ $request->id }}">
+                                                                            <strong>Total Amount:</strong> <span
+                                                                                class="total-amount">—</span> TSH
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="modal-footer">
+                                                                        <button type="button" class="btn btn-secondary"
+                                                                            data-dismiss="modal">Cancel</button>
+                                                                        <button type="submit" class="btn btn-success">
+                                                                            <i class="fa fa-check"></i> Issue & Print Note
+                                                                        </button>
+                                                                    </div>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 @endif
 
                                                 @if($request->status === 'completed' && $request->stock_transfer_id)
-                                                    <a href="{{ route('admin.stock-transfers.download', $request->stock_transfer_id) }}"
-                                                        class="btn btn-sm btn-outline-info" target="_blank">
-                                                        <i class="fa fa-file-pdf-o"></i> View Transfer Note
+                                                    <a href="{{ route('stock-requests.print', $request) }}"
+                                                        class="btn btn-sm btn-outline-secondary" target="_blank">
+                                                        <i class="fa fa-print"></i> Requisition Note
                                                     </a>
                                                 @endif
 

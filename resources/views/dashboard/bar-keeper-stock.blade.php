@@ -148,6 +148,9 @@
                                     'energy_drinks' => 'fa-bolt',
                                     'hot_beverages' => 'fa-mug-hot',
                                     'cocktails' => 'fa-cocktail',
+                                    'supplies' => 'fa-box-open',
+                                    'equipment' => 'fa-utensils',
+                                    'sauces' => 'fa-pepper-hot',
                                 ];
                             @endphp
                             @foreach($categories as $category => $items)

@@ -1242,7 +1242,6 @@
           }
         }
       }
-      }
 
       // Toast Notification System for Action Required Notifications
       // Load previously shown notification IDs from localStorage
