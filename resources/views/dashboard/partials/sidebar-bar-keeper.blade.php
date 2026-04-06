@@ -27,6 +27,14 @@
 </li>
 
 <li>
+    <a class="app-menu__item {{ str_contains($activePage, 'restaurants/recipes') ? 'active' : '' }}"
+        href="{{ route('admin.recipes.index') }}">
+        <i class="app-menu__icon fa fa-book"></i>
+        <span class="app-menu__label">Manage Menu</span>
+    </a>
+</li>
+
+<li>
     <a class="app-menu__item {{ str_contains($activePage, 'orders/index') ? 'active' : '' }}"
         href="{{ route('bar-keeper.orders.index') }}">
         <i class="app-menu__icon fa fa-history"></i>

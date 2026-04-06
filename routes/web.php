@@ -245,7 +245,7 @@ Route::prefix('restaurant/food')->middleware(['check.auth', 'role:manager,head_c
 
 // Re-open Manager Dashboard Routes
 Route::prefix('manager')->group(function () {
-    Route::middleware(['check.auth', 'role:manager,head_chef,super_admin,storekeeper,accountant'])->group(function () {
+    Route::middleware(['check.auth', 'role:manager,head_chef,super_admin,storekeeper,accountant,bar_keeper'])->group(function () {
 
         // Restaurant Reports
         Route::get('/restaurant-reports', [App\Http\Controllers\AdminController::class, 'restaurantReports'])->name('admin.restaurants.reports');
@@ -312,7 +312,7 @@ Route::prefix('manager')->group(function () {
         Route::put('/restaurants/stock-transfers/{stockTransfer}/status', [\App\Http\Controllers\StockTransferController::class, 'updateStatus'])->name('admin.stock-transfers.update-status');
         Route::get('/restaurants/stock-transfers/{stockTransfer}/download', [\App\Http\Controllers\StockTransferController::class, 'download'])->name('admin.stock-transfers.download');
 
-        // Recipes
+        // Recipes (Shared: Manager, Chef, Bar Keeper, Storekeeper, Accountant)
         Route::put('/restaurants/recipes/{recipe}/update-price', [\App\Http\Controllers\RecipeController::class, 'updatePrice'])->name('admin.recipes.update-price');
         Route::get('/restaurants/recipes/ajax-get-stock', [\App\Http\Controllers\RecipeController::class, 'ajaxGetStock'])->name('admin.recipes.ajax-get-stock');
         Route::resource('/restaurants/recipes', \App\Http\Controllers\RecipeController::class, ['as' => 'admin']);

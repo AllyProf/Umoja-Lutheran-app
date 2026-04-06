@@ -8,7 +8,7 @@
     </div>
     <ul class="app-breadcrumb breadcrumb">
         <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
-        <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ (auth()->guard('staff')->check() && auth()->guard('staff')->user()->role === 'bar_keeper') ? route('bar-keeper.dashboard') : route('admin.dashboard') }}">Dashboard</a></li>
         <li class="breadcrumb-item"><a href="{{ route('admin.recipes.index') }}">Menu</a></li>
         <li class="breadcrumb-item active">Add Item</li>
     </ul>
