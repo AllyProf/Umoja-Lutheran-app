@@ -262,8 +262,9 @@ class BarKeeperController extends Controller
             if ($matchedBase) {
                 // Extract the side (mboga)
                 $side = trim(str_ireplace(strtolower($matchedBase), '', $nameLower));
-                if (empty($side))
-                    $side = 'Kavu (Plain)'; // If no explicit side
+                if (empty($side)) {
+                    continue; // Skip plain version as requested
+                }
                 $side = ucwords($side);
 
                 if (!isset($foodBases[$matchedBase])) {
