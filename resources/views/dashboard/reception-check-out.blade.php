@@ -216,7 +216,7 @@
                       @php
                         $groupRate = $firstBooking->locked_exchange_rate ?? $exchangeRate;
                       @endphp
-                      <strong>{{ number_format($totalPrice * $groupRate, 2) }} TZS</strong>
+                      <strong>{{ number_format($totalPrice, 2) }} TZS</strong>
                       @php
                         $totalOutstandingTsh = $group['total_outstanding_tsh'] ?? 0;
                         $totalOutstandingUsd = $group['total_outstanding_usd'] ?? 0;
@@ -341,7 +341,7 @@
                                <td>
                                 @php
                                   $bookingCurrentRate = $booking->locked_exchange_rate ?? $exchangeRate;
-                                  $totalGuestBillTsh = $booking->total_bill_tsh ?? ($booking->total_price * $bookingCurrentRate);
+                                  $totalGuestBillTsh = $booking->total_bill_tsh ?? $booking->total_price;
                                   $totalGuestBillUsd = $booking->total_bill_usd ?? ($totalGuestBillTsh / $bookingCurrentRate);
                                 @endphp
                                 <strong>{{ number_format($totalGuestBillTsh, 2) }} TZS</strong>
@@ -512,8 +512,8 @@
                     $serviceChargesUsd = $serviceChargesTsh / $bookingRate;
                     
                     // Total bill = Room + Services
-                    $totalBillUsd = (float)$booking->total_price + $serviceChargesUsd;
-                    $totalBillTsh = ($booking->total_price * $bookingRate) + $serviceChargesTsh;
+                    $totalBillUsd = ((float)$booking->total_price / $bookingRate) + $serviceChargesUsd;
+                    $totalBillTsh = $booking->total_price + $serviceChargesTsh;
                     
                     // Determine guest type for display
                     $guestType = $booking->guest_type ?? 'international';
@@ -522,14 +522,13 @@
                   
                     <strong>{{ number_format($totalBillTsh, 2) }} TZS</strong><br>
                     @if($serviceChargesTsh > 0)
-                      <small class="text-muted">Room: {{ number_format($booking->total_price * $bookingRate, 2) }} TZS</small><br>
+                      <small class="text-muted">Room: {{ number_format($booking->total_price, 2) }} TZS</small><br>
                       <small class="text-muted">Services: {{ number_format($serviceChargesTsh, 2) }} TZS</small>
                     @endif
                   
                   @if(isset($booking->outstanding_balance_tsh) && $booking->outstanding_balance_tsh >= 50)
                     <br><small class="text-danger">
-                      <strong>Outstanding: ${{ number_format($booking->outstanding_balance_usd ?? 0, 2) }}</strong><br>
-                      <strong>{{ number_format($booking->outstanding_balance_tsh, 2) }} TZS</strong>
+                      <strong>Outstanding: {{ number_format($booking->outstanding_balance_tsh, 2) }} TZS</strong>
                     </small>
                   @elseif(isset($booking->outstanding_balance_tsh))
                     <br><small class="text-success"><i class="fa fa-check-circle"></i> All Paid</small>
@@ -706,7 +705,7 @@
                 <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
                   <span style="font-weight: 600; color: #495057; font-size: 14px; flex: 0 0 40%;">Total Price:</span>
                   <span style="text-align: right; flex: 1;">
-                    <strong>{{ number_format($totalPrice * $exchangeRate, 2) }} TZS</strong>
+                    <strong>{{ number_format($totalPrice, 2) }} TZS</strong>
                     @php
                       $totalOutstandingTsh = $group['total_outstanding_tsh'] ?? 0;
                       $totalOutstandingUsd = $group['total_outstanding_usd'] ?? 0;
@@ -912,8 +911,7 @@
                   <strong>{{ number_format($totalBillTsh, 2) }} TZS</strong>
                   @if(isset($booking->outstanding_balance_tsh) && $booking->outstanding_balance_tsh >= 50)
                     <br><small class="text-danger">
-                      <strong>Outstanding: ${{ number_format($booking->outstanding_balance_usd ?? 0, 2) }}</strong><br>
-                      <strong>{{ number_format($booking->outstanding_balance_tsh, 2) }} TZS</strong>
+                      <strong>Outstanding: {{ number_format($booking->outstanding_balance_tsh, 2) }} TZS</strong>
                     </small>
                   @elseif(isset($booking->outstanding_balance_tsh))
                     <br><small class="text-success"><i class="fa fa-check-circle"></i> All Paid</small>

@@ -55,38 +55,38 @@ class BookingController extends Controller
             ->whereDoesntHave('bookings', function ($query) use ($checkIn, $checkOut) {
                 // Block rooms for bookings (pending or confirmed) that are valid
                 $query->whereIn('status', ['pending', 'confirmed'])
-                      ->where(function ($q) use ($checkIn, $checkOut) {
-                          $q->where('check_in', '<', $checkOut)
-                            ->where('check_out', '>', $checkIn);
-                      })
-                      ->where(function ($q) {
-                          // Block if:
-                          // 1. Confirmed with paid/partial payment
-                          // 2. Confirmed with pending payment and valid deadline
-                          // 3. Pending status with valid expiration (not expired)
-                          $q->where(function ($statusQ) {
-                              // Confirmed bookings
-                              $statusQ->where('status', 'confirmed')
-                                      ->where(function ($paymentQ) {
-                                          $paymentQ->whereIn('payment_status', ['paid', 'partial'])
-                                                  ->orWhere(function ($subQ) {
-                                                      $subQ->where('payment_status', 'pending')
-                                                           ->where(function ($deadlineQ) {
-                                                               $deadlineQ->whereNull('payment_deadline')
-                                                                        ->orWhere('payment_deadline', '>', Carbon::now());
-                                                           });
-                                                  });
-                                      });
-                          })
-                          ->orWhere(function ($pendingQ) {
-                              // Pending bookings that haven't expired
-                              $pendingQ->where('status', 'pending')
-                                      ->where(function ($expireQ) {
-                                          $expireQ->whereNull('expires_at')
-                                                 ->orWhere('expires_at', '>', Carbon::now());
-                                      });
-                          });
-                      });
+                    ->where(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_in', '<', $checkOut)
+                        ->where('check_out', '>', $checkIn);
+                })
+                    ->where(function ($q) {
+                    // Block if:
+                    // 1. Confirmed with paid/partial payment
+                    // 2. Confirmed with pending payment and valid deadline
+                    // 3. Pending status with valid expiration (not expired)
+                    $q->where(function ($statusQ) {
+                        // Confirmed bookings
+                        $statusQ->where('status', 'confirmed')
+                            ->where(function ($paymentQ) {
+                            $paymentQ->whereIn('payment_status', ['paid', 'partial'])
+                                ->orWhere(function ($subQ) {
+                                    $subQ->where('payment_status', 'pending')
+                                        ->where(function ($deadlineQ) {
+                                            $deadlineQ->whereNull('payment_deadline')
+                                                ->orWhere('payment_deadline', '>', Carbon::now());
+                                        });
+                                });
+                        });
+                    })
+                        ->orWhere(function ($pendingQ) {
+                        // Pending bookings that haven't expired
+                        $pendingQ->where('status', 'pending')
+                            ->where(function ($expireQ) {
+                            $expireQ->whereNull('expires_at')
+                                ->orWhere('expires_at', '>', Carbon::now());
+                        });
+                    });
+                });
             })
             ->orderBy('status', 'asc') // available comes before occupied
             ->orderBy('room_number', 'asc') // Assign in order
@@ -177,7 +177,7 @@ class BookingController extends Controller
         if (!empty($validated['room_type'])) {
             // New flow: Auto-assign room by type
             $room = $this->assignAvailableRoom($validated['room_type'], $checkIn, $checkOut);
-            
+
             if (!$room) {
                 return response()->json([
                     'success' => false,
@@ -187,7 +187,7 @@ class BookingController extends Controller
         } else {
             // Backward compatibility: Use provided room_id (for admin/manual bookings)
             $room = Room::findOrFail($validated['room_id']);
-            
+
             // Check for date conflicts
             // Block rooms for confirmed bookings that are valid (paid/partial OR pending with valid deadline)
             $hasConflict = Booking::where('room_id', $room->id)
@@ -225,7 +225,7 @@ class BookingController extends Controller
 
         // Generate unique booking reference
         $bookingReference = 'BK' . strtoupper(Str::random(8));
-        
+
         // Generate unique guest ID (GST-12345 format)
         $guestId = $this->generateGuestId();
 
@@ -235,11 +235,11 @@ class BookingController extends Controller
         $daysUntilArrival = Carbon::now()->diffInDays($checkIn, false);
         $paymentDeadline = null;
         $expiresAt = null;
-        
+
         // For pending payments, set expiration to 10 minutes from now
         // This ensures the booking expires if payment is not completed within the time limit
         $expiresAt = Carbon::now()->addMinutes(10);
-        
+
         if ($daysUntilArrival >= 30) {
             // More than 30 days: Full payment required 30 days before arrival
             $paymentDeadline = $checkIn->copy()->subDays(30);
@@ -337,7 +337,7 @@ class BookingController extends Controller
             $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
                 ->where('is_active', true)
                 ->get();
-            
+
                 foreach ($managersAndAdmins as $staff) {
                     // Check if user has notifications enabled
                     if ($staff->isNotificationEnabled('booking')) {
@@ -375,18 +375,18 @@ class BookingController extends Controller
         if ($request->has('status') && $request->status) {
             if ($request->status === 'expired') {
                 // Show expired bookings (pending bookings that have expired)
-                $query->where(function($q) {
-                    $q->where(function($subQ) {
+                $query->where(function ($q) {
+                    $q->where(function ($subQ) {
                         // Pending bookings that have expired
                         $subQ->where('status', 'pending')
-                             ->where('payment_status', 'pending')
-                             ->whereNotNull('expires_at')
-                             ->where('expires_at', '<=', Carbon::now());
-                    })->orWhere(function($subQ) {
+                            ->where('payment_status', 'pending')
+                            ->whereNotNull('expires_at')
+                            ->where('expires_at', '<=', Carbon::now());
+                    })->orWhere(function ($subQ) {
                         // Cancelled bookings with expiration reason
                         $subQ->where('status', 'cancelled')
-                             ->whereNotNull('cancellation_reason')
-                             ->where('cancellation_reason', 'like', '%expired%');
+                            ->whereNotNull('cancellation_reason')
+                            ->where('cancellation_reason', 'like', '%expired%');
                     });
                 });
             } else {
@@ -395,13 +395,13 @@ class BookingController extends Controller
         } else {
             // Exclude expired bookings from main list
             // Only show bookings that haven't expired
-            $query->where(function($q) {
-                $q->where(function($subQ) {
+            $query->where(function ($q) {
+                $q->where(function ($subQ) {
                     // Not pending with expired timestamp
                     $subQ->where('status', '!=', 'pending')
-                         ->orWhere('payment_status', '!=', 'pending')
-                         ->orWhereNull('expires_at')
-                         ->orWhere('expires_at', '>', Carbon::now());
+                        ->orWhere('payment_status', '!=', 'pending')
+                        ->orWhereNull('expires_at')
+                        ->orWhere('expires_at', '>', Carbon::now());
                 });
             });
         }
@@ -420,18 +420,18 @@ class BookingController extends Controller
         $bookingType = $request->get('type', 'individual'); // Default to individual
         /* if ($bookingType === 'corporate') {
             $query->where('is_corporate_booking', true);
-            
+
             // Group corporate bookings by company_id
             // Get unique company IDs first
             $companyIds = $query->whereNotNull('company_id')->distinct()->pluck('company_id');
-            
+
             // Get bookings grouped by company
             $groupedBookings = collect();
             foreach ($companyIds as $companyId) {
                 $companyBookings = Booking::with(['room', 'company'])
                     ->where('is_corporate_booking', true)
                     ->where('company_id', $companyId);
-                
+
                 // Apply filters
                 if ($request->has('status') && $request->status) {
                     if ($request->status === 'expired') {
@@ -460,15 +460,15 @@ class BookingController extends Controller
                         });
                     });
                 }
-                
+
                 if ($request->has('payment_status') && $request->payment_status) {
                     $companyBookings->where('payment_status', $request->payment_status);
                 }
-                
+
                 if ($request->has('check_in_status') && $request->check_in_status) {
                     $companyBookings->where('check_in_status', $request->check_in_status);
                 }
-                
+
                 // Search by guest name, booking reference, or company name
                 if ($request->has('search') && $request->search) {
                     $search = $request->search;
@@ -482,9 +482,9 @@ class BookingController extends Controller
                           });
                     });
                 }
-                
+
                 $bookingsForCompany = $companyBookings->orderBy('created_at', 'desc')->get();
-                
+
                 if ($bookingsForCompany->count() > 0) {
                     $groupedBookings->push([
                         'company' => $bookingsForCompany->first()->company,
@@ -493,7 +493,7 @@ class BookingController extends Controller
                     ]);
                 }
             }
-            
+
             // Convert to paginator-like structure
             $bookings = new \Illuminate\Pagination\LengthAwarePaginator(
                 $groupedBookings->forPage($request->get('page', 1), 20),
@@ -503,30 +503,30 @@ class BookingController extends Controller
                 ['path' => $request->url(), 'query' => $request->query()]
             );
         } else { */
-            // Default to individual bookings (is_corporate_booking is false or null)
-            $query->where(function($q) {
-                $q->where('is_corporate_booking', false)
-                  ->orWhereNull('is_corporate_booking');
+        // Default to individual bookings (is_corporate_booking is false or null)
+        $query->where(function ($q) {
+            $q->where('is_corporate_booking', false)
+                ->orWhereNull('is_corporate_booking');
+        });
+
+        // Search by guest name or booking reference
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('guest_name', 'like', "%{$search}%")
+                    ->orWhere('booking_reference', 'like', "%{$search}%")
+                    ->orWhere('guest_email', 'like', "%{$search}%");
             });
-            
-            // Search by guest name or booking reference
-            if ($request->has('search') && $request->search) {
-                $search = $request->search;
-                $query->where(function($q) use ($search) {
-                    $q->where('guest_name', 'like', "%{$search}%")
-                      ->orWhere('booking_reference', 'like', "%{$search}%")
-                      ->orWhere('guest_email', 'like', "%{$search}%");
-                });
-            }
-            
-            $bookings = $query->paginate(20);
+        }
+
+        $bookings = $query->paginate(20);
         // }
 
         // Get statistics filtered by booking type
         /* if ($bookingType === 'corporate') {
             // For corporate bookings, count unique companies
             $baseQuery = Booking::where('is_corporate_booking', true);
-            
+
             // Apply status filter if provided
             if ($request->has('status') && $request->status == 'expired') {
                 $baseQuery->where(function($q) {
@@ -544,23 +544,23 @@ class BookingController extends Controller
             } else if ($request->has('status') && $request->status) {
                 $baseQuery->where('status', $request->status);
             }
-            
+
             // Count unique companies
             $totalCompanies = $baseQuery->whereNotNull('company_id')->distinct('company_id')->count('company_id');
-            
+
             // For other stats, count companies that have bookings matching the criteria
             $confirmedCompanies = (clone $baseQuery)->where('status', 'confirmed')->whereNotNull('company_id')->distinct('company_id')->count('company_id');
             $checkedInCompanies = (clone $baseQuery)->where('check_in_status', 'checked_in')->whereNotNull('company_id')->distinct('company_id')->count('company_id');
             $checkedOutCompanies = (clone $baseQuery)->where('check_in_status', 'checked_out')->whereNotNull('company_id')->distinct('company_id')->count('company_id');
-            
+
             // Also get overall stats for tabs
             $allIndividualQuery = Booking::where(function($q) {
                 $q->where('is_corporate_booking', false)
                   ->orWhereNull('is_corporate_booking');
             });
-            
+
             $allCorporateQuery = Booking::where('is_corporate_booking', true);
-            
+
             $stats = [
                 'total' => $totalCompanies,
                 'individual_total' => $allIndividualQuery->count(),
@@ -574,49 +574,49 @@ class BookingController extends Controller
                 'checked_out' => $checkedOutCompanies,
             ];
         } else { */
-            // For individual bookings, count individual bookings
-            $baseQuery = Booking::where(function($q) {
-                $q->where('is_corporate_booking', false)
-                  ->orWhereNull('is_corporate_booking');
-            });
-            
-            // Apply status filter if provided
-            if ($request->has('status') && $request->status == 'expired') {
-                $baseQuery->where(function($q) {
-                    $q->where(function($subQ) {
-                        $subQ->where('status', 'pending')
-                             ->where('payment_status', 'pending')
-                             ->whereNotNull('expires_at')
-                             ->where('expires_at', '<=', Carbon::now());
-                    })->orWhere(function($subQ) {
-                        $subQ->where('status', 'cancelled')
-                             ->whereNotNull('cancellation_reason')
-                             ->where('cancellation_reason', 'like', '%expired%');
-                    });
+        // For individual bookings, count individual bookings
+        $baseQuery = Booking::where(function ($q) {
+            $q->where('is_corporate_booking', false)
+                ->orWhereNull('is_corporate_booking');
+        });
+
+        // Apply status filter if provided
+        if ($request->has('status') && $request->status == 'expired') {
+            $baseQuery->where(function ($q) {
+                $q->where(function ($subQ) {
+                    $subQ->where('status', 'pending')
+                        ->where('payment_status', 'pending')
+                        ->whereNotNull('expires_at')
+                        ->where('expires_at', '<=', Carbon::now());
+                })->orWhere(function ($subQ) {
+                    $subQ->where('status', 'cancelled')
+                        ->whereNotNull('cancellation_reason')
+                        ->where('cancellation_reason', 'like', '%expired%');
                 });
-            } else if ($request->has('status') && $request->status) {
-                $baseQuery->where('status', $request->status);
-            }
-            
-            // Also get overall stats for tabs
-            $allIndividualQuery = clone $baseQuery;
-            $allCorporateQuery = Booking::where('is_corporate_booking', true);
-            
-            $stats = [
-                'total' => $baseQuery->count(),
-                'individual_total' => $allIndividualQuery->count(),
-                'corporate_total' => $allCorporateQuery->whereNotNull('company_id')->distinct('company_id')->count('company_id'),
-                'pending' => (clone $baseQuery)->where('status', 'pending')->count(),
-                'confirmed' => (clone $baseQuery)->where('status', 'confirmed')->count(),
-                'cancelled' => (clone $baseQuery)->where('status', 'cancelled')->count(),
-                'completed' => (clone $baseQuery)->where('status', 'completed')->count(),
-                'expired' => (clone $baseQuery)->where('status', 'cancelled')
-                    ->whereNotNull('cancellation_reason')
-                    ->where('cancellation_reason', 'like', '%expired automatically%')
-                    ->count(),
-                'checked_in' => (clone $baseQuery)->where('check_in_status', 'checked_in')->count(),
-                'checked_out' => (clone $baseQuery)->where('check_in_status', 'checked_out')->count(),
-            ];
+            });
+        } else if ($request->has('status') && $request->status) {
+            $baseQuery->where('status', $request->status);
+        }
+
+        // Also get overall stats for tabs
+        $allIndividualQuery = clone $baseQuery;
+        $allCorporateQuery = Booking::where('is_corporate_booking', true);
+
+        $stats = [
+            'total' => $baseQuery->count(),
+            'individual_total' => $allIndividualQuery->count(),
+            'corporate_total' => $allCorporateQuery->whereNotNull('company_id')->distinct('company_id')->count('company_id'),
+            'pending' => (clone $baseQuery)->where('status', 'pending')->count(),
+            'confirmed' => (clone $baseQuery)->where('status', 'confirmed')->count(),
+            'cancelled' => (clone $baseQuery)->where('status', 'cancelled')->count(),
+            'completed' => (clone $baseQuery)->where('status', 'completed')->count(),
+            'expired' => (clone $baseQuery)->where('status', 'cancelled')
+                ->whereNotNull('cancellation_reason')
+                ->where('cancellation_reason', 'like', '%expired automatically%')
+                ->count(),
+            'checked_in' => (clone $baseQuery)->where('check_in_status', 'checked_in')->count(),
+            'checked_out' => (clone $baseQuery)->where('check_in_status', 'checked_out')->count(),
+        ];
         // }
 
         return view('dashboard.bookings-list', [
@@ -642,7 +642,7 @@ class BookingController extends Controller
                 ->where('is_corporate_booking', true)
                 ->orderBy('created_at', 'desc')
                 ->get();
-            
+
             return response()->json([
                 'success' => true,
                 'company' => [
@@ -661,7 +661,7 @@ class BookingController extends Controller
                     $serviceRequests = $booking->serviceRequests()
                         ->whereIn('status', ['approved', 'completed'])
                         ->get();
-                    
+
                     $totalServiceChargesTsh = $serviceRequests->sum('total_price_tsh');
 
                     return [
@@ -718,7 +718,7 @@ class BookingController extends Controller
                 'company_id' => $companyId,
                 'error' => $e->getMessage(),
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch company bookings: ' . $e->getMessage()
@@ -743,13 +743,13 @@ class BookingController extends Controller
                     ], 403);
                 }
             }
-            
+
             // Load room and service requests if they exist
             $booking->load(['room', 'serviceRequests.service']);
-            
+
             // Ensure financial fields are visible
             $booking->makeVisible(['amount_paid', 'payment_percentage', 'total_service_charges_tsh', 'total_bill_tsh']);
-            
+
             // Format dates as YYYY-MM-DD to avoid timezone issues in JavaScript
             $bookingData = $booking->toArray();
             if (isset($bookingData['check_in']) && $bookingData['check_in']) {
@@ -761,15 +761,15 @@ class BookingController extends Controller
             if (isset($bookingData['original_check_out']) && $bookingData['original_check_out']) {
                 $bookingData['original_check_out'] = \Carbon\Carbon::parse($booking->original_check_out)->format('Y-m-d');
             }
-            
+
             // Calculate service charges and paid services
             $serviceRequests = $booking->serviceRequests()->whereIn('status', ['approved', 'completed'])->get();
             $totalServiceChargesTsh = $serviceRequests->sum('total_price_tsh');
             $paidServiceChargesTsh = $serviceRequests->where('payment_status', 'paid')->sum('total_price_tsh');
-            
+
             // Add service charges and total paid to booking data
             $bookingData['service_charges_tsh'] = $totalServiceChargesTsh;
-            
+
             // Return booking even if room doesn't exist (for manual bookings that might not have room assigned yet)
             return response()->json([
                 'success' => true,
@@ -782,7 +782,7 @@ class BookingController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to load booking details: ' . $e->getMessage()
@@ -807,10 +807,10 @@ class BookingController extends Controller
             $now = Carbon::now();
             $checkInDate = Carbon::parse($booking->check_in);
             $daysUntilArrival = $now->diffInDays($checkInDate, false);
-            
+
             $cancellationFeePercentage = 0;
             $cancellationFee = 0;
-            
+
             // Calculate cancellation fee based on new policy:
             // - Free cancellation: 14+ days before arrival
             // - 50% fee: 13 days to 3 days (72 hours) before arrival
@@ -830,12 +830,12 @@ class BookingController extends Controller
                 $depositAmount = ($booking->amount_paid ?? ($booking->total_price * ($booking->payment_percentage ?? 50) / 100));
                 $cancellationFee = $depositAmount;
             }
-            
+
             $updateData['cancelled_at'] = $now;
             $updateData['payment_status'] = 'cancelled';
             $updateData['cancellation_fee'] = $cancellationFee;
             $updateData['cancellation_fee_percentage'] = $cancellationFeePercentage;
-            
+
             if ($request->has('cancellation_reason') && $request->cancellation_reason) {
                 $updateData['cancellation_reason'] = $request->cancellation_reason;
             } elseif (!$booking->cancellation_reason) {
@@ -867,7 +867,7 @@ class BookingController extends Controller
         }
 
         $booking->update($updateData);
-        
+
         // Mark booking notification as read when booking is confirmed or completed (action taken)
         if (in_array($request->status, ['confirmed', 'completed', 'cancelled'])) {
             try {
@@ -895,13 +895,13 @@ class BookingController extends Controller
                 $smsService = app(\App\Services\SmsService::class);
                 $status = strtoupper($request->status);
                 $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", your booking {$booking->booking_reference} has been updated to {$status}.";
-                
+
                 if ($request->status === 'cancelled') {
                     $smsMessage .= " Reason: " . ($updateData['cancellation_reason'] ?? 'N/A');
                 } elseif ($request->status === 'confirmed') {
                     $smsMessage .= " We look forward to welcoming you on " . Carbon::parse($booking->check_in)->format('M d, Y') . ".";
                 }
-                
+
                 $smsService->sendSms($booking->guest_phone, $smsMessage);
             } catch (\Exception $e) {
                 \Log::error("Failed to send booking status SMS to guest: " . $e->getMessage());
@@ -913,7 +913,7 @@ class BookingController extends Controller
             $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
                 ->where('is_active', true)
                 ->get();
-            
+
             foreach ($managersAndAdmins as $staff) {
                 if ($staff->phone && $staff->isNotificationEnabled('booking')) {
                     try {
@@ -949,7 +949,7 @@ class BookingController extends Controller
                 'message' => 'You must be logged in to perform this action.',
             ], 401);
         }
-        
+
         // For staff users, ensure they have manager or reception role
         if ($user instanceof \App\Models\Staff) {
             $userRole = strtolower(trim($user->role ?? ''));
@@ -960,7 +960,7 @@ class BookingController extends Controller
                 ], 403);
             }
         }
-        
+
         $request->validate([
             'check_in_status' => 'required|in:pending,checked_in,checked_out',
         ]);
@@ -973,7 +973,7 @@ class BookingController extends Controller
             if ($booking->status === 'pending') {
                 $updateData['status'] = 'confirmed';
             }
-            
+
             // Update the booking first to ensure checked_in_at is saved
             $booking->update($updateData);
             $booking->load('room');
@@ -982,7 +982,7 @@ class BookingController extends Controller
             if ($booking->room) {
                 $booking->room->update(['status' => 'occupied']);
             }
-            
+
             // Send check-in confirmation email (send immediately, not queued)
             try {
                 $wifiPassword = \App\Models\HotelSetting::getWifiPassword();
@@ -1010,7 +1010,7 @@ class BookingController extends Controller
                 $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
                     ->where('is_active', true)
                     ->get();
-                
+
                 $smsService = app(SmsService::class);
                 foreach ($managersAndAdmins as $staff) {
                     // Email
@@ -1040,15 +1040,15 @@ class BookingController extends Controller
             // Check if there's outstanding balance before allowing checkout
             $currencyService = new CurrencyExchangeService();
             $exchangeRate = $booking->locked_exchange_rate ?? $currencyService->getUsdToTshRate();
-            
+
             // Calculate total bill
             $serviceRequests = $booking->serviceRequests()
                 ->whereIn('status', ['approved', 'completed'])
                 ->with('service')
                 ->get();
-            
+
             $totalServiceChargesTsh = $serviceRequests->sum('total_price_tsh');
-            
+
             // Calculate extension cost if extension was approved
             $extensionCostUsd = 0;
             if ($booking->extension_status === 'approved' && $booking->original_check_out && $booking->extension_requested_to) {
@@ -1060,26 +1060,26 @@ class BookingController extends Controller
                 }
             }
             $extensionCostTsh = $extensionCostUsd * $exchangeRate;
-            
+
             // Total bill
             // Note: extensionCostTsh is already included in booking->total_price
             $totalBillTsh = ($booking->total_price * $exchangeRate) + $totalServiceChargesTsh;
-            
+
             // Amount paid
             // Amount paid (Booking deposit + any settled service payments)
             $amountPaidTsh = ($booking->amount_paid ?? 0) * $exchangeRate;
-            
+
             // Add payments for completed/paid services to show correct outstanding balance
             foreach ($serviceRequests as $sr) {
                 if ($sr->payment_status === 'paid') {
                     $amountPaidTsh += $sr->total_price_tsh;
                 }
             }
-            
+
             // Outstanding balance
             $outstandingBalanceTsh = max(0, $totalBillTsh - $amountPaidTsh);
             $outstandingBalanceUsd = $outstandingBalanceTsh / $exchangeRate;
-            
+
             // Treat very small amounts (less than $0.05 or 50 TZS) as fully paid (rounding differences)
             $minOutstandingThresholdUsd = 0.05;
             $minOutstandingThresholdTsh = 50;
@@ -1088,7 +1088,7 @@ class BookingController extends Controller
                 $outstandingBalanceTsh = 0;
                 $outstandingBalanceUsd = 0;
             }
-            
+
             // If there's outstanding balance, prevent checkout
             if ($outstandingBalanceTsh >= $minOutstandingThresholdTsh || $outstandingBalanceUsd >= $minOutstandingThresholdUsd) {
                 return response()->json([
@@ -1096,28 +1096,28 @@ class BookingController extends Controller
                     'message' => 'Cannot check out. Outstanding balance of $' . number_format($outstandingBalanceUsd, 2) . ' (' . number_format($outstandingBalanceTsh, 2) . ' TZS) must be paid first.',
                 ], 400);
             }
-            
+
             $updateData['checked_out_at'] = now();
             // Auto-update booking status to completed
             $updateData['status'] = 'completed';
             // Ensure payment status is paid
             $updateData['payment_status'] = 'paid';
-            
+
             // Update room status to needs cleaning
             if ($booking->room) {
                 $booking->room->update(['status' => 'to_be_cleaned']);
-                
+
                 // Create cleaning log entry
                 \App\Models\RoomCleaningLog::create([
                     'room_id' => $booking->room->id,
                     'status' => 'needs_cleaning',
                 ]);
-                
+
                 // Send email notification to housekeeper
                 $housekeepers = \App\Models\Staff::where('role', 'housekeeper')
                     ->where('is_active', true)
                     ->get();
-                
+
                 foreach ($housekeepers as $housekeeper) {
                     // Email
                     if ($housekeeper->isNotificationEnabled('room_cleaning')) {
@@ -1173,7 +1173,7 @@ class BookingController extends Controller
                 $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
                     ->where('is_active', true)
                     ->get();
-                
+
                 $smsService = app(SmsService::class);
                 foreach ($managersAndAdmins as $staff) {
                     // Email
@@ -1199,7 +1199,7 @@ class BookingController extends Controller
             } catch (\Exception $e) {
                 \Log::error('Failed to send check-out notifications to managers/admins: ' . $e->getMessage());
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Guest checked out successfully. Room status changed to "Needs Cleaning".',
@@ -1220,11 +1220,11 @@ class BookingController extends Controller
     public function customerDashboard(Request $request)
     {
         $user = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
-        
+
         if (!$user) {
             return redirect()->route('login')->withErrors(['email' => 'Please login to access your dashboard.']);
         }
-        
+
         // Redirect super admins and managers to their respective dashboards
         // Only Staff model has isSuperAdmin, isManager, isReception methods
         if ($user instanceof \App\Models\Staff) {
@@ -1238,37 +1238,37 @@ class BookingController extends Controller
                 return redirect()->route('reception.dashboard');
             }
         }
-        
+
         // Get all bookings for this customer
         $allBookings = Booking::where('guest_email', $user->email)
             ->with(['room', 'company'])
             ->orderBy('created_at', 'desc')
             ->get();
-        
+
         // Get active bookings (confirmed, paid or partial, not checked out) OR checked out but not paid
         // Include manual bookings with confirmed status and pending/partial payment
         $activeBookings = Booking::where('guest_email', $user->email)
             ->with(['room', 'company'])
-            ->where(function($q) {
-                $q->where(function($q2) {
+            ->where(function ($q) {
+                $q->where(function ($q2) {
                     $q2->where('status', 'confirmed')
-                       ->whereIn('payment_status', ['paid', 'partial', 'pending'])
-                       ->where('check_in_status', '!=', 'checked_out');
-                })->orWhere(function($q3) {
+                        ->whereIn('payment_status', ['paid', 'partial', 'pending'])
+                        ->where('check_in_status', '!=', 'checked_out');
+                })->orWhere(function ($q3) {
                     $q3->where('check_in_status', 'checked_out')
-                       ->where('payment_status', '!=', 'paid');
+                        ->where('payment_status', '!=', 'paid');
                 });
             })
             ->with(['room', 'company', 'serviceRequests.service'])
             ->orderBy('check_in', 'asc')
             ->get();
-        
+
         // Recalculate total service charges for each active booking to ensure accuracy
         foreach ($activeBookings as $booking) {
             $calculatedTotal = $booking->serviceRequests()
                 ->whereIn('status', ['approved', 'completed'])
                 ->sum('total_price_tsh');
-            
+
             // Update if different (fixes any existing data inconsistencies)
             if ($booking->total_service_charges_tsh != $calculatedTotal) {
                 $booking->update([
@@ -1276,24 +1276,24 @@ class BookingController extends Controller
                 ]);
             }
         }
-        
+
         // Get pending bookings (awaiting payment)
         // Include both regular pending bookings and confirmed manual bookings with pending payment
         $pendingBookings = Booking::where('guest_email', $user->email)
-            ->where(function($q) {
-                $q->where(function($q2) {
+            ->where(function ($q) {
+                $q->where(function ($q2) {
                     $q2->where('status', 'pending')
-                       ->where('payment_status', 'pending');
-                })->orWhere(function($q3) {
+                        ->where('payment_status', 'pending');
+                })->orWhere(function ($q3) {
                     $q3->where('status', 'confirmed')
-                       ->where('payment_status', 'pending')
-                       ->where('payment_method', 'manual');
+                        ->where('payment_status', 'pending')
+                        ->where('payment_method', 'manual');
                 });
             })
             ->with(['room', 'company'])
             ->orderBy('created_at', 'desc')
             ->get();
-        
+
         // Calculate statistics (completed bookings excluded from dashboard - they're in Booking History page)
         $stats = [
             'total' => $allBookings->count(),
@@ -1302,44 +1302,46 @@ class BookingController extends Controller
             'completed' => $allBookings->where('status', 'completed')->count(),
             'total_spent' => $allBookings->where('payment_status', 'paid')->sum('total_price'),
         ];
-        
+
         // Get exchange rate
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $currencyService->getUsdToTshRate();
-        
+
         // Get country from most recent booking
         $userCountry = Booking::where('guest_email', $user->email)
             ->whereNotNull('country')
             ->orderBy('created_at', 'desc')
             ->value('country');
-        
+
         // Calculate upcoming check-in/check-out dates
         $upcomingCheckIns = [];
         $upcomingCheckOuts = [];
         $today = \Carbon\Carbon::today();
-        
+
         foreach ($activeBookings as $booking) {
             $checkInDate = \Carbon\Carbon::parse($booking->check_in);
             $checkOutDate = \Carbon\Carbon::parse($booking->check_out);
-            
+
             // Set check-in time (default 2:00 PM if arrival_time not specified)
             if ($booking->arrival_time) {
                 $timeParts = explode(':', $booking->arrival_time);
                 if (count($timeParts) >= 2) {
-                    $checkInDate->setTime((int)$timeParts[0], (int)$timeParts[1], 0);
+                    $checkInDate->setTime((int) $timeParts[0], (int) $timeParts[1], 0);
                 } else {
                     $checkInDate->setTime(14, 0, 0); // Default 2:00 PM
                 }
             } else {
                 $checkInDate->setTime(14, 0, 0); // Default 2:00 PM
             }
-            
+
             // Check-in alerts - show for guests who haven't checked in yet
             // Include bookings within 7 days OR if check-in date has passed but guest hasn't checked in
-            if (($booking->check_in_status === 'pending' || $booking->check_in_status === null) && 
-                $booking->check_in_status !== 'checked_in' && 
-                $booking->check_in_status !== 'checked_out') {
-                
+            if (
+                ($booking->check_in_status === 'pending' || $booking->check_in_status === null) &&
+                $booking->check_in_status !== 'checked_in' &&
+                $booking->check_in_status !== 'checked_out'
+            ) {
+
                 // Show if within 7 days OR if check-in date has passed but not checked in yet
                 $daysUntilCheckIn = $today->diffInDays($checkInDate, false); // false = can be negative
                 if ($daysUntilCheckIn <= 7 && $daysUntilCheckIn >= -2) { // Show up to 2 days after check-in date
@@ -1350,7 +1352,7 @@ class BookingController extends Controller
                     ];
                 }
             }
-            
+
             // Check-out alerts (upcoming within 2 days)
             if ($booking->check_in_status === 'checked_in' && $checkOutDate >= $today && $checkOutDate->diffInDays($today) <= 2) {
                 $upcomingCheckOuts[] = [
@@ -1360,40 +1362,40 @@ class BookingController extends Controller
                 ];
             }
         }
-        
+
         // Get weather data for Moshi (default location)
         $weatherService = new WeatherService();
         $weather = $weatherService->getCurrentWeather();
-        
+
         // Calculate payment summary using locked exchange rate for each booking
         $totalOutstanding = 0;
         foreach ($activeBookings as $booking) {
             $bookingExchangeRate = $booking->locked_exchange_rate ?? $exchangeRate;
             $totalBill = ($booking->total_price * $bookingExchangeRate) + ($booking->total_service_charges_tsh ?? 0);
             $amountPaid = ($booking->amount_paid ?? 0) * $bookingExchangeRate;
-            
+
             // Deduct services that are marked as paid
-            $paidServices = $booking->serviceRequests ? 
+            $paidServices = $booking->serviceRequests ?
                 $booking->serviceRequests->where('payment_status', 'paid')->sum('total_price_tsh') : 0;
-                
+
             $outstanding = $totalBill - $amountPaid - $paidServices;
             if ($outstanding > 0) {
                 $totalOutstanding += $outstanding;
             }
         }
-        
+
         // Get WiFi settings
         $wifiPassword = HotelSetting::getWifiPassword();
         $wifiNetworkName = HotelSetting::getWifiNetworkName();
-        
+
         // Check if guest has any checked-out/completed bookings (to show "Thank You" message)
         $hasCheckedOutBookings = Booking::where('guest_email', $user->email)
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->where('check_in_status', 'checked_out')
-                  ->orWhere('status', 'completed');
+                    ->orWhere('status', 'completed');
             })
             ->exists();
-        
+
         return view('dashboard.customer-dashboard', [
             'role' => 'customer',
             'userName' => $user->name ?? 'Guest User',
@@ -1422,11 +1424,11 @@ class BookingController extends Controller
     {
         // Load booking with relationships
         $booking->load('room');
-        
+
         // Get exchange rate
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $currencyService->getUsdToTshRate();
-        
+
         return view('public.booking-details', [
             'booking' => $booking,
             'exchangeRate' => $exchangeRate,
@@ -1446,7 +1448,7 @@ class BookingController extends Controller
 
         // Load booking with relationships
         $booking->load('room');
-        
+
         // Get guest profile photo
         $guestPhotoUrl = null;
         $guest = \App\Models\Guest::where('email', $booking->guest_email)->first();
@@ -1458,7 +1460,7 @@ class BookingController extends Controller
                 $guestPhotoUrl = asset('storage/' . $guest->profile_photo);
             }
         }
-        
+
         // Get exchange rate for display
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $currencyService->getUsdToTshRate();
@@ -1476,21 +1478,21 @@ class BookingController extends Controller
     public function myBookings()
     {
         $user = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
-        
+
         if (!$user) {
             return redirect()->route('login')->withErrors(['email' => 'Please login to access your bookings.']);
         }
-        
+
         // Get all bookings for this customer
         $bookings = Booking::where('guest_email', $user->email)
             ->with(['room', 'company'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
-        
+
         // Get exchange rate
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $currencyService->getUsdToTshRate();
-        
+
         return view('dashboard.customer-my-bookings', [
             'role' => 'customer',
             'userName' => $user->name ?? 'Guest User',
@@ -1507,22 +1509,22 @@ class BookingController extends Controller
     public function bookingHistory()
     {
         $user = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
-        
+
         if (!$user) {
             return redirect()->route('login')->withErrors(['email' => 'Please login to access your booking history.']);
         }
-        
+
         // Get completed bookings
         $bookings = Booking::where('guest_email', $user->email)
             ->where('status', 'completed')
             ->with('room')
             ->orderBy('check_out', 'desc')
             ->paginate(15);
-        
+
         // Get exchange rate
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $currencyService->getUsdToTshRate();
-        
+
         return view('dashboard.customer-booking-history', [
             'role' => 'customer',
             'userName' => $user->name ?? 'Guest User',
@@ -1539,17 +1541,17 @@ class BookingController extends Controller
     public function myExtensions()
     {
         $user = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
-        
+
         if (!$user) {
             return redirect()->route('login')->withErrors(['email' => 'Please login to access your extensions.']);
         }
-        
+
         // Check if guest has any checked-in bookings
         $hasCheckedIn = Booking::where('guest_email', $user->email)
             ->where('check_in_status', 'checked_in')
             ->where('status', '!=', 'cancelled')
             ->exists();
-        
+
         // Get all bookings with extension requests (pending, approved, or rejected)
         $bookings = Booking::where('guest_email', $user->email)
             ->whereNotNull('extension_status')
@@ -1557,11 +1559,11 @@ class BookingController extends Controller
             ->with('room')
             ->orderBy('created_at', 'desc')
             ->get();
-        
+
         // Get exchange rate
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $currencyService->getUsdToTshRate();
-        
+
         return view('dashboard.customer-extensions', [
             'role' => 'customer',
             'userName' => $user->name ?? 'Guest User',
@@ -1579,25 +1581,25 @@ class BookingController extends Controller
     public function myPayments()
     {
         $user = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
-        
+
         if (!$user) {
             return redirect()->route('login')->withErrors(['email' => 'Please login to access your payments.']);
         }
-        
+
         // Get exchange rate
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $currencyService->getUsdToTshRate();
-        
+
         // Get all bookings for this user
         $allBookings = Booking::where('guest_email', $user->email)
             ->with(['room', 'serviceRequests', 'company'])
             ->get();
-        
+
         // Filter bookings based on payment type
         $bookingsToShow = collect();
         $totalPaid = 0;
         $totalBookings = 0;
-        
+
         foreach ($allBookings as $booking) {
             if ($booking->is_corporate_booking) {
                 // For corporate bookings, only show if services are self-paid
@@ -1606,19 +1608,19 @@ class BookingController extends Controller
                     $allServiceRequests = $booking->serviceRequests()
                         ->whereIn('status', ['approved', 'completed'])
                         ->get();
-                    
+
                     $paidServiceRequests = $allServiceRequests->where('payment_status', 'paid');
                     $paidTsh = $paidServiceRequests->sum('total_price_tsh');
                     $totalTsh = $allServiceRequests->sum('total_price_tsh');
-                    
+
                     // Show if there's a payment OR if booking is confirmed (even if no services yet)
                     if ($paidTsh > 0 || $booking->status === 'confirmed') {
                         $bookingExchangeRate = $booking->locked_exchange_rate ?? $exchangeRate;
-                        
+
                         $virtualBooking = clone $booking;
                         $virtualBooking->amount_paid = $paidTsh / $bookingExchangeRate;
                         $virtualBooking->total_price = $totalTsh / $bookingExchangeRate;
-                        
+
                         // Determine status and clear details if no services
                         if ($totalTsh == 0) {
                             $virtualBooking->payment_status = 'paid';
@@ -1627,21 +1629,21 @@ class BookingController extends Controller
                             $virtualBooking->paid_at = null;
                         } else {
                             $virtualBooking->payment_status = ($paidTsh >= $totalTsh) ? 'paid' : ($paidTsh > 0 ? 'partial' : 'pending');
-                            
+
                             // Get payment method from service requests
                             $paymentMethods = $paidServiceRequests->pluck('payment_method')->filter();
-                            $virtualBooking->payment_method = $paymentMethods->count() > 0 
-                                ? $paymentMethods->countBy()->sortDesc()->keys()->first() 
+                            $virtualBooking->payment_method = $paymentMethods->count() > 0
+                                ? $paymentMethods->countBy()->sortDesc()->keys()->first()
                                 : 'cash';
-                                
+
                             $virtualBooking->paid_at = $paidServiceRequests->max('completed_at') ?? $paidServiceRequests->max('updated_at') ?? $booking->created_at;
-                            
+
                             // Clear transaction ID from the main booking (since this is service-only)
                             // unless we actually find a transaction ID in the service requests (assumed not stored there usually)
-                            $virtualBooking->payment_transaction_id = null; 
+                            $virtualBooking->payment_transaction_id = null;
                         }
                         $virtualBooking->is_service_payment_only = true;
-                        
+
                         $bookingsToShow->push($virtualBooking);
                         $totalPaid += ($paidTsh / $bookingExchangeRate);
                         // Count as a booking unless it's strictly pending with debt
@@ -1667,14 +1669,14 @@ class BookingController extends Controller
                 }
             }
         }
-        
+
         // Paginate the filtered bookings
         $currentPage = request()->get('page', 1);
         $perPage = 15;
-        $items = $bookingsToShow->sortByDesc(function($booking) {
+        $items = $bookingsToShow->sortByDesc(function ($booking) {
             return $booking->paid_at ?? $booking->created_at;
         })->values();
-        
+
         $paginatedBookings = new \Illuminate\Pagination\LengthAwarePaginator(
             $items->forPage($currentPage, $perPage),
             $items->count(),
@@ -1682,7 +1684,7 @@ class BookingController extends Controller
             $currentPage,
             ['path' => request()->url(), 'query' => request()->query()]
         );
-        
+
         return view('dashboard.customer-payments', [
             'role' => 'customer',
             'userName' => $user->name ?? 'Guest User',
@@ -1701,7 +1703,7 @@ class BookingController extends Controller
     public function showCheckIn(Request $request)
     {
         $bookings = null;
-        
+
         // If user is logged in, get their bookings
         // Include confirmed bookings with paid or partial payment status (for manual bookings)
         $user = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
@@ -1714,7 +1716,7 @@ class BookingController extends Controller
                 ->orderBy('check_in', 'asc')
                 ->get();
         }
-        
+
         return view('landing_page_views.check-in', [
             'bookings' => $bookings
         ]);
@@ -1759,8 +1761,10 @@ class BookingController extends Controller
             'email' => 'required|email',
         ]);
 
-        if ($booking->booking_reference !== $request->booking_reference || 
-            $booking->guest_email !== $request->email) {
+        if (
+            $booking->booking_reference !== $request->booking_reference ||
+            $booking->guest_email !== $request->email
+        ) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid booking credentials.',
@@ -1830,7 +1834,7 @@ class BookingController extends Controller
             $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
                 ->where('is_active', true)
                 ->get();
-            
+
             foreach ($managersAndAdmins as $staff) {
                 if ($staff->phone && $staff->isNotificationEnabled('booking')) {
                     try {
@@ -1904,7 +1908,7 @@ class BookingController extends Controller
                 'booking_id' => $booking->id,
                 'error' => $e->getMessage()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred: ' . $e->getMessage()
@@ -1931,21 +1935,21 @@ class BookingController extends Controller
     public function documents()
     {
         $user = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
-        
+
         if (!$user) {
             return redirect()->route('login')->withErrors(['email' => 'Please login to access your documents.']);
         }
-        
+
         // Get all bookings for this customer
         $bookings = Booking::where('guest_email', $user->email)
             ->with('room')
             ->orderBy('created_at', 'desc')
             ->get();
-        
+
         // Get exchange rate
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $currencyService->getUsdToTshRate();
-        
+
         return view('dashboard.customer-documents', [
             'role' => 'customer',
             'userName' => $user->name ?? 'Guest User',
@@ -1962,25 +1966,25 @@ class BookingController extends Controller
     public function bookingCalendar()
     {
         $user = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
-        
+
         if (!$user) {
             return redirect()->route('login')->withErrors(['email' => 'Please login to access your booking calendar.']);
         }
-        
+
         // Get all bookings for this customer (for calendar display)
         $allBookings = Booking::where('guest_email', $user->email)
             ->with(['room', 'company'])
             ->orderBy('check_in', 'asc')
             ->get();
-        
+
         // Filter upcoming bookings (check-out date is today or in the future)
         $today = \Carbon\Carbon::today();
-        $bookings = $allBookings->filter(function($booking) use ($today) {
+        $bookings = $allBookings->filter(function ($booking) use ($today) {
             return $booking->check_out && $booking->check_out->gte($today);
         })->values();
-        
+
         // Format bookings for calendar (use all bookings for calendar, not just upcoming)
-        $calendarEvents = $allBookings->map(function($booking) {
+        $calendarEvents = $allBookings->map(function ($booking) {
             return [
                 'id' => $booking->id,
                 'title' => $booking->room->room_type ?? 'Room',
@@ -1993,11 +1997,11 @@ class BookingController extends Controller
                 'room_number' => $booking->room->room_number ?? 'N/A',
             ];
         });
-        
+
         // Get exchange rate
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $currencyService->getUsdToTshRate();
-        
+
         return view('dashboard.customer-calendar', [
             'role' => 'customer',
             'userName' => $user->name ?? 'Guest User',
@@ -2020,36 +2024,36 @@ class BookingController extends Controller
 
         // Get all rooms
         $rooms = Room::orderBy('room_number', 'asc')->get();
-        
+
         // Get all confirmed bookings (active bookings that block rooms)
         $bookings = Booking::where('status', 'confirmed')
             ->with('room')
             ->where(function ($query) {
                 // Get bookings that are paid/partial OR pending with valid deadline
                 $query->whereIn('payment_status', ['paid', 'partial'])
-                      ->orWhere(function ($subQ) {
-                          $subQ->where('payment_status', 'pending')
-                               ->where(function ($deadlineQ) {
-                                   $deadlineQ->whereNull('payment_deadline')
-                                            ->orWhere('payment_deadline', '>', Carbon::now());
-                               });
-                      });
+                    ->orWhere(function ($subQ) {
+                    $subQ->where('payment_status', 'pending')
+                        ->where(function ($deadlineQ) {
+                            $deadlineQ->whereNull('payment_deadline')
+                                ->orWhere('payment_deadline', '>', Carbon::now());
+                        });
+                });
             })
             ->get();
-        
+
         // Format bookings for calendar - group by room
         $calendarEvents = [];
         $roomStatuses = [];
-        
+
         foreach ($rooms as $room) {
             $roomBookings = $bookings->where('room_id', $room->id);
-            
+
             // Determine current room status
             $today = Carbon::today();
             $isOccupied = false;
             $needsCleaning = false;
             $inMaintenance = false;
-            
+
             // Check room status
             if ($room->status === 'occupied') {
                 $isOccupied = true;
@@ -2058,19 +2062,19 @@ class BookingController extends Controller
             } elseif ($room->status === 'in_maintenance') {
                 $inMaintenance = true;
             }
-            
+
             // Check if room has active checked-in booking
-            $activeBooking = $roomBookings->filter(function($booking) use ($today) {
+            $activeBooking = $roomBookings->filter(function ($booking) use ($today) {
                 $checkIn = Carbon::parse($booking->check_in);
                 $checkOut = Carbon::parse($booking->check_out);
-                return $checkIn->lte($today) && $checkOut->gte($today) && 
-                       $booking->check_in_status === 'checked_in';
+                return $checkIn->lte($today) && $checkOut->gte($today) &&
+                    $booking->check_in_status === 'checked_in';
             })->first();
-            
+
             if ($activeBooking) {
                 $isOccupied = true;
             }
-            
+
             // Store room status
             $roomStatuses[$room->id] = [
                 'room_number' => $room->room_number,
@@ -2080,12 +2084,12 @@ class BookingController extends Controller
                 'needs_cleaning' => $needsCleaning,
                 'in_maintenance' => $inMaintenance,
             ];
-            
+
             // Create calendar events for each booking
             foreach ($roomBookings as $booking) {
                 $checkIn = Carbon::parse($booking->check_in);
                 $checkOut = Carbon::parse($booking->check_out);
-                
+
                 // Determine event color based on status
                 $color = '#28a745'; // Green for confirmed
                 if ($booking->check_in_status === 'checked_in') {
@@ -2097,7 +2101,7 @@ class BookingController extends Controller
                 } elseif ($booking->payment_status === 'partial') {
                     $color = '#17a2b8'; // Blue for partial payment
                 }
-                
+
                 $calendarEvents[] = [
                     'id' => 'booking_' . $booking->id,
                     'booking_id' => $booking->id,
@@ -2121,7 +2125,7 @@ class BookingController extends Controller
                 ];
             }
         }
-        
+
         return view('dashboard.admin-booking-calendar', [
             'role' => 'manager',
             'userName' => 'Manager',
@@ -2147,11 +2151,11 @@ class BookingController extends Controller
             $today = Carbon::today();
             $checkInDate = Carbon::parse($booking->check_in);
             $checkOutDate = Carbon::parse($booking->check_out);
-            
+
             // Handle email reminders
             if ($reminderType === 'email' || $reminderType === 'payment' || $reminderType === 'general') {
                 $results = [];
-                
+
                 // Send Email
                 try {
                     Mail::to($booking->guest_email)->queue(new \App\Mail\ExpirationWarningMail($booking, null, '24h'));
@@ -2160,16 +2164,18 @@ class BookingController extends Controller
                     \Log::error('Failed to send reminder email: ' . $e->getMessage());
                     $results[] = "Email failed: " . $e->getMessage();
                 }
-                
-                $successCount = count(array_filter($results, function($r) { return strpos($r, 'sent') !== false; }));
+
+                $successCount = count(array_filter($results, function ($r) {
+                    return strpos($r, 'sent') !== false;
+                }));
                 $allSuccess = $successCount === 2;
-                
+
                 return response()->json([
                     'success' => $allSuccess,
                     'message' => implode('; ', $results)
                 ]);
             }
-            
+
             // Handle email reminders (queued for async processing)
             $smsMessage = "";
             if ($reminderType === 'checkin') {
@@ -2205,7 +2211,7 @@ class BookingController extends Controller
                     $message .= " but SMS failed.";
                 }
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => $message
@@ -2226,25 +2232,25 @@ class BookingController extends Controller
     public function roomInformation()
     {
         $user = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
-        
+
         if (!$user) {
             return redirect()->route('login')->withErrors(['email' => 'Please login to access your room information.']);
         }
-        
+
         // Get all bookings with rooms for this customer
         $bookings = Booking::where('guest_email', $user->email)
             ->where('status', '!=', 'cancelled')
             ->with(['room', 'company'])
             ->orderBy('check_in', 'desc')
             ->get();
-        
+
         // Get unique rooms
         $rooms = $bookings->pluck('room')->filter()->unique('id')->values();
-        
+
         // Get exchange rate
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $currencyService->getUsdToTshRate();
-        
+
         return view('dashboard.customer-room-information', [
             'role' => 'customer',
             'userName' => $user->name ?? 'Guest User',
@@ -2262,11 +2268,11 @@ class BookingController extends Controller
     public function quickActions()
     {
         $user = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
-        
+
         if (!$user) {
             return redirect()->route('login')->withErrors(['email' => 'Please login to access quick actions.']);
         }
-        
+
         // Get active bookings (include manual bookings with partial/pending payment)
         $activeBookings = Booking::where('guest_email', $user->email)
             ->where('status', 'confirmed')
@@ -2275,11 +2281,11 @@ class BookingController extends Controller
             ->with(['room', 'serviceRequests.service'])
             ->orderBy('check_in', 'asc')
             ->get();
-        
+
         // Get exchange rate
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $currencyService->getUsdToTshRate();
-        
+
         return view('dashboard.customer-quick-actions', [
             'role' => 'customer',
             'userName' => $user->name ?? 'Guest User',
@@ -2315,7 +2321,7 @@ class BookingController extends Controller
 
         // Calculate additional charges only (room booking already paid via PayPal)
         // Additional charges include: services, extensions, transportation
-        
+
         $serviceRequests = $booking->serviceRequests()
             ->whereIn('status', ['approved', 'completed'])
             ->with('service')
@@ -2333,12 +2339,12 @@ class BookingController extends Controller
         $extensionCostUsd = 0;
         $extensionCostTsh = 0;
         $extensionNights = 0;
-        
+
         if ($booking->extension_status === 'approved' && $booking->original_check_out && $booking->extension_requested_to) {
             $originalCheckOut = \Carbon\Carbon::parse($booking->original_check_out);
             $requestedCheckOut = \Carbon\Carbon::parse($booking->extension_requested_to);
             $extensionNights = $originalCheckOut->diffInDays($requestedCheckOut);
-            
+
             if ($extensionNights > 0 && $booking->room) {
                 $extensionCostUsd = $booking->room->price_per_night * $extensionNights;
                 $extensionCostTsh = $extensionCostUsd * $exchangeRate;
@@ -2363,22 +2369,22 @@ class BookingController extends Controller
         $otherServiceChargesTsh = $serviceRequests
             ->where('service.category', '!=', 'transport')
             ->sum('total_price_tsh');
-        
+
         // For the customer checkout view, we show extensions as "Additional Charges"
         // To avoid double counting since total_price already includes the extension,
         // we use the original room price as the base for room charges logic.
-        $originalCheckOutDate = $booking->original_check_out 
-            ? \Carbon\Carbon::parse($booking->original_check_out) 
+        $originalCheckOutDate = $booking->original_check_out
+            ? \Carbon\Carbon::parse($booking->original_check_out)
             : \Carbon\Carbon::parse($booking->check_out);
         $originalNights = $booking->check_in->diffInDays($originalCheckOutDate);
         $baseRoomPriceUsd = $booking->room ? ($booking->room->price_per_night * $originalNights) : 0;
-        
+
         // Total additional charges (services + extension + transportation)
         $totalAdditionalChargesTsh = $otherServiceChargesTsh + $extensionCostTsh + $transportationChargesTsh;
         $totalAdditionalChargesUsd = ($otherServiceChargesTsh / $exchangeRate) + $extensionCostUsd + ($transportationChargesTsh / $exchangeRate);
 
         $user = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
-        
+
         return view('dashboard.customer-checkout-payment', [
             'role' => 'customer',
             'userName' => $user->name ?? 'Guest',
@@ -2454,7 +2460,7 @@ class BookingController extends Controller
             $currentUser = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
             $receptionUsers = \App\Models\Staff::where('role', 'reception')->get();
             $adminUsers = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])->get();
-            
+
             foreach ($receptionUsers as $user) {
                 \App\Models\Notification::create([
                     'user_id' => $user->id,
@@ -2469,7 +2475,7 @@ class BookingController extends Controller
                     'link' => route('reception.bookings') . '?search=' . $booking->booking_reference,
                 ]);
             }
-            
+
             foreach ($adminUsers as $user) {
                 \App\Models\Notification::create([
                     'user_id' => $user->id,
@@ -2501,18 +2507,18 @@ class BookingController extends Controller
             $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
                 ->where('is_active', true)
                 ->get();
-            
-                foreach ($managersAndAdmins as $staff) {
-                    // Check if user has notifications enabled
-                    if ($staff->isNotificationEnabled('extension_request')) {
-                        try {
-                            \Illuminate\Support\Facades\Mail::to($staff->email)
-                                ->send(new \App\Mail\StaffExtensionRequestMail($booking->fresh()->load('room'), 'submitted'));
-                        } catch (\Exception $e) {
-                            \Log::error('Failed to send extension request email to staff: ' . $staff->email . ' - ' . $e->getMessage());
-                        }
+
+            foreach ($managersAndAdmins as $staff) {
+                // Check if user has notifications enabled
+                if ($staff->isNotificationEnabled('extension_request')) {
+                    try {
+                        \Illuminate\Support\Facades\Mail::to($staff->email)
+                            ->send(new \App\Mail\StaffExtensionRequestMail($booking->fresh()->load('room'), 'submitted'));
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to send extension request email to staff: ' . $staff->email . ' - ' . $e->getMessage());
                     }
                 }
+            }
         } catch (\Exception $e) {
             \Log::error('Failed to send extension request emails to managers/admins: ' . $e->getMessage());
         }
@@ -2566,7 +2572,7 @@ class BookingController extends Controller
         $currentCheckOut = Carbon::parse($booking->check_out);
         $newCheckOut = Carbon::parse($validated['decrease_requested_to']);
         $checkIn = Carbon::parse($booking->check_in);
-        
+
         // Validate that new check-out is before current check-out (strictly less than)
         if ($newCheckOut->gte($currentCheckOut)) {
             return response()->json([
@@ -2574,7 +2580,7 @@ class BookingController extends Controller
                 'message' => 'The new check-out date must be before your current check-out date (' . $currentCheckOut->format('M d, Y') . ').',
             ], 422);
         }
-        
+
         // Validate that new check-out is after check-in (strictly greater than)
         if ($newCheckOut->lte($checkIn)) {
             return response()->json([
@@ -2582,7 +2588,7 @@ class BookingController extends Controller
                 'message' => 'The new check-out date must be after your check-in date (' . $checkIn->format('M d, Y') . ').',
             ], 422);
         }
-        
+
         // Note: We allow the new check-out to be exactly one day before current check-out
         // This allows reducing by 1 night, which is a valid decrease request
 
@@ -2604,7 +2610,7 @@ class BookingController extends Controller
             $currentUser = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
             $receptionUsers = \App\Models\Staff::where('role', 'reception')->get();
             $adminUsers = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])->get();
-            
+
             foreach ($receptionUsers as $user) {
                 \App\Models\Notification::create([
                     'user_id' => $user->id,
@@ -2619,7 +2625,7 @@ class BookingController extends Controller
                     'link' => route('reception.bookings') . '?search=' . $booking->booking_reference,
                 ]);
             }
-            
+
             foreach ($adminUsers as $user) {
                 \App\Models\Notification::create([
                     'user_id' => $user->id,
@@ -2790,7 +2796,7 @@ class BookingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => $nightsDifference > 0 
+            'message' => $nightsDifference > 0
                 ? "Booking extended by {$nightsDifference} night(s). Additional cost: $" . number_format($priceDifference, 2)
                 : "Booking decreased by " . abs($nightsDifference) . " night(s). Refund: $" . number_format(abs($priceDifference), 2),
             'booking' => $booking->fresh()->load('room'),
@@ -2818,15 +2824,15 @@ class BookingController extends Controller
             // Calculate cost difference
             $room = $booking->room;
             // Use original_check_out if available, otherwise use current check_out (for backward compatibility)
-            $originalCheckOut = $booking->original_check_out 
-                ? Carbon::parse($booking->original_check_out) 
+            $originalCheckOut = $booking->original_check_out
+                ? Carbon::parse($booking->original_check_out)
                 : Carbon::parse($booking->check_out);
             $newCheckOut = Carbon::parse($booking->extension_requested_to);
-            
+
             // Use signed difference to determine type
             $nightsDifference = $originalCheckOut->diffInDays($newCheckOut, false);
             $isExtension = $nightsDifference > 0;
-            
+
             // For extensions, calculate additional cost. For decreases, no refund (cost difference = 0)
             $costDifference = $isExtension ? ($room->price_per_night * abs($nightsDifference)) : 0;
             $requestType = $isExtension ? 'extension' : 'decrease';
@@ -2844,14 +2850,14 @@ class BookingController extends Controller
             if ($costDifference > 0) {
                 $updateData['payment_status'] = 'partial';
             }
-            
+
             // Only set original_check_out if it's not already set (for backward compatibility)
             if (!$booking->original_check_out) {
                 $updateData['original_check_out'] = $booking->check_out;
             }
-            
+
             $booking->update($updateData);
-            
+
             // Mark extension/decrease request notifications as read (action taken)
             try {
                 $notificationService = new NotificationService();
@@ -2874,7 +2880,7 @@ class BookingController extends Controller
             // Notify guest
             try {
                 $title = $isExtension ? 'Stay Extension Approved' : 'Stay Decrease Approved';
-                $message = $isExtension 
+                $message = $isExtension
                     ? 'Your request to extend your stay has been approved. New checkout date: ' . $newCheckOut->format('M d, Y')
                     : 'Your request to decrease your stay has been approved. New checkout date: ' . $newCheckOut->format('M d, Y');
 
@@ -2932,25 +2938,25 @@ class BookingController extends Controller
                 $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
                     ->where('is_active', true)
                     ->get();
-                
-                    foreach ($managersAndAdmins as $staff) {
-                        // Check if user has notifications enabled
-                        if ($staff->isNotificationEnabled('extension_request')) {
-                            try {
-                                \Illuminate\Support\Facades\Mail::to($staff->email)
-                                    ->send(new \App\Mail\StaffExtensionRequestMail($booking->fresh()->load('room'), 'approved'));
-                            } catch (\Exception $e) {
-                                \Log::error('Failed to send extension approval email to staff: ' . $staff->email . ' - ' . $e->getMessage());
-                            }
+
+                foreach ($managersAndAdmins as $staff) {
+                    // Check if user has notifications enabled
+                    if ($staff->isNotificationEnabled('extension_request')) {
+                        try {
+                            \Illuminate\Support\Facades\Mail::to($staff->email)
+                                ->send(new \App\Mail\StaffExtensionRequestMail($booking->fresh()->load('room'), 'approved'));
+                        } catch (\Exception $e) {
+                            \Log::error('Failed to send extension approval email to staff: ' . $staff->email . ' - ' . $e->getMessage());
                         }
                     }
+                }
             } catch (\Exception $e) {
                 \Log::error('Failed to send extension approval emails to managers/admins: ' . $e->getMessage());
             }
 
             return response()->json([
                 'success' => true,
-                'message' => $nightsDifference > 0 
+                'message' => $nightsDifference > 0
                     ? 'Extension approved successfully. Additional cost: $' . number_format($costDifference, 2)
                     : 'Decrease approved successfully. Refund: $' . number_format(abs($costDifference), 2),
                 'booking' => $booking->fresh(),
@@ -2963,7 +2969,7 @@ class BookingController extends Controller
                 'extension_status' => 'rejected',
                 'extension_admin_notes' => $validated['admin_notes'] ?? null,
             ]);
-            
+
             // Mark extension request notifications as read (action taken)
             try {
                 $notificationService = new NotificationService();
@@ -3039,7 +3045,7 @@ class BookingController extends Controller
                 $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
                     ->where('is_active', true)
                     ->get();
-                
+
                 foreach ($managersAndAdmins as $staff) {
                     // Check if user has notifications enabled
                     if ($staff->isNotificationEnabled('extension_request')) {
@@ -3077,35 +3083,35 @@ class BookingController extends Controller
             ->distinct()
             ->orderBy('room_type')
             ->pluck('room_type');
-        
+
         // Get average capacity per room type
         $roomTypeCapacities = Room::select('room_type', DB::raw('AVG(capacity) as avg_capacity'))
             ->where('status', 'available')
             ->groupBy('room_type')
             ->pluck('avg_capacity', 'room_type')
-            ->map(function($capacity) {
+            ->map(function ($capacity) {
                 return (int) round($capacity);
             })
             ->toArray();
-        
+
         // Default capacities if no rooms found
         $defaultCapacities = [
             'Single' => 1,
             'Double' => 2,
             'Twins' => 2,
         ];
-        
+
         $roomTypeCapacities = array_merge($defaultCapacities, $roomTypeCapacities);
-        
+
         // Get current exchange rate
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $currencyService->getUsdToTshRate();
-        
+
         // Get current user
         $user = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
         $userName = $user->name ?? 'Manager';
         $userRole = 'Manager';
-        
+
         return view('dashboard.corporate-booking', [
             'roomTypes' => $roomTypes,
             'roomTypeCapacities' => $roomTypeCapacities,
@@ -3201,7 +3207,7 @@ class BookingController extends Controller
                 'guider_phone' => $validated['guider_phone'],
             ]);
         }
-        
+
         // Store general notes (will be included in emails)
         $generalNotes = $validated['general_notes'] ?? null;
 
@@ -3225,18 +3231,18 @@ class BookingController extends Controller
                     ->where(function ($query) use ($checkIn, $checkOut) {
                         $query->where(function ($q) use ($checkIn, $checkOut) {
                             $q->where('check_in', '<', $checkOut)
-                              ->where('check_out', '>', $checkIn);
+                                ->where('check_out', '>', $checkIn);
                         });
                     })
                     ->where(function ($q) {
                         $q->whereIn('payment_status', ['paid', 'partial'])
-                          ->orWhere(function ($subQ) {
-                              $subQ->where('payment_status', 'pending')
-                                   ->where(function ($deadlineQ) {
-                                       $deadlineQ->whereNull('payment_deadline')
-                                                ->orWhere('payment_deadline', '>', Carbon::now());
-                                   });
-                          });
+                            ->orWhere(function ($subQ) {
+                                $subQ->where('payment_status', 'pending')
+                                    ->where(function ($deadlineQ) {
+                                        $deadlineQ->whereNull('payment_deadline')
+                                            ->orWhere('payment_deadline', '>', Carbon::now());
+                                    });
+                            });
                     })
                     ->exists();
 
@@ -3264,7 +3270,7 @@ class BookingController extends Controller
                 // Create or update guest account
                 $guest = Guest::firstOrNew(['email' => $guestData['email']]);
                 $isNewGuest = !$guest->exists;
-                
+
                 if (!$guest->exists) {
                     $guest->name = $fullName;
                     $guest->email = $guestData['email'];
@@ -3336,14 +3342,14 @@ class BookingController extends Controller
                         $notificationService = new NotificationService();
                         $smsService = app(SmsService::class);
                         $departments = $guestData['notify_departments'];
-                        
+
                         // Map department values to role names
                         $roleMapping = [
                             'reception' => 'reception',
                             'bar_keeper' => 'bar_keeper',
                             'head_chef' => 'head_chef',
                         ];
-                        
+
                         foreach ($departments as $department) {
                             $role = $roleMapping[$department] ?? null;
                             if ($role) {
@@ -3359,13 +3365,13 @@ class BookingController extends Controller
                                     'notifiable_type' => Booking::class,
                                     'link' => $role === 'reception' ? route('reception.bookings') : ($role === 'bar_keeper' ? route('bar-keeper.dashboard') : route('chef-master.dashboard')),
                                 ]);
-                                
+
                                 // Send email and SMS notification to all staff members of this department
                                 try {
                                     $departmentStaff = \App\Models\Staff::where('role', $role)
                                         ->where('is_active', true)
                                         ->get();
-                                    
+
                                     foreach ($departmentStaff as $staff) {
                                         // 1. Email notification
                                         try {
@@ -3376,8 +3382,8 @@ class BookingController extends Controller
                                             $emailBody .= "Check-in: {$checkIn->format('Y-m-d H:i')}\n";
                                             $emailBody .= "Check-out: {$checkOut->format('Y-m-d H:i')}\n";
                                             $emailBody .= "Booking Reference: {$bookingReference}\n\n";
-                                            
-                                            Mail::raw($emailBody, function($message) use ($staff, $emailSubject) {
+
+                                            Mail::raw($emailBody, function ($message) use ($staff, $emailSubject) {
                                                 $message->to($staff->email)->subject($emailSubject);
                                             });
                                         } catch (\Exception $e) {
@@ -3410,7 +3416,7 @@ class BookingController extends Controller
                     // Calculate remaining amount in USD (company pays in USD)
                     $bookingAmountPaid = $booking->amount_paid ?? 0;
                     $remainingAmountUSD = max(0, $roomCostUSD - $bookingAmountPaid);
-                    
+
                     Mail::to($guestData['email'])->send(new BookingConfirmationMail(
                         $booking,
                         $password,
@@ -3440,7 +3446,7 @@ class BookingController extends Controller
                 // Send welcome email if new guest
                 if ($isNewGuest) {
                     try {
-                        $guestForEmail = (object)[
+                        $guestForEmail = (object) [
                             'name' => $fullName,
                             'email' => $guestData['email'],
                         ];
@@ -3468,19 +3474,19 @@ class BookingController extends Controller
             $paymentMethod = $validated['payment_method'];
             $paymentProvider = $validated['payment_provider'] ?? null;
             $paymentReference = $validated['payment_reference'] ?? null;
-            
+
             // Calculate payment distribution
             // Note: Room charges are always company-paid, payment_responsibility only applies to services
             // For now, all room costs go to company, self-paid is 0 (services will be calculated separately)
             $totalCompanyCost = collect($createdBookings)->sum('total_price'); // All room costs are company-paid
             $totalSelfPaidCost = 0; // Services will be calculated separately when guests use them
-            
+
             // Distribute payment proportionally
             foreach ($createdBookings as $booking) {
                 $bookingProportion = $totalBookingValue > 0 ? ($booking->total_price / $totalBookingValue) : 0;
                 $bookingAmountPaid = $totalAmountPaid * $bookingProportion;
                 $bookingPaymentPercentage = $booking->total_price > 0 ? ($bookingAmountPaid / $booking->total_price) * 100 : 0;
-                
+
                 // Determine payment status
                 if ($bookingPaymentPercentage >= 100) {
                     $bookingPaymentStatus = 'paid';
@@ -3489,7 +3495,7 @@ class BookingController extends Controller
                 } else {
                     $bookingPaymentStatus = 'pending';
                 }
-                
+
                 // Update booking with payment information
                 $booking->update([
                     'payment_method' => $paymentMethod,
@@ -3510,10 +3516,10 @@ class BookingController extends Controller
             }
 
             // Calculate totals for emails (recalculate after payment distribution)
-            $totalCompanyPaid = collect($createdBookings)->filter(function($b) {
+            $totalCompanyPaid = collect($createdBookings)->filter(function ($b) {
                 return $b->payment_responsibility === 'company';
             })->sum('amount_paid');
-            $totalSelfPaid = collect($createdBookings)->filter(function($b) {
+            $totalSelfPaid = collect($createdBookings)->filter(function ($b) {
                 return $b->payment_responsibility === 'self';
             })->sum('amount_paid');
 
@@ -3530,17 +3536,17 @@ class BookingController extends Controller
                         $nameParts = explode(' ', $booking->guest_name);
                         $guestPassword = strtoupper($nameParts[0]);
                     }
-                    
+
                     $bookingPaymentPercentage = $booking->payment_percentage ?? 0;
                     $bookingRemainingAmount = $booking->total_price - ($booking->amount_paid ?? 0);
-                    
+
                     Mail::to($booking->guest_email)->send(new BookingConfirmationMail(
                         $booking,
                         $guestPassword,
                         $bookingPaymentPercentage,
                         $bookingRemainingAmount
                     ));
-                    
+
                     \Log::info('Corporate booking confirmation email sent to guest', [
                         'booking_reference' => $booking->booking_reference,
                         'guest_email' => $booking->guest_email
@@ -3699,32 +3705,32 @@ class BookingController extends Controller
             ->whereIn('status', ['available', 'occupied', 'to_be_cleaned'])
             ->whereDoesntHave('bookings', function ($query) use ($checkIn, $checkOut) {
                 $query->whereIn('status', ['pending', 'confirmed'])
-                      ->where(function ($q) use ($checkIn, $checkOut) {
-                          $q->where('check_in', '<', $checkOut)
+                    ->where(function ($q) use ($checkIn, $checkOut) {
+                        $q->where('check_in', '<', $checkOut)
                             ->where('check_out', '>', $checkIn);
-                      })
-                      ->where(function ($q) {
-                          $q->where(function ($statusQ) {
-                              $statusQ->where('status', 'confirmed')
-                                      ->where(function ($paymentQ) {
-                                          $paymentQ->whereIn('payment_status', ['paid', 'partial'])
-                                                  ->orWhere(function ($subQ) {
-                                                      $subQ->where('payment_status', 'pending')
-                                                           ->where(function ($deadlineQ) {
-                                                               $deadlineQ->whereNull('payment_deadline')
-                                                                        ->orWhere('payment_deadline', '>', Carbon::now());
-                                                           });
-                                                  });
-                                      });
-                          })
-                          ->orWhere(function ($pendingQ) {
-                              $pendingQ->where('status', 'pending')
-                                      ->where(function ($expireQ) {
-                                          $expireQ->whereNull('expires_at')
-                                                 ->orWhere('expires_at', '>', Carbon::now());
-                                      });
-                          });
-                      });
+                    })
+                    ->where(function ($q) {
+                        $q->where(function ($statusQ) {
+                            $statusQ->where('status', 'confirmed')
+                                ->where(function ($paymentQ) {
+                                    $paymentQ->whereIn('payment_status', ['paid', 'partial'])
+                                        ->orWhere(function ($subQ) {
+                                            $subQ->where('payment_status', 'pending')
+                                                ->where(function ($deadlineQ) {
+                                                    $deadlineQ->whereNull('payment_deadline')
+                                                        ->orWhere('payment_deadline', '>', Carbon::now());
+                                                });
+                                        });
+                                });
+                        })
+                            ->orWhere(function ($pendingQ) {
+                                $pendingQ->where('status', 'pending')
+                                    ->where(function ($expireQ) {
+                                        $expireQ->whereNull('expires_at')
+                                            ->orWhere('expires_at', '>', Carbon::now());
+                                    });
+                            });
+                    });
             });
 
         $allAvailableRooms = $baseQuery->orderBy('room_type', 'asc')
@@ -3744,11 +3750,11 @@ class BookingController extends Controller
 
             // Room is available now ONLY if its DB status is 'available' AND no one is actually checked in
             $isAvailableNow = ($room->status === 'available' && !$activeGuestBooking);
-            
+
             // For soon available, find current checkout date
             $checkoutDate = null;
             $isSoonAvailable = !$isAvailableNow;
-            
+
             if ($isSoonAvailable) {
                 if ($activeGuestBooking) {
                     $checkoutDate = Carbon::parse($activeGuestBooking->check_out)->format('Y-m-d');
@@ -3806,7 +3812,7 @@ class BookingController extends Controller
     public function getAvailableRooms(Request $request)
     {
         $validated = $request->validate([
-            'room_type' => 'required|in:Single,Double,Twins',
+            'room_type' => 'required|string',
             'check_in' => 'required|date',
             'check_out' => 'required|date|after:check_in',
         ]);
@@ -3818,33 +3824,51 @@ class BookingController extends Controller
         $baseQuery = Room::whereIn('status', ['available', 'occupied', 'to_be_cleaned'])
             ->whereDoesntHave('bookings', function ($query) use ($checkIn, $checkOut) {
                 $query->whereIn('status', ['pending', 'confirmed'])
-                      ->where(function ($q) use ($checkIn, $checkOut) {
-                          $q->where('check_in', '<', $checkOut)
+                    ->where(function ($q) use ($checkIn, $checkOut) {
+                        $q->where('check_in', '<', $checkOut)
                             ->where('check_out', '>', $checkIn);
-                      })
-                      ->where(function ($q) {
-                          $q->where(function ($statusQ) {
-                              $statusQ->where('status', 'confirmed')
-                                      ->where(function ($paymentQ) {
-                                          $paymentQ->whereIn('payment_status', ['paid', 'partial'])
-                                                  ->orWhere(function ($subQ) {
-                                                      $subQ->where('payment_status', 'pending')
-                                                           ->where(function ($deadlineQ) {
-                                                               $deadlineQ->whereNull('payment_deadline')
-                                                                        ->orWhere('payment_deadline', '>', Carbon::now());
-                                                           });
-                                                  });
-                                      });
-                          })
-                          ->orWhere(function ($pendingQ) {
-                              $pendingQ->where('status', 'pending')
-                                      ->where(function ($expireQ) {
-                                          $expireQ->whereNull('expires_at')
-                                                 ->orWhere('expires_at', '>', Carbon::now());
-                                      });
-                          });
-                      });
+                    })
+                    ->where(function ($q) {
+                        $q->where(function ($statusQ) {
+                            $statusQ->where('status', 'confirmed')
+                                ->where(function ($paymentQ) {
+                                    $paymentQ->whereIn('payment_status', ['paid', 'partial'])
+                                        ->orWhere(function ($subQ) {
+                                            $subQ->where('payment_status', 'pending')
+                                                ->where(function ($deadlineQ) {
+                                                    $deadlineQ->whereNull('payment_deadline')
+                                                        ->orWhere('payment_deadline', '>', Carbon::now());
+                                                });
+                                        });
+                                });
+                        })
+                            ->orWhere(function ($pendingQ) {
+                                $pendingQ->where('status', 'pending')
+                                    ->where(function ($expireQ) {
+                                        $expireQ->whereNull('expires_at')
+                                            ->orWhere('expires_at', '>', Carbon::now());
+                                    });
+                            });
+                    });
             });
+
+        // Get rooms for the selected type
+        // Define categorical order for room types
+        $typeOrderMapping = [
+            'Self-Contained Single',
+            'Self-Contained Double',
+            'Standard Single',
+            'Standard Double',
+            'Standard Triple',
+            'Standard Decker',
+            'En-suite Single',
+            'En-suite Triple',
+            'En-suite Quad',
+            'En-suite Quint',
+            'Single',
+            'Double',
+            'Twins'
+        ];
 
         // Get rooms for the selected type
         $allRoomsOfType = (clone $baseQuery)->where('room_type', $validated['room_type'])
@@ -3852,12 +3876,14 @@ class BookingController extends Controller
             ->orderBy('room_number', 'asc')
             ->get();
 
-        // Get rooms for other types
+        // Get rooms for other types and sort by category
         $allOtherRooms = (clone $baseQuery)->where('room_type', '!=', $validated['room_type'])
-            ->orderBy('room_type', 'asc')
-            ->orderBy('status', 'asc')
-            ->orderBy('room_number', 'asc')
-            ->get();
+            ->get()
+            ->sortBy(function ($room) use ($typeOrderMapping) {
+                $index = array_search($room->room_type, $typeOrderMapping);
+                return $index === false ? 999 : $index;
+            })
+            ->values();
 
         $mapRoom = function ($room) use ($checkIn) {
             $images = $room->images ?? [];
@@ -3871,11 +3897,11 @@ class BookingController extends Controller
 
             // Room is available now ONLY if its DB status is 'available' AND no one is actually checked in
             $isAvailableNow = ($room->status === 'available' && !$activeGuestBooking);
-            
+
             // For soon available, find current checkout date
             $checkoutDate = null;
             $isSoonAvailable = !$isAvailableNow;
-            
+
             if ($isSoonAvailable) {
                 if ($activeGuestBooking) {
                     $checkoutDate = Carbon::parse($activeGuestBooking->check_out)->format('Y-m-d');
@@ -3931,46 +3957,67 @@ class BookingController extends Controller
     public function createManual()
     {
         // Get room types for dropdown - include any type that has potentially bookable rooms
+        $typeOrderMapping = [
+            'Self-Contained Single',
+            'Self-Contained Double',
+            'Standard Single',
+            'Standard Double',
+            'Standard Triple',
+            'Standard Decker',
+            'En-suite Single',
+            'En-suite Triple',
+            'En-suite Quad',
+            'En-suite Quint',
+            'Single',
+            'Double',
+            'Twins'
+        ];
+
+        // Get room types for dropdown - include any type that has potentially bookable rooms
         $roomTypes = Room::select('room_type')
             ->whereIn('status', ['available', 'occupied', 'to_be_cleaned'])
             ->distinct()
-            ->orderBy('room_type')
+            ->get()
+            ->sortBy(function ($room) use ($typeOrderMapping) {
+                $index = array_search($room->room_type, $typeOrderMapping);
+                return $index === false ? 999 : $index;
+            })
             ->pluck('room_type');
-        
+
         // Get average capacity per room type
         $roomTypeCapacities = Room::select('room_type', DB::raw('AVG(capacity) as avg_capacity'))
             ->whereIn('status', ['available', 'occupied', 'to_be_cleaned'])
             ->groupBy('room_type')
             ->pluck('avg_capacity', 'room_type')
-            ->map(function($capacity) {
+            ->map(function ($capacity) {
                 return (int) round($capacity); // Round to nearest integer
             })
             ->toArray();
-        
+
         // Default capacities if no rooms found
         $defaultCapacities = [
             'Single' => 1,
             'Double' => 2,
             'Twins' => 2,
         ];
-        
+
         // Merge defaults with actual data
         $roomTypeCapacities = array_merge($defaultCapacities, $roomTypeCapacities);
-        
+
         // Get current exchange rate
         $currencyService = new CurrencyExchangeService();
         $exchangeRate = $currencyService->getUsdToTshRate();
-        
+
         // Determine role based on route name
         $routeName = request()->route()->getName() ?? '';
         $isReception = str_starts_with($routeName, 'reception.');
         $role = $isReception ? 'reception' : 'manager';
-        
+
         // Get current user
         $user = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
         $userName = $user->name ?? ($role === 'manager' ? 'Manager' : 'Reception Staff');
         $userRole = $role === 'manager' ? 'Manager' : 'Reception';
-        
+
         return view('dashboard.manual-booking', [
             'roomTypes' => $roomTypes,
             'roomTypeCapacities' => $roomTypeCapacities,
@@ -4004,7 +4051,7 @@ class BookingController extends Controller
             'notify_departments.*' => 'in:reception,bar_keeper,head_chef',
             'total_price' => 'required|numeric|min:0',
             'amount_paid' => 'required|numeric|min:0',
-            'payment_method' => 'required|in:online,cash,bank,mobile,card,other',
+            'payment_method' => 'required|in:online,cash,bank,mobile,card,other,pay_later',
             'payment_provider' => 'required_if:payment_method,mobile,bank,card,online|nullable|string|max:255',
             'payment_reference' => 'required_if:payment_method,online,bank,mobile,card,other|nullable|string|max:255',
         ]);
@@ -4021,25 +4068,25 @@ class BookingController extends Controller
 
         // Get the selected room
         $room = Room::findOrFail($validated['room_id']);
-        
+
         // Check if room is available for the selected dates
         $hasConflict = Booking::where('room_id', $room->id)
             ->where('status', 'confirmed')
             ->where(function ($query) use ($checkIn, $checkOut) {
                 $query->where(function ($q) use ($checkIn, $checkOut) {
                     $q->where('check_in', '<', $checkOut)
-                      ->where('check_out', '>', $checkIn);
+                        ->where('check_out', '>', $checkIn);
                 });
             })
             ->where(function ($q) {
                 $q->whereIn('payment_status', ['paid', 'partial'])
-                  ->orWhere(function ($subQ) {
-                      $subQ->where('payment_status', 'pending')
-                           ->where(function ($deadlineQ) {
-                               $deadlineQ->whereNull('payment_deadline')
-                                        ->orWhere('payment_deadline', '>', Carbon::now());
-                           });
-                  });
+                    ->orWhere(function ($subQ) {
+                        $subQ->where('payment_status', 'pending')
+                            ->where(function ($deadlineQ) {
+                                $deadlineQ->whereNull('payment_deadline')
+                                    ->orWhere('payment_deadline', '>', Carbon::now());
+                            });
+                    });
             })
             ->exists();
 
@@ -4062,7 +4109,7 @@ class BookingController extends Controller
 
         // Generate unique booking reference
         $bookingReference = 'BK' . strtoupper(Str::random(8));
-        
+
         // Generate unique guest ID
         $guestId = $this->generateGuestId();
 
@@ -4072,7 +4119,7 @@ class BookingController extends Controller
         // Calculate payment deadline based on new policy
         $daysUntilArrival = Carbon::now()->diffInDays($checkIn, false);
         $paymentDeadline = null;
-        
+
         if ($daysUntilArrival >= 30) {
             // More than 30 days: Full payment required 30 days before arrival
             $paymentDeadline = $checkIn->copy()->subDays(30);
@@ -4088,7 +4135,7 @@ class BookingController extends Controller
         $fullName = trim($validated['full_name']);
         $nameParts = explode(' ', $fullName);
         $firstName = $nameParts[0]; // First word is the first name
-        
+
         // Create password (first name in CAPITALS)
         $password = strtoupper($firstName);
 
@@ -4115,10 +4162,11 @@ class BookingController extends Controller
         }
 
         // Determine payment status
-        $paymentStatus = $paymentPercentage >= 100 ? 'paid' : 'partial';
-
-        // Determine payment status
-        $paymentStatus = $paymentPercentage >= 100 ? 'paid' : 'partial';
+        if ($validated['payment_method'] === 'pay_later') {
+            $paymentStatus = 'pending';
+        } else {
+            $paymentStatus = $paymentPercentage >= 100 ? 'paid' : ($paymentPercentage > 0 ? 'partial' : 'pending');
+        }
 
         // Create the booking
         $booking = Booking::create([
@@ -4158,7 +4206,7 @@ class BookingController extends Controller
         try {
             // Reload booking with room relationship to ensure it's available
             $booking->load('room');
-            
+
             // Send email immediately (not queued) to ensure it's sent right away
             Mail::to($validated['guest_email'])->send(new BookingConfirmationMail($booking, $password, $paymentPercentage, $remainingAmount));
             $emailSent = true;
@@ -4169,7 +4217,7 @@ class BookingController extends Controller
             ]);
         } catch (\Exception $e) {
             $emailError = $e->getMessage();
-            
+
             // Create user-friendly error message
             $userFriendlyError = 'Unable to connect to email server.';
             if (str_contains($emailError, 'Connection could not be established')) {
@@ -4179,14 +4227,14 @@ class BookingController extends Controller
             } elseif (str_contains($emailError, 'authentication') || str_contains($emailError, 'credentials')) {
                 $userFriendlyError = 'Email authentication failed. Please check SMTP credentials.';
             }
-            
+
             \Log::error('Failed to send manual booking confirmation email', [
                 'booking_reference' => $bookingReference,
                 'guest_email' => $validated['guest_email'],
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             $emailError = $userFriendlyError;
         }
 
@@ -4197,11 +4245,11 @@ class BookingController extends Controller
             'guest_email' => $validated['guest_email'],
             'is_new_guest' => $isNewGuest
         ]);
-        
+
         if ($isNewGuest) {
             try {
                 // Create a guest-like object for the welcome email
-                $guestForEmail = (object)[
+                $guestForEmail = (object) [
                     'name' => $fullName,
                     'email' => $validated['guest_email'],
                 ];
@@ -4234,7 +4282,7 @@ class BookingController extends Controller
             $receptionStaff = \App\Models\Staff::where('role', 'reception')
                 ->where('is_active', true)
                 ->get();
-            
+
             $smsService = app(SmsService::class);
             foreach ($receptionStaff as $staff) {
                 // Email
@@ -4263,7 +4311,7 @@ class BookingController extends Controller
             $managers = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
                 ->where('is_active', true)
                 ->get();
-            
+
             $smsService = app(SmsService::class);
             foreach ($managers as $manager) {
                 // Email
@@ -4301,14 +4349,14 @@ class BookingController extends Controller
                 $notificationService = new NotificationService();
                 $smsService = app(SmsService::class);
                 $departments = $validated['notify_departments'];
-                
+
                 // Map department values to role names
                 $roleMapping = [
                     'reception' => 'reception',
                     'bar_keeper' => 'bar_keeper',
                     'head_chef' => 'head_chef',
                 ];
-                
+
                 foreach ($departments as $department) {
                     $role = $roleMapping[$department] ?? null;
                     if ($role) {
@@ -4324,13 +4372,13 @@ class BookingController extends Controller
                             'notifiable_type' => Booking::class,
                             'link' => $role === 'reception' ? route('reception.bookings') : ($role === 'bar_keeper' ? route('bar-keeper.dashboard') : route('chef-master.dashboard')),
                         ]);
-                        
+
                         // Send email and SMS notification to all staff members of this department
                         try {
                             $departmentStaff = \App\Models\Staff::where('role', $role)
                                 ->where('is_active', true)
                                 ->get();
-                            
+
                             foreach ($departmentStaff as $staff) {
                                 // 1. Email notification
                                 try {
@@ -4341,8 +4389,8 @@ class BookingController extends Controller
                                     $emailBody .= "Check-in: {$checkIn->format('Y-m-d H:i')}\n";
                                     $emailBody .= "Check-out: {$checkOut->format('Y-m-d H:i')}\n";
                                     $emailBody .= "Booking Reference: {$bookingReference}\n\n";
-                                    
-                                    Mail::raw($emailBody, function($message) use ($staff, $emailSubject) {
+
+                                    Mail::raw($emailBody, function ($message) use ($staff, $emailSubject) {
                                         $message->to($staff->email)->subject($emailSubject);
                                     });
                                 } catch (\Exception $e) {
@@ -4392,10 +4440,10 @@ class BookingController extends Controller
                 $message .= ' Email sending failed. Please check email configuration.';
             }
         }
-        
+
         // Generate receipt URL
         $receiptUrl = route('payment.receipt.download', $booking->id);
-        
+
         return response()->json([
             'success' => true,
             'message' => $message,
@@ -4413,11 +4461,11 @@ class BookingController extends Controller
     public function customerSupport()
     {
         $user = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
-        
+
         if (!$user) {
             return redirect()->route('customer.login')->withErrors(['email' => 'Please login to access support.']);
         }
-        
+
         return view('dashboard.customer-support', [
             'role' => 'customer',
             'userName' => $user->name ?? 'Guest User',
@@ -4431,7 +4479,7 @@ class BookingController extends Controller
     public function restaurantService(Request $request)
     {
         $user = auth()->guard('staff')->user() ?? auth()->guard('guest')->user();
-        
+
         // Find the active checked-in booking to associate orders with
         $activeBooking = \App\Models\Booking::where('guest_email', $user->email)
             ->where('check_in_status', 'checked_in')
@@ -4440,12 +4488,12 @@ class BookingController extends Controller
 
         // 1. Get available drinks and calculate stock levels
         $barCategories = ['drinks', 'alcoholic_beverage', 'non_alcoholic_beverage', 'water', 'juices', 'energy_drinks', 'spirits', 'wines', 'cocktails', 'hot_beverages'];
-        
+
         // Fetch all completed transfers to build historical stock
         $allTransfers = \App\Models\StockTransfer::where('status', 'completed')->get();
         // Fetch all completed sales to deduct from stock
         $allSales = \App\Models\ServiceRequest::where('status', 'completed')
-            ->whereHas('service', function($q) use ($barCategories) {
+            ->whereHas('service', function ($q) use ($barCategories) {
                 $q->whereIn('category', $barCategories);
             })->get();
 
@@ -4453,8 +4501,9 @@ class BookingController extends Controller
         $stockLevels = [];
         foreach ($allTransfers as $t) {
             $vid = $t->product_variant_id;
-            if (!isset($stockLevels[$vid])) $stockLevels[$vid] = 0;
-            
+            if (!isset($stockLevels[$vid]))
+                $stockLevels[$vid] = 0;
+
             $itemsPerPkg = $t->productVariant->items_per_package ?? 1;
             $pics = ($t->quantity_unit === 'packages') ? ($t->quantity_transferred * $itemsPerPkg) : $t->quantity_transferred;
             $stockLevels[$vid] += $pics;
@@ -4466,8 +4515,8 @@ class BookingController extends Controller
             if ($vid && isset($stockLevels[$vid])) {
                 $variant = \App\Models\ProductVariant::find($vid);
                 if ($variant) {
-                    $unitPrice = (float)$s->unit_price_tsh;
-                    $isPicSale = abs($unitPrice - (float)$variant->selling_price_per_pic) < 100;
+                    $unitPrice = (float) $s->unit_price_tsh;
+                    $isPicSale = abs($unitPrice - (float) $variant->selling_price_per_pic) < 100;
                     if ($isPicSale) {
                         $stockLevels[$vid] -= $s->quantity;
                     } else {
@@ -4487,13 +4536,13 @@ class BookingController extends Controller
         foreach ($products as $product) {
             foreach ($product->variants as $variant) {
                 $options = [];
-                
+
                 // Option A: Sell as Bottle (PIC)
                 if ($variant->can_sell_as_pic && $variant->selling_price_per_pic > 0) {
                     $options[] = [
                         'type' => 'Bottle',
                         'method' => 'pic',
-                        'price' => (float)$variant->selling_price_per_pic
+                        'price' => (float) $variant->selling_price_per_pic
                     ];
                 }
 
@@ -4502,17 +4551,17 @@ class BookingController extends Controller
                     $options[] = [
                         'type' => $variant->selling_unit_name ?? 'Glass',
                         'method' => 'serving',
-                        'price' => (float)$variant->selling_price_per_serving
+                        'price' => (float) $variant->selling_price_per_serving
                     ];
                 }
-                
+
                 // Fallback for items that don't have the new PIC fields set up yet
                 if (empty($options)) {
                     $latestReceipt = \App\Models\StockReceipt::where('product_variant_id', $variant->id)
                         ->orderBy('received_date', 'desc')
                         ->first();
                     $price = $latestReceipt ? $latestReceipt->selling_price_per_bottle : 0;
-                    
+
                     if ($price <= 0) {
                         $service = \App\Models\Service::where('name', 'LIKE', '%' . $product->name . '%')->first();
                         $price = $service ? $service->price_tsh : 0;
@@ -4522,7 +4571,7 @@ class BookingController extends Controller
                         $options[] = [
                             'type' => 'Bottle',
                             'method' => 'pic',
-                            'price' => (float)$price
+                            'price' => (float) $price
                         ];
                     }
                 }
@@ -4532,8 +4581,8 @@ class BookingController extends Controller
                     // Use variant name if available, otherwise product name
                     $displayName = $variant->variant_name ?: $product->name;
                     $displayName .= ($variant->measurement ? ' (' . $variant->measurement . ')' : '');
-                    
-                    $drinks[] = (object)[
+
+                    $drinks[] = (object) [
                         'id' => $product->id,
                         'variant_id' => $variant->id,
                         'name' => $displayName,
@@ -4543,7 +4592,7 @@ class BookingController extends Controller
                         'options' => $options,
                         'in_stock' => $currentStock > 0,
                         'current_stock' => $currentStock,
-                        'servings_per_pic' => $variant->servings_per_pic > 0 ? (float)$variant->servings_per_pic : 1
+                        'servings_per_pic' => $variant->servings_per_pic > 0 ? (float) $variant->servings_per_pic : 1
                     ];
                 }
             }
@@ -4566,20 +4615,22 @@ class BookingController extends Controller
 
             if (!$alreadyAdded) {
                 // Ensure structured options for service-based drinks
-                $options = [[
-                    'type' => 'Unit',
-                    'method' => 'pic',
-                    'price' => (float)$service->price_tsh
-                ]];
+                $options = [
+                    [
+                        'type' => 'Unit',
+                        'method' => 'pic',
+                        'price' => (float) $service->price_tsh
+                    ]
+                ];
 
-                $drinks[] = (object)[
+                $drinks[] = (object) [
                     'id' => $service->id,
                     'variant_id' => null, // Services don't have variants
                     'name' => $service->name,
                     'is_product' => false,
                     'item_type' => 'Unit',
                     'category' => $service->category,
-                    'price_tsh' => (float)$service->price_tsh,
+                    'price_tsh' => (float) $service->price_tsh,
                     'image' => null,
                     'is_product' => false,
                     'selling_method' => 'pic',
@@ -4592,7 +4643,7 @@ class BookingController extends Controller
 
         // 3. Get all available Food Recipes
         $recipes = \App\Models\Recipe::where('is_available', true)->get();
-        
+
         $foodItems = [];
         foreach ($recipes as $recipe) {
             $foodItems[] = [
@@ -4631,7 +4682,7 @@ class BookingController extends Controller
             $lastBooking = Booking::where('guest_email', $guest->email)
                 ->orderBy('check_in', 'desc')
                 ->first();
-            
+
             if ($lastBooking) {
                 $guest->last_booking_date = \Carbon\Carbon::parse($lastBooking->check_in)->format('M d, Y');
                 $guest->last_booking_details = [

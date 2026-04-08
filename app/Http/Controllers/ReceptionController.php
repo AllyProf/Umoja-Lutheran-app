@@ -363,10 +363,10 @@ class ReceptionController extends Controller
 
         $query = Booking::with('room')
             ->where('status', 'confirmed')
-            ->whereIn('payment_status', ['paid', 'partial'])
+            ->whereIn('payment_status', ['paid', 'partial', 'pending'])
             ->where(function ($q) {
-                // Include paid bookings
-                $q->where('payment_status', 'paid')
+                // Include paid and pending bookings
+                $q->whereIn('payment_status', ['paid', 'pending'])
                     // Or partial payments where amount_paid > 0
                     ->orWhere(function ($subQ) {
                     $subQ->where('payment_status', 'partial')
@@ -389,9 +389,9 @@ class ReceptionController extends Controller
                     ->where('is_corporate_booking', true)
                     ->where('company_id', $companyId)
                     ->where('status', 'confirmed')
-                    ->whereIn('payment_status', ['paid', 'partial'])
+                    ->whereIn('payment_status', ['paid', 'partial', 'pending'])
                     ->where(function ($q) {
-                        $q->where('payment_status', 'paid')
+                        $q->whereIn('payment_status', ['paid', 'pending'])
                             ->orWhere(function ($subQ) {
                                 $subQ->where('payment_status', 'partial')
                                     ->whereNotNull('amount_paid')
@@ -414,11 +414,9 @@ class ReceptionController extends Controller
                     });
                 }
 
-                // Filter by check-in date
+                // Filter by check-in date if provided
                 if ($request->has('check_in_date') && $request->check_in_date) {
-                    $companyBookings->whereDate('check_in', '<=', $request->check_in_date);
-                } else {
-                    $companyBookings->whereDate('check_in', '<=', Carbon::today()->addDay());
+                    $companyBookings->whereDate('check_in', $request->check_in_date);
                 }
 
                 $bookingsForCompany = $companyBookings->orderBy('check_in', 'asc')->get();
@@ -458,12 +456,10 @@ class ReceptionController extends Controller
             }
 
             // Filter by check-in date - show customers 1 day before check-in date
+            // Filter by check-in date if provided
             if ($request->has('check_in_date') && $request->check_in_date) {
-                // Show bookings where check-in date is on or before the selected date
-                $query->whereDate('check_in', '<=', $request->check_in_date);
-            } else {
-                // Default: show bookings where check-in is today or tomorrow (1 day before)
-                $query->whereDate('check_in', '<=', Carbon::today()->addDay());
+                // Show bookings for the specific date
+                $query->whereDate('check_in', $request->check_in_date);
             }
 
             $bookings = $query->orderBy('check_in', 'asc')->paginate(20);
@@ -476,10 +472,10 @@ class ReceptionController extends Controller
         $stats = [
             'individual_total' => Booking::where('is_corporate_booking', false)
                 ->where('status', 'confirmed')
-                ->whereIn('payment_status', ['paid', 'partial'])
+                ->whereIn('payment_status', ['paid', 'partial', 'pending'])
                 ->where('check_in_status', 'pending')
                 ->where(function ($q) {
-                    $q->where('payment_status', 'paid')
+                    $q->whereIn('payment_status', ['paid', 'pending'])
                         ->orWhere(function ($subQ) {
                             $subQ->where('payment_status', 'partial')
                                 ->whereNotNull('amount_paid')
@@ -489,10 +485,10 @@ class ReceptionController extends Controller
                 ->count(),
             'corporate_total' => Booking::where('is_corporate_booking', true)
                 ->where('status', 'confirmed')
-                ->whereIn('payment_status', ['paid', 'partial'])
+                ->whereIn('payment_status', ['paid', 'partial', 'pending'])
                 ->where('check_in_status', 'pending')
                 ->where(function ($q) {
-                    $q->where('payment_status', 'paid')
+                    $q->whereIn('payment_status', ['paid', 'pending'])
                         ->orWhere(function ($subQ) {
                             $subQ->where('payment_status', 'partial')
                                 ->whereNotNull('amount_paid')

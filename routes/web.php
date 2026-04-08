@@ -567,6 +567,8 @@ Route::prefix('reception')->group(function () {
         Route::get('/bookings/available-rooms', [\App\Http\Controllers\BookingController::class, 'getAvailableRooms'])->name('reception.bookings.available-rooms');
         Route::get('/bookings/{booking}', [\App\Http\Controllers\BookingController::class, 'show'])->name('reception.bookings.show');
         Route::put('/bookings/{booking}/check-in', [\App\Http\Controllers\BookingController::class, 'updateCheckInStatus'])->name('reception.bookings.update-checkin');
+        Route::put('/bookings/{booking}/status', [\App\Http\Controllers\BookingController::class, 'updateStatus'])->name('reception.bookings.update-status');
+        Route::get('/bookings/{booking}/checkout-bill', [\App\Http\Controllers\ServiceRequestController::class, 'generateCheckoutBill'])->name('reception.bookings.checkout-bill');
         Route::post('/bookings/{booking}/extension', [\App\Http\Controllers\BookingController::class, 'handleExtension'])->name('reception.bookings.extension');
         Route::put('/bookings/{booking}/modify-dates', [\App\Http\Controllers\BookingController::class, 'modifyBookingDates'])->name('reception.bookings.modify-dates');
 

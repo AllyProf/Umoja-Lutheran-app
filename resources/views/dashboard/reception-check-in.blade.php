@@ -36,7 +36,7 @@
           <input type="text" class="form-control" id="searchInput" placeholder="Search by reference, name, or email..." onkeyup="filterCheckIns()" oninput="filterCheckIns()" style="font-size: 16px;">
         </div>
         <div class="col-md-4 col-12 mb-2 mb-md-0">
-          <input type="date" class="form-control" id="checkInDateFilter" onchange="filterCheckIns()" value="{{ request('check_in_date', today()->format('Y-m-d')) }}" style="font-size: 16px;">
+          <input type="date" class="form-control" id="checkInDateFilter" onchange="filterCheckIns()" value="{{ request('check_in_date') }}" placeholder="Filter by date" style="font-size: 16px;">
         </div>
         <div class="col-md-2 col-12">
           <button class="btn btn-secondary btn-block" onclick="resetCheckInFilters()">
@@ -160,13 +160,25 @@
                       @endif
                     </td>
                     <td>
-                      <strong>${{ number_format($totalPrice, 2) }}</strong>
-                      <br><small class="text-muted">{{ number_format($totalPrice * $exchangeRate, 2) }} TZS</small>
+                      <strong>{{ number_format($totalPrice) }} TZS</strong>
                     </td>
                     <td>
-                      <button class="btn btn-sm btn-primary" onclick="checkInCompanyGroup({{ $company->id ?? 0 }})" title="Check In All Guests">
-                        <i class="fa fa-sign-in"></i> Check In
-                      </button>
+                      <div class="dropdown">
+                        <button class="btn btn-sm btn-primary dropdown-toggle" type="button" id="corpAction{{ $company->id ?? 0 }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                          Action
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="corpAction{{ $company->id ?? 0 }}">
+                          <button class="dropdown-item" onclick="checkInCompanyGroup({{ $company->id ?? 0 }})">
+                            <i class="fa fa-sign-in"></i> Check In All
+                          </button>
+                          <div class="dropdown-divider"></div>
+                          @if($firstBooking)
+                            <button class="dropdown-item text-danger" onclick="cancelBooking({{ $firstBooking->id }}, '{{ $firstBooking->booking_reference }}')">
+                              <i class="fa fa-times-circle"></i> Cancel Group
+                            </button>
+                          @endif
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 @endforeach
@@ -250,16 +262,26 @@
                       @endif
                     </td>
                     <td>
-                      <strong>${{ number_format($booking->total_price, 2) }}</strong><br>
-                      <small>{{ number_format($booking->total_price * $exchangeRate, 2) }} TZS</small>
+                      <strong>{{ number_format($booking->total_price) }} TZS</strong>
                     </td>
                     <td>
-                      <button class="btn btn-sm btn-success" onclick="checkInGuest({{ $booking->id }}, '{{ $booking->booking_reference }}')">
-                        <i class="fa fa-sign-in"></i> Check In
-                      </button>
-                      <button class="btn btn-sm btn-info" onclick="viewBookingDetails({{ $booking->id }}, '{{ $booking->booking_reference }}')">
-                        <i class="fa fa-eye"></i> View
-                      </button>
+                      <div class="dropdown">
+                        <button class="btn btn-sm btn-primary dropdown-toggle" type="button" id="indivAction{{ $booking->id }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                          Action
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="indivAction{{ $booking->id }}">
+                          <button class="dropdown-item" onclick="checkInGuest({{ $booking->id }}, '{{ $booking->booking_reference }}')">
+                            <i class="fa fa-sign-in"></i> Check In
+                          </button>
+                          <button class="dropdown-item" onclick="viewBookingDetails({{ $booking->id }}, '{{ $booking->booking_reference }}')">
+                            <i class="fa fa-eye"></i> View Details
+                          </button>
+                          <div class="dropdown-divider"></div>
+                          <button class="dropdown-item text-danger" onclick="cancelBooking({{ $booking->id }}, '{{ $booking->booking_reference }}')">
+                            <i class="fa fa-times-circle"></i> Cancel Booking
+                          </button>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 @endforeach
@@ -330,15 +352,27 @@
                 <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
                   <span style="font-weight: 600; color: #495057; font-size: 14px; flex: 0 0 40%;">Total Price:</span>
                   <span style="text-align: right; flex: 1;">
-                    <strong>${{ number_format($totalPrice, 2) }}</strong><br>
-                    <small>{{ number_format($totalPrice * $exchangeRate, 2) }} TZS</small>
+                    <strong>{{ number_format($totalPrice) }} TZS</strong>
                   </span>
                 </div>
                 
-                <div style="margin-top: 15px; display: flex; gap: 10px;">
-                  <button class="btn btn-sm btn-primary btn-block" onclick="checkInCompanyGroup({{ $company->id ?? 0 }})" style="flex: 1;">
-                    <i class="fa fa-sign-in"></i> Check In All
-                  </button>
+                <div style="margin-top: 15px;">
+                  <div class="dropdown">
+                    <button class="btn btn-primary btn-block dropdown-toggle" type="button" id="corpMobileAction{{ $company->id ?? 0 }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                      Action
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right" style="width: 100%;" aria-labelledby="corpMobileAction{{ $company->id ?? 0 }}">
+                      <button class="dropdown-item" onclick="checkInCompanyGroup({{ $company->id ?? 0 }})">
+                        <i class="fa fa-sign-in"></i> Check In All
+                      </button>
+                      <div class="dropdown-divider"></div>
+                      @if($firstBooking)
+                        <button class="dropdown-item text-danger" onclick="cancelBooking({{ $firstBooking->id }}, '{{ $firstBooking->booking_reference }}')">
+                          <i class="fa fa-times-circle"></i> Cancel Group
+                        </button>
+                      @endif
+                    </div>
+                  </div>
                 </div>
               </div>
             @endforeach
@@ -442,8 +476,7 @@
             <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
               <span style="font-weight: 600; color: #495057; font-size: 14px; flex: 0 0 40%;">Total Price:</span>
               <span style="text-align: right; flex: 1;">
-                <strong>${{ number_format($booking->total_price, 2) }}</strong><br>
-                <small>{{ number_format($booking->total_price * $exchangeRate, 2) }} TZS</small>
+                <strong>{{ number_format($booking->total_price) }} TZS</strong>
               </span>
             </div>
             
@@ -459,13 +492,24 @@
             </div>
             @endif
             
-            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6; display: flex; gap: 8px; flex-wrap: wrap;">
-              <button class="btn btn-sm btn-success" onclick="checkInGuest({{ $booking->id }}, '{{ $booking->booking_reference }}')" style="flex: 1; min-width: calc(50% - 4px);">
-                <i class="fa fa-sign-in"></i> Check In
-              </button>
-              <button class="btn btn-sm btn-info" onclick="viewBookingDetails({{ $booking->id }}, '{{ $booking->booking_reference }}')" style="flex: 1; min-width: calc(50% - 4px);">
-                <i class="fa fa-eye"></i> View
-              </button>
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6;">
+              <div class="dropdown">
+                <button class="btn btn-primary btn-block dropdown-toggle" type="button" id="indivMobileAction{{ $booking->id }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  Action
+                </button>
+                <div class="dropdown-menu dropdown-menu-right" style="width: 100%;" aria-labelledby="indivMobileAction{{ $booking->id }}">
+                  <button class="dropdown-item" onclick="checkInGuest({{ $booking->id }}, '{{ $booking->booking_reference }}')">
+                    <i class="fa fa-sign-in"></i> Check In
+                  </button>
+                  <button class="dropdown-item" onclick="viewBookingDetails({{ $booking->id }}, '{{ $booking->booking_reference }}')">
+                    <i class="fa fa-eye"></i> View Details
+                  </button>
+                  <div class="dropdown-divider"></div>
+                  <button class="dropdown-item text-danger" onclick="cancelBooking({{ $booking->id }}, '{{ $booking->booking_reference }}')">
+                    <i class="fa fa-times-circle"></i> Cancel Booking
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
           @endforeach
@@ -601,6 +645,10 @@
     margin-bottom: 0;
   }
 }
+
+.table-responsive {
+  overflow: visible !important;
+}
 </style>
 <script>
 function checkInGuest(bookingId, bookingReference) {
@@ -661,7 +709,69 @@ function checkInGuest(bookingId, bookingReference) {
                 });
             });
         }
+  });
+}
+
+function cancelBooking(bookingId, bookingRef) {
+  swal({
+    title: "Cancel Booking?",
+    text: "Please provide a reason for cancelling booking " + bookingRef + ". This action will release the room.",
+    type: "input",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Yes, Cancel it!",
+    cancelButtonText: "No, Keep it",
+    inputPlaceholder: "Enter cancellation reason (Mandatory)",
+    closeOnConfirm: false,
+    showLoaderOnConfirm: true
+  }, function(inputValue) {
+    if (inputValue === false) return false;
+    
+    if (inputValue.trim() === "") {
+      swal.showInputError("You must provide a cancellation reason!");
+      return false;
+    }
+    
+    @php
+      // Using the same route logic as bookings-list
+      $cancelRoute = ($role === 'manager') 
+        ? 'admin.bookings.update-status' 
+        : 'reception.bookings.update-status';
+    @endphp
+    
+    fetch('{{ route($cancelRoute, ":id") }}'.replace(':id', bookingId), {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({
+        status: 'cancelled',
+        reason: inputValue.trim()
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        swal({
+          title: "Cancelled!",
+          text: "The booking has been successfully cancelled.",
+          type: "success"
+        }, function() {
+          location.reload();
+        });
+      } else {
+        swal("Error", data.message || "Failed to cancel booking.", "error");
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      swal("Error", "An unexpected error occurred while cancelling the booking.", "error");
     });
+  });
 }
 
 function checkInCompanyGroup(companyId) {
@@ -940,17 +1050,16 @@ function viewBookingDetails(bookingId, bookingRef) {
                 <tr><td width="40%"><strong>Room Number:</strong></td><td><strong>${room.room_number || 'N/A'}</strong></td></tr>
                 <tr><td><strong>Room Type:</strong></td><td>${room.room_type || 'N/A'}</td></tr>
                 <tr><td><strong>Capacity:</strong></td><td>${room.capacity || 'N/A'} guests</td></tr>
-                <tr><td><strong>Price per Night:</strong></td><td>$${parseFloat(room.price_per_night || 0).toFixed(2)} USD</td></tr>
+                <tr><td><strong>Price per Night:</strong></td><td>${parseFloat(room.price_per_night || 0).toLocaleString()} TZS</td></tr>
               </table>
             </div>
             <div class="col-md-6">
               <h5 style="color: #940000; border-bottom: 2px solid #940000; padding-bottom: 5px; margin-bottom: 15px;"><i class="fa fa-dollar"></i> Payment Information</h5>
               <table class="table table-sm table-bordered">
-                <tr><td width="40%"><strong>Total Price:</strong></td><td><strong>$${parseFloat(booking.total_price || 0).toFixed(2)} USD</strong></td></tr>
-                <tr><td><strong>Total Price (TZS):</strong></td><td><strong>${(parseFloat(booking.total_price || 0) * exchangeRate).toLocaleString()} TZS</strong></td></tr>
-                <tr><td><strong>Amount Paid:</strong></td><td>${booking.amount_paid ? '$' + parseFloat(booking.amount_paid).toFixed(2) + ' USD' : 'N/A'}</td></tr>
+                <tr><td width="40%"><strong>Total Price:</strong></td><td><strong>${parseFloat(booking.total_price || 0).toLocaleString()} TZS</strong></td></tr>
+                <tr><td><strong>Amount Paid:</strong></td><td>${booking.amount_paid ? parseFloat(booking.amount_paid).toLocaleString() + ' TZS' : 'N/A'}</td></tr>
                 ${booking.payment_status === 'partial' && booking.amount_paid ? `
-                <tr><td><strong>Remaining Amount:</strong></td><td><strong style="color: #dc3545;">$${parseFloat((booking.total_price || 0) - (booking.amount_paid || 0)).toFixed(2)} USD</strong></td></tr>
+                <tr><td><strong>Remaining Amount:</strong></td><td><strong style="color: #dc3545;">${parseFloat((booking.total_price || 0) - (booking.amount_paid || 0)).toLocaleString()} TZS</strong></td></tr>
                 <tr><td><strong>Payment Percentage:</strong></td><td><span class="badge badge-info">${parseFloat(((booking.amount_paid || 0) / (booking.total_price || 1)) * 100).toFixed(0)}%</span></td></tr>
                 ` : ''}
                 <tr><td><strong>Payment Method:</strong></td><td>${booking.payment_method ? booking.payment_method.charAt(0).toUpperCase() + booking.payment_method.slice(1) : 'N/A'}</td></tr>
@@ -1088,16 +1197,16 @@ function filterCheckIns() {
 
 function resetCheckInFilters() {
   document.getElementById('searchInput').value = '';
-  document.getElementById('checkInDateFilter').value = '{{ today()->format('Y-m-d') }}';
+  document.getElementById('checkInDateFilter').value = '';
   filterCheckIns();
 }
 
 // Initialize filters on page load
 document.addEventListener('DOMContentLoaded', function() {
-  // Set initial date filter value if not set
+  // Clear date filter if not explicitly requested
   const dateFilter = document.getElementById('checkInDateFilter');
-  if (dateFilter && !dateFilter.value) {
-    dateFilter.value = '{{ today()->format('Y-m-d') }}';
+  if (dateFilter && !'{{ request('check_in_date') }}') {
+    dateFilter.value = '';
   }
 });
 </script>

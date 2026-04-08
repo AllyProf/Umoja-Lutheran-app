@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             BarKeeperSeeder::class,
             ServiceSeeder::class,
+            RoomSeeder::class,
         ]);
     }
 }

@@ -143,8 +143,10 @@
                     <span class="badge badge-warning">Pending</span>
                   @elseif($booking->status === 'completed')
                     <span class="badge badge-info">Completed</span>
-                  @else
+                  @elseif($booking->status === 'cancelled')
                     <span class="badge badge-danger">Cancelled</span>
+                  @else
+                    <span class="badge badge-secondary">{{ ucfirst($booking->status) }}</span>
                   @endif
                 </td>
                 <td>
@@ -185,42 +187,67 @@
                   </small>
                 </td>
                 <td>
-                  <button onclick="viewBookingDetailsModal({{ $booking->id }})" 
-                          class="btn btn-sm btn-info" 
-                          title="View Details"
-                          data-booking-id="{{ $booking->id }}"
-                          data-booking-ref="{{ $booking->booking_reference }}"
-                          data-guest-name="{{ htmlspecialchars($booking->guest_name, ENT_QUOTES, 'UTF-8') }}"
-                          data-guest-email="{{ $booking->guest_email }}"
-                          data-guest-phone="{{ $booking->guest_phone }}"
-                          data-country-code="{{ $booking->country_code }}"
-                          data-country="{{ $booking->country }}"
-                          data-guest-id="{{ $booking->guest_id }}"
-                          data-room-type="{{ $booking->room->room_type ?? 'N/A' }}"
-                          data-room-number="{{ $booking->room->room_number ?? 'N/A' }}"
-                          data-check-in="{{ $booking->check_in->format('M d, Y') }}"
-                          data-check-out="{{ $booking->check_out->format('M d, Y') }}"
-                          data-nights="{{ $booking->check_in->diffInDays($booking->check_out) }}"
-                          data-guests="{{ $booking->number_of_guests }}"
-                          data-status="{{ $booking->status }}"
-                          data-payment-status="{{ $booking->payment_status }}"
-                          data-check-in-status="{{ $booking->check_in_status }}"
-                          data-total-price="{{ $booking->total_price }}"
-                          data-amount-paid="{{ $booking->amount_paid ?? 0 }}"
-                          data-payment-percentage="{{ $booking->payment_percentage ?? 0 }}"
-                          data-exchange-rate="{{ $booking->locked_exchange_rate ?? '' }}"
-                          data-special-requests="{{ htmlspecialchars($booking->special_requests ?? '', ENT_QUOTES, 'UTF-8') }}"
-                          data-airport-pickup="{{ $booking->airport_pickup_required ? '1' : '0' }}"
-                          data-flight-number="{{ $booking->flight_number ?? '' }}"
-                          data-airline="{{ $booking->airline ?? '' }}"
-                          data-arrival-time="{{ $booking->arrival_time_pickup ? $booking->arrival_time_pickup->format('M d, Y H:i') : '' }}"
-                          data-pickup-passengers="{{ $booking->pickup_passengers ?? '' }}"
-                          data-pickup-contact="{{ $booking->pickup_contact_number ?? '' }}"
-                          data-created-at="{{ $booking->created_at->format('M d, Y H:i') }}"
-                          data-checked-in-at="{{ $booking->checked_in_at ? $booking->checked_in_at->format('M d, Y H:i') : '' }}"
-                          data-checked-out-at="{{ $booking->checked_out_at ? $booking->checked_out_at->format('M d, Y H:i') : '' }}">
-                    <i class="fa fa-eye"></i>
-                  </button>
+                  <div class="dropdown">
+                    <button class="btn btn-sm btn-primary dropdown-toggle" type="button" id="actionMenu{{ $booking->id }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                      Action
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="actionMenu{{ $booking->id }}">
+                      <a class="dropdown-item" href="javascript:void(0)" onclick="viewBookingDetailsModal(this)"
+                         title="View Details"
+                         data-booking-id="{{ $booking->id }}"
+                         data-booking-ref="{{ $booking->booking_reference }}"
+                         data-guest-name="{{ htmlspecialchars($booking->guest_name, ENT_QUOTES, 'UTF-8') }}"
+                         data-guest-email="{{ $booking->guest_email }}"
+                         data-guest-phone="{{ $booking->guest_phone }}"
+                         data-country-code="{{ $booking->country_code }}"
+                         data-country="{{ $booking->country }}"
+                         data-guest-id="{{ $booking->guest_id }}"
+                         data-room-type="{{ $booking->room->room_type ?? 'N/A' }}"
+                         data-room-number="{{ $booking->room->room_number ?? 'N/A' }}"
+                         data-check-in="{{ $booking->check_in->format('M d, Y') }}"
+                         data-check-out="{{ $booking->check_out->format('M d, Y') }}"
+                         data-nights="{{ $booking->check_in->diffInDays($booking->check_out) }}"
+                         data-guests="{{ $booking->number_of_guests }}"
+                         data-status="{{ $booking->status }}"
+                         data-payment-status="{{ $booking->payment_status }}"
+                         data-check-in-status="{{ $booking->check_in_status }}"
+                         data-total-price="{{ $booking->total_price }}"
+                         data-amount-paid="{{ $booking->amount_paid ?? 0 }}"
+                         data-payment-percentage="{{ $booking->payment_percentage ?? 0 }}"
+                         data-exchange-rate="{{ $booking->locked_exchange_rate ?? '' }}"
+                         data-special-requests="{{ htmlspecialchars($booking->special_requests ?? '', ENT_QUOTES, 'UTF-8') }}"
+                         data-airport-pickup="{{ $booking->airport_pickup_required ? '1' : '0' }}"
+                         data-flight-number="{{ $booking->flight_number ?? '' }}"
+                         data-airline="{{ $booking->airline ?? '' }}"
+                         data-arrival-time="{{ $booking->arrival_time_pickup ? $booking->arrival_time_pickup->format('M d, Y H:i') : '' }}"
+                         data-pickup-passengers="{{ $booking->pickup_passengers ?? '' }}"
+                         data-pickup-contact="{{ $booking->pickup_contact_number ?? '' }}"
+                         data-created-at="{{ $booking->created_at->format('M d, Y H:i') }}"
+                         data-checked-in-at="{{ $booking->checked_in_at ? $booking->checked_in_at->format('M d, Y H:i') : '' }}"
+                         data-checked-out-at="{{ $booking->checked_out_at ? $booking->checked_out_at->format('M d, Y H:i') : '' }}">
+                        <i class="fa fa-eye fa-fw"></i> View Details
+                      </a>
+                      
+                      @if($booking->check_in_status === 'pending' && $booking->status !== 'cancelled')
+                      <a class="dropdown-item" href="{{ route('reception.reservations.check-in', ['search' => $booking->booking_reference]) }}">
+                        <i class="fa fa-sign-in fa-fw"></i> Check-in
+                      </a>
+                      @endif
+
+                      @if($booking->check_in_status === 'checked_in')
+                      <a class="dropdown-item" href="{{ route('reception.bookings.checkout-bill', $booking) }}" target="_blank">
+                        <i class="fa fa-file-text fa-fw"></i> View Bill
+                      </a>
+                      @endif
+
+                      @if($booking->status !== 'cancelled' && $booking->status !== 'completed' && $booking->check_in_status !== 'checked_out')
+                      <div class="dropdown-divider"></div>
+                      <a class="dropdown-item text-danger" href="javascript:void(0)" onclick="cancelBooking({{ $booking->id }}, '{{ $booking->booking_reference }}')">
+                        <i class="fa fa-times fa-fw"></i> Cancel Booking
+                      </a>
+                      @endif
+                    </div>
+                  </div>
                 </td>
               </tr>
               @endforeach
@@ -269,6 +296,7 @@
 @endsection
 
 @section('scripts')
+<script src="{{ asset('dashboard_assets/js/plugins/sweetalert.min.js') }}"></script>
 <script>
 function filterBookings() {
   const statusFilter = document.getElementById('statusFilter').value;
@@ -323,8 +351,8 @@ function resetBookingFilters() {
   filterBookings();
 }
 
-function viewBookingDetailsModal(bookingId) {
-  const button = document.querySelector(`button[data-booking-id="${bookingId}"]`);
+function viewBookingDetailsModal(element) {
+  const button = element;
   if (!button) return;
   
   // Helper function to escape HTML
@@ -592,6 +620,67 @@ function viewBookingDetailsModal(bookingId) {
   
   document.getElementById('bookingDetailsContent').innerHTML = detailsHtml;
   $('#bookingDetailsModal').modal('show');
+}
+
+/**
+ * Cancel a booking
+ * @param {number} bookingId 
+ * @param {string} bookingRef 
+ */
+function cancelBooking(bookingId, bookingRef) {
+  swal({
+    title: "Cancel Booking?",
+    text: "Are you sure you want to cancel booking " + bookingRef + "? This action will release the room.",
+    type: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Yes, Cancel it!",
+    cancelButtonText: "No, Keep it",
+    closeOnConfirm: false,
+    showLoaderOnConfirm: true
+  }, function(isConfirm) {
+    if (isConfirm) {
+      @php
+        // Using the existing update-status route
+        $cancelRoute = (request()->routeIs('manager.*')) 
+          ? 'admin.bookings.update-status' 
+          : 'reception.bookings.update-status';
+      @endphp
+      
+      fetch('{{ route($cancelRoute, ":id") }}'.replace(':id', bookingId), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': '{{ csrf_token() }}',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+          status: 'cancelled',
+          reason: 'Guest decided not to come'
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          swal({
+            title: "Cancelled!",
+            text: "The booking has been successfully cancelled.",
+            type: "success"
+          }, function() {
+            location.reload();
+          });
+        } else {
+          swal("Error", data.message || "Failed to cancel booking.", "error");
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        swal("Error", "An unexpected error occurred while cancelling the booking.", "error");
+      });
+    }
+  });
 }
 </script>
 @endsection
