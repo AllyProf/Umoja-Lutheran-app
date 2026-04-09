@@ -33,7 +33,12 @@
                                 <tbody>
                                     @forelse($lowStockVariants as $variant)
                                         <tr>
-                                            <td>{{ $variant->product->name }}</td>
+                                            <td>
+                                                {{ $variant->product->name }}
+                                                @if($variant->variant_name)
+                                                    <small class="text-muted">({{ $variant->variant_name }})</small>
+                                                @endif
+                                            </td>
                                             <td class="text-danger font-weight-bold">
                                                 {{ number_format($variant->current_stock, 2) }}
                                                 {{ ucfirst($variant->receiving_unit ?: 'Pcs') }}

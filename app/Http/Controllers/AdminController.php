@@ -28,10 +28,13 @@ class AdminController extends Controller
         $lowStockVariants = [];
         $totalLowStock = 0;
 
-        foreach (Product::with(['variants', 'variants.product'])->get() as $product) {
+        foreach (Product::with(['variants'])->get() as $product) {
             foreach ($product->variants as $variant) {
-                // Get the current stock logic defined in ProductVariant or recalculate 
-                // using the DB sum logic similar to Storekeeper
+                // Only check variants that have an explicit minimum_stock_level set
+                if (!$variant->minimum_stock_level || $variant->minimum_stock_level <= 0) {
+                    continue;
+                }
+
                 $packageUnits = ProductVariant::getPackageUnits();
                 $unitsList = "'" . implode("','", $packageUnits) . "'";
 
@@ -65,8 +68,9 @@ class AdminController extends Controller
 
                 $currentStock = ((float) $receiptsIn + (float) $shoppingIn + (float) $returnsIn) - (float) $transfersOut;
 
-                if ($variant->isLowStock($currentStock)) {
+                if ($currentStock <= (float) $variant->minimum_stock_level) {
                     $variant->current_stock = $currentStock;
+                    $variant->setRelation('product', $product); // Attach product directly
                     $lowStockVariants[] = $variant;
                     $totalLowStock++;
                 }
