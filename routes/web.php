@@ -636,6 +636,7 @@ Route::prefix('reception')->group(function () {
 
         // Shift Handovers
         Route::get('/shift-handovers', [\App\Http\Controllers\ReceptionController::class, 'shiftHandovers'])->name('reception.shift-handovers');
+        Route::get('/shift-handovers/{shiftClosure}/sales', [\App\Http\Controllers\ReceptionController::class, 'viewShiftSales'])->name('reception.shift-handovers.sales');
         Route::post('/shift-handovers/{shiftClosure}/acknowledge', [\App\Http\Controllers\ReceptionController::class, 'acknowledgeShiftClosure'])->name('reception.shift-handovers.acknowledge');
     });
 
