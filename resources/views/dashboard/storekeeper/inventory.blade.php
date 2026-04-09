@@ -115,10 +115,10 @@
                                                 @php
                                                     $vName = $product->category === 'cleaning_supplies' ? trim(str_ireplace(['(ml)', 'ml', '(l)', 'l'], '', $variant->variant_name)) : $variant->variant_name;
                                                 @endphp
-                                                @if(strtolower($vName) === 'standard' || strtolower($vName) === strtolower($product->name))
+                                                @if(strtolower($vName) === 'standard' || strtolower($vName) === strtolower($product->name) || empty($vName))
                                                     {{ $product->name }}
                                                 @else
-                                                    {{ $product->name }} <span class="text-muted" style="font-size: 0.8em;">- {{ $vName }}</span>
+                                                    {{ $vName }}
                                                 @endif
                                             </h5>
                                             <div class="text-muted small">
