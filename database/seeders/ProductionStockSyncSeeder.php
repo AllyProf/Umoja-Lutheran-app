@@ -25,33 +25,51 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => '350 ml'], array (
   'measurement' => '350 ml',
+  'variant_name' => 'Fanta Orange',
   'packaging' => 'crates',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 24,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '1000.00',
+  'selling_price_per_serving' => '0.00',
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => 0,
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => '350 ml'], array (
   'measurement' => '350 ml',
+  'variant_name' => 'Fanta Nyeusi',
   'packaging' => 'crates',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 24,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '1000.00',
+  'selling_price_per_serving' => '0.00',
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => 0,
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => '350 ml'], array (
   'measurement' => '350 ml',
+  'variant_name' => 'Cocacola',
   'packaging' => 'crates',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 24,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '1000.00',
+  'selling_price_per_serving' => '0.00',
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => 0,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Madiko'], array (
@@ -64,33 +82,51 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => '0 ml'], array (
   'measurement' => '0 ml',
+  'variant_name' => 'Nyanya',
   'packaging' => 'unit',
+  'purchasing_unit' => 'Sado',
+  'receiving_unit' => 'Kg',
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => '0.00',
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => 5,
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => '0 ml'], array (
   'measurement' => '0 ml',
+  'variant_name' => 'Vitunguu',
   'packaging' => 'unit',
+  'purchasing_unit' => 'Sado',
+  'receiving_unit' => 'Kg',
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => '0.00',
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => 0,
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => 'ml'], array (
   'measurement' => 'ml',
+  'variant_name' => 'karoti',
   'packaging' => 'unit',
+  'purchasing_unit' => 'Sado',
+  'receiving_unit' => 'Kg',
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => '0.00',
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => 5,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Usafi'], array (
@@ -103,23 +139,35 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => 'ml'], array (
   'measurement' => 'ml',
+  'variant_name' => 'mopa',
   'packaging' => 'unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => '0.00',
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => 'ml'], array (
   'measurement' => 'ml',
+  'variant_name' => 'soap',
   'packaging' => 'unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => '0.00',
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Clean'], array (
@@ -132,13 +180,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => 'ml'], array (
   'measurement' => 'ml',
+  'variant_name' => 'Bloom',
   'packaging' => 'unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => '0.00',
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'viungo'], array (
@@ -151,33 +205,51 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => 'ml'], array (
   'measurement' => 'ml',
+  'variant_name' => 'Nyanya',
   'packaging' => 'unit',
+  'purchasing_unit' => 'Sado',
+  'receiving_unit' => 'Kg',
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => '0.00',
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => 'ml'], array (
   'measurement' => 'ml',
+  'variant_name' => 'vitunguu',
   'packaging' => 'unit',
+  'purchasing_unit' => 'Sado',
+  'receiving_unit' => 'Kg',
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => '0.00',
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => 'ml'], array (
   'measurement' => 'ml',
+  'variant_name' => 'karoti',
   'packaging' => 'unit',
+  'purchasing_unit' => 'Sado',
+  'receiving_unit' => 'Kg',
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => '0.00',
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Pepsi'], array (
@@ -190,13 +262,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => '350 ml'], array (
   'measurement' => '350 ml',
+  'variant_name' => 'Pepsi',
   'packaging' => 'unit',
+  'purchasing_unit' => 'Crate',
+  'receiving_unit' => 'Pieces',
   'items_per_package' => 24,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '700.00',
+  'selling_price_per_serving' => '0.00',
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Mtindi'], array (
@@ -209,13 +287,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Bottle',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '2500.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Soda'], array (
@@ -228,13 +312,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Bottle',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '1000.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Soda Take Away'], array (
@@ -247,13 +337,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Bottle',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '1500.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Potable'], array (
@@ -266,13 +362,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Bottle',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '1000.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'M/Water'], array (
@@ -285,13 +387,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => '0 ml'], array (
   'measurement' => '0 ml',
+  'variant_name' => 'Standard',
   'packaging' => 'Bottle',
+  'purchasing_unit' => 'Carton',
+  'receiving_unit' => 'Carton',
   'items_per_package' => 12,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'glass',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => true,
   'selling_price_per_pic' => '1000.00',
+  'selling_price_per_serving' => '0.00',
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'L/Water'], array (
@@ -304,13 +412,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => '0 ml'], array (
   'measurement' => '0 ml',
+  'variant_name' => 'Standard',
   'packaging' => 'Bottle',
+  'purchasing_unit' => 'Carton',
+  'receiving_unit' => 'Carton',
   'items_per_package' => 12,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'glass',
+  'can_sell_as_pic' => true,
+  'can_sell_as_serving' => true,
   'selling_price_per_pic' => '1500.00',
+  'selling_price_per_serving' => '0.00',
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Mifuko Kaki'], array (
@@ -323,13 +437,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Napkin'], array (
@@ -342,13 +462,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Lunch Box'], array (
@@ -361,13 +487,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Table Salt'], array (
@@ -380,13 +512,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Tooth Stick'], array (
@@ -399,13 +537,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Tomato Sauce'], array (
@@ -418,13 +562,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Chilli Sauce'], array (
@@ -437,13 +587,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Blue Band'], array (
@@ -456,13 +612,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Vim'], array (
@@ -475,13 +637,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Asali'], array (
@@ -494,13 +662,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Matunda'], array (
@@ -513,13 +687,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Tende'], array (
@@ -532,13 +712,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Rozela'], array (
@@ -551,13 +737,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Kahawa'], array (
@@ -570,13 +762,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Sukari'], array (
@@ -589,13 +787,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Mirija ya Juice'], array (
@@ -608,13 +812,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Kitchen Foil'], array (
@@ -627,13 +837,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Clean Foil'], array (
@@ -646,13 +862,19 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
             $product = Product::updateOrCreate(['name' => 'Sahani'], array (
@@ -665,16 +887,22 @@ class ProductionStockSyncSeeder extends Seeder
 ));
             ProductVariant::updateOrCreate(['product_id' => $product->id, 'measurement' => ''], array (
   'measurement' => NULL,
+  'variant_name' => 'Standard',
   'packaging' => 'Unit',
+  'purchasing_unit' => NULL,
+  'receiving_unit' => NULL,
   'items_per_package' => 1,
-  'buying_price_per_bottle' => NULL,
-  'selling_price_per_bottle' => NULL,
+  'servings_per_pic' => 1,
+  'selling_unit' => 'pic',
+  'can_sell_as_pic' => false,
+  'can_sell_as_serving' => false,
   'selling_price_per_pic' => '0.00',
+  'selling_price_per_serving' => NULL,
   'is_active' => true,
-  'stock_quantity' => NULL,
+  'minimum_stock_level' => NULL,
 ));
 
-            // 2. Sync Stock Requests (Mapping by name/reference where possible)
+            // 2. Sync Stock Requests
             $p = Product::where('name', 'BONITE')->first();
             $v = ProductVariant::where('product_id', $p->id)->where('measurement', '350 ml')->first();
             $u = Staff::where('name', 'BAR KEEPER')->first();
@@ -691,7 +919,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c410000000000000000',
+     'constructedObjectId' => '0000000000001c420000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -719,7 +947,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c430000000000000000',
+     'constructedObjectId' => '0000000000001c440000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -747,7 +975,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c4e0000000000000000',
+     'constructedObjectId' => '0000000000001c4f0000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -795,7 +1023,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c430000000000000000',
+     'constructedObjectId' => '0000000000001c370000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -823,7 +1051,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c410000000000000000',
+     'constructedObjectId' => '0000000000001c360000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -851,7 +1079,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c400000000000000000',
+     'constructedObjectId' => '0000000000001c4d0000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -900,7 +1128,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c410000000000000000',
+     'constructedObjectId' => '0000000000001c440000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -928,7 +1156,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c430000000000000000',
+     'constructedObjectId' => '0000000000001c420000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -977,7 +1205,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c410000000000000000',
+     'constructedObjectId' => '0000000000001c360000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1005,7 +1233,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c400000000000000000',
+     'constructedObjectId' => '0000000000001c370000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1054,7 +1282,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c410000000000000000',
+     'constructedObjectId' => '0000000000001c440000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1082,7 +1310,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c430000000000000000',
+     'constructedObjectId' => '0000000000001c4d0000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1131,7 +1359,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c410000000000000000',
+     'constructedObjectId' => '0000000000001c360000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1159,7 +1387,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c400000000000000000',
+     'constructedObjectId' => '0000000000001c420000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1208,7 +1436,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c410000000000000000',
+     'constructedObjectId' => '0000000000001c440000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1236,7 +1464,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c430000000000000000',
+     'constructedObjectId' => '0000000000001c370000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1285,7 +1513,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c410000000000000000',
+     'constructedObjectId' => '0000000000001c360000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1313,7 +1541,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c400000000000000000',
+     'constructedObjectId' => '0000000000001c4d0000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1362,7 +1590,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c410000000000000000',
+     'constructedObjectId' => '0000000000001c440000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1390,7 +1618,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c430000000000000000',
+     'constructedObjectId' => '0000000000001c420000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1439,7 +1667,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c410000000000000000',
+     'constructedObjectId' => '0000000000001c360000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1467,7 +1695,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c400000000000000000',
+     'constructedObjectId' => '0000000000001c370000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1516,7 +1744,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c410000000000000000',
+     'constructedObjectId' => '0000000000001c440000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1544,7 +1772,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c430000000000000000',
+     'constructedObjectId' => '0000000000001c4d0000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1593,7 +1821,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c410000000000000000',
+     'constructedObjectId' => '0000000000001c360000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1621,7 +1849,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c400000000000000000',
+     'constructedObjectId' => '0000000000001c420000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1669,7 +1897,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c410000000000000000',
+     'constructedObjectId' => '0000000000001c440000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1697,7 +1925,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c430000000000000000',
+     'constructedObjectId' => '0000000000001c370000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1725,7 +1953,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c4e0000000000000000',
+     'constructedObjectId' => '0000000000001c4f0000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1774,7 +2002,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c430000000000000000',
+     'constructedObjectId' => '0000000000001c360000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1802,7 +2030,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c410000000000000000',
+     'constructedObjectId' => '0000000000001c4d0000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1851,7 +2079,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c430000000000000000',
+     'constructedObjectId' => '0000000000001c370000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1879,7 +2107,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c4e0000000000000000',
+     'constructedObjectId' => '0000000000001c440000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1928,7 +2156,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c430000000000000000',
+     'constructedObjectId' => '0000000000001c360000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -1956,7 +2184,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c410000000000000000',
+     'constructedObjectId' => '0000000000001c4f0000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -2005,7 +2233,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c430000000000000000',
+     'constructedObjectId' => '0000000000001c370000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -2033,7 +2261,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c4e0000000000000000',
+     'constructedObjectId' => '0000000000001c4d0000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -2082,7 +2310,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c430000000000000000',
+     'constructedObjectId' => '0000000000001c360000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -2110,7 +2338,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c410000000000000000',
+     'constructedObjectId' => '0000000000001c440000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -2159,7 +2387,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c430000000000000000',
+     'constructedObjectId' => '0000000000001c370000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
@@ -2187,7 +2415,7 @@ class ProductionStockSyncSeeder extends Seeder
   \Illuminate\Support\Carbon::__set_state(array(
      'endOfTime' => false,
      'startOfTime' => false,
-     'constructedObjectId' => '0000000000001c4e0000000000000000',
+     'constructedObjectId' => '0000000000001c4f0000000000000000',
      'clock' => NULL,
      'localMonthsOverflow' => NULL,
      'localYearsOverflow' => NULL,
