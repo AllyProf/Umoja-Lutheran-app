@@ -538,7 +538,7 @@ Route::prefix('reception')->group(function () {
 
     // Protected routes (require authentication)
     // Use 'check.auth' instead of 'auth' to support custom guards (staff/guest)
-    Route::middleware(['check.auth', 'role:reception,manager'])->group(function () {
+    Route::middleware(['check.auth', 'role:reception,manager,accountant'])->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\ServiceRequestController::class, 'receptionDashboard'])->name('reception.dashboard');
 
         Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'show'])->name('reception.profile');
@@ -563,6 +563,7 @@ Route::prefix('reception')->group(function () {
         Route::get('/rooms', [\App\Http\Controllers\ReceptionController::class, 'roomStatus'])->name('reception.rooms');
         Route::get('/payments', [\App\Http\Controllers\ReceptionController::class, 'payments'])->name('reception.payments');
         Route::get('/reports', [\App\Http\Controllers\ReceptionController::class, 'reports'])->name('reception.reports');
+        Route::get('/reports/financial', [\App\Http\Controllers\ReceptionController::class, 'dailyFinancialReport'])->name('reception.reports.financial');
 
         // Reception Booking Operations
         Route::get('/bookings/manual/create', [\App\Http\Controllers\BookingController::class, 'createManual'])->name('reception.bookings.manual.create');

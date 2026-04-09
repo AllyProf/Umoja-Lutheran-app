@@ -136,6 +136,17 @@
     href="{{ route('reception.payments') }}"><i class="app-menu__icon fa fa-money"></i><span class="app-menu__label">All
       Payments</span></a></li>
 
+<li class="treeview {{ str_contains($activePage, 'reception/reports') ? 'is-expanded' : '' }}">
+  <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-file-text"></i><span
+      class="app-menu__label">Reports</span><i class="treeview-indicator fa fa-angle-right"></i></a>
+  <ul class="treeview-menu">
+    <li><a class="treeview-item" href="{{ route('reception.reports') }}"><i class="icon fa fa-circle-o"></i> Operational
+        Report</a></li>
+    <li><a class="treeview-item" href="{{ route('reception.reports.financial') }}"><i class="icon fa fa-money-bill"></i>
+        Financial Report</a></li>
+  </ul>
+</li>
+
 
 
 <li><a class="app-menu__item {{ str_contains($activePage, 'profile') ? 'active' : '' }}"

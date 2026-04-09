@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\ShiftClosure;
 use App\Models\ServiceRequest;
+use App\Models\DayService;
 use Carbon\Carbon;
 
 class ReceptionController extends Controller
@@ -1882,6 +1883,89 @@ class ReceptionController extends Controller
             'payments' => $payments,
             'serviceRequests' => $serviceRequests,
             'recentBookings' => $recentBookings,
+            'exchangeRate' => $exchangeRate,
+        ]);
+    }
+
+    /**
+     * Unified Daily Financial Report for Reception
+     */
+    public function dailyFinancialReport(Request $request)
+    {
+        $date = $request->get('date', today()->format('Y-m-d'));
+        $targetDate = Carbon::parse($date);
+
+        // 1. Booking Payments
+        $bookingPayments = Booking::with('room')
+            ->whereDate('paid_at', $targetDate)
+            ->where('amount_paid', '>', 0)
+            ->get();
+
+        // 2. Service Request Payments - Only those processed at reception or walk-ins
+        // We include all paid service requests for the day
+        $servicePayments = ServiceRequest::with(['service', 'booking'])
+            ->whereDate('completed_at', $targetDate)
+            ->where('payment_status', 'paid')
+            ->get();
+
+        // 3. Day Service Payments
+        $dayServicePayments = DayService::whereDate('paid_at', $targetDate)
+            ->where('payment_status', 'paid')
+            ->get();
+
+        // Aggregate by payment method
+        $methods = ['cash', 'mpesa', 'bank', 'card', 'online', 'other'];
+        $summary = [];
+        foreach ($methods as $method) {
+            $summary[$method] = 0;
+        }
+
+        $currencyService = new CurrencyExchangeService();
+        $exchangeRate = $currencyService->getUsdToTshRate();
+
+        foreach ($bookingPayments as $payment) {
+            $method = strtolower($payment->payment_method ?? 'other');
+            // If it's a booking payment in USD, we normalize it to TZS if needed
+            // But usually amount_paid is stored in the currency of payment? 
+            // In this system, they often store amount in USD and exchange it.
+            // Let's check how it's handled in other reports. 
+            // Actually, existing reports multiply $booking->amount_paid * $exchangeRate.
+
+            if (isset($summary[$method])) {
+                $summary[$method] += (float) $payment->amount_paid * (float) $exchangeRate;
+            } else {
+                $summary['other'] += (float) $payment->amount_paid * (float) $exchangeRate;
+            }
+        }
+
+        foreach ($servicePayments as $payment) {
+            $method = strtolower($payment->payment_method ?? 'other');
+            if (isset($summary[$method])) {
+                $summary[$method] += (float) $payment->total_price_tsh;
+            } else {
+                $summary['other'] += (float) $payment->total_price_tsh;
+            }
+        }
+
+        foreach ($dayServicePayments as $payment) {
+            $method = strtolower($payment->payment_method ?? 'other');
+            if (isset($summary[$method])) {
+                $summary[$method] += (float) $payment->amount_paid;
+            } else {
+                $summary['other'] += (float) $payment->amount_paid;
+            }
+        }
+
+        $role = $this->getRole();
+        return view('dashboard.reception-daily-financial-report', [
+            'role' => $role,
+            'userName' => auth()->user()->name ?? ($role === 'manager' ? 'Manager' : 'Reception Staff'),
+            'userRole' => $role === 'manager' ? 'Manager' : 'Reception',
+            'reportDate' => $date,
+            'bookingPayments' => $bookingPayments,
+            'servicePayments' => $servicePayments,
+            'dayServicePayments' => $dayServicePayments,
+            'summary' => $summary,
             'exchangeRate' => $exchangeRate,
         ]);
     }

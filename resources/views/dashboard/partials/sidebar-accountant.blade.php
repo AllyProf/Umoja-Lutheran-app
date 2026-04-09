@@ -68,7 +68,7 @@
 </li>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         function fetchAccountantStockCounts() {
             fetch('{{ route("stock-requests.pending-counts") }}')
                 .then(response => response.json())
@@ -131,6 +131,14 @@
         href="{{ route('accountant.reports') }}">
         <i class="app-menu__icon fa fa-bar-chart"></i>
         <span class="app-menu__label">Purchase Reports</span>
+    </a>
+</li>
+
+<li>
+    <a class="app-menu__item {{ str_contains($activePage, 'reception/reports/financial') ? 'active' : '' }}"
+        href="{{ route('reception.reports.financial') }}">
+        <i class="app-menu__icon fa fa-money-bill"></i>
+        <span class="app-menu__label">Reception Revenue Report</span>
     </a>
 </li>
 

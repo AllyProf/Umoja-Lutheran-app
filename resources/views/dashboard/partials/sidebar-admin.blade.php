@@ -320,6 +320,9 @@
     <li><a class="app-menu__item {{ str_contains($activePage, 'admin/reports') ? 'active' : '' }}"
             href="{{ route('admin.reports.index') }}"><i class="app-menu__icon fa fa-bar-chart"></i><span
                 class="app-menu__label">Reports Dashboard</span></a></li>
+    <li><a class="app-menu__item {{ str_contains($activePage, 'reception/reports/financial') ? 'active' : '' }}"
+            href="{{ route('reception.reports.financial') }}"><i class="app-menu__icon fa fa-money-bill"></i><span
+                class="app-menu__label">Reception Financial Report</span></a></li>
     <li><a class="app-menu__item {{ str_contains($activePage, 'admin/payments') ? 'active' : '' }}"
             href="{{ route('admin.payments') }}"><i class="app-menu__icon fa fa-money"></i><span class="app-menu__label">All
                 Payments</span></a></li>
