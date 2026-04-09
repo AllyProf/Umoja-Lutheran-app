@@ -42,12 +42,17 @@ class Recipe extends Model
         return $this->belongsTo(Staff::class, 'created_by');
     }
 
+    public function ingredients()
+    {
+        return $this->hasMany(RecipeIngredient::class);
+    }
+
     /**
      * Get category name for display
      */
     public function getCategoryNameAttribute()
     {
-        return match($this->category) {
+        return match ($this->category) {
             'appetizers' => 'Appetizers',
             'main_course' => 'Main Course',
             'desserts' => 'Desserts',
