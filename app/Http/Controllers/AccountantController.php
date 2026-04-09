@@ -106,6 +106,13 @@ class AccountantController extends Controller
         if ($shoppingList->status !== 'approved') {
             return back()->with('error', 'Only approved lists can have funds disbursed.');
         }
+        if ($request->has('direct_purchase')) {
+            $shoppingList->update([
+                'status' => 'ready_for_purchase',
+                'notes' => $shoppingList->notes . ' | READY FOR DIRECT PURCHASE by Accountant on ' . now()->format('d M Y H:i'),
+            ]);
+            return back()->with('success', 'List is now ready for direct purchase. Please proceed to record purchases.');
+        }
 
         $shoppingList->update([
             'status' => 'ready_for_purchase',
@@ -281,5 +288,160 @@ class AccountantController extends Controller
         }
 
         return back()->with('info', "No unverified paid services found for " . \Carbon\Carbon::parse($date)->format('M d, Y') . ".");
+    }
+    /**
+     * Claim a Shopping List for Direct Purchase
+     */
+    public function claimPurchase(Request $request, ShoppingList $shoppingList)
+    {
+        // Set the purchaser as the current accountant
+        $staffId = Auth::guard('staff')->id();
+
+        $shoppingList->update([
+            'purchaser_id' => $staffId,
+        ]);
+
+        return back()->with('success', 'You have claimed this shopping list for direct purchase. Please proceed with the financial review if it is pending.');
+    }
+
+    public function recordPurchaseView(ShoppingList $shoppingList)
+    {
+        if ($shoppingList->status !== 'ready_for_purchase') {
+            return redirect()->back()->with('info', 'This list is not yet ready for purchase (awaiting payment disbursement) or is already completed.');
+        }
+
+        // Ensure this list was claimed by this accountant
+        if ($shoppingList->purchaser_id !== Auth::guard('staff')->id()) {
+            return redirect()->back()->with('error', 'You can only record purchases for lists you have claimed.');
+        }
+
+        $shoppingList->load(['items.product', 'items.productVariant']);
+        return view('admin.restaurants.shopping_list.record_purchase', compact('shoppingList'));
+    }
+
+    public function updatePurchase(Request $request, ShoppingList $shoppingList)
+    {
+        $request->validate([
+            'items' => 'required|array',
+            'items.*.purchased_quantity' => 'nullable|numeric|min:0',
+            'items.*.purchased_cost' => 'nullable|numeric|min:0',
+            'items.*.expiry_date' => 'nullable|date',
+            'items.*.unit_price' => 'nullable|numeric|min:0',
+            'items.*.storage_location' => 'nullable|string|max:255',
+            'items.*.is_found' => 'nullable|boolean',
+            'budget_amount' => 'nullable|numeric|min:0',
+            'items.*.servings_per_pic' => 'nullable|integer|min:1',
+            'items.*.selling_unit' => 'nullable|in:pic,glass,tot,shot,cocktail',
+            'items.*.selling_price_per_pic' => 'nullable|numeric|min:0',
+            'items.*.selling_price_per_serving' => 'nullable|numeric|min:0',
+            'items.*.price_adjustment_reason' => 'nullable|string',
+            'items.*.received_quantity_kg' => 'nullable|numeric|min:0',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $cleanNumeric = function ($value) {
+                if (is_null($value))
+                    return "0";
+                return str_replace(',', '', (string) $value);
+            };
+
+            $totalCost = 0;
+            foreach ($request->items as $itemId => $data) {
+                $item = ShoppingListItem::findOrFail($itemId);
+                $boughtQty = round($cleanNumeric($data['purchased_quantity'] ?? 0));
+                $cost = round($cleanNumeric($data['purchased_cost'] ?? 0));
+                $expiryDate = $data['expiry_date'] ?? null;
+                $unitPrice = isset($data['unit_price']) ? $cleanNumeric($data['unit_price']) : null;
+
+                $isFound = isset($data['is_found']) && $data['is_found'] == '1';
+
+                if ($unitPrice && !$cost && $boughtQty > 0) {
+                    $cost = $unitPrice * $boughtQty;
+                }
+
+                $receivedKg = isset($data['received_quantity_kg']) ? (float) $cleanNumeric($data['received_quantity_kg']) : 0;
+                $foodCategories = ['food', 'meat_poultry', 'seafood', 'vegetables', 'dairy', 'pantry_baking', 'spices_herbs', 'oils_fats', 'kitchen', 'snacks'];
+                $isFood = in_array($item->category, $foodCategories);
+
+                $updateData = [
+                    'purchased_quantity' => ($isFood && $receivedKg > 0 && $boughtQty <= 0) ? 1 : $boughtQty,
+                    'purchased_cost' => $cost,
+                    'expiry_date' => $expiryDate,
+                    'is_purchased' => $isFound && ($boughtQty > 0 || ($isFood && $receivedKg > 0)),
+                    'is_found' => $isFound,
+                    'received_quantity_kg' => $receivedKg > 0 ? $receivedKg : null
+                ];
+
+                $finalUnitPrice = $unitPrice;
+                if (in_array($item->category, $foodCategories) && $receivedKg > 0 && $cost > 0) {
+                    $finalUnitPrice = $cost / $receivedKg;
+                } elseif ($unitPrice) {
+                    $finalUnitPrice = $unitPrice;
+                } elseif ($boughtQty > 0 && $cost > 0) {
+                    $finalUnitPrice = $cost / $boughtQty;
+                }
+
+                if ($finalUnitPrice !== null) {
+                    $updateData['unit_price'] = $finalUnitPrice;
+                }
+
+                $item->update($updateData);
+
+                if ($item->purchaseRequest && $updateData['is_purchased']) {
+                    $item->purchaseRequest->update(['status' => 'purchased']);
+                }
+
+                if ($isFound && $boughtQty > 0) {
+                    $totalCost += $cost;
+                }
+            }
+
+            $budgetAmount = $request->budget_amount ? $cleanNumeric($request->budget_amount) : ($shoppingList->budget_amount ?? $shoppingList->total_estimated_cost ?? $shoppingList->items->sum('estimated_price'));
+            $amountUsed = $totalCost;
+            $amountRemaining = $budgetAmount - $amountUsed;
+
+            $shoppingList->total_actual_cost = (float) $totalCost;
+            $shoppingList->budget_amount = (float) $budgetAmount;
+            $shoppingList->amount_used = (float) $amountUsed;
+            $shoppingList->amount_remaining = (float) $amountRemaining;
+
+            if ($request->has('market_name')) {
+                $shoppingList->market_name = $request->market_name;
+            }
+
+            if ($request->has('finalize')) {
+                $shoppingList->status = 'purchased';
+            }
+
+            $shoppingList->save();
+            DB::commit();
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $request->has('finalize') ? 'Purchases recorded and submitted for verification.' : 'Progress saved successfully.',
+                    'redirect_url' => route('accountant.shopping-lists'),
+                    'report_url' => null, // Accountant usually doesn't need to print the storekeeper's report instantly, or they can view it from list
+                    'finalize' => $request->has('finalize')
+                ]);
+            }
+
+            if ($request->has('finalize')) {
+                return redirect()->route('accountant.shopping-lists')->with('success', 'Purchases recorded and finalized. The storekeeper can now transfer the items.');
+            }
+
+            return back()->with('success', 'Progress saved.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error updating purchase: ' . $e->getMessage()
+                ], 422);
+            }
+            return back()->with('error', 'Error updating purchase: ' . $e->getMessage());
+        }
     }
 }

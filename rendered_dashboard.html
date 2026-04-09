@@ -1,0 +1,3660 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="description" content="Umoja Lutheran Hostel Management System">
+    <title>umoja_lutheran - bar_keeper</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="GPBgwq8UPQm6Ygh8GzTG4fmn6Q6GXjinYSvjGcVt">
+    <!-- Main CSS-->
+    <link rel="stylesheet" type="text/css" href="http://localhost/dashboard_assets/css/main.css">
+    <!-- Font-icon css-->
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+      @font-face {
+        font-family: 'Century Gothic';
+        src: local('Century Gothic'), local('CenturyGothic'), local('Gothic A1');
+        font-display: swap;
+      }
+
+      :root {
+        --primary-color: #940000;
+        --secondary-color: #000000;
+        --text-white: #ffffff;
+      }
+
+      body {
+        font-family: 'Century Gothic', 'Segoe UI', Tahoma, sans-serif !important;
+      }
+      
+      .app-header {
+        background-color: var(--primary-color) !important;
+      }
+      
+      .app-header__logo {
+        background-color: #ffffff !important;
+        color: var(--primary-color) !important;
+        font-weight: 700 !important;
+        transition: all 0.3s ease;
+      }
+
+      .app-header__logo:hover {
+        background-color: #f8f9fa !important;
+        color: #7b0000 !important;
+        text-decoration: none !important;
+      }
+      
+      .app-sidebar {
+        background-color: var(--secondary-color) !important;
+      }
+      
+      .app-sidebar__user {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      
+      .app-menu__item.active, .app-menu__item:hover, .app-menu__item:focus {
+        border-left-color: var(--primary-color) !important;
+      }
+      
+      .sidebar-mini.sidebar-collapse .app-sidebar__toggle {
+        background-color: var(--primary-color) !important;
+      }
+      
+      .btn-primary {
+        background-color: var(--primary-color) !important;
+        border-color: var(--primary-color) !important;
+      }
+      
+      .btn-primary:hover, .btn-primary:focus {
+        background-color: #7b0000 !important;
+        border-color: #7b0000 !important;
+      }
+      
+      .toggle-label:before {
+        background-color: var(--primary-color) !important;
+      }
+      
+      .badge-primary {
+        background-color: var(--primary-color) !important;
+      }
+      
+      .page-item.active .page-link {
+        background-color: var(--primary-color) !important;
+        border-color: var(--primary-color) !important;
+      }
+      
+      .loading-logo-text {
+        color: var(--primary-color) !important;
+      }
+      
+      .spinner, .spinner-inner, .loading-progress-bar {
+        border-top-color: var(--primary-color) !important;
+      }
+      
+      .spinner-dot {
+        background: var(--primary-color) !important;
+      }
+      
+      .loading-progress-bar {
+        background: var(--primary-color) !important;
+      }
+      
+      .swal2-confirm {
+        background-color: var(--primary-color) !important;
+        border-color: var(--primary-color) !important;
+      }
+      
+      .swal2-confirm:hover {
+        background-color: #7b0000 !important;
+        border-color: #7b0000 !important;
+      }
+      
+      .text-primary {
+        color: var(--primary-color) !important;
+      }
+      
+      /* Loading Container Styles */
+      .loading-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #fff;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        transition: opacity 0.5s ease-out;
+        visibility: visible;
+        opacity: 1;
+      }
+      
+      /* Prevent content flash by hiding body initially */
+      body:not(.page-loaded) {
+        overflow: hidden;
+      }
+      
+      body.page-loaded {
+        overflow: auto;
+      }
+      
+      .loading-container.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      
+      .loading-logo {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      
+      .loading-logo img {
+        max-width: 200px;
+        height: auto;
+        margin-bottom: 10px;
+      }
+      
+      .loading-logo-text {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--primary-color);
+        letter-spacing: 2px;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      
+      .spinner-wrapper {
+        position: relative;
+        width: 60px;
+        height: 60px;
+        margin: 20px auto;
+      }
+      
+      .spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      .spinner-inner {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 40px;
+        height: 40px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid var(--primary-color);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite reverse;
+      }
+      
+      .spinner-dot {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 8px;
+        height: 8px;
+        background: var(--primary-color);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      .loading-text {
+        font-size: 16px;
+        color: #666;
+        margin-top: 20px;
+        font-weight: 500;
+      }
+      
+      .loading-progress {
+        width: 200px;
+        height: 4px;
+        background: #f3f3f3;
+        border-radius: 2px;
+        margin-top: 20px;
+        overflow: hidden;
+      }
+      
+      .loading-progress-bar {
+        height: 100%;
+        background: var(--primary-color);
+        width: 0%;
+        animation: progress 2s ease-in-out infinite;
+      }
+      
+      @keyframes progress {
+        0% { width: 0%; }
+        50% { width: 70%; }
+        100% { width: 100%; }
+      }
+      
+      /* Toast Notification Styles */
+      #toast-container {
+        position: fixed;
+        top: 70px;
+        right: 20px;
+        z-index: 9999;
+        max-width: 400px;
+      }
+      
+      .toast-notification {
+        background: white;
+        border-radius: 4px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        margin-bottom: 0;
+        padding: 15px;
+        display: flex;
+        align-items: flex-start;
+        animation: slideInRight 0.3s ease;
+        border-left: 4px solid;
+        min-width: 300px;
+      }
+      
+      /* Allow multiple toasts to stack */
+      #toast-container .toast-notification {
+        margin-bottom: 10px;
+        position: relative;
+      }
+      
+      .toast-notification.toast-primary { border-left-color: #007bff; }
+      .toast-notification.toast-success { border-left-color: #28a745; }
+      .toast-notification.toast-danger { border-left-color: #dc3545; }
+      .toast-notification.toast-warning { border-left-color: #ffc107; }
+      .toast-notification.toast-info { border-left-color: #17a2b8; }
+      
+      .toast-notification .toast-icon {
+        font-size: 20px;
+        margin-right: 12px;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+      
+      .toast-notification.toast-primary .toast-icon { color: #007bff; }
+      .toast-notification.toast-success .toast-icon { color: #28a745; }
+      .toast-notification.toast-danger .toast-icon { color: #dc3545; }
+      .toast-notification.toast-warning .toast-icon { color: #ffc107; }
+      .toast-notification.toast-info .toast-icon { color: #17a2b8; }
+      
+      .toast-content {
+        flex: 1;
+      }
+      
+      .toast-title {
+        font-weight: 600;
+        margin-bottom: 4px;
+        font-size: 14px;
+      }
+      
+      .toast-message {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 8px;
+      }
+      
+      .toast-actions {
+        margin-top: 8px;
+      }
+      
+      .toast-actions a {
+        font-size: 12px;
+        padding: 4px 12px;
+        margin-right: 8px;
+        text-decoration: none;
+        border-radius: 3px;
+        display: inline-block;
+        background-color: #007bff;
+        color: white;
+        transition: background-color 0.2s;
+      }
+      
+      .toast-actions a:hover {
+        background-color: #0056b3;
+        color: white;
+      }
+      
+      .toast-close {
+        background: none;
+        border: none;
+        font-size: 18px;
+        color: #999;
+        cursor: pointer;
+        padding: 0;
+        margin-left: 10px;
+        line-height: 1;
+        flex-shrink: 0;
+      }
+      
+      .toast-close:hover {
+        color: #333;
+      }
+      
+      @keyframes slideInRight {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      
+      @keyframes slideOutRight {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+      }
+      
+      .toast-notification.removing {
+        animation: slideOutRight 0.3s ease;
+      }
+      
+      /* Mobile Header Logo - White Color and Centered */
+      @media (max-width: 768px) {
+        .app-header {
+           padding-right: 5px !important; /* Ensure right padding is small */
+        }
+        
+        .app-header__logo {
+          color: var(--primary-color) !important;
+          background-color: #ffffff !important;
+          text-align: center !important;
+          flex: 1 !important; /* Allow shrinking if needed */
+          font-size: 18px !important; /* Smaller logo font */
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        
+        /* Hide search on mobile to save space for icons */
+        .app-search {
+            display: none !important;
+        }
+        
+        /* Ensure nav items are visible on mobile */
+        .app-nav {
+          display: flex !important;
+          margin-bottom: 0 !important;
+          padding-left: 0 !important;
+        }
+        
+        .app-nav li:not(.app-search) {
+          display: block !important;
+        }
+        
+        /* Reduce padding on nav items for mobile to fit more icons */
+        .app-nav__item {
+            padding: 15px 8px !important;
+        }
+      }
+    </style>
+    <!-- Critical inline style to prevent FOUC -->
+    <style>
+      /* Prevent flash of unstyled content */
+      body:not(.page-loaded) {
+        overflow: hidden;
+      }
+      .loading-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #fff;
+        z-index: 99999;
+        display: flex;
+        visibility: visible;
+        opacity: 1;
+      }
+      .loading-container.hidden {
+        display: none !important;
+        visibility: hidden !important;
+      }
+    </style>
+      </head>
+  <body class="app sidebar-mini rtl">
+    <!-- Loading overlay - must be first to prevent FOUC -->
+    <div class="loading-container" id="loadingContainer">
+        <div class="loading-logo">
+            <div class="loading-logo-text">UMOJA LUTHERAN</div>
+        </div>
+        <div class="spinner-wrapper">
+            <div class="spinner"></div>
+            <div class="spinner-inner"></div>
+            <div class="spinner-dot"></div>
+        </div>
+        <div class="loading-text">Loading Dashboard...</div>
+        <div class="loading-progress">
+            <div class="loading-progress-bar"></div>
+        </div>
+    </div>
+    <!-- Toast Container for notifications -->
+    <div id="toast-container"></div>
+    <!-- Navbar-->
+    <header class="app-header">
+            <a class="app-header__logo" href="http://localhost/bar-keeper/dashboard">
+        Umoja Lutheran
+      </a>
+      <!-- Sidebar toggle button-->
+      <a class="app-sidebar__toggle" href="#" data-toggle="sidebar" aria-label="Hide Sidebar"></a>
+      <!-- Navbar Right Menu-->
+      <ul class="app-nav">
+        <li class="app-search">
+          <input class="app-search__input" type="search" placeholder="Search">
+          <button class="app-search__button"><i class="fa fa-search"></i></button>
+        </li>
+        <!-- Low Stock Alert Menu -->
+        
+        <!--Notification Menu-->
+        <li class="dropdown">
+          <a class="app-nav__item" href="#" data-toggle="dropdown" aria-label="Show notifications" style="position: relative; display: inline-block;">
+            <i class="fa fa-bell-o fa-lg"></i>
+                          <span class="badge badge-danger notification-badge" style="position: absolute; top: -2px; right: -2px; background-color: #FF0000 !important; font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 50%; min-width: 18px; height: 18px; text-align: center; line-height: 14px; z-index: 1000; border: 1px solid #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">6</span>
+                      </a>
+          <ul class="app-notification dropdown-menu dropdown-menu-right" style="min-width: 350px; width: 350px;">
+            <li class="app-notification__title">
+                              You have 6 new notifications.
+                          </li>
+            <div class="app-notification__content">
+                                                <li>
+                    <a class="app-notification__item" href="https://umoja-lutheran.mauzolink.co.tz/bar-keeper/dashboard" onclick="return markNotificationAsRead(event, 204, 'https://umoja-lutheran.mauzolink.co.tz/bar-keeper/dashboard')">
+                      <span class="app-notification__icon">
+                        <span class="fa-stack fa-lg">
+                          <i class="fa fa-circle fa-stack-2x text-info"></i>
+                          <i class="fa fa-sticky-note fa-stack-1x fa-inverse"></i>
+                        </span>
+                      </span>
+                      <div>
+                        <p class="app-notification__message">Guest JOAN KOMBE (Room 1B) has special requests: no smocking</p>
+                        <p class="app-notification__meta">2 weeks ago</p>
+                      </div>
+                    </a>
+                  </li>
+                                  <li>
+                    <a class="app-notification__item" href="https://umoja-lutheran.mauzolink.co.tz/bar-keeper/dashboard" onclick="return markNotificationAsRead(event, 197, 'https://umoja-lutheran.mauzolink.co.tz/bar-keeper/dashboard')">
+                      <span class="app-notification__icon">
+                        <span class="fa-stack fa-lg">
+                          <i class="fa fa-circle fa-stack-2x text-info"></i>
+                          <i class="fa fa-sticky-note fa-stack-1x fa-inverse"></i>
+                        </span>
+                      </span>
+                      <div>
+                        <p class="app-notification__message">Guest ben mongi (Room 4B) has special requests: no smoke</p>
+                        <p class="app-notification__meta">2 weeks ago</p>
+                      </div>
+                    </a>
+                  </li>
+                                  <li>
+                    <a class="app-notification__item" href="https://umoja-lutheran.mauzolink.co.tz/bar-keeper/dashboard" onclick="return markNotificationAsRead(event, 169, 'https://umoja-lutheran.mauzolink.co.tz/bar-keeper/dashboard')">
+                      <span class="app-notification__icon">
+                        <span class="fa-stack fa-lg">
+                          <i class="fa fa-circle fa-stack-2x text-info"></i>
+                          <i class="fa fa-sticky-note fa-stack-1x fa-inverse"></i>
+                        </span>
+                      </span>
+                      <div>
+                        <p class="app-notification__message">Guest BENJA (Room 201) has special requests: lkjhgf</p>
+                        <p class="app-notification__meta">1 month ago</p>
+                      </div>
+                    </a>
+                  </li>
+                                  <li>
+                    <a class="app-notification__item" href="https://umoja-lutheran.mauzolink.co.tz/bar-keeper/dashboard" onclick="return markNotificationAsRead(event, 158, 'https://umoja-lutheran.mauzolink.co.tz/bar-keeper/dashboard')">
+                      <span class="app-notification__icon">
+                        <span class="fa-stack fa-lg">
+                          <i class="fa fa-circle fa-stack-2x text-info"></i>
+                          <i class="fa fa-sticky-note fa-stack-1x fa-inverse"></i>
+                        </span>
+                      </span>
+                      <div>
+                        <p class="app-notification__message">Guest ngaz (Room 203) has special requests: ;kjhgfds</p>
+                        <p class="app-notification__meta">1 month ago</p>
+                      </div>
+                    </a>
+                  </li>
+                                  <li>
+                    <a class="app-notification__item" href="https://umoja-lutheran.mauzolink.co.tz/bar-keeper/dashboard" onclick="return markNotificationAsRead(event, 155, 'https://umoja-lutheran.mauzolink.co.tz/bar-keeper/dashboard')">
+                      <span class="app-notification__icon">
+                        <span class="fa-stack fa-lg">
+                          <i class="fa fa-circle fa-stack-2x text-info"></i>
+                          <i class="fa fa-sticky-note fa-stack-1x fa-inverse"></i>
+                        </span>
+                      </span>
+                      <div>
+                        <p class="app-notification__message">Guest ver viva (Room 113) has special requests: ;ljh</p>
+                        <p class="app-notification__meta">1 month ago</p>
+                      </div>
+                    </a>
+                  </li>
+                                  <li>
+                    <a class="app-notification__item" href="https://umoja-lutheran.mauzolink.co.tz/bar-keeper/dashboard" onclick="return markNotificationAsRead(event, 150, 'https://umoja-lutheran.mauzolink.co.tz/bar-keeper/dashboard')">
+                      <span class="app-notification__icon">
+                        <span class="fa-stack fa-lg">
+                          <i class="fa fa-circle fa-stack-2x text-info"></i>
+                          <i class="fa fa-sticky-note fa-stack-1x fa-inverse"></i>
+                        </span>
+                      </span>
+                      <div>
+                        <p class="app-notification__message">Guest chasambi wilson (Room 112) has special requests: &#039;poiuy</p>
+                        <p class="app-notification__meta">1 month ago</p>
+                      </div>
+                    </a>
+                  </li>
+                                          </div>
+                          <li class="app-notification__footer">
+                <a href="javascript:;" onclick="markAllNotificationsAsRead()">Mark all as read</a>
+              </li>
+                      </ul>
+        </li>
+        <!-- User Menu-->
+        <li class="dropdown"><a class="app-nav__item" href="#" data-toggle="dropdown" aria-label="Open Profile Menu"><i class="fa fa-user fa-lg"></i></a>
+          <ul class="dropdown-menu settings-menu dropdown-menu-right">
+                                    <li><a class="dropdown-item" href="http://localhost/bar-keeper/profile"><i class="fa fa-cog fa-lg"></i> Settings</a></li>
+                        <li><a class="dropdown-item" href="http://localhost/bar-keeper/profile"><i class="fa fa-user fa-lg"></i> Profile</a></li>
+            <li>
+              <form id="logout-form" action="http://localhost/bar-keeper/logout" method="POST" style="display: none;">
+                <input type="hidden" name="_token" value="GPBgwq8UPQm6Ygh8GzTG4fmn6Q6GXjinYSvjGcVt" autocomplete="off">              </form>
+              <a class="dropdown-item" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                <i class="fa fa-sign-out fa-lg"></i> Logout
+              </a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </header>
+    <!-- Sidebar menu-->
+    <div class="app-sidebar__overlay" data-toggle="sidebar"></div>
+    <aside class="app-sidebar">
+            <div class="app-sidebar__user">
+        <img class="app-sidebar__user-avatar" src="https://ui-avatars.com/api/?name=HAPPINESS+KILEO&amp;size=128&amp;background=007bff&amp;color=fff" alt="User Image" id="sidebarUserAvatar" style="object-fit: cover;">
+        <div>
+          <p class="app-sidebar__user-name">
+            HAPPINESS KILEO          </p>
+          <p class="app-sidebar__user-designation">
+            Counter          </p>
+        </div>
+      </div>
+      <ul class="app-menu">
+                        
+                  
+          <li>
+    <a class="app-menu__item active"
+        href="http://localhost/bar-keeper/dashboard">
+        <i class="app-menu__icon fa fa-dashboard"></i>
+        <span class="app-menu__label">Dashboard</span>
+    </a>
+</li>
+
+
+<li class="treeview-item-header"
+    style="padding: 10px 20px; color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-top: 10px;">
+    Sales & Orders</li>
+
+<li>
+    <a class="app-menu__item "
+        href="http://localhost/bar-keeper/dashboard#orders">
+        <i class="app-menu__icon fa fa-glass"></i>
+        <span class="app-menu__label">Guest Orders</span>
+    </a>
+</li>
+
+<li>
+    <a class="app-menu__item "
+        href="http://localhost/bar-keeper/orders">
+        <i class="app-menu__icon fa fa-history"></i>
+        <span class="app-menu__label">Orders History</span>
+    </a>
+</li>
+
+
+<li class="treeview-item-header"
+    style="padding: 10px 20px; color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-top: 10px;">
+    Stock Management</li>
+
+<li>
+    <a class="app-menu__item "
+        href="http://localhost/bar-keeper/products">
+        <i class="app-menu__icon fa fa-cube"></i>
+        <span class="app-menu__label">Products</span>
+    </a>
+</li>
+<li>
+    <a class="app-menu__item "
+        href="http://localhost/bar-keeper/my-stock">
+        <i class="app-menu__icon fa fa-cubes"></i>
+        <span class="app-menu__label">Counter Inventory</span>
+    </a>
+</li>
+
+<li>
+    <a class="app-menu__item "
+        href="http://localhost/bar-keeper/recorded-items">
+        <i class="app-menu__icon fa fa-list"></i>
+        <span class="app-menu__label">Usage Records</span>
+    </a>
+</li>
+
+<li>
+    <a class="app-menu__item "
+        href="http://localhost/bar-keeper/transfers">
+        <i class="app-menu__icon fa fa-exchange"></i>
+        <span class="app-menu__label">Stock Transfers</span>
+    </a>
+</li>
+
+<li>
+    <a class="app-menu__item "
+        href="http://localhost/stock-requests">
+        <i class="app-menu__icon fa fa-paper-plane"></i>
+        <span class="app-menu__label">Beverage Requests</span>
+    </a>
+</li>
+
+
+
+
+<li class="treeview-item-header"
+    style="padding: 10px 20px; color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-top: 10px;">
+    Analysis</li>
+
+<li>
+    <a class="app-menu__item "
+        href="http://localhost/bar-keeper/reports">
+        <i class="app-menu__icon fa fa-bar-chart"></i>
+        <span class="app-menu__label">Daily Stock Sheet</span>
+    </a>
+</li>
+
+
+
+
+<li class="treeview-item-header"
+    style="padding: 10px 20px; color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-top: 10px;">
+    Account</li>
+<li><a class="app-menu__item "
+        href="http://localhost/bar-keeper/profile"><i class="app-menu__icon fa fa-user"></i><span
+            class="app-menu__label">My Profile</span></a></li>
+<li>
+    <a class="app-menu__item" href="http://localhost/bar-keeper/logout"
+        onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+        <i class="app-menu__icon fa fa-sign-out"></i><span class="app-menu__label">Logout</span>
+    </a>
+</li>              </ul>
+    </aside>
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+    
+    <!-- Store Announcements Marquee -->
+            <style>
+            .app-content { margin-top: 50px !important; }
+        </style>
+    
+    <main class="app-content">
+        <div class="app-title">
+    <div>
+      <h1><i class="fa fa-dashboard"></i> Counter Dashboard</h1>
+      <p>Manage sales and inventory</p>
+    </div>
+    <ul class="app-breadcrumb breadcrumb">
+      <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+      <li class="breadcrumb-item"><a href="#">Dashboard</a></li>
+    </ul>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="widget-small danger coloured-icon">
+        <i class="icon fa fa-cutlery fa-3x"></i>
+        <div class="info">
+          <h4>Pending Orders</h4>
+          <p><b>0</b></p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="widget-small primary coloured-icon">
+        <i class="icon fa fa-clock-o fa-3x"></i>
+        <div class="info">
+          <h4>Pending Transfers</h4>
+          <p><b>0</b></p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="widget-small info coloured-icon">
+        <i class="icon fa fa-check-circle fa-3x"></i>
+        <div class="info">
+          <h4>Completed Transfers</h4>
+          <p><b>0</b></p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="widget-small warning coloured-icon">
+        <i class="icon fa fa-cubes fa-3x"></i>
+        <div class="info">
+          <h4>Total Products</h4>
+          <p><b>0</b></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending Guest Orders -->
+  <div class="row mb-4" id="orders">
+    <div class="col-md-12">
+      <div class="tile">
+        <div class="tile-title-w-btn">
+          <h3 class="title">Pending Guest Orders</h3>
+          <button class="btn btn-primary" onclick="openWalkInModal()"><i class="fa fa-plus"></i> New Walk-in Sale</button>
+        </div>
+
+                  <div class="text-center" style="padding: 30px;">
+            <i class="fa fa-coffee fa-4x text-muted mb-3"></i>
+            <h3>No Pending Orders</h3>
+            <p class="text-muted">New orders from guests will appear here.</p>
+          </div>
+              </div>
+    </div>
+  </div>
+
+  <!-- Pending Transfers -->
+  <div class="row" id="transfers">
+    <div class="col-md-12">
+      <div class="tile">
+        <div class="tile-title-w-btn">
+          <h3 class="title">Pending Stock Transfers</h3>
+        </div>
+
+                  <div class="text-center" style="padding: 50px;">
+            <i class="fa fa-check-circle fa-5x text-success mb-3"></i>
+            <h3>All Transfers Received</h3>
+            <p class="text-muted">No pending transfers at the moment.</p>
+          </div>
+              </div>
+    </div>
+  </div>
+
+  <!-- Recent Completed Transfers -->
+  
+  
+  <div class="row mt-4">
+    <div class="col-md-12">
+      <div class="tile shadow-sm border-0 mb-4">
+        <div class="tile-title-w-btn">
+          <h3 class="title"><i class="fa fa-birthday-cake mr-2 text-primary"></i> Active Ceremonies</h3>
+          <div class="btn-group">
+            <span class="badge badge-info p-2">0 ACTIVE TODAY</span>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Guest Name</th>
+                <th>Ceremony Type</th>
+                <th>Pax</th>
+                <th>Notes</th>
+                <th class="text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+                              <tr>
+                  <td colspan="6" class="text-center py-4 text-muted italic">
+                    <i class="fa fa-info-circle mr-1"></i> No active ceremonies registered for today.
+                  </td>
+                </tr>
+                          </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Operational Actions -->
+  <div class="row mt-4">
+    <div class="col-md-12">
+      <div class="tile shadow-sm h-100">
+        <h3 class="tile-title">Quick Operational Actions</h3>
+        <div class="row">
+          <div class="col-md-3 mb-3">
+            <button onclick="openWalkInModal()"
+              class="btn btn-primary btn-block p-4 shadow-sm h-100 d-flex flex-column align-items-center justify-content-center">
+              <i class="fa fa-glass fa-2x mb-2"></i>
+              <span>New Walk-in Sale</span>
+            </button>
+          </div>
+          <div class="col-md-3 mb-3">
+            <a href="http://localhost/bar-keeper/my-stock"
+              class="btn btn-info btn-block p-4 shadow-sm h-100 d-flex flex-column align-items-center justify-content-center">
+              <i class="fa fa-cubes fa-2x mb-2"></i>
+              <span>Bar Inventory</span>
+            </a>
+          </div>
+          <div class="col-md-3 mb-3">
+            <a href="http://localhost/bar-keeper/reports"
+              class="btn btn-danger btn-block p-4 shadow-sm h-100 d-flex flex-column align-items-center justify-content-center">
+              <i class="fa fa-bar-chart fa-2x mb-2"></i>
+              <span>Daily Stock Sheet</span>
+            </a>
+          </div>
+          <div class="col-md-3 mb-3">
+            <a href="http://localhost/bar-keeper/transfers"
+              class="btn btn-warning btn-block p-4 shadow-sm h-100 d-flex flex-column align-items-center justify-content-center">
+              <i class="fa fa-exchange fa-2x mb-2"></i>
+              <span>Stock Transfers</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+  </div>
+
+  <!-- Walk-in POS Modal -->
+  <div class="modal fade" id="walkInModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document" style="max-width: 900px;">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header bg-primary text-white border-0 py-3">
+          <h5 class="modal-title font-weight-bold" id="posModalTitle">
+            <i class="fa fa-shopping-cart mr-2"></i> New Walk-in Order
+          </h5>
+          <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body p-0">
+          <div class="row no-gutters">
+            <!-- Item Selection -->
+            <div class="col-md-7 border-right" style="max-height: 70vh; overflow-y: auto; background: #fff;">
+              <div class="p-3 sticky-top bg-white border-bottom shadow-sm">
+                <div class="input-group mb-3">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text bg-white border-right-0"><i class="fa fa-search text-muted"></i></span>
+                  </div>
+                  <input type="text" id="itemSearch" class="form-control border-left-0" placeholder="Search drinks..."
+                    onkeyup="filterPosItems()">
+                </div>
+
+                <div class="d-flex flex-wrap pb-2" id="posCategoryTabs">
+                  <button class="btn btn-sm btn-primary rounded-pill mr-2 mb-2 px-3 active"
+                    onclick="filterByCategory('all', this)">All Items</button>
+                  <button class="btn btn-sm btn-outline-primary rounded-pill mr-2 mb-2 px-3"
+                    onclick="filterByCategory('food', this)">Food</button>
+                  <button class="btn btn-sm btn-outline-primary rounded-pill mr-2 mb-2 px-3"
+                    onclick="filterByCategory('sodas', this)">Sodas</button>
+                  <button class="btn btn-sm btn-outline-primary rounded-pill mr-2 mb-2 px-3"
+                    onclick="filterByCategory('water', this)">Water</button>
+                  <button class="btn btn-sm btn-outline-primary rounded-pill mr-2 mb-2 px-3"
+                    onclick="filterByCategory('juices', this)">Juices</button>
+                  <button class="btn btn-sm btn-outline-primary rounded-pill mr-2 mb-2 px-3"
+                    onclick="filterByCategory('energy', this)">Energy</button>
+                </div>
+              </div>
+
+              <div class="p-3" id="posItemList">
+                <div class="row">
+                  
+                                                            <div class="col-6 mb-3 pos-item-card" data-name="wali" data-category="food">
+                        <div class="card h-100 border-0 shadow-sm rounded-lg transition-all"
+                          style="background: #fff; overflow: hidden; position: relative; border: 1px solid #17a2b8 !important;">
+                          <div class="card-body p-3 d-flex flex-column h-100">
+                            <div class="bg-light rounded p-2 mb-2 mx-auto d-flex align-items-center justify-content-center"
+                              style="width: 100px; height: 100px;">
+                              <img
+                                src="http://localhost/storage/menu/jcXpEjhKNF2ODyg6XSvXpPStJ5S1N2rQ54ZkVTl6.jpg"
+                                class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                            </div>
+
+                            <div class="mb-3 text-center">
+                              <h6 class="font-weight-bold mb-1" style="font-size: 0.95rem; line-height: 1.2;">Wali
+                              </h6>
+                              <span class="badge badge-info bg-light text-primary border border-primary px-2 py-1 mt-1"
+                                style="font-size: 0.7rem; letter-spacing: 0.5px;">+ 5 Sides</span>
+                            </div>
+
+                            <div class="mt-auto">
+                              <button class="btn btn-sm btn-primary rounded px-3 py-2 w-100 font-weight-bold shadow-sm"
+                                onclick="showFoodBuilderModal('Wali')">
+                                <i class="fa fa-hand-pointer-o mr-1"></i> Choose Add-On
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                                          <div class="col-6 mb-3 pos-item-card" data-name="ugali" data-category="food">
+                        <div class="card h-100 border-0 shadow-sm rounded-lg transition-all"
+                          style="background: #fff; overflow: hidden; position: relative; border: 1px solid #17a2b8 !important;">
+                          <div class="card-body p-3 d-flex flex-column h-100">
+                            <div class="bg-light rounded p-2 mb-2 mx-auto d-flex align-items-center justify-content-center"
+                              style="width: 100px; height: 100px;">
+                              <img
+                                src="http://localhost/storage/menu/crSHBJRZmMXDHAIGdLFnmEYnIA0grfRMOLAkKS7P.jpg"
+                                class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                            </div>
+
+                            <div class="mb-3 text-center">
+                              <h6 class="font-weight-bold mb-1" style="font-size: 0.95rem; line-height: 1.2;">Ugali
+                              </h6>
+                              <span class="badge badge-info bg-light text-primary border border-primary px-2 py-1 mt-1"
+                                style="font-size: 0.7rem; letter-spacing: 0.5px;">+ 5 Sides</span>
+                            </div>
+
+                            <div class="mt-auto">
+                              <button class="btn btn-sm btn-primary rounded px-3 py-2 w-100 font-weight-bold shadow-sm"
+                                onclick="showFoodBuilderModal('Ugali')">
+                                <i class="fa fa-hand-pointer-o mr-1"></i> Choose Add-On
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                                          <div class="col-6 mb-3 pos-item-card" data-name="pilau" data-category="food">
+                        <div class="card h-100 border-0 shadow-sm rounded-lg transition-all"
+                          style="background: #fff; overflow: hidden; position: relative; border: 1px solid #17a2b8 !important;">
+                          <div class="card-body p-3 d-flex flex-column h-100">
+                            <div class="bg-light rounded p-2 mb-2 mx-auto d-flex align-items-center justify-content-center"
+                              style="width: 100px; height: 100px;">
+                              <img
+                                src="http://localhost/storage/menu/yXgJsJMq86PKpV98n0j8MYxcd9XR3VcFZQ5np5qW.jpg"
+                                class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                            </div>
+
+                            <div class="mb-3 text-center">
+                              <h6 class="font-weight-bold mb-1" style="font-size: 0.95rem; line-height: 1.2;">Pilau
+                              </h6>
+                              <span class="badge badge-info bg-light text-primary border border-primary px-2 py-1 mt-1"
+                                style="font-size: 0.7rem; letter-spacing: 0.5px;">+ 5 Sides</span>
+                            </div>
+
+                            <div class="mt-auto">
+                              <button class="btn btn-sm btn-primary rounded px-3 py-2 w-100 font-weight-bold shadow-sm"
+                                onclick="showFoodBuilderModal('Pilau')">
+                                <i class="fa fa-hand-pointer-o mr-1"></i> Choose Add-On
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                                          <div class="col-6 mb-3 pos-item-card" data-name="chapati" data-category="food">
+                        <div class="card h-100 border-0 shadow-sm rounded-lg transition-all"
+                          style="background: #fff; overflow: hidden; position: relative; border: 1px solid #17a2b8 !important;">
+                          <div class="card-body p-3 d-flex flex-column h-100">
+                            <div class="bg-light rounded p-2 mb-2 mx-auto d-flex align-items-center justify-content-center"
+                              style="width: 100px; height: 100px;">
+                              <img
+                                src="http://localhost/storage/menu/bEbwQ3FlRXiiFB8Czf2lphDdZ5v8zAUyxOXIl2fv.jpg"
+                                class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                            </div>
+
+                            <div class="mb-3 text-center">
+                              <h6 class="font-weight-bold mb-1" style="font-size: 0.95rem; line-height: 1.2;">Chapati
+                              </h6>
+                              <span class="badge badge-info bg-light text-primary border border-primary px-2 py-1 mt-1"
+                                style="font-size: 0.7rem; letter-spacing: 0.5px;">+ 1 Sides</span>
+                            </div>
+
+                            <div class="mt-auto">
+                              <button class="btn btn-sm btn-primary rounded px-3 py-2 w-100 font-weight-bold shadow-sm"
+                                onclick="showFoodBuilderModal('Chapati')">
+                                <i class="fa fa-hand-pointer-o mr-1"></i> Choose Add-On
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                                      
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="fanta orange (350 ml)"
+                      data-category="sodas">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all opacity-75"
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                                                  <div class="out-of-stock-overlay d-flex align-items-center justify-content-center"
+                            style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.7); z-index: 5;">
+                            <span class="badge badge-danger px-3 py-2 shadow-sm">OUT OF STOCK</span>
+                          </div>
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="https://img.icons8.com/color/144/glass-with-straw.png"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              Fanta Orange (350 ml)
+                            </h6>
+                                                          <span
+                                class="badge badge-danger px-2"
+                                style="font-size: 0.65rem;">Stock: 0</span>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">crates</div>
+                                  <div class="text-primary font-weight-bold">1,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('Fanta Orange (350 ml) (crates)', 1000, 36, 87, 'bar', null, 'https://img.icons8.com/color/144/glass-with-straw.png', 'pic', 0, 1)"
+                                  disabled>
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="fanta nyeusi (350 ml)"
+                      data-category="sodas">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all opacity-75"
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                                                  <div class="out-of-stock-overlay d-flex align-items-center justify-content-center"
+                            style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.7); z-index: 5;">
+                            <span class="badge badge-danger px-3 py-2 shadow-sm">OUT OF STOCK</span>
+                          </div>
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="https://img.icons8.com/color/144/glass-with-straw.png"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              Fanta Nyeusi (350 ml)
+                            </h6>
+                                                          <span
+                                class="badge badge-danger px-2"
+                                style="font-size: 0.65rem;">Stock: 0</span>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">crates</div>
+                                  <div class="text-primary font-weight-bold">1,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('Fanta Nyeusi (350 ml) (crates)', 1000, 36, 88, 'bar', null, 'https://img.icons8.com/color/144/glass-with-straw.png', 'pic', 0, 1)"
+                                  disabled>
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="cocacola (350 ml)"
+                      data-category="sodas">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all opacity-75"
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                                                  <div class="out-of-stock-overlay d-flex align-items-center justify-content-center"
+                            style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.7); z-index: 5;">
+                            <span class="badge badge-danger px-3 py-2 shadow-sm">OUT OF STOCK</span>
+                          </div>
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="https://img.icons8.com/color/144/glass-with-straw.png"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              Cocacola (350 ml)
+                            </h6>
+                                                          <span
+                                class="badge badge-danger px-2"
+                                style="font-size: 0.65rem;">Stock: 0</span>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">crates</div>
+                                  <div class="text-primary font-weight-bold">1,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('Cocacola (350 ml) (crates)', 1000, 36, 89, 'bar', null, 'https://img.icons8.com/color/144/glass-with-straw.png', 'pic', 0, 1)"
+                                  disabled>
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="pepsi (350 ml)"
+                      data-category="sodas">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all opacity-75"
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                                                  <div class="out-of-stock-overlay d-flex align-items-center justify-content-center"
+                            style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.7); z-index: 5;">
+                            <span class="badge badge-danger px-3 py-2 shadow-sm">OUT OF STOCK</span>
+                          </div>
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="https://img.icons8.com/color/144/glass-with-straw.png"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              Pepsi (350 ml)
+                            </h6>
+                                                          <span
+                                class="badge badge-danger px-2"
+                                style="font-size: 0.65rem;">Stock: 0</span>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">unit</div>
+                                  <div class="text-primary font-weight-bold">700 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('Pepsi (350 ml) (unit)', 700, 41, 99, 'bar', null, 'https://img.icons8.com/color/144/glass-with-straw.png', 'pic', 0, 1)"
+                                  disabled>
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="tea with milk"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/Ks8ySRlsR7MA9moeSO6zoc96RjNfJLWuKmyN3yiz.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              Tea with milk
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">1,500 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('Tea with milk (Plate)', 1500, null, null, 'food', 29, 'http://localhost/storage/menu/Ks8ySRlsR7MA9moeSO6zoc96RjNfJLWuKmyN3yiz.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="black tea"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/Tcjzs3bV2TQ2Y4d6bgQ2G3D40q1ps565YyqJQmT5.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              black tea
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">1,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('black tea (Plate)', 1000, null, null, 'food', 30, 'http://localhost/storage/menu/Tcjzs3bV2TQ2Y4d6bgQ2G3D40q1ps565YyqJQmT5.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="black coffee"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/MCl2uXKQQzGwKrvqef0IE0IcsvwftsuGR2xm1Kf5.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              black coffee
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">2,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('black coffee (Plate)', 2000, null, null, 'food', 31, 'http://localhost/storage/menu/MCl2uXKQQzGwKrvqef0IE0IcsvwftsuGR2xm1Kf5.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="hot lemon"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/QM7bS9tYHytREkC5rcWWkeDejxA4U0O2HaKH4JqO.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              hot lemon
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">4,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('hot lemon (Plate)', 4000, null, null, 'food', 32, 'http://localhost/storage/menu/QM7bS9tYHytREkC5rcWWkeDejxA4U0O2HaKH4JqO.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="hot lemon"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/bKJemVIDv4kb2RenrzqftEnS1EUXA7iXYm6jV1lW.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              hot lemon
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">4,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('hot lemon (Plate)', 4000, null, null, 'food', 33, 'http://localhost/storage/menu/bKJemVIDv4kb2RenrzqftEnS1EUXA7iXYm6jV1lW.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="black coffee with milk"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/PNfIyZXgHSEjeuVuaqk9zXiyeEJo5NB6oVqWg5G0.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              black coffee with milk
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">3,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('black coffee with milk (Plate)', 3000, null, null, 'food', 34, 'http://localhost/storage/menu/PNfIyZXgHSEjeuVuaqk9zXiyeEJo5NB6oVqWg5G0.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="beef bite"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/9Bv4ql8nDktvZNvqM6HEtLnmywA28D3y2CYHuOmg.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              Beef bite
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">3,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('Beef bite (Plate)', 3000, null, null, 'food', 41, 'http://localhost/storage/menu/9Bv4ql8nDktvZNvqM6HEtLnmywA28D3y2CYHuOmg.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="fish bites"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/Bd2uWvEn4Py2aI9zGMiRulVj7PYCbSQiewRvVz22.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              fish bites
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">12,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('fish bites (Plate)', 12000, null, null, 'food', 42, 'http://localhost/storage/menu/Bd2uWvEn4Py2aI9zGMiRulVj7PYCbSQiewRvVz22.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="chicken bites"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/nRrOSBO0TuVFBCqO9orfKGs8lcfgh2abYzX3PZnk.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              chicken bites
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">7,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('chicken bites (Plate)', 7000, null, null, 'food', 43, 'http://localhost/storage/menu/nRrOSBO0TuVFBCqO9orfKGs8lcfgh2abYzX3PZnk.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="samosa"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/WyNbB74CMSgr5aNZ0n5l3hLU2V6vGcVGxoaNTAI5.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              Samosa
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">1,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('Samosa (Plate)', 1000, null, null, 'food', 47, 'http://localhost/storage/menu/WyNbB74CMSgr5aNZ0n5l3hLU2V6vGcVGxoaNTAI5.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="kababu"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/vRHPQ3slIsuPekbw2YAVUKL0r3AdfsndYNzZciVk.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              kababu
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">1,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('kababu (Plate)', 1000, null, null, 'food', 48, 'http://localhost/storage/menu/vRHPQ3slIsuPekbw2YAVUKL0r3AdfsndYNzZciVk.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="donati"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/TncUanM478vDR5LlZs2RcnNC0KykppLF224lt2ua.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              donati
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">1,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('donati (Plate)', 1000, null, null, 'food', 49, 'http://localhost/storage/menu/TncUanM478vDR5LlZs2RcnNC0KykppLF224lt2ua.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="andazi"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/V698qxd7SjHAWhibRvKNHiqeOOGyxRp7EcaWOMR9.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              andazi
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">1,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('andazi (Plate)', 1000, null, null, 'food', 50, 'http://localhost/storage/menu/V698qxd7SjHAWhibRvKNHiqeOOGyxRp7EcaWOMR9.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="shankeli"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/f0US01GilkuQGmKuxX5TJQRq3gEMwJfkYl4RtUMk.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              SHANKELI
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">1,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('SHANKELI (Plate)', 1000, null, null, 'food', 51, 'http://localhost/storage/menu/f0US01GilkuQGmKuxX5TJQRq3gEMwJfkYl4RtUMk.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="sausage"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/1gprvFeJ7lsvuuy54EyprysgDBLKORDqegwOpzwL.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              SAUSAGE
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">1,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('SAUSAGE (Plate)', 1000, null, null, 'food', 52, 'http://localhost/storage/menu/1gprvFeJ7lsvuuy54EyprysgDBLKORDqegwOpzwL.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="mayai"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/4Nu1qfRna7umP68kHzFnUECVngQFlf23dHZfEUJi.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              MAYAI
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">1,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('MAYAI (Plate)', 1000, null, null, 'food', 53, 'http://localhost/storage/menu/4Nu1qfRna7umP68kHzFnUECVngQFlf23dHZfEUJi.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="kokoto"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/uuYO1LZ1yEGVZ0HE2lYbxv0uvjIZll3AFK10JLGh.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              KOKOTO
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">1,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('KOKOTO (Plate)', 1000, null, null, 'food', 54, 'http://localhost/storage/menu/uuYO1LZ1yEGVZ0HE2lYbxv0uvjIZll3AFK10JLGh.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="mkate"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/PYW0iBG55aKK83Xj8dLNz64HzqtU2RJ6Oaf8sOmQ.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              MKATE
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">1,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('MKATE (Plate)', 1000, null, null, 'food', 55, 'http://localhost/storage/menu/PYW0iBG55aKK83Xj8dLNz64HzqtU2RJ6Oaf8sOmQ.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="soup kienyeji"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/6LRt8vAXkq81rfjKzHIdmrYQLyZkncl3Oj4EhbGk.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              SOUP KIENYEJI
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">10,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('SOUP KIENYEJI (Plate)', 10000, null, null, 'food', 56, 'http://localhost/storage/menu/6LRt8vAXkq81rfjKzHIdmrYQLyZkncl3Oj4EhbGk.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="mtori"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/AtbVEIMv2D8LsNQmtnT8je26QiXAuZpJ11f1Nid4.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              MTORI
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">1,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('MTORI (Plate)', 1000, null, null, 'food', 57, 'http://localhost/storage/menu/AtbVEIMv2D8LsNQmtnT8je26QiXAuZpJ11f1Nid4.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="ngararimo"
+                      data-category="lunch">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/d71YZQnvbdxgknzUSuSmbxtnWezZGMGR1ghCHXsp.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              NGARARIMO
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">4,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('NGARARIMO (Plate)', 4000, null, null, 'food', 58, 'http://localhost/storage/menu/d71YZQnvbdxgknzUSuSmbxtnWezZGMGR1ghCHXsp.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="kiburu"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/t6NQp3fCBNkAFufLGR5NDJTvfGiHHEQsfea3VVyu.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              KIBURU
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">4,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('KIBURU (Plate)', 4000, null, null, 'food', 59, 'http://localhost/storage/menu/t6NQp3fCBNkAFufLGR5NDJTvfGiHHEQsfea3VVyu.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="ngande maharage"
+                      data-category="lunch">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/uAy02JZRxgbsRSspJbdRlWmqqXLo8U476xW5K1Zo.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              NGANDE MAHARAGE
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">4,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('NGANDE MAHARAGE (Plate)', 4000, null, null, 'food', 60, 'http://localhost/storage/menu/uAy02JZRxgbsRSspJbdRlWmqqXLo8U476xW5K1Zo.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="ngande choroko"
+                      data-category="lunch">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/dXsF37jkmlfHeCk97S1ekhG4etkvtiWvWhPVEAIU.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              NGANDE CHOROKO
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">4,000 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('NGANDE CHOROKO (Plate)', 4000, null, null, 'food', 61, 'http://localhost/storage/menu/dXsF37jkmlfHeCk97S1ekhG4etkvtiWvWhPVEAIU.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="ufuta"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/9gkT0lyuNyYdDdXnz9cZokA0aBKqapfru8PfYPJO.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              UFUTA
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">1,500 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('UFUTA (Plate)', 1500, null, null, 'food', 62, 'http://localhost/storage/menu/9gkT0lyuNyYdDdXnz9cZokA0aBKqapfru8PfYPJO.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                                          <div class="col-6 mb-3 pos-item-card" data-name="ufuta"
+                      data-category="breakfast">
+                      <div
+                        class="card h-100 border-0 shadow-sm rounded-lg transition-all "
+                        style="background: #fff; overflow: hidden; position: relative; border: 1px solid #eee !important;">
+
+                        
+                        <div class="card-body p-3 d-flex flex-column h-100">
+                          <div class="bg-light rounded p-2 mb-3 mx-auto d-flex align-items-center justify-content-center"
+                            style="width: 100px; height: 100px;">
+                            <img
+                              src="http://localhost/storage/menu/ajwFsma6BYIOv937ZNide5Fr2i2fcVZnAtSGdwyB.jpg"
+                              class="img-fluid" style="max-height: 80px; object-fit: contain;">
+                          </div>
+
+                          <div class="mb-3 text-center">
+                            <h6 class="mb-1 text-dark font-weight-bold truncate" style="font-size: 0.95rem;">
+                              UFUTA
+                            </h6>
+                                                      </div>
+
+                          <div class="options-area mt-auto">
+                                                          <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-1 border"
+                                style="font-size: 0.8rem;">
+                                <div>
+                                  <div class="font-weight-bold text-muted"
+                                    style="font-size: 0.65rem; text-transform: uppercase;">Plate</div>
+                                  <div class="text-primary font-weight-bold">1,500 TSH</div>
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded px-2"
+                                  onclick="addToPosCart('UFUTA (Plate)', 1500, null, null, 'food', 63, 'http://localhost/storage/menu/ajwFsma6BYIOv937ZNide5Fr2i2fcVZnAtSGdwyB.jpg', 'plate', 999, 1)"
+                                  >
+                                  <i class="fa fa-plus"></i>
+                                </button>
+                              </div>
+                                                      </div>
+                        </div>
+                      </div>
+                    </div>
+                                  </div>
+              </div>
+            </div>
+
+            <!-- Cart/Summary -->
+            <div class="col-md-5 d-flex flex-column bg-light" style="height: 70vh;">
+              <div class="p-3 border-bottom bg-white">
+                <h6 class="font-weight-bold mb-2 d-flex align-items-center">
+                  <i class="fa fa-user mr-2 text-primary"></i> Guest Information
+                </h6>
+                <input type="text" id="walkInGuestName" class="form-control mb-2" placeholder="Guest Name (Optional)">
+
+              </div>
+
+              <div class="flex-grow-1 p-3" id="posCartList" style="overflow-y: auto;">
+                <div class="text-center text-muted mt-5">
+                  <i class="fa fa-shopping-basket fa-3x mb-3 opacity-50"></i>
+                  <p>Click items on the left to add to cart</p>
+                </div>
+              </div>
+
+              <div class="p-3 border-top bg-white mt-auto">
+                <div class="d-flex justify-content-between mb-3">
+                  <span class="font-weight-bold text-muted">Total Amount:</span>
+                  <span class="font-weight-bold text-primary h5 mb-0" id="posTotalAmount">0 TZS</span>
+                </div>
+                <button class="btn btn-success btn-lg btn-block shadow-sm py-3" onclick="processWalkInCheckout()"
+                  id="btnConfirmSale" disabled>
+                  <i class="fa fa-check-circle mr-1"></i> <strong>RECORD WALK-IN ORDER</strong>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .truncate {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .hover-shadow:hover {
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+      transform: translateY(-2px);
+    }
+
+    .transition-all {
+      transition: all 0.2s ease-in-out;
+    }
+
+    .badge-success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .badge-warning {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+
+    .badge-danger {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+
+    </main>
+    <!-- Essential javascripts for application to work-->
+    <script src="http://localhost/dashboard_assets/js/jquery-3.2.1.min.js"></script>
+    <script src="http://localhost/dashboard_assets/js/popper.min.js"></script>
+    <script src="http://localhost/dashboard_assets/js/bootstrap.min.js"></script>
+    <script src="http://localhost/dashboard_assets/js/main.js"></script>
+    <!-- SweetAlert2 - Standard Alert System -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+    /* Global SweetAlert2 Custom Styling - Brand Colors */
+    .swal2-popup {
+        border-radius: 10px !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .swal2-title {
+        font-weight: 600 !important;
+        color: #333 !important;
+    }
+    .swal2-confirm {
+        background-color: var(--primary-color) !important;
+        border-color: var(--primary-color) !important;
+        font-weight: 600 !important;
+        border-radius: 5px !important;
+        padding: 10px 24px !important;
+        transition: all 0.3s !important;
+    }
+    .swal2-confirm:hover {
+        background-color: #7b0000 !important;
+        border-color: #7b0000 !important;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .swal2-cancel {
+        background-color: #6c757d !important;
+        border-color: #6c757d !important;
+        font-weight: 600 !important;
+        border-radius: 5px !important;
+        padding: 10px 24px !important;
+    }
+    .swal2-cancel:hover {
+        background-color: #5a6268 !important;
+        border-color: #5a6268 !important;
+    }
+    .swal2-select {
+        border-radius: 5px !important;
+        border: 1px solid #ddd !important;
+        padding: 8px 12px !important;
+    }
+    .swal2-select:focus {
+        border-color: #940000 !important;
+        box-shadow: 0 0 0 0.2rem rgba(231, 122, 58, 0.25) !important;
+    }
+    </style>
+    <script>
+    // Global SweetAlert2 Configuration
+    const SwalConfig = {
+        confirmButtonColor: '#940000',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'OK',
+        cancelButtonText: 'Cancel',
+        allowOutsideClick: false,
+        allowEscapeKey: true,
+        customClass: {
+            popup: 'swal2-popup-custom',
+            confirmButton: 'swal2-confirm-custom',
+            cancelButton: 'swal2-cancel-custom'
+        }
+    };
+    
+    // Helper function for success alerts
+    function showSuccessAlert(title, text, callback) {
+        Swal.fire(Object.assign({}, SwalConfig, {
+            icon: 'success',
+            title: title,
+            text: text,
+            showConfirmButton: true
+        })).then(function(result) {
+            if (callback) callback(result);
+        });
+    }
+    
+    // Helper function for error alerts
+    function showErrorAlert(title, text, callback) {
+        Swal.fire(Object.assign({}, SwalConfig, {
+            icon: 'error',
+            title: title,
+            text: text,
+            showConfirmButton: true
+        })).then(function(result) {
+            if (callback) callback(result);
+        });
+    }
+    
+    // Helper function for warning alerts
+    function showWarningAlert(title, text, callback) {
+        Swal.fire(Object.assign({}, SwalConfig, {
+            icon: 'warning',
+            title: title,
+            text: text,
+            showConfirmButton: true
+        })).then(function(result) {
+            if (callback) callback(result);
+        });
+    }
+    
+    // Helper function for confirmation dialogs
+    function showConfirmDialog(title, text, confirmText, cancelText, callback) {
+        Swal.fire(Object.assign({}, SwalConfig, {
+            icon: 'question',
+            title: title,
+            text: text,
+            showCancelButton: true,
+            confirmButtonText: confirmText || 'Yes, proceed!',
+            cancelButtonText: cancelText || 'Cancel'
+        })).then(function(result) {
+            if (callback) callback(result);
+        });
+    }
+
+    // Professional Toast Configuration using SweetAlert2 Mixin
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer)
+            toast.addEventListener('mouseleave', Swal.resumeTimer)
+        }
+    });
+
+    /**
+     * Global Toast Notification Function
+     * @param {string} type - 'success', 'error', 'warning', 'info'
+     * @param {string} message - The message body
+     * @param {string} title - Optional title
+     * @param {number} duration - Optional duration in ms
+     */
+    function showToast(type, message, title = '', duration = 3000) {
+        Toast.fire({
+            icon: type,
+            title: title || (type.charAt(0).toUpperCase() + type.slice(1) + '!'),
+            text: message,
+            timer: duration
+        });
+    }
+    </script>
+    <!-- The javascript plugin to display page loading on top-->
+    <script src="http://localhost/dashboard_assets/js/plugins/pace.min.js"></script>
+    
+    <!-- SweetAlert2 - Auto Display Session Messages -->
+    <script>
+      // Auto-display session messages with Tosts or SweetAlert2
+      
+      
+      
+      
+      
+      // Global function to show success message
+      function showSuccessMessage(message, title = 'Success!') {
+        Swal.fire({
+          icon: 'success',
+          title: title,
+          text: message,
+          confirmButtonColor: '#940000',
+          confirmButtonText: 'OK',
+          timer: 3000,
+          timerProgressBar: true
+        });
+      }
+
+      // Global function to show error message
+      function showErrorMessage(message, title = 'Error!') {
+        Swal.fire({
+          icon: 'error',
+          title: title,
+          text: message,
+          confirmButtonColor: '#940000',
+          confirmButtonText: 'OK'
+        });
+      }
+
+      // Global function to show warning message
+      function showWarningMessage(message, title = 'Warning!') {
+        Swal.fire({
+          icon: 'warning',
+          title: title,
+          text: message,
+          confirmButtonColor: '#940000',
+          confirmButtonText: 'OK'
+        });
+      }
+
+      // Global function to show info message
+      function showInfoMessage(message, title = 'Information') {
+        Swal.fire({
+          icon: 'info',
+          title: title,
+          text: message,
+          confirmButtonColor: '#940000',
+          confirmButtonText: 'OK',
+          timer: 3000,
+          timerProgressBar: true
+        });
+      }
+
+      // Global function for confirmation dialogs
+      function confirmAction(message, title = 'Confirm Action', confirmText = 'Yes, proceed!', cancelText = 'Cancel') {
+        return Swal.fire({
+          icon: 'question',
+          title: title,
+          text: message,
+          showCancelButton: true,
+          confirmButtonColor: '#940000',
+          cancelButtonColor: '#6c757d',
+          confirmButtonText: confirmText,
+          cancelButtonText: cancelText
+        });
+      }
+    </script>
+    <script>
+      function markNotificationAsRead(event, notificationId, url) {
+        if (event) event.preventDefault();
+        
+        // If we have a URL, navigate to it immediately (optimistic navigation)
+        // We trigger the validation in background
+        const hasUrl = url && url !== 'javascript:;' && url !== '#';
+        
+        fetch(`/notifications/${notificationId}/read`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+          }
+        }).catch(function(err) { console.error('Error marking read:', err); });
+        
+        if (hasUrl) {
+            window.location.href = url;
+            return false;
+        }
+        
+        // DOM update logic (only relevant if we stay on page)
+        // ... (preserving existing logic for single page app feel if no URL)
+
+          // Update badge count
+          const badge = document.querySelector('.notification-badge');
+          if (badge) {
+            const currentText = badge.textContent.trim();
+            const count = parseInt(currentText.replace('+', '')) - 1;
+            if (count > 0) {
+              badge.textContent = count > 99 ? '99+' : count;
+            } else {
+              badge.remove();
+            }
+          }
+          // Remove the notification from the dropdown
+          const notificationItem = document.querySelector(`a[onclick*="${notificationId}"]`)?.closest('li');
+          if (notificationItem) {
+            notificationItem.remove();
+          }
+          // Update notification title
+          updateNotificationTitle();
+          // Dismiss toast if it exists
+          dismissToast(notificationId);
+      }
+      
+      function updateNotificationTitle() {
+        const badge = document.querySelector('.notification-badge');
+        const title = document.querySelector('.app-notification__title');
+        if (title) {
+          const count = badge ? parseInt(badge.textContent.trim().replace('+', '')) : 0;
+          if (count > 0) {
+            title.innerHTML = `You have ${count} new ${count === 1 ? 'notification' : 'notifications'}.`;
+          } else {
+            title.innerHTML = 'You have no new notifications.';
+          }
+        }
+      }
+      
+      // Ensure notification badge is visible on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        const badge = document.querySelector('.notification-badge');
+        const unreadCount = 6;
+        if (unreadCount > 0 && !badge) {
+          // Badge should exist but doesn't - recreate it
+          const notificationLink = document.querySelector('.app-nav__item[data-toggle="dropdown"]');
+          if (notificationLink) {
+            const newBadge = document.createElement('span');
+            newBadge.className = 'badge badge-danger notification-badge';
+            newBadge.style.cssText = 'position: absolute; top: -5px; right: -8px; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; min-width: 18px; height: 18px; text-align: center; line-height: 14px; z-index: 1000; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);';
+            newBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+            notificationLink.appendChild(newBadge);
+          }
+        }
+      });
+
+      function markAllNotificationsAsRead() {
+        fetch('/notifications/mark-all-read', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+          }
+        }).then(() => {
+          location.reload();
+        });
+      }
+
+      function incrementNotificationBadge(count = 1) {
+        const badge = document.querySelector('.notification-badge');
+        if (badge) {
+          const currentCount = parseInt(badge.textContent.trim().replace('+', '')) || 0;
+          const newCount = currentCount + count;
+          badge.textContent = newCount > 99 ? '99+' : newCount;
+          updateNotificationTitle();
+        } else {
+          const notificationLink = document.querySelector('.app-nav__item[data-toggle="dropdown"]');
+          if (notificationLink) {
+            const newBadge = document.createElement('span');
+            newBadge.className = 'badge badge-danger notification-badge';
+            newBadge.style.cssText = 'position: absolute; top: -5px; right: -8px; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; min-width: 18px; height: 18px; text-align: center; line-height: 14px; z-index: 1000; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);';
+            newBadge.textContent = count > 99 ? '99+' : count;
+            notificationLink.appendChild(newBadge);
+            updateNotificationTitle();
+          }
+        }
+      }
+      }
+
+      // Toast Notification System for Action Required Notifications
+      // Load previously shown notification IDs from localStorage
+      const storedShownIds = localStorage.getItem('shownToastNotificationIds');
+      const shownToastIds = new Set(storedShownIds ? JSON.parse(storedShownIds) : []);
+      
+      // Function to save shown IDs to localStorage
+      function saveShownToastIds() {
+        localStorage.setItem('shownToastNotificationIds', JSON.stringify(Array.from(shownToastIds)));
+      }
+      
+      // Notification queue system - show one at a time
+      let notificationQueue = [];
+      let currentNotificationTimer = null;
+      let isShowingNotification = false;
+      
+      function showToastNotification(notification) {
+        // Don't show if already shown or if notification is read
+        if (shownToastIds.has(notification.id) || notification.is_read) {
+          return;
+        }
+        
+        // Only show notifications that require action (not informational ones)
+        // The backend already filters to only actionable notifications, but we double-check here
+        const userRole = 'bar_keeper';
+        let shouldShow = false;
+        
+        // Reception: see almost everything actionable
+        if (userRole === 'reception') {
+          shouldShow = notification.type === 'service_request' || 
+                       notification.type === 'booking' || 
+                       notification.type === 'extension_request' ||
+                       notification.type === 'issue_report' ||
+                       notification.type === 'maintenance';
+        } 
+        // Manager/Super Admin: see EVERYTHING actionable
+        else if (userRole === 'manager' || userRole === 'super_admin') {
+          shouldShow = true; // Managers get all alerts
+        }
+        // Bar Keeper: show relevant alerts
+        else if (userRole === 'bar_keeper') {
+          shouldShow = notification.type === 'booking' || 
+                       notification.type === 'service_request' ||
+                       notification.type === 'payment';
+        }
+        // Head Chef: show relevant alerts
+        else if (userRole === 'head_chef') {
+          shouldShow = notification.type === 'booking' || 
+                       notification.type === 'service_request';
+        }
+        // Customer: show toast notifications for status updates
+        else if (userRole === 'customer') {
+          shouldShow = true;
+        }
+        
+        if (!shouldShow) {
+          return;
+        }
+        
+        // Add to queue if not already there
+        if (!notificationQueue.find(n => n.id === notification.id)) {
+          notificationQueue.push(notification);
+        }
+        
+        // Start showing if not already showing
+        if (!isShowingNotification) {
+          showNextNotification();
+        }
+      }
+      
+      function showNextNotification() {
+        // Check if there are more notifications
+        if (notificationQueue.length === 0) {
+          isShowingNotification = false;
+          return;
+        }
+        
+        isShowingNotification = true;
+        const notification = notificationQueue.shift(); // Get and remove first notification
+        
+        // Don't show if already shown
+        if (shownToastIds.has(notification.id)) {
+          showNextNotification(); // Skip to next
+          return;
+        }
+        
+        shownToastIds.add(notification.id);
+        saveShownToastIds(); // Save to localStorage
+        
+        // Use the professional Toast system
+        showToast(
+          notification.color || 'info', 
+          notification.message, 
+          notification.title || 'New Notification',
+          5000 // Actionable notifications stay longer
+        );
+
+        // Schedule next notification in the queue
+        setTimeout(showNextNotification, 6000);
+      }
+      
+      function dismissCurrentNotification() {
+        const container = document.getElementById('toast-container');
+        const toast = container.querySelector('.toast-notification');
+        
+        if (toast) {
+          toast.classList.add('removing');
+          setTimeout(function() {
+            toast.remove();
+            // Show next notification
+            showNextNotification();
+          }, 300);
+        } else {
+          showNextNotification();
+        }
+      }
+      
+      function dismissToast(notificationId) {
+        // Remove from queue if present
+        notificationQueue = notificationQueue.filter(n => n.id !== notificationId);
+        
+        const toast = document.getElementById(`toast-${notificationId}`);
+        if (toast) {
+          dismissCurrentNotification();
+        }
+      }
+      
+      // Show actionable notifications after 2 seconds (one at a time, rotating every 5 seconds)
+      // Only unread actionable notifications will be shown (already filtered by backend)
+                      setTimeout(function() {
+          const notifications = [{"id":204,"type":"booking","title":"Special Request from Guest","message":"Guest JOAN KOMBE (Room 1B) has special requests: no smocking","color":"info","link":"https:\/\/umoja-lutheran.mauzolink.co.tz\/bar-keeper\/dashboard","is_read":false},{"id":197,"type":"booking","title":"Special Request from Guest","message":"Guest ben mongi (Room 4B) has special requests: no smoke","color":"info","link":"https:\/\/umoja-lutheran.mauzolink.co.tz\/bar-keeper\/dashboard","is_read":false},{"id":169,"type":"booking","title":"Special Request from Guest","message":"Guest BENJA (Room 201) has special requests: lkjhgf","color":"info","link":"https:\/\/umoja-lutheran.mauzolink.co.tz\/bar-keeper\/dashboard","is_read":false},{"id":158,"type":"booking","title":"Special Request from Guest","message":"Guest ngaz (Room 203) has special requests: ;kjhgfds","color":"info","link":"https:\/\/umoja-lutheran.mauzolink.co.tz\/bar-keeper\/dashboard","is_read":false},{"id":155,"type":"booking","title":"Special Request from Guest","message":"Guest ver viva (Room 113) has special requests: ;ljh","color":"info","link":"https:\/\/umoja-lutheran.mauzolink.co.tz\/bar-keeper\/dashboard","is_read":false},{"id":150,"type":"booking","title":"Special Request from Guest","message":"Guest chasambi wilson (Room 112) has special requests: \u0027poiuy","color":"info","link":"https:\/\/umoja-lutheran.mauzolink.co.tz\/bar-keeper\/dashboard","is_read":false}];
+          
+          // Add all unread actionable notifications to queue (they're already filtered by backend)
+          notifications.forEach(function(notification) {
+            if (!notification.is_read) {
+              showToastNotification(notification);
+            }
+          });
+        }, 2000);
+            
+      // Poll for new actionable notifications every 30 seconds
+      setInterval(function() {
+        fetch('/notifications/actionable', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
+          }
+        })
+        .then(function(response) {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            return response.json();
+          } else {
+            // If not JSON, return empty notifications
+            return { success: false, notifications: [] };
+          }
+        })
+        .then(function(data) {
+          if (data.success) {
+            if (data.notifications && data.notifications.length > 0) {
+              data.notifications.forEach(function(notification) {
+                if (!shownToastIds.has(notification.id) && !notification.is_read) {
+                  // Add to queue instead of showing immediately
+                  showToastNotification(notification);
+                }
+              });
+            }
+            
+            // Update badge count using the unread_count from response (always if success)
+            if (typeof data.unread_count !== 'undefined') {
+              const unreadCount = data.unread_count;
+              const badge = document.querySelector('.notification-badge');
+              
+              if (unreadCount > 0) {
+                if (badge) {
+                  badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                } else {
+                  // Create badge if it doesn't exist
+                  const notificationLink = document.querySelector('.app-nav__item[data-toggle="dropdown"]');
+                  if (notificationLink) {
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'badge badge-danger notification-badge';
+                    newBadge.style.cssText = 'position: absolute; top: -5px; right: -8px; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; min-width: 18px; height: 18px; text-align: center; line-height: 14px; z-index: 1000; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);';
+                    newBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                    notificationLink.appendChild(newBadge);
+                  }
+                }
+                updateNotificationTitle();
+              } else if (badge) {
+                badge.remove();
+                updateNotificationTitle();
+              }
+            }
+          }
+        })
+        .catch(function(error) {
+          // Silently fail - don't spam console with notification errors
+          if (error.message && !error.message.includes('JSON')) {
+            console.error('Error fetching actionable notifications:', error);
+          }
+        });
+      }, 15000);
+    </script>
+      <script src="http://localhost/dashboard_assets/js/plugins/sweetalert.min.js"></script>
+  <script>
+    function receiveTransfer(transferId) {
+      swal({
+        title: "Receive Transfer?",
+        text: "Mark this transfer as received?",
+        type: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#28a745",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Yes, received!",
+        cancelButtonText: "Cancel"
+      }, function (isConfirm) {
+        if (isConfirm) {
+          callApi(`http://localhost/bar-keeper/transfers/:id/receive`.replace(':id', transferId), 'PUT', { status: 'completed' });
+        }
+      });
+    }
+
+    function completeOrder(orderId, paymentMethod = 'room_charge') {
+      let title = paymentMethod === 'cash' ? "Record Cash Payment" : "Charge to Room";
+      let text = paymentMethod === 'cash' ? "Record this walk-in sale as PAID (Cash)?" : "Mark this order as served and charge to the ROOM bill?";
+      let btnColor = paymentMethod === 'cash' ? "#28a745" : "#007bff";
+
+      swal({
+        title: title,
+        text: text,
+        type: paymentMethod === 'cash' ? "success" : "info",
+        showCancelButton: true,
+        confirmButtonColor: btnColor,
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Yes, Proceed",
+        cancelButtonText: "Cancel",
+        closeOnConfirm: false
+      }, function (isConfirm) {
+        if (isConfirm) {
+          callApi(`http://localhost/bar-keeper/orders/:id/complete`.replace(':id', orderId), 'POST', { payment_method: paymentMethod });
+        }
+      });
+    }
+
+    // POS Logic
+    let posCart = [];
+
+    // Data for Dynamic Food selection
+    const foodBasesData = {"Wali":[{"id":7,"name":"Wali  nyama","side":"Nyama","price":7000,"image":"menu\/jcXpEjhKNF2ODyg6XSvXpPStJ5S1N2rQ54ZkVTl6.jpg"},{"id":8,"name":"wali kuku","side":"Kuku","price":9000,"image":"menu\/z3eSjAySmuXj82VUbwTSbIaRYKu1rn2F7jbTmtSI.jpg"},{"id":9,"name":"wali samaki","side":"Samaki","price":15000,"image":"menu\/OtYrjPhdzdXBVZ3Jqpygz0UlA2QFVMMI7aygUmFo.jpg"},{"id":12,"name":"wali kuku kienyeji","side":"Kuku Kienyeji","price":12000,"image":"menu\/imO7Tp4mNtnVmmuQmfREObgGT3W0krmHHHtyTR7l.jpg"},{"id":14,"name":"wali mboga za majani","side":"Mboga Za Majani","price":4000,"image":"menu\/hXPlDhm46SvA3haVoNX2ORcw2cd0CACVrgKF3PK1.jpg"}],"Ugali":[{"id":11,"name":"ugali kuku","side":"Kuku","price":9000,"image":"menu\/crSHBJRZmMXDHAIGdLFnmEYnIA0grfRMOLAkKS7P.jpg"},{"id":13,"name":"ugali nyama","side":"Nyama","price":7000,"image":"menu\/BotWMGM1JgnDHuyzmstwMEp88qWVm0AfcWhOq8ty.jpg"},{"id":17,"name":"ugali samaki","side":"Samaki","price":15000,"image":"menu\/2swpoDbfrgaE3S8UXKv7Be9dxKqG0teI3sx5CZqW.jpg"},{"id":20,"name":"ugali vegetable","side":"Vegetable","price":4000,"image":"menu\/iGKlNynVwEHpJ8SsO4mYXY7z44lGFttRhiCriyS2.jpg"},{"id":28,"name":"ugali kuku kienyeji","side":"Kuku Kienyeji","price":12000,"image":"menu\/CVYRHXtQA3eLCoHwPWNibMhcDv4EwWtR1Hr5EWte.jpg"}],"Pilau":[{"id":22,"name":"pilau nyama","side":"Nyama","price":7000,"image":"menu\/yXgJsJMq86PKpV98n0j8MYxcd9XR3VcFZQ5np5qW.jpg"},{"id":23,"name":"pilau kuku","side":"Kuku","price":9000,"image":"menu\/2qWtvnnGEGd92xkGpll29SluzW4zxhkgBFI85qse.jpg"},{"id":24,"name":"pilau samaki","side":"Samaki","price":15000,"image":"menu\/OZjCtxuoGo5Z0v03EyKVHYE7XRx9AvsjYuyLctG3.jpg"},{"id":25,"name":"pilau kuku kienyeji","side":"Kuku Kienyeji","price":12000,"image":"menu\/Bve1V86f8sbwzeDMguUkpYwIcKldZ3LeMkmtdUkC.jpg"},{"id":27,"name":"pilau vegetable","side":"Vegetable","price":4000,"image":"menu\/jlKOsCVd7czJHI38Dg2fNUxwk8C6dJ9kXK8JxyLu.jpg"}],"Chapati":[{"id":44,"name":"chapati","side":"Kavu (Plain)","price":1000,"image":"menu\/bEbwQ3FlRXiiFB8Czf2lphDdZ5v8zAUyxOXIl2fv.jpg"}]};
+
+    function showFoodBuilderModal(baseName) {
+      const sides = foodBasesData[baseName];
+      if (!sides || sides.length === 0) return;
+
+      let optionsHtml = '<div class="row">';
+      sides.forEach((side, index) => {
+        optionsHtml += `
+                    <div class="col-12 mb-2">
+                        <button class="btn btn-outline-primary btn-block text-left p-3 d-flex justify-content-between align-items-center"
+                            onclick="selectFoodAddOn(${index}, '${baseName}')">
+                            <span class="font-weight-bold" style="font-size: 1.1rem;">${side.side}</span>
+                            <span class="badge badge-primary px-2 py-1" style="font-size: 0.9rem;">${Number(side.price).toLocaleString()} TSH</span>
+                        </button>
+                    </div>
+                `;
+      });
+      optionsHtml += '</div>';
+
+      Swal.fire({
+        title: `<i class="fa fa-cutlery text-primary mr-2"></i> How would you like the ${baseName}?`,
+        html: optionsHtml,
+        showConfirmButton: false,
+        showCloseButton: true,
+        customClass: {
+          popup: 'rounded-lg'
+        }
+      });
+    }
+
+    function selectFoodAddOn(sideIndex, baseName) {
+      const item = foodBasesData[baseName][sideIndex];
+      Swal.close();
+      let defaultImage = 'https://img.icons8.com/color/144/restaurant-.png';
+      let actImg = item.image ? '/storage/' + item.image : defaultImage;
+      // Same logic as addToPosCart
+      addToPosCart(item.name, item.price, null, null, 'food', item.id, actImg, 'plate', 999, 1);
+    }
+
+    function openWalkInModal(residentRoom = null, residentName = null, dayServiceId = null) {
+      $('#walkInModal').modal('show');
+      posCart = [];
+
+      // Reset inputs
+      document.getElementById('walkInGuestName').value = residentName || '';
+
+      // Store dayServiceId in a global variable for checkout
+      window.currentDayServiceId = dayServiceId;
+
+      // If it's for a ceremony, update title/label
+      if (dayServiceId) {
+        document.getElementById('posModalTitle').innerText = 'Record Usage: ' + residentName;
+        document.getElementById('btnConfirmSale').innerHTML = '<i class="fa fa-check-circle mr-1"></i> <strong>RECORD CEREMONY USAGE</strong>';
+      } else {
+        document.getElementById('posModalTitle').innerText = 'New Walk-in Order';
+        document.getElementById('btnConfirmSale').innerHTML = '<i class="fa fa-check-circle mr-1"></i> <strong>RECORD WALK-IN ORDER</strong>';
+      }
+
+      renderPosCart();
+    }
+
+    function addToPosCart(name, price, pid, vid, type, foodId = null, image = null, unit = 'pic', currentStock = null, servingsPerPic = 1) {
+      const key = foodId ? String(foodId) : `${pid}_${vid}_${unit}`;
+      const existing = posCart.find(item => String(item.key) === String(key));
+
+      // Calculate how much we're trying to add
+      let newQty = existing ? existing.qty + 1 : 1;
+
+      // Convert to bottles if selling by serving/glass
+      let bottlesNeeded = newQty;
+      if (unit === 'serving' && servingsPerPic > 0) {
+        bottlesNeeded = newQty / servingsPerPic;
+      }
+
+      // Check stock availability (only for products with stock tracking)
+      if (currentStock !== null && currentStock > 0 && bottlesNeeded > currentStock) {
+        const maxAllowed = unit === 'serving' ? Math.floor(currentStock * servingsPerPic) : Math.floor(currentStock);
+        Swal.fire({
+          title: 'Stock Limit Exceeded',
+          html: `<p>Cannot add more of this item.</p>
+                           <p><strong>Current Stock:</strong> ${currentStock.toFixed(1)} bottles</p>
+                           <p><strong>Maximum ${unit === 'serving' ? 'Glasses' : 'Units'}:</strong> ${maxAllowed}</p>`,
+          icon: 'warning',
+          confirmButtonText: 'OK'
+        });
+        return;
+      }
+
+      if (existing) {
+        existing.qty++;
+      } else {
+        posCart.push({
+          key: key,
+          name: name,
+          price: price,
+          pid: pid,
+          vid: vid,
+          type: type,
+          foodId: foodId,
+          image: image,
+          unit: unit,
+          qty: 1,
+          currentStock: currentStock,
+          servingsPerPic: servingsPerPic
+        });
+      }
+      renderPosCart();
+    }
+
+    function removeFromPosCart(key) {
+      posCart = posCart.filter(item => String(item.key) !== String(key));
+      renderPosCart();
+    }
+
+    function updatePosQty(key, delta) {
+      const item = posCart.find(i => String(i.key) === String(key));
+      if (item) {
+        const newQty = item.qty + delta;
+
+        // If increasing quantity, check stock
+        if (delta > 0 && item.currentStock !== null && item.currentStock !== undefined) {
+          let bottlesNeeded = newQty;
+          if (item.unit === 'serving' && item.servingsPerPic > 0) {
+            bottlesNeeded = newQty / item.servingsPerPic;
+          }
+
+          if (bottlesNeeded > item.currentStock) {
+            const maxAllowed = item.unit === 'serving' ? Math.floor(item.currentStock * item.servingsPerPic) : Math.floor(item.currentStock);
+            Swal.fire({
+              title: 'Stock Limit Exceeded',
+              html: `<p>Cannot add more of this item.</p>
+                                   <p><strong>Current Stock:</strong> ${item.currentStock.toFixed(1)} bottles</p>
+                                   <p><strong>Maximum ${item.unit === 'serving' ? 'Glasses' : 'Bottles'}:</strong> ${maxAllowed}</p>`,
+              icon: 'warning',
+              confirmButtonText: 'OK'
+            });
+            return;
+          }
+        }
+
+        item.qty = newQty;
+        if (item.qty <= 0) removeFromPosCart(key);
+        else renderPosCart();
+      }
+    }
+
+    function renderPosCart() {
+      const list = document.getElementById('posCartList');
+      const totalEl = document.getElementById('posTotalAmount');
+      const btn = document.getElementById('btnConfirmSale');
+
+      if (posCart.length === 0) {
+        list.innerHTML = `<div class="text-center text-muted mt-5"><i class="fa fa-shopping-basket fa-3x mb-2"></i><p>Cart is empty</p></div>`;
+        totalEl.innerText = '0 TZS';
+        btn.disabled = true;
+        return;
+      }
+
+      let total = 0;
+      let html = '';
+      posCart.forEach(item => {
+        const itemTotal = item.price * item.qty;
+        total += itemTotal;
+        html += `
+                    <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-2 rounded shadow-sm">
+                        <div class="d-flex align-items-center" style="max-width: 65%;">
+                            ${item.image ? `<img src="${item.image}" class="mr-2 rounded" style="width: 40px; height: 40px; object-fit: cover;">` : ''}
+                            <div>
+                                <div class="font-weight-bold" style="font-size: 0.85rem; line-height: 1.2;">${item.name}</div>
+                                <small class="text-muted">${item.price.toLocaleString()} x ${item.qty}</small>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="btn-group btn-group-sm mr-2">
+                                <button class="btn btn-outline-secondary px-2" onclick="updatePosQty('${item.key}', -1)">-</button>
+                                <button class="btn btn-outline-secondary px-2" onclick="updatePosQty('${item.key}', 1)">+</button>
+                            </div>
+                            <div class="text-right mr-2" style="min-width: 80px;">
+                                <span class="font-weight-bold d-block" style="font-size: 0.85rem;">${itemTotal.toLocaleString()}</span>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger border-0" onclick="removeFromPosCart('${item.key}')">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+      });
+
+      list.innerHTML = html;
+      totalEl.innerText = `${total.toLocaleString()} TZS`;
+      btn.disabled = false;
+    }
+
+    let currentCategory = 'all';
+
+    function filterByCategory(category, btn) {
+      currentCategory = category;
+
+      // Update UI active state
+      const tabs = document.getElementById('posCategoryTabs').querySelectorAll('button');
+      tabs.forEach(t => {
+        t.classList.remove('btn-primary', 'active');
+        t.classList.add('btn-outline-primary');
+      });
+      btn.classList.remove('btn-outline-primary');
+      btn.classList.add('btn-primary', 'active');
+
+      filterPosItems();
+    }
+
+    function filterPosItems() {
+      const query = document.getElementById('itemSearch').value.toLowerCase();
+      const cards = document.querySelectorAll('.pos-item-card');
+
+      cards.forEach(card => {
+        const name = card.dataset.name;
+        const category = card.dataset.category;
+
+        const matchesQuery = name.includes(query);
+        const matchesCategory = currentCategory === 'all' || category === currentCategory;
+
+        if (matchesQuery && matchesCategory) {
+          card.style.display = '';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    async function processWalkInCheckout() {
+      const now = new Date();
+      const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+      const guestName = document.getElementById('walkInGuestName').value.trim() || 'Walk-in (' + timeStr + ')';
+
+      const confirm = await Swal.fire({
+        title: "Confirm Sale?",
+        text: `Record order for ${guestName}?`,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Yes, Record Sale"
+      });
+
+      if (!confirm.isConfirmed) return;
+
+      $('#walkInModal').modal('hide');
+      Swal.fire({
+        title: 'Processing...',
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      let successCount = 0;
+      let lastError = "An unknown error occurred.";
+
+      for (const item of posCart) {
+        const payload = {
+          service_id: item.type === 'food' ? "4" : "3",
+          product_id: item.pid,
+          product_variant_id: item.vid,
+          quantity: item.qty,
+          is_walk_in: 1,
+          walk_in_name: guestName,
+          day_service_id: window.currentDayServiceId || null,
+          payment_timing: 'later',
+          item_name: item.name,
+          service_specific_data: {
+            food_id: item.foodId,
+            item_name: item.name,
+            product_id: item.pid,
+            product_variant_id: item.vid,
+            selling_method: item.unit || 'pic'
+          }
+        };
+
+        try {
+          const response = await fetch("http://localhost/customer/services/request", {
+            method: 'POST',
+            headers: {
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+          const res = await response.json();
+          if (res.success) {
+            successCount++;
+          } else {
+            lastError = res.message;
+            if (res.errors) {
+              lastError += ": " + JSON.stringify(res.errors);
+            }
+            console.error("Item failed:", item.name, res);
+          }
+        } catch (e) {
+          console.error(e);
+          lastError = e.message;
+        }
+      }
+
+      if (successCount === posCart.length) {
+        await Swal.fire({
+          title: "Success!",
+          text: "Walk-in sale recorded successfully!",
+          icon: "success",
+          timer: 2000,
+          showConfirmButton: false
+        });
+        window.location.reload();
+      } else {
+        await Swal.fire({
+          title: "Error",
+          text: "Some items failed to process. Reason: " + lastError,
+          icon: "error"
+        });
+      }
+    }
+
+    function openPaymentModal(orderId, amount, isWalkIn = 0) {
+      document.getElementById('paymentOrderId').value = orderId;
+      document.getElementById('paymentAmountDisplay').innerText = amount.toLocaleString() + ' TZS';
+
+      const methodSelect = document.getElementById('paymentMethod');
+      const roomChargeOption = methodSelect.querySelector('option[value="room_charge"]');
+
+      if (isWalkIn) {
+        if (roomChargeOption) roomChargeOption.style.display = 'none';
+        if (methodSelect.value === 'room_charge') methodSelect.value = 'cash';
+      } else {
+        if (roomChargeOption) roomChargeOption.style.display = 'block';
+      }
+
+      document.getElementById('paymentMethod').value = 'cash';
+      document.getElementById('paymentReference').value = '';
+      toggleRefField();
+      $('#paymentModal').modal('show');
+    }
+
+    function toggleRefField() {
+      const method = document.getElementById('paymentMethod').value;
+      const container = document.getElementById('refFieldContainer');
+      if (method === 'cash' || method === 'room_charge') { // Room charge also doesn't need a ref
+        container.style.display = 'none';
+      } else {
+        container.style.display = 'block';
+      }
+    }
+
+    function submitPayment() {
+      const orderId = document.getElementById('paymentOrderId').value;
+      const method = document.getElementById('paymentMethod').value;
+      const reference = document.getElementById('paymentReference').value.trim();
+
+      if (method !== 'cash' && method !== 'room_charge' && !reference) {
+        swal("Missing Info", "Please enter a reference number for " + method.replace('_', ' ').toUpperCase(), "warning");
+        return;
+      }
+
+      $('#paymentModal').modal('hide');
+
+      // If it's a room charge, use the legacy completeOrder
+      if (method === 'room_charge') {
+        completeOrder(orderId, method, reference);
+      } else {
+        // Use the new POS settlement route
+        settlePOSPayment(orderId, method, reference);
+      }
+    }
+
+    function settlePOSPayment(orderId, method, reference = '') {
+      swal({
+        title: "Confirm Payment?",
+        text: `Record ${method.toUpperCase()} payment of ${document.getElementById('paymentAmountDisplay').innerText}?`,
+        type: "success",
+        showCancelButton: true,
+        confirmButtonColor: "#28a745",
+        confirmButtonText: "Yes, Paid!",
+        closeOnConfirm: false
+      }, function (isConfirm) {
+        if (isConfirm) {
+          const url = `/customer/pos/settle-payment/${orderId}`;
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              payment_method: method,
+              payment_reference: reference
+            })
+          })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                swal("Success!", data.message, "success");
+                setTimeout(() => location.reload(), 1500);
+              } else {
+                swal("Error!", data.message, "error");
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              swal("Error!", "Failed to record payment.", "error");
+            });
+        }
+      });
+    }
+
+    function serveOrder(orderId, itemName) {
+      swal({
+        title: "Mark as Served?",
+        text: "Confirm that '" + itemName + "' has been taken/served? Payment will remain PENDING.",
+        type: "info",
+        showCancelButton: true,
+        confirmButtonColor: "#17a2b8",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Yes, Served!",
+        cancelButtonText: "Cancel",
+        closeOnConfirm: false
+      }, function (isConfirm) {
+        if (isConfirm) {
+          const url = `/bar-keeper/orders/${orderId}/serve`;
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                swal({
+                  title: "Served!",
+                  text: data.message,
+                  type: "success",
+                  timer: 1500,
+                  showConfirmButton: false
+                });
+                setTimeout(() => location.reload(), 1500);
+              } else {
+                swal("Error!", data.message, "error");
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              swal("Error!", "Failed to update order. Please try again.", "error");
+            });
+        }
+      });
+    }
+
+    function completeOrder(orderId, method, reference = '') {
+      let title = "Confirm Payment?";
+      let text = "Record payment via " + method.replace('_', ' ').toUpperCase() + "?";
+      let icon = "warning";
+      let btnColor = "#28a745";
+
+      if (method === 'room_charge') {
+        title = "Charge to Room?";
+        text = "This will add the amount to the guest's room bill.";
+        icon = "info";
+        btnColor = "#007bff";
+      }
+
+      swal({
+        title: title,
+        text: text,
+        type: icon,
+        showCancelButton: true,
+        confirmButtonColor: btnColor,
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Yes, Confirm!",
+        cancelButtonText: "No, Cancel",
+        closeOnConfirm: false
+      }, function (isConfirm) {
+        if (isConfirm) {
+          const url = `/bar-keeper/orders/${orderId}/complete`;
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              payment_method: method,
+              payment_reference: reference
+            })
+          })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                swal({
+                  title: "Success!",
+                  text: data.message,
+                  type: "success",
+                  timer: 2000,
+                  showConfirmButton: false
+                });
+                setTimeout(() => location.reload(), 1500);
+              } else {
+                swal("Error!", data.message, "error");
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              swal("Error!", "An error occurred. Please try again.", "error");
+            });
+        }
+      });
+    }
+
+    function printWalkInDocket(orderId) {
+      const url = `/bar-keeper/orders/${orderId}/print-docket`;
+      window.open(url, 'DocketPrint', 'width=800,height=600');
+    }
+
+    function callApi(url, method, data) {
+      fetch(url, {
+        method: method,
+        headers: {
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            swal({
+              title: "Success!",
+              text: data.message || "Action completed successfully!",
+              type: "success",
+              timer: 2000,
+              showConfirmButton: false
+            });
+            setTimeout(() => location.reload(), 1500);
+          } else {
+            swal("Error!", data.message || "Action failed.", "error");
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          swal("Error!", "An error occurred. Please try again.", "error");
+        });
+    }
+  </script>
+
+  <!-- Payment Modal HTML -->
+  <div class="modal fade" id="paymentModal" tabindex="-1" role="dialog" aria-labelledby="paymentModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="paymentModalLabel">Record Payment</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="paymentOrderId">
+          <p class="h4 text-center mb-4">Amount: <span id="paymentAmountDisplay"
+              class="font-weight-bold text-primary"></span></p>
+
+          <div class="form-group">
+            <label for="paymentMethod">Payment Method</label>
+            <select class="form-control" id="paymentMethod" onchange="toggleRefField()">
+              <option value="cash">Cash</option>
+              <option value="room_charge">Room Charge</option>
+              <option value="mpesa">M-Pesa</option>
+              <option value="halopesa">Halopesa</option>
+              <option value="airtel_money">Airtel Money</option>
+              <option value="mixx_by_yass">Mixx by Yass</option>
+              <option value="nmb">NMB Bank</option>
+              <option value="crdb">CRDB Bank</option>
+              <option value="kcb">KCB Bank</option>
+            </select>
+          </div>
+          <div class="form-group" id="refFieldContainer" style="display: none;">
+            <label for="paymentReference">Reference Number</label>
+            <input type="text" class="form-control" id="paymentReference" placeholder="Enter reference number">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="submitPayment()">Record Payment</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Ceremony Payment Modal HTML -->
+  <div class="modal fade" id="ceremonyPaymentModal" tabindex="-1" role="dialog"
+    aria-labelledby="ceremonyPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="ceremonyPaymentModalLabel">Settle Ceremony Usage</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="ceremonyDayServiceId">
+          <p class="h5 text-center mb-2">Guest: <span id="ceremonyGuestName" class="font-weight-bold text-info"></span>
+          </p>
+          <p class="h4 text-center mb-4">Unpaid Amount: <span id="ceremonyUnpaidAmount"
+              class="font-weight-bold text-danger"></span></p>
+
+          <div class="form-group">
+            <label for="ceremonyPaymentMethod">Payment Method</label>
+            <select class="form-control" id="ceremonyPaymentMethod" onchange="toggleCeremonyRefField()">
+              <option value="cash">Cash</option>
+              <option value="room_charge">Room Charge</option>
+              <option value="mpesa">M-Pesa</option>
+              <option value="halopesa">Halopesa</option>
+              <option value="airtel_money">Airtel Money</option>
+              <option value="mixx_by_yass">Mixx by Yass</option>
+              <option value="nmb">NMB Bank</option>
+              <option value="crdb">CRDB Bank</option>
+              <option value="kcb">KCB Bank</option>
+            </select>
+          </div>
+          <div class="form-group" id="ceremonyRefFieldContainer" style="display: none;">
+            <label for="ceremonyPaymentReference">Reference Number</label>
+            <input type="text" class="form-control" id="ceremonyPaymentReference" placeholder="Enter reference number">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="submitCeremonyPayment()">Settle Payment</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <script>
+    function openCeremonyPaymentModal(dayServiceId, guestName, unpaidAmount) {
+      document.getElementById('ceremonyDayServiceId').value = dayServiceId;
+      document.getElementById('ceremonyGuestName').innerText = guestName;
+      document.getElementById('ceremonyUnpaidAmount').innerText = unpaidAmount.toLocaleString() + ' TZS';
+
+      const methodSelect = document.getElementById('ceremonyPaymentMethod');
+      const roomChargeOption = methodSelect.querySelector('option[value="room_charge"]');
+      if (roomChargeOption) roomChargeOption.style.display = 'none'; // Ceremonies are walk-ins
+
+      document.getElementById('ceremonyPaymentMethod').value = 'cash';
+      document.getElementById('ceremonyPaymentReference').value = '';
+      toggleCeremonyRefField();
+      $('#ceremonyPaymentModal').modal('show');
+    }
+
+    function toggleCeremonyRefField() {
+      const method = document.getElementById('ceremonyPaymentMethod').value;
+      const container = document.getElementById('ceremonyRefFieldContainer');
+      if (method === 'cash' || method === 'room_charge') {
+        container.style.display = 'none';
+      } else {
+        container.style.display = 'block';
+      }
+    }
+
+    function submitCeremonyPayment() {
+      const dayServiceId = document.getElementById('ceremonyDayServiceId').value;
+      const method = document.getElementById('ceremonyPaymentMethod').value;
+      const reference = document.getElementById('ceremonyPaymentReference').value.trim();
+
+      if (method !== 'cash' && method !== 'room_charge' && !reference) {
+        swal("Missing Info", "Please enter a reference number for " + method.replace('_', ' ').toUpperCase(), "warning");
+        return;
+      }
+
+      swal({
+        title: "Confirm Settlement",
+        text: "Mark all unpaid consumption for this ceremony as paid?",
+        type: "info",
+        showCancelButton: true,
+        confirmButtonColor: "#28a745",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Yes, Settle!",
+        cancelButtonText: "Cancel",
+        closeOnConfirm: false
+      }, function (isConfirm) {
+        if (isConfirm) {
+          const url = `/customer/ceremonies/settle-usage`;
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              day_service_id: dayServiceId,
+              payment_method: method,
+              payment_reference: reference
+            })
+          })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                swal({
+                  title: "Success!",
+                  text: data.message + ` (${data.count} items settled)`,
+                  type: "success",
+                  timer: 2000,
+                  showConfirmButton: false
+                });
+                setTimeout(() => location.reload(), 1500);
+              } else {
+                swal("Error!", data.message, "error");
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              swal("Error!", "Failed to settle payment. Please try again.", "error");
+            });
+        }
+      });
+    }
+  </script>
+  
+  <script>
+    (function() {
+      // Hide loading container when page is fully loaded
+      function hideLoadingContainer() {
+        try {
+          var loadingContainer = document.getElementById('loadingContainer');
+          var body = document.body;
+          
+          if (!loadingContainer) {
+            return;
+          }
+          
+          if (body) {
+            body.classList.add('page-loaded');
+          }
+          
+          // Add hidden class first (uses !important)
+          loadingContainer.classList.add('hidden');
+          
+          // Also set styles directly to ensure it hides
+          loadingContainer.style.display = 'none';
+          loadingContainer.style.visibility = 'hidden';
+          loadingContainer.style.opacity = '0';
+          loadingContainer.style.pointerEvents = 'none';
+        } catch(e) {
+          console.error('Error hiding loading container:', e);
+        }
+      }
+      
+      // Try to hide immediately if DOM is ready
+      if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        hideLoadingContainer();
+      } else {
+        // Wait for DOM to be ready
+        if (document.addEventListener) {
+          document.addEventListener('DOMContentLoaded', hideLoadingContainer);
+        } else if (document.attachEvent) {
+          document.attachEvent('onreadystatechange', function() {
+            if (document.readyState === 'complete') {
+              hideLoadingContainer();
+            }
+          });
+        }
+        
+        // Also wait for window load
+        if (window.addEventListener) {
+          window.addEventListener('load', hideLoadingContainer);
+        } else if (window.attachEvent) {
+          window.attachEvent('onload', hideLoadingContainer);
+        }
+      }
+      
+      // Ultimate fallback: Force hide after 500ms max
+      setTimeout(hideLoadingContainer, 500);
+    })();
+  </script>
+  </body>
+</html>
+

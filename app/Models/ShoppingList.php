@@ -17,6 +17,7 @@ class ShoppingList extends Model
         'market_name',
         'shopping_date',
         'notes',
+        'purchaser_id',
     ];
 
     protected $casts = [
@@ -31,6 +32,11 @@ class ShoppingList extends Model
     public function items()
     {
         return $this->hasMany(ShoppingListItem::class);
+    }
+
+    public function purchaser()
+    {
+        return $this->belongsTo(Staff::class, 'purchaser_id');
     }
 
     /**

@@ -252,10 +252,13 @@
     </li>
 
     <li
-        class="treeview {{ str_contains($activePage, 'suppliers') || str_contains($activePage, 'purchase-requests') || str_contains($activePage, 'housekeeping-inventory') || str_contains($activePage, 'restaurants/stock') || str_contains($activePage, 'shopping-list/transfers') ? 'is-expanded' : '' }}">
+        class="treeview {{ str_contains($activePage, 'suppliers') || str_contains($activePage, 'purchase-requests') || str_contains($activePage, 'housekeeping-inventory') || str_contains($activePage, 'restaurants/stock') || str_contains($activePage, 'shopping-list/transfers') || str_contains($activePage, 'low-stock') ? 'is-expanded' : '' }}">
         <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-cubes"></i><span
                 class="app-menu__label">Inventory Control</span><i class="treeview-indicator fa fa-angle-right"></i></a>
         <ul class="treeview-menu">
+            <li><a class="treeview-item" href="{{ route('admin.low-stock') }}"><i
+                        class="icon fa fa-exclamation-triangle"></i>
+                    Low Stock Alerts</a></li>
             <li><a class="treeview-item" href="{{ route('admin.housekeeping-inventory') }}"><i class="icon fa fa-bed"></i>
                     Housekeeping Stock</a></li>
             <li><a class="treeview-item" href="{{ route('admin.suppliers.index') }}"><i class="icon fa fa-truck"></i>

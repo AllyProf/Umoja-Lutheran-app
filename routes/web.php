@@ -254,6 +254,9 @@ Route::prefix('manager')->group(function () {
         // Housekeeping Inventory (Manager View)
         Route::get('/housekeeping-inventory', [\App\Http\Controllers\HousekeeperController::class, 'managerInventoryView'])->name('admin.housekeeping-inventory');
 
+        // Low Stock View
+        Route::get('/low-stock', [\App\Http\Controllers\AdminController::class, 'lowStock'])->name('admin.low-stock');
+
         // Suppliers
         Route::get('/restaurants/suppliers', [\App\Http\Controllers\SupplierController::class, 'index'])->name('admin.suppliers.index');
         Route::get('/restaurants/suppliers/create', [\App\Http\Controllers\SupplierController::class, 'create'])->name('admin.suppliers.create');
@@ -978,6 +981,9 @@ Route::middleware(['auth:staff', 'role:accountant,manager,super_admin'])->prefix
     Route::post('/shopping-lists/{shoppingList}/approve', [\App\Http\Controllers\AccountantController::class, 'approveShoppingList'])->name('accountant.shopping-list.approve');
     Route::post('/shopping-lists/{shoppingList}/disburse', [\App\Http\Controllers\AccountantController::class, 'disburseFunds'])->name('accountant.shopping-list.disburse');
     Route::post('/shopping-lists/{shoppingList}/reject', [\App\Http\Controllers\AccountantController::class, 'rejectShoppingList'])->name('accountant.shopping-list.reject');
+    Route::post('/shopping-lists/{shoppingList}/claim', [\App\Http\Controllers\AccountantController::class, 'claimPurchase'])->name('accountant.shopping-list.claim');
+    Route::get('/shopping-lists/{shoppingList}/record-purchase', [\App\Http\Controllers\AccountantController::class, 'recordPurchaseView'])->name('accountant.shopping-list.record-purchase');
+    Route::put('/shopping-lists/{shoppingList}/record-purchase', [\App\Http\Controllers\AccountantController::class, 'updatePurchase'])->name('accountant.shopping-list.update-purchase');
 
     // Payment Verification
     Route::get('/payments', [\App\Http\Controllers\AccountantController::class, 'paymentVerification'])->name('accountant.payments');

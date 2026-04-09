@@ -21,6 +21,62 @@ use Carbon\Carbon;
 class AdminController extends Controller
 {
     /**
+     * Display low stock alerts for Manager
+     */
+    public function lowStock(Request $request)
+    {
+        $lowStockVariants = [];
+        $totalLowStock = 0;
+
+        foreach (Product::with(['variants', 'variants.product'])->get() as $product) {
+            foreach ($product->variants as $variant) {
+                // Get the current stock logic defined in ProductVariant or recalculate 
+                // using the DB sum logic similar to Storekeeper
+                $packageUnits = ProductVariant::getPackageUnits();
+                $unitsList = "'" . implode("','", $packageUnits) . "'";
+
+                $receiptsIn = DB::table('stock_receipts')
+                    ->join('product_variants', 'stock_receipts.product_variant_id', '=', 'product_variants.id')
+                    ->join('products', 'stock_receipts.product_id', '=', 'products.id')
+                    ->where('stock_receipts.product_variant_id', $variant->id)
+                    ->sum(DB::raw('CASE WHEN products.category = "food" THEN quantity_received_packages ELSE (quantity_received_packages * product_variants.items_per_package) END'));
+
+                $shoppingIn = DB::table('shopping_list_items')
+                    ->join('product_variants', 'shopping_list_items.product_variant_id', '=', 'product_variants.id')
+                    ->join('products', 'shopping_list_items.product_id', '=', 'products.id')
+                    ->where('shopping_list_items.product_variant_id', $variant->id)
+                    ->where('shopping_list_items.is_purchased', true)
+                    ->sum(DB::raw("CASE 
+                        WHEN (received_quantity_kg > 0) THEN received_quantity_kg 
+                        WHEN LOWER(unit) IN ($unitsList) AND (products.category != 'food' OR products.category IS NULL) THEN purchased_quantity * product_variants.items_per_package 
+                        ELSE purchased_quantity 
+                    END"));
+
+                $returnsIn = DB::table('stock_returns')
+                    ->where('product_variant_id', $variant->id)
+                    ->where('status', 'received')
+                    ->sum('quantity');
+
+                $transfersOut = DB::table('stock_transfers')
+                    ->join('product_variants', 'stock_transfers.product_variant_id', '=', 'product_variants.id')
+                    ->where('stock_transfers.product_variant_id', $variant->id)
+                    ->whereIn('stock_transfers.status', ['completed', 'pending'])
+                    ->sum(DB::raw("CASE WHEN LOWER(quantity_unit) IN ($unitsList) THEN quantity_transferred * product_variants.items_per_package ELSE quantity_transferred END"));
+
+                $currentStock = ((float) $receiptsIn + (float) $shoppingIn + (float) $returnsIn) - (float) $transfersOut;
+
+                if ($variant->isLowStock($currentStock)) {
+                    $variant->current_stock = $currentStock;
+                    $lowStockVariants[] = $variant;
+                    $totalLowStock++;
+                }
+            }
+        }
+
+        return view('admin.low-stock.index', compact('lowStockVariants', 'totalLowStock'));
+    }
+
+    /**
      * Display admin dashboard with statistics
      */
     public function dashboard()

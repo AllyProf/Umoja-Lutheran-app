@@ -8,15 +8,28 @@
         </div>
         <ul class="app-breadcrumb breadcrumb">
             <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
-            <li class="breadcrumb-item"><a href="{{ route('admin.restaurants.shopping-list.index') }}">Shopping Lists</a>
+            <li class="breadcrumb-item"><a href="{{ Auth::guard('staff')->user()->role === 'accountant' ? route('accountant.shopping-lists') : route('admin.restaurants.shopping-list.index') }}">Shopping Lists</a>
             </li>
             <li class="breadcrumb-item active"><a href="#">Record</a></li>
         </ul>
     </div>
 
+    @php
+        $role = strtolower(Auth::guard('staff')->user()->role ?? '');
+        $isAccountant = $role === 'accountant';
+        
+        $indexRoute = $isAccountant 
+            ? route('accountant.shopping-lists') 
+            : route('admin.restaurants.shopping-list.index');
+            
+        $updateRoute = $isAccountant
+            ? route('accountant.shopping-list.update-purchase', $shoppingList->id)
+            : route('admin.restaurants.shopping-list.update-purchase', $shoppingList->id);
+    @endphp
+
     <div class="row">
         <div class="col-md-12">
-            <form action="{{ route('admin.restaurants.shopping-list.update-purchase', $shoppingList->id) }}" method="POST"
+            <form action="{{ $updateRoute }}" method="POST"
                 id="purchaseForm">
                 @csrf
                 @method('PUT')
@@ -251,7 +264,7 @@
                         <button class="btn btn-primary" type="button" id="finalizeBtn">
                             <i class="fa fa-paper-plane"></i> Submit for Verification
                         </button>
-                        <a class="btn btn-secondary" href="{{ route('admin.restaurants.shopping-list.index') }}"><i
+                        <a class="btn btn-secondary" href="{{ $indexRoute }}"><i
                                 class="fa fa-times-circle"></i> Cancel</a>
                     </div>
                 </div>
@@ -549,7 +562,7 @@
                                     showConfirmButton: false
                                 });
                                 setTimeout(() => {
-                                    window.location.href = data.redirect_url || '{{ route("admin.restaurants.shopping-list.index") }}';
+                                    window.location.href = data.redirect_url || '{{ $indexRoute }}';
                                 }, 1000);
                             } else {
                                 swal("Error", data.message || "An error occurred", "error");

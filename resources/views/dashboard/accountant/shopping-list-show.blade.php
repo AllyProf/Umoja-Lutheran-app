@@ -55,6 +55,31 @@
         </div>
 
         <div class="col-md-4">
+            {{-- Direct Purchase Option for Accountant --}}
+            @if(in_array($shoppingList->status, ['pending', 'accountant_checked', 'approved', 'ready_for_purchase']))
+                @if(is_null($shoppingList->purchaser_id))
+                    <div class="tile">
+                        <h3 class="tile-title text-primary"><i class="fa fa-shopping-bag"></i> Direct Purchase</h3>
+                        <p class="small mb-2">Will you be purchasing these items directly?</p>
+                        <form action="{{ route('accountant.shopping-list.claim', $shoppingList->id) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-primary btn-block">
+                                <i class="fa fa-hand-paper-o mr-2"></i> I will purchase this
+                            </button>
+                        </form>
+                    </div>
+                @elseif($shoppingList->purchaser_id === Auth::guard('staff')->id())
+                    <div class="tile border border-success">
+                        <h3 class="tile-title text-success"><i class="fa fa-check-circle"></i> Direct Purchase Claimed</h3>
+                        <p class="small mb-2">You have claimed this list. You can now record the purchases directly.</p>
+                        <a href="{{ route('accountant.shopping-list.record-purchase', $shoppingList->id) }}"
+                            class="btn btn-success btn-block">
+                            <i class="fa fa-shopping-cart mr-2"></i> Record Purchase Details
+                        </a>
+                    </div>
+                @endif
+            @endif
+
             @if($shoppingList->status === 'pending')
                 <div class="tile">
                     <h3 class="tile-title">Step 1: Financial Review</h3>
@@ -92,19 +117,36 @@
                     </div>
                 </div>
             @elseif($shoppingList->status === 'approved')
-                <div class="tile">
-                    <h3 class="tile-title">Step 2: Fund Disbursement</h3>
-                    <p class="text-info">The manager has approved this list. Please disburse the funds (TZS
-                        {{ number_format($shoppingList->budget_amount) }}) to the Storekeeper so they can proceed with the
-                        purchase.
-                    </p>
-                    <form action="{{ route('accountant.shopping-list.disburse', $shoppingList->id) }}" method="POST">
-                        @csrf
-                        <button type="submit" class="btn btn-primary btn-block">
-                            <i class="fa fa-money mr-2"></i> Disburse Funds to Storekeeper
-                        </button>
-                    </form>
-                </div>
+                @if($shoppingList->purchaser_id === Auth::guard('staff')->id())
+                    <div class="tile">
+                        <h3 class="tile-title text-success">Step 2: Proceed to Purchase</h3>
+                        <p class="text-info">The manager has approved this list (Budget: TZS
+                            {{ number_format($shoppingList->budget_amount) }}). Since you claimed this list, you do not need to
+                            disburse funds. Click below to proceed.
+                        </p>
+                        <form action="{{ route('accountant.shopping-list.disburse', $shoppingList->id) }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="direct_purchase" value="1">
+                            <button type="submit" class="btn btn-success btn-block">
+                                <i class="fa fa-shopping-cart mr-2"></i> Proceed to Record Purchase
+                            </button>
+                        </form>
+                    </div>
+                @else
+                    <div class="tile">
+                        <h3 class="tile-title">Step 2: Fund Disbursement</h3>
+                        <p class="text-info">The manager has approved this list. Please disburse the funds (TZS
+                            {{ number_format($shoppingList->budget_amount) }}) to the Storekeeper so they can proceed with the
+                            purchase.
+                        </p>
+                        <form action="{{ route('accountant.shopping-list.disburse', $shoppingList->id) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fa fa-money mr-2"></i> Disburse Funds to Storekeeper
+                            </button>
+                        </form>
+                    </div>
+                @endif
             @elseif($shoppingList->status === 'purchased')
                 <div class="tile">
                     <h3 class="tile-title">Final Step: Reconciliation</h3>
@@ -130,7 +172,11 @@
             @elseif($shoppingList->status === 'ready_for_purchase')
                 <div class="tile">
                     <h3 class="tile-title">Status: <span class="badge badge-warning">READY FOR PURCHASE</span></h3>
-                    <p>Funds have been disbursed. Waiting for the Storekeeper to record the purchase.</p>
+                    @if($shoppingList->purchaser_id === Auth::guard('staff')->id())
+                        <p>You have claimed this list. Please record the purchase details using the button above.</p>
+                    @else
+                        <p>Funds have been disbursed. Waiting for the Storekeeper to record the purchase.</p>
+                    @endif
                     <p><strong>Approved Budget:</strong> TZS {{ number_format($shoppingList->budget_amount) }}</p>
                     <p><strong>Notes:</strong> {{ $shoppingList->notes }}</p>
                 </div>
