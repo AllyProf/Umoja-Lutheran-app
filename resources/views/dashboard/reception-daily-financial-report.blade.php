@@ -153,7 +153,8 @@
                             <tr class="font-weight-bold">
                                 <td colspan="5" class="text-right">Subtotal Booking:</td>
                                 <td class="text-right text-primary">
-                                    {{ number_format($bookingPayments->sum('amount_paid') * $exchangeRate, 0) }} TZS</td>
+                                    {{ number_format($bookingPayments->sum('amount_paid') * $exchangeRate, 0) }} TZS
+                                </td>
                             </tr>
                         </tfoot>
                     @endif
@@ -175,7 +176,9 @@
                     <tbody>
                         @forelse($servicePayments as $payment)
                             <tr>
-                                <td>{{ $payment->service->service_name ?? 'Item' }}</td>
+                                <td>
+                                    {{ $payment->service_specific_data['item_name'] ?? ($payment->service->name ?? 'Item') }}
+                                </td>
                                 <td>{{ $payment->booking->booking_reference ?? ($payment->is_walk_in ? 'Walk-in' : 'N/A') }}
                                 </td>
                                 <td><span class="badge badge-info">{{ strtoupper($payment->payment_method) }}</span></td>
@@ -192,7 +195,8 @@
                             <tr class="font-weight-bold">
                                 <td colspan="3" class="text-right">Subtotal Services:</td>
                                 <td class="text-right text-primary">
-                                    {{ number_format($servicePayments->sum('total_price_tsh'), 0) }} TZS</td>
+                                    {{ number_format($servicePayments->sum('total_price_tsh'), 0) }} TZS
+                                </td>
                             </tr>
                         </tfoot>
                     @endif
@@ -232,7 +236,8 @@
                             <tr class="font-weight-bold">
                                 <td colspan="4" class="text-right">Subtotal Day Services:</td>
                                 <td class="text-right text-primary">
-                                    {{ number_format($dayServicePayments->sum('amount_paid'), 0) }} TZS</td>
+                                    {{ number_format($dayServicePayments->sum('amount_paid'), 0) }} TZS
+                                </td>
                             </tr>
                         </tfoot>
                     @endif
@@ -256,7 +261,8 @@
                             <tr class="table-dark">
                                 <th class="text-right">GRAND TOTAL:</th>
                                 <th class="text-right" style="font-size: 1.2rem;">
-                                    {{ number_format(array_sum($summary), 0) }} TZS</th>
+                                    {{ number_format(array_sum($summary), 0) }} TZS
+                                </th>
                             </tr>
                         </table>
                     </div>
