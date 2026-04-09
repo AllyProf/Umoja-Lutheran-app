@@ -34,9 +34,13 @@
                                     @forelse($lowStockVariants as $variant)
                                         <tr>
                                             <td>
-                                                {{ $variant->product->name }}
-                                                @if($variant->variant_name)
-                                                    - {{ $variant->variant_name }}
+                                                @php
+                                                    $vName = $variant->variant_name;
+                                                @endphp
+                                                @if(empty($vName) || strtolower($vName) === 'standard' || strtolower($vName) === strtolower($variant->product->name))
+                                                    {{ $variant->product->name }}
+                                                @else
+                                                    {{ $vName }}
                                                 @endif
                                             </td>
                                             <td class="text-danger font-weight-bold">
@@ -44,7 +48,8 @@
                                                 {{ ucfirst($variant->receiving_unit ?: 'Pcs') }}
                                             </td>
                                             <td>{{ number_format($variant->minimum_stock_level, 2) }}
-                                                {{ ucfirst($variant->receiving_unit ?: 'Pcs') }}</td>
+                                                {{ ucfirst($variant->receiving_unit ?: 'Pcs') }}
+                                            </td>
                                         </tr>
                                     @empty
                                         <tr>
