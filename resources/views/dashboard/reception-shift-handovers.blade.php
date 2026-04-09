@@ -42,9 +42,14 @@
                                         @endphp
                                         <tr>
                                             <td>
-                                                <strong>{{ $handover->closed_at->format('M d, H:i') }}</strong><br>
+                                                @if($handover->closed_at)
+                                                    <strong>{{ $handover->closed_at->format('M d, H:i') }}</strong>
+                                                @else
+                                                    <span class="badge badge-warning">ACTIVE</span>
+                                                @endif
+                                                <br>
                                                 <small class="text-muted">{{ $handover->opened_at->format('H:i') }} -
-                                                    {{ $handover->closed_at->format('H:i') }}</small>
+                                                    {{ $handover->closed_at ? $handover->closed_at->format('H:i') : 'NOW' }}</small>
                                             </td>
                                             <td>{{ $handover->staff->name ?? 'Unknown' }}</td>
                                             <td>
