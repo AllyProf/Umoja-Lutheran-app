@@ -104,6 +104,16 @@
                 $updateRoute = 'customer.profile.update';
                 $passwordRoute = 'customer.profile.update-password';
                 $notificationsRoute = 'customer.profile.update-notifications';
+            } elseif (str_contains($currentRoute, 'bar-keeper')) {
+                $photoRoute = 'bar-keeper.profile.update-photo';
+                $updateRoute = 'bar-keeper.profile.update';
+                $passwordRoute = 'bar-keeper.profile.update-password';
+                $notificationsRoute = 'bar-keeper.profile.update-notifications';
+            } elseif (str_contains($currentRoute, 'chef-master')) {
+                $photoRoute = 'chef-master.profile.update-photo';
+                $updateRoute = 'chef-master.profile.update';
+                $passwordRoute = 'chef-master.profile.update-password';
+                $notificationsRoute = 'chef-master.profile.update-notifications';
             } elseif (str_contains($currentRoute, 'admin')) {
                 $photoRoute = 'admin.profile.update-photo';
                 $updateRoute = 'admin.profile.update';
@@ -131,6 +141,16 @@
                 $updateRoute = 'housekeeper.profile.update';
                 $passwordRoute = 'housekeeper.profile.update-password';
                 $notificationsRoute = 'housekeeper.profile.update-notifications';
+            } elseif (str_contains($currentPath, 'bar-keeper')) {
+                $photoRoute = 'bar-keeper.profile.update-photo';
+                $updateRoute = 'bar-keeper.profile.update';
+                $passwordRoute = 'bar-keeper.profile.update-password';
+                $notificationsRoute = 'bar-keeper.profile.update-notifications';
+            } elseif (str_contains($currentPath, 'chef-master')) {
+                $photoRoute = 'chef-master.profile.update-photo';
+                $updateRoute = 'chef-master.profile.update';
+                $passwordRoute = 'chef-master.profile.update-password';
+                $notificationsRoute = 'chef-master.profile.update-notifications';
             } elseif (str_contains($currentPath, 'customer')) {
                 $photoRoute = 'customer.profile.update-photo';
                 $updateRoute = 'customer.profile.update';
