@@ -30,11 +30,6 @@ class AdminController extends Controller
 
         foreach (Product::with(['variants'])->get() as $product) {
             foreach ($product->variants as $variant) {
-                // Only check variants that have an explicit minimum_stock_level set
-                if (!$variant->minimum_stock_level || $variant->minimum_stock_level <= 0) {
-                    continue;
-                }
-
                 $packageUnits = ProductVariant::getPackageUnits();
                 $unitsList = "'" . implode("','", $packageUnits) . "'";
 
@@ -68,9 +63,14 @@ class AdminController extends Controller
 
                 $currentStock = ((float) $receiptsIn + (float) $shoppingIn + (float) $returnsIn) - (float) $transfersOut;
 
-                if ($currentStock <= (float) $variant->minimum_stock_level) {
+                // Skip items that have never received stock AND have no minimum threshold set (unconfigured products)
+                if ($currentStock == 0 && (!$variant->minimum_stock_level || $variant->minimum_stock_level <= 0)) {
+                    continue;
+                }
+
+                if ($variant->isLowStock($currentStock)) {
                     $variant->current_stock = $currentStock;
-                    $variant->setRelation('product', $product); // Attach product directly
+                    $variant->setRelation('product', $product);
                     $lowStockVariants[] = $variant;
                     $totalLowStock++;
                 }
