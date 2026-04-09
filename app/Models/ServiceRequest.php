@@ -21,6 +21,9 @@ class ServiceRequest extends Model
         'total_price_tsh',
         'status',
         'reception_notes',
+        'cancellation_reason',
+        'cancelled_by',
+        'cancelled_at',
         'approved_by',
         'is_walk_in',
         'walk_in_name',
@@ -42,6 +45,7 @@ class ServiceRequest extends Model
         'approved_at' => 'datetime',
         'preparation_started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
 
     /**

@@ -184,6 +184,13 @@
                                   title="Mark as Served (Taken)">
                                   <i class="fa fa-hand-holding-water"></i> Serve
                                 </button>
+
+                                <button class="btn btn-xs btn-outline-danger pull-right ml-1 {{ !$activeShift ? 'disabled' : '' }}"
+                                  {{ !$activeShift ? 'disabled' : '' }}
+                                  onclick="cancelOrder({{ $order->id }}, '{{ $order->service_specific_data['item_name'] ?? 'Item' }}')"
+                                  title="Cancel Order">
+                                  <i class="fa fa-times-circle"></i> Cancel
+                                </button>
                               @endif
 
                               @if(!$order->is_walk_in)
@@ -1466,6 +1473,64 @@
             .catch(error => {
               console.error('Error:', error);
               Swal.fire("Error!", "Failed to update order. Please try again.", "error");
+            });
+        }
+      });
+    }
+
+    function cancelOrder(orderId, itemName) {
+      Swal.fire({
+        title: "Cancel Order?",
+        text: "Are you sure you want to cancel '" + itemName + "'? This will return items to stock.",
+        icon: "warning",
+        input: 'textarea',
+        inputPlaceholder: 'Ingiza sababu ya ku-cancel order hapa (Mandatory)...',
+        inputAttributes: {
+          'aria-label': 'Sababu ya ku-cancel'
+        },
+        showCancelButton: true,
+        confirmButtonColor: "#dc3545",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Yes, Cancel Order!",
+        cancelButtonText: "No, Keep It",
+        preConfirm: (reason) => {
+          if (!reason || reason.trim().length < 5) {
+            Swal.showValidationMessage(`Tafadhali ingiza sababu yenye maana (angalau herufi 5)`);
+          }
+          return reason;
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const url = `/bar-keeper/orders/${orderId}/cancel`;
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              cancellation_reason: result.value
+            })
+          })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                Swal.fire({
+                  title: "Cancelled!",
+                  text: data.message,
+                  icon: "success",
+                  timer: 2000,
+                  showConfirmButton: false
+                });
+                setTimeout(() => location.reload(), 1500);
+              } else {
+                Swal.fire("Error!", data.message, "error");
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              Swal.fire("Error!", "Failed to cancel order. Please try again.", "error");
             });
         }
       });

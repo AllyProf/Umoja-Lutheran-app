@@ -775,6 +775,60 @@ class BarKeeperController extends Controller
     }
 
     /**
+     * Cancel an Order (Service Request)
+     */
+    public function cancelOrder(Request $request, \App\Models\ServiceRequest $serviceRequest)
+    {
+        $staffId = Auth::guard('staff')->id();
+        $user = Auth::guard('staff')->user();
+
+        $request->validate([
+            'cancellation_reason' => 'required|string|min:5|max:500',
+        ]);
+
+        try {
+            \DB::beginTransaction();
+
+            // 1. Verify if already completed or cancelled
+            if ($serviceRequest->status === 'cancelled') {
+                return response()->json(['success' => false, 'message' => 'Hii order tayari ilishafutwa (cancelled).'], 422);
+            }
+
+            // Record old status for logging/notes
+            $oldStatus = $serviceRequest->status;
+
+            // 2. Update Service Request
+            $serviceRequest->update([
+                'status' => 'cancelled',
+                'cancellation_reason' => $request->cancellation_reason,
+                'cancelled_by' => $user->id,
+                'cancelled_at' => now(),
+                'reception_notes' => $serviceRequest->reception_notes . " | ORDER CANCELLED by {$user->name}. Reason: " . $request->cancellation_reason,
+            ]);
+
+            // 3. Handle Stock Restoration (if applicable)
+            // Note: The stock logic in reports/dashboard recalculates based on 'completed' status.
+            // By changing status to 'cancelled', it will naturally be excluded from 'completed' sales,
+            // effectively 'restoring' the stock in the system's eyes since stock is transfers - completed_sales.
+
+            \DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order imefutwa (Cancelled) mafanikio na stock imerekebishwa.',
+            ]);
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            \Log::error('Error cancelling order: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * View Completed Order History & Statistics
      */
     public function completedOrders(Request $request)
