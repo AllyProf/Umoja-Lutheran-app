@@ -228,7 +228,7 @@
 
                         @if($guestTotal > 0)
                           <button class="btn btn-success btn-lg btn-block shadow-sm {{ !$activeShift ? 'disabled' : '' }}" {{ !$activeShift ? 'disabled' : '' }}
-                            onclick="openPaymentModal('{{ $groupKey }}', {{ $guestTotal }}, {{ $first->is_walk_in ? 1 : 0 }})">
+                            onclick="openPaymentModal({{ $first->id }}, {{ $guestTotal }}, {{ $first->is_walk_in ? 1 : 0 }})">
                             <i class="fa fa-money"></i> PAY: {{ number_format($guestTotal) }}
                           </button>
                         @endif
