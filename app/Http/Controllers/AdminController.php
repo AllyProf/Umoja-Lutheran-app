@@ -63,11 +63,6 @@ class AdminController extends Controller
 
                 $currentStock = ((float) $receiptsIn + (float) $shoppingIn + (float) $returnsIn) - (float) $transfersOut;
 
-                // Skip items that have never received stock AND have no minimum threshold set (unconfigured products)
-                if ($currentStock == 0 && (!$variant->minimum_stock_level || $variant->minimum_stock_level <= 0)) {
-                    continue;
-                }
-
                 if ($variant->isLowStock($currentStock)) {
                     $variant->current_stock = $currentStock;
                     $variant->setRelation('product', $product);
