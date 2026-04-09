@@ -36,7 +36,7 @@
                                             <td>
                                                 {{ $variant->product->name }}
                                                 @if($variant->variant_name)
-                                                    <small class="text-muted">({{ $variant->variant_name }})</small>
+                                                    - {{ $variant->variant_name }}
                                                 @endif
                                             </td>
                                             <td class="text-danger font-weight-bold">
