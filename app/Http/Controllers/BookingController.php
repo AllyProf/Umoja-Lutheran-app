@@ -125,7 +125,7 @@ class BookingController extends Controller
             'country' => 'required|string|max:255',
             'guest_phone' => 'required|string|max:20',
             'country_code' => 'required|string|max:10',
-            'check_in' => 'required|date|after_or_equal:today',
+            'check_in' => 'required|date|after_or_equal:yesterday',
             'check_out' => 'required|date|after:check_in',
             'number_of_guests' => 'required|integer|min:1',
             'special_requests' => 'nullable|string',
@@ -3134,7 +3134,7 @@ class BookingController extends Controller
                 'guider_name' => 'required|string|max:255',
                 'guider_email' => 'required|email|max:255',
                 'guider_phone' => 'required|string|max:255',
-                'check_in' => 'required|date|after_or_equal:today',
+                'check_in' => 'required|date|after_or_equal:yesterday',
                 'check_out' => 'required|date|after:check_in',
                 'number_of_guests' => 'required|integer|min:1|max:50',
                 'general_notes' => 'nullable|string|max:2000',
@@ -3797,6 +3797,7 @@ class BookingController extends Controller
                 'checkout_date' => $checkoutDate,
                 'status' => $activeGuestBooking ? 'occupied' : $room->status, // Use active status if checked in
                 'can_select' => $canSelect,
+                'extra_guest_fee' => $room->extra_guest_fee,
             ];
         };
 
@@ -3944,6 +3945,7 @@ class BookingController extends Controller
                 'checkout_date' => $checkoutDate,
                 'status' => $activeGuestBooking ? 'occupied' : $room->status, // Use active status if checked in
                 'can_select' => $canSelect,
+                'extra_guest_fee' => $room->extra_guest_fee,
             ];
         };
 
@@ -4041,7 +4043,7 @@ class BookingController extends Controller
             'country_code' => 'required|string|max:10',
             'guest_type' => 'required|in:tanzanian,international',
             'room_id' => 'required|exists:rooms,id',
-            'check_in' => 'required|date|after_or_equal:today',
+            'check_in' => 'required|date|after_or_equal:yesterday',
             'check_in_time' => 'required|string',
             'check_out' => 'required|date|after:check_in',
             'check_out_time' => 'required|string',

@@ -267,6 +267,23 @@
               </div>
             </div>
 
+            <div class="row">
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label for="extra_guest_fee">Extra Guest Fee (TZS) <span class="text-danger">*</span></label>
+                  <div class="input-group">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text">TZS</span>
+                    </div>
+                    <input class="form-control" type="number" id="extra_guest_fee" name="extra_guest_fee" min="0"
+                      placeholder="0" value="{{ $room->extra_guest_fee ?? '' }}" required>
+                  </div>
+                  <small class="form-text text-muted">Additional fee for extra guests (e.g., if 1 guest stays in a double
+                    room)</small>
+                </div>
+              </div>
+            </div>
+
 
             <!-- Navigation Buttons for Step 2 -->
             <div class="wizard-navigation mt-4 pt-3 border-top">
@@ -1158,15 +1175,17 @@
         border-bottom: none;
       }
     }
+
     .room-card.compact-card.selected {
-    border-color: #940000 !important;
-    box-shadow: 0 0 10px rgba(148, 0, 0, 0.2);
-    background-color: #fff9f9 !important;
-  }
-  .room-card.compact-card.selected .selected-icon {
-    display: block !important;
-  }
-</style>
+      border-color: #940000 !important;
+      box-shadow: 0 0 10px rgba(148, 0, 0, 0.2);
+      background-color: #fff9f9 !important;
+    }
+
+    .room-card.compact-card.selected .selected-icon {
+      display: block !important;
+    }
+  </style>
 
   <script>
     let currentStep = 1;
@@ -1452,12 +1471,12 @@
         const item = document.createElement('div');
         item.className = 'image-preview-item';
         item.innerHTML = `
-        <img src="${fileData.data}" alt="${fileData.name}">
-        <button type="button" class="remove-btn" onclick="removeImage(${index})" title="Remove image">
-          <i class="fa fa-times"></i>
-        </button>
-        <div class="image-info">${fileData.name}</div>
-      `;
+          <img src="${fileData.data}" alt="${fileData.name}">
+          <button type="button" class="remove-btn" onclick="removeImage(${index})" title="Remove image">
+            <i class="fa fa-times"></i>
+          </button>
+          <div class="image-info">${fileData.name}</div>
+        `;
         preview.appendChild(item);
       }
 
@@ -1680,40 +1699,42 @@
         }
 
         // Auto-pricing logic
-  const roomTypeData = {
-    'Self-Contained Single': { price: 30000, capacity: 1, bed: 'Single' },
-    'Self-Contained Double': { price: 50000, capacity: 2, bed: 'King' },
-    'Standard Single': { price: 15000, capacity: 1, bed: 'Single' },
-    'Standard Double': { price: 30000, capacity: 2, bed: 'Queen' },
-    'Standard Triple': { price: 45000, capacity: 3, bed: 'Twin' },
-    'Standard Decker': { price: 60000, capacity: 4, bed: 'Bunk' },
-    'En-suite Single': { price: 60000, capacity: 1, bed: 'King' },
-    'En-suite Triple': { price: 90000, capacity: 3, bed: 'Twin' },
-    'En-suite Quad': { price: 120000, capacity: 4, bed: 'Single' },
-    'En-suite Quint': { price: 150000, capacity: 5, bed: 'Single' }
-  };
+        const roomTypeData = {
+          'Self-Contained Single': { price: 15000, capacity: 2, bed: 'Single', extra_fee: 15000 },
+          'Self-Contained Double': { price: 30000, capacity: 2, bed: 'King', extra_fee: 20000 },
+          'Standard Single': { price: 15000, capacity: 1, bed: 'Single', extra_fee: 0 },
+          'Standard Double': { price: 30000, capacity: 2, bed: 'Queen', extra_fee: 0 },
+          'Standard Triple': { price: 45000, capacity: 3, bed: 'Twin', extra_fee: 0 },
+          'Standard Decker': { price: 60000, capacity: 4, bed: 'Bunk', extra_fee: 0 },
+          'En-suite Single': { price: 60000, capacity: 1, bed: 'King', extra_fee: 0 },
+          'En-suite Triple': { price: 90000, capacity: 3, bed: 'Twin', extra_fee: 0 },
+          'En-suite Quad': { price: 120000, capacity: 4, bed: 'Single', extra_fee: 0 },
+          'En-suite Quint': { price: 150000, capacity: 5, bed: 'Single', extra_fee: 0 }
+        };
 
-  if (roomTypeSelect) {
-    roomTypeSelect.addEventListener('change', function() {
-      const selected = roomTypeData[this.value];
-      if (selected) {
-        const priceInput = document.getElementById('price_per_night');
-        const capacityInput = document.getElementById('capacity');
-        const bedTypeSelect = document.getElementById('bed_type');
-        
-        if (priceInput) priceInput.value = selected.price;
-        if (capacityInput) capacityInput.value = selected.capacity;
-        if (bedTypeSelect) bedTypeSelect.value = selected.bed;
-        
-        // Trigger potential conversion updates
-        if (typeof updatePriceConversions === 'function') {
-          updatePriceConversions();
+        if (roomTypeSelect) {
+          roomTypeSelect.addEventListener('change', function () {
+            const selected = roomTypeData[this.value];
+            if (selected) {
+              const priceInput = document.getElementById('price_per_night');
+              const extraFeeInput = document.getElementById('extra_guest_fee');
+              const capacityInput = document.getElementById('capacity');
+              const bedTypeSelect = document.getElementById('bed_type');
+
+              if (priceInput) priceInput.value = selected.price;
+              if (extraFeeInput) extraFeeInput.value = selected.extra_fee;
+              if (capacityInput) capacityInput.value = selected.capacity;
+              if (bedTypeSelect) bedTypeSelect.value = selected.bed;
+
+              // Trigger potential conversion updates
+              if (typeof updatePriceConversions === 'function') {
+                updatePriceConversions();
+              }
+            }
+          });
         }
-      }
-    });
-  }
 
-  // Initialize: Set manual as default and show it
+        // Initialize: Set manual as default and show it
         if (manualAssignRadio && autoGenerateRadio) {
           // Set manual as default
           manualAssignRadio.checked = true;
@@ -2007,8 +2028,8 @@
           updatePriceConversions();
         @endif
 
-    // Setup amenities check all functionality
-    const checkboxes = document.querySelectorAll('.amenity-checkbox');
+      // Setup amenities check all functionality
+      const checkboxes = document.querySelectorAll('.amenity-checkbox');
       const checkAllBtn = document.getElementById('checkAllAmenities');
       const uncheckAllBtn = document.getElementById('uncheckAllAmenities');
 
