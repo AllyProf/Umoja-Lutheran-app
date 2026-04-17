@@ -5367,8 +5367,10 @@
                     if (!room.images) {
                         room.images = [];
                     }
-                    // Store by room_type since we're grouping by type (no individual room IDs for guests)
-                    currentRoomsData[room.room_type] = room;
+                    // Store the first one we find for each type, or prefer one with a set fee
+                    if (!currentRoomsData[room.room_type] || (room.extra_guest_fee && !currentRoomsData[room.room_type].extra_guest_fee)) {
+                        currentRoomsData[room.room_type] = room;
+                    }
                 });
 
                 let html = '<div class="row">';
