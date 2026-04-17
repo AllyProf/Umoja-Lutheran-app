@@ -17,7 +17,7 @@ class RoomController extends Controller
     public function index()
     {
         $rooms = Room::orderBy('created_at', 'desc')->get();
-        
+
         // Calculate statistics
         $stats = [
             'total' => $rooms->count(),
@@ -26,11 +26,25 @@ class RoomController extends Controller
             'to_be_cleaned' => $rooms->where('status', 'to_be_cleaned')->count(),
             'maintenance' => $rooms->where('status', 'maintenance')->count(),
         ];
-        
+
         // Calculate statistics by room type
         $statsByType = [];
-        $roomTypes = ['Single', 'Double', 'Twins'];
-        
+        $roomTypes = [
+            'Self-Contained Single',
+            'Self-Contained Double',
+            'Standard Single',
+            'Standard Double',
+            'Standard Triple',
+            'Standard Decker',
+            'En-suite Single',
+            'En-suite Triple',
+            'En-suite Quad',
+            'En-suite Quint',
+            'Single',
+            'Double',
+            'Twins'
+        ];
+
         foreach ($roomTypes as $type) {
             $typeRooms = $rooms->where('room_type', $type);
             $statsByType[$type] = [
@@ -41,14 +55,14 @@ class RoomController extends Controller
                 'maintenance' => $typeRooms->where('status', 'maintenance')->count(),
             ];
         }
-        
+
         // Detect user role
         $user = auth()->user();
         $userRole = $user->role ?? 'manager';
         $role = $userRole === 'super_admin' ? 'super_admin' : 'manager';
         $userName = $user->name ?? 'Manager';
         $userRoleDisplay = $userRole === 'super_admin' ? 'Super Administrator' : 'Manager';
-        
+
         return view('dashboard.rooms-list', [
             'rooms' => $rooms,
             'stats' => $stats,
@@ -70,7 +84,7 @@ class RoomController extends Controller
         $role = $userRole === 'super_admin' ? 'super_admin' : 'manager';
         $userName = $user->name ?? 'Manager';
         $userRoleDisplay = $userRole === 'super_admin' ? 'Super Administrator' : 'Manager';
-        
+
         return view('dashboard.rooms', [
             'role' => $role,
             'userName' => $userName,
@@ -92,10 +106,10 @@ class RoomController extends Controller
 
             // Check if bulk creation is enabled
             $isBulkCreation = $request->has('enable_bulk_create') && $request->enable_bulk_create == '1';
-            
+
             // Validate the request - room_type is always required
             $validationRules = [
-                'room_type' => 'required|in:Single,Double,Twins',
+                'room_type' => 'required|in:Self-Contained Single,Self-Contained Double,Standard Single,Standard Double,Standard Triple,Standard Decker,En-suite Single,En-suite Triple,En-suite Quad,En-suite Quint,Single,Double,Twins',
                 'capacity' => 'required|integer|min:1|max:10',
                 'bed_type' => 'required|string',
                 'floor_location' => 'nullable|string|max:255',
@@ -120,12 +134,12 @@ class RoomController extends Controller
                 'room_images' => 'nullable|array',
                 'room_images.*' => 'image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max per image
             ];
-            
+
             // Add bulk creation validation rules
             if ($isBulkCreation) {
                 $validationRules['bulk_quantity'] = 'required|integer|min:2|max:50';
                 $validationRules['assignment_method'] = 'required|in:auto,manual';
-                
+
                 if ($request->assignment_method == 'auto') {
                     $validationRules['starting_room_number'] = 'required|string';
                 } else {
@@ -134,7 +148,7 @@ class RoomController extends Controller
             } else {
                 $validationRules['room_number'] = 'required|string|unique:rooms,room_number';
             }
-            
+
             $validated = $request->validate($validationRules);
 
             // Handle image uploads
@@ -213,17 +227,17 @@ class RoomController extends Controller
         try {
             $quantity = $validated['bulk_quantity'];
             $assignmentMethod = $validated['assignment_method'];
-            
+
             // Get existing room numbers to avoid duplicates
             $existingRoomNumbers = Room::pluck('room_number')->toArray();
-            
+
             // Generate room numbers based on assignment method
             $roomNumbers = [];
-            
+
             if ($assignmentMethod == 'auto') {
                 // Auto-generate sequential room numbers
                 $startingNumber = $validated['starting_room_number'];
-                
+
                 // Extract prefix and numeric part
                 if (!preg_match('/^([^0-9]*)(\d+)$/', $startingNumber, $matches)) {
                     return response()->json([
@@ -231,13 +245,13 @@ class RoomController extends Controller
                         'message' => 'Invalid starting room number format. Please use format like "201" or "A201".'
                     ], 422);
                 }
-                
+
                 $prefix = $matches[1];
-                $startNum = (int)$matches[2];
+                $startNum = (int) $matches[2];
                 $currentNum = $startNum;
                 $attempts = 0;
                 $maxAttempts = 1000; // Prevent infinite loop
-                
+
                 while (count($roomNumbers) < $quantity && $attempts < $maxAttempts) {
                     $roomNumber = $prefix . $currentNum;
                     if (!in_array($roomNumber, $existingRoomNumbers) && !in_array($roomNumber, $roomNumbers)) {
@@ -246,7 +260,7 @@ class RoomController extends Controller
                     $currentNum++;
                     $attempts++;
                 }
-                
+
                 if (count($roomNumbers) < $quantity) {
                     return response()->json([
                         'success' => false,
@@ -256,7 +270,7 @@ class RoomController extends Controller
             } else {
                 // Manual assignment - only accept commas as separator
                 $input = trim($validated['manual_room_numbers']);
-                
+
                 // Check for invalid separators
                 if (preg_match('/[.;|]/', $input)) {
                     return response()->json([
@@ -264,21 +278,21 @@ class RoomController extends Controller
                         'message' => "Invalid separator detected. Please use commas (,) to separate room numbers. Example: 100, 204, 4046"
                     ], 422);
                 }
-                
+
                 $inputNumbers = array_map('trim', explode(',', $input));
-                $inputNumbers = array_values(array_filter($inputNumbers, function($num) {
+                $inputNumbers = array_values(array_filter($inputNumbers, function ($num) {
                     return !empty($num) && trim($num) !== '';
                 }));
-                
+
                 // Validate exact quantity match in input (before checking for existing rooms)
                 $inputCount = count($inputNumbers);
-                if ($inputCount !== (int)$quantity) {
+                if ($inputCount !== (int) $quantity) {
                     return response()->json([
                         'success' => false,
-                        'message' => "You provided " . $inputCount . " room number(s), but need exactly " . (int)$quantity . ". Please provide exactly " . (int)$quantity . " room numbers separated by commas."
+                        'message' => "You provided " . $inputCount . " room number(s), but need exactly " . (int) $quantity . ". Please provide exactly " . (int) $quantity . " room numbers separated by commas."
                     ], 422);
                 }
-                
+
                 // Validate and filter room numbers
                 $duplicateInInput = [];
                 $existingInInput = [];
@@ -287,22 +301,22 @@ class RoomController extends Controller
                     if (empty($roomNumber)) {
                         continue;
                     }
-                    
+
                     // Check for duplicates in the input itself
                     if (in_array($roomNumber, $roomNumbers)) {
                         $duplicateInInput[] = $roomNumber;
                         continue;
                     }
-                    
+
                     // Check if room number already exists in database
                     if (in_array($roomNumber, $existingRoomNumbers)) {
                         $existingInInput[] = $roomNumber;
                         continue; // Skip existing room numbers
                     }
-                    
+
                     $roomNumbers[] = $roomNumber;
                 }
-                
+
                 // Check for duplicates in input
                 if (!empty($duplicateInInput)) {
                     return response()->json([
@@ -310,26 +324,26 @@ class RoomController extends Controller
                         'message' => "Duplicate room numbers found in your input: " . implode(', ', array_unique($duplicateInInput)) . ". Please provide unique room numbers."
                     ], 422);
                 }
-                
+
                 // Validate we have exactly the required quantity of valid unique room numbers
                 $validCount = count($roomNumbers);
-                if ($validCount < (int)$quantity) {
-                    $missing = (int)$quantity - $validCount;
+                if ($validCount < (int) $quantity) {
+                    $missing = (int) $quantity - $validCount;
                     $errorMsg = "Only " . $validCount . " valid unique room number(s) found.";
                     if (!empty($existingInInput)) {
                         $errorMsg .= " The following room number(s) already exist: " . implode(', ', array_unique($existingInInput)) . ".";
                     }
-                    $errorMsg .= " Please provide " . (int)$quantity . " unique room numbers that don't already exist.";
+                    $errorMsg .= " Please provide " . (int) $quantity . " unique room numbers that don't already exist.";
                     return response()->json([
                         'success' => false,
                         'message' => $errorMsg
                     ], 422);
                 }
             }
-            
+
             // Create rooms in a transaction
             DB::beginTransaction();
-            
+
             try {
                 $createdRooms = [];
                 foreach ($roomNumbers as $roomNumber) {
@@ -338,17 +352,27 @@ class RoomController extends Controller
                     ]));
                     $createdRooms[] = $room;
                 }
-                
+
                 DB::commit();
-                
+
                 // Get room type display name
                 $roomTypeNames = [
+                    'Self-Contained Single' => 'Single Room (1 Pax)',
+                    'Self-Contained Double' => 'Double Bed (2 Pax)',
+                    'Standard Single' => 'Single Room (1 Pax)',
+                    'Standard Double' => 'Double Room (2 Pax)',
+                    'Standard Triple' => 'Triple Room (3 Pax)',
+                    'Standard Decker' => 'Decker Room (4 Pax)',
+                    'En-suite Single' => 'Suite House (Single)',
+                    'En-suite Triple' => 'Family House (3 beds)',
+                    'En-suite Quad' => 'Suite Family (4 beds)',
+                    'En-suite Quint' => 'Family House (5 beds)',
                     'Single' => 'Single Room',
                     'Double' => 'Double Room',
                     'Twins' => 'Standard Twin Room'
                 ];
                 $roomTypeDisplay = $roomTypeNames[$baseRoomData['room_type']] ?? 'Room';
-                
+
                 return response()->json([
                     'success' => true,
                     'message' => "Successfully created " . count($createdRooms) . " " . $roomTypeDisplay . "(s)!",
@@ -390,7 +414,7 @@ class RoomController extends Controller
         $role = $userRole === 'super_admin' ? 'super_admin' : 'manager';
         $userName = $user->name ?? 'Manager';
         $userRoleDisplay = $userRole === 'super_admin' ? 'Super Administrator' : 'Manager';
-        
+
         return view('dashboard.rooms', [
             'room' => $room,
             'role' => $role,
@@ -414,7 +438,7 @@ class RoomController extends Controller
             // Validate the request
             $validated = $request->validate([
                 'room_number' => 'required|string|unique:rooms,room_number,' . $room->id,
-                'room_type' => 'required|in:Single,Double,Twins',
+                'room_type' => 'required|in:Self-Contained Single,Self-Contained Double,Standard Single,Standard Double,Standard Triple,Standard Decker,En-suite Single,En-suite Triple,En-suite Quad,En-suite Quint,Single,Double,Twins',
                 'capacity' => 'required|integer|min:1|max:10',
                 'bed_type' => 'required|string',
                 'floor_location' => 'nullable|string|max:255',
@@ -446,14 +470,14 @@ class RoomController extends Controller
             if ($request->has('remove_images')) {
                 $imagesToRemove = $request->remove_images;
                 $remainingImages = array_diff($currentImages, $imagesToRemove);
-                
+
                 // Delete files from storage
                 foreach ($imagesToRemove as $imagePath) {
                     if (Storage::disk('public')->exists($imagePath)) {
                         Storage::disk('public')->delete($imagePath);
                     }
                 }
-                
+
                 $currentImages = array_values($remainingImages);
             }
 
@@ -677,14 +701,29 @@ class RoomController extends Controller
     {
         $roomIds = $request->get('room_ids', []);
         $roomType = $request->get('type', null); // Optional type filter
-        
+
         $query = Room::whereIn('id', $roomIds);
-        
+
         // If type filter is provided, filter by room type
-        if ($roomType && in_array($roomType, ['Single', 'Double', 'Twins'])) {
+        $validTypes = [
+            'Self-Contained Single',
+            'Self-Contained Double',
+            'Standard Single',
+            'Standard Double',
+            'Standard Triple',
+            'Standard Decker',
+            'En-suite Single',
+            'En-suite Triple',
+            'En-suite Quad',
+            'En-suite Quint',
+            'Single',
+            'Double',
+            'Twins'
+        ];
+        if ($roomType && in_array($roomType, $validTypes)) {
             $query->where('room_type', $roomType);
         }
-        
+
         $rooms = $query->get();
 
         if ($rooms->isEmpty()) {
@@ -727,10 +766,19 @@ class RoomController extends Controller
                 foreach ($rooms as $room) {
                     // Only update fields that are provided and allowed
                     $allowedFields = [
-                        'price_per_night', 'capacity', 'bed_type', 'status',
-                        'floor_location', 'description', 'extra_guest_fee',
-                        'peak_season_price', 'off_season_price', 'discount_percentage',
-                        'bathroom_type', 'pet_friendly', 'smoking_allowed'
+                        'price_per_night',
+                        'capacity',
+                        'bed_type',
+                        'status',
+                        'floor_location',
+                        'description',
+                        'extra_guest_fee',
+                        'peak_season_price',
+                        'off_season_price',
+                        'discount_percentage',
+                        'bathroom_type',
+                        'pet_friendly',
+                        'smoking_allowed'
                     ];
 
                     foreach ($updateFields as $field => $value) {
@@ -781,7 +829,7 @@ class RoomController extends Controller
         try {
             $validated = $request->validate([
                 'room_id' => 'required|exists:rooms,id',
-                'room_type' => 'required|in:Single,Double,Twins',
+                'room_type' => 'required|in:Self-Contained Single,Self-Contained Double,Standard Single,Standard Double,Standard Triple,Standard Decker,En-suite Single,En-suite Triple,En-suite Quad,En-suite Quint,Single,Double,Twins',
                 'capacity' => 'required|integer|min:1|max:10',
                 'bed_type' => 'required|string|max:255',
                 'price_per_night' => 'required|numeric|min:0',
@@ -791,18 +839,18 @@ class RoomController extends Controller
             ]);
 
             $room = Room::findOrFail($validated['room_id']);
-            
+
             // Store old room type for message
             $oldType = $room->room_type;
             $newType = $validated['room_type'];
-            
+
             // Get type display names
             $typeNames = [
                 'Single' => 'Single Room',
                 'Double' => 'Double Room',
                 'Twins' => 'Standard Twin Room'
             ];
-            
+
             $oldTypeDisplay = $typeNames[$oldType] ?? $oldType;
             $newTypeDisplay = $typeNames[$newType] ?? $newType;
 
@@ -814,7 +862,7 @@ class RoomController extends Controller
                 $room->capacity = $validated['capacity'];
                 $room->bed_type = $validated['bed_type'];
                 $room->price_per_night = $validated['price_per_night'];
-                
+
                 if (isset($validated['description'])) {
                     $room->description = $validated['description'];
                 }
@@ -823,7 +871,7 @@ class RoomController extends Controller
                 if ($request->hasFile('room_images')) {
                     $uploadedImages = [];
                     $images = $request->file('room_images');
-                    
+
                     foreach ($images as $image) {
                         $filename = 'rooms/' . Str::uuid() . '.' . $image->getClientOriginalExtension();
                         $image->storeAs('public', $filename);
@@ -831,7 +879,7 @@ class RoomController extends Controller
                         // Sync to public directory for Windows compatibility
                         $this->syncFileToPublic($filename);
                     }
-                    
+
                     // Merge with existing images or replace
                     $existingImages = $room->images ?? [];
                     if (is_array($existingImages)) {
@@ -878,7 +926,7 @@ class RoomController extends Controller
     {
         $storagePath = storage_path('app/public/' . $filePath);
         $publicPath = public_path('storage/' . $filePath);
-        
+
         // Only sync if file exists in storage and doesn't exist in public
         if (file_exists($storagePath) && !file_exists($publicPath)) {
             // Create directory if it doesn't exist
@@ -886,11 +934,11 @@ class RoomController extends Controller
             if (!is_dir($publicDir)) {
                 mkdir($publicDir, 0755, true);
             }
-            
+
             // Copy the file
             return copy($storagePath, $publicPath);
         }
-        
+
         return true;
     }
 }

@@ -133,8 +133,8 @@
                         <span class="badge badge-secondary mb-1">WALK-IN</span><br>
                         <strong>{{ $first->walk_in_name ?? 'General Walk-in' }}</strong>
                       @else
-                        <span class="badge badge-primary mb-1">Room {{ $first->booking->room->room_number ?? 'N/A' }}</span><br>
-                        <strong>{{ $first->booking->guest_name }}</strong>
+                        <span class="badge badge-primary mb-1">Room {{ $first->booking?->room?->room_number ?? 'N/A' }}</span><br>
+                        <strong>{{ $first->booking?->guest_name ?? 'Guest' }}</strong>
                       @endif
                     </td>
                     <td colspan="4" class="p-0">
@@ -142,7 +142,7 @@
                         @foreach($orderGroup as $order)
                           <tr style="background: transparent;">
                             <td style="width: 35%; border-top: none;">
-                              <strong>{{ $order->service_specific_data['item_name'] ?? $order->service->name }}</strong>
+                              <strong>{{ $order->service_specific_data['item_name'] ?? $order->service?->name ?? 'Deleted Service' }}</strong>
                               @if($order->payment_status === 'pending')
                                 <br><span class="badge badge-warning" style="font-size: 9px;">UNPAID</span>
                               @endif
@@ -281,11 +281,11 @@
                       @if($sale->is_walk_in)
                         <span class="badge badge-info">Walk-in: {{ $sale->walk_in_name }}</span>
                       @else
-                        <strong>Room {{ $sale->booking->room->room_number ?? 'N/A' }}</strong><br>
-                        <small>{{ $sale->booking->guest_name ?? '' }}</small>
+                        <strong>Room {{ $sale->booking?->room?->room_number ?? 'N/A' }}</strong><br>
+                        <small>{{ $sale->booking?->guest_name ?? '' }}</small>
                       @endif
                     </td>
-                    <td>{{ $sale->service_specific_data['item_name'] ?? $sale->service->name }}</td>
+                    <td>{{ $sale->service_specific_data['item_name'] ?? $sale->service?->name ?? 'Deleted Service' }}</td>
                     <td>{{ $sale->quantity }}</td>
                     <td class="font-weight-bold">{{ number_format($sale->total_price_tsh) }}</td>
                     <td><span class="badge badge-outline-secondary">{{ strtoupper($sale->payment_method) }}</span></td>
@@ -331,8 +331,8 @@
                   <tr>
                     <td><strong>{{ $transfer->transfer_reference }}</strong></td>
                     <td>{{ $transfer->transfer_date->format('M d, Y') }}</td>
-                    <td><strong>{{ $transfer->product->name }}</strong></td>
-                    <td>{{ $transfer->productVariant->measurement }} ({{ $transfer->productVariant->packaging }})</td>
+                    <td><strong>{{ $transfer->product->name ?? 'Deleted Product' }}</strong></td>
+                    <td>{{ $transfer->productVariant->measurement ?? 'N/A' }} ({{ $transfer->productVariant->packaging ?? 'N/A' }})</td>
                     <td>
                       {{ number_format($transfer->quantity_transferred) }}
                       <span
@@ -392,8 +392,8 @@
                 @foreach($completedTransfers as $transfer)
                   <tr>
                     <td><strong>{{ $transfer->transfer_reference }}</strong></td>
-                    <td><strong>{{ $transfer->product->name }}</strong></td>
-                    <td>{{ $transfer->productVariant->measurement }} ({{ $transfer->productVariant->packaging }})</td>
+                    <td><strong>{{ $transfer->product->name ?? 'Deleted Product' }}</strong></td>
+                    <td>{{ $transfer->productVariant->measurement ?? 'N/A' }} ({{ $transfer->productVariant->packaging ?? 'N/A' }})</td>
                     <td>
                       {{ number_format($transfer->quantity_transferred) }}
                       <span

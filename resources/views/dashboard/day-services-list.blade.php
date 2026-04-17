@@ -38,8 +38,11 @@
           <a class="btn btn-warning" href="{{ $role === 'reception' ? route('reception.day-services.pending') : route('admin.day-services.pending') }}">
             <i class="fa fa-clock-o"></i> Pending Payments
           </a>
-        </div>
-      </div>
+              </div>
+            </div>
+
+
+
       
       <!-- Service Type Tabs -->
       <div class="mb-4">

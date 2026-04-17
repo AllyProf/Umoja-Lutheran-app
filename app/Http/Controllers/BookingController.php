@@ -115,7 +115,7 @@ class BookingController extends Controller
     {
         // Support both room_type (new) and room_id (backward compatibility for admin)
         $validated = $request->validate([
-            'room_type' => 'nullable|in:Single,Double,Twins',
+            'room_type' => 'nullable|in:Self-Contained Single,Self-Contained Double,Standard Single,Standard Double,Standard Triple,Standard Decker,En-suite Single,En-suite Triple,En-suite Quad,En-suite Quint,Single,Double,Twins',
             'room_id' => 'nullable|exists:rooms,id', // Keep for backward compatibility
             'guest_name' => 'required|string|max:255',
             'guest_name' => 'required|string|max:255',
@@ -3691,7 +3691,7 @@ class BookingController extends Controller
     {
         $validated = $request->validate([
             'room_types' => 'required|array',
-            'room_types.*' => 'in:Single,Double,Twins',
+            'room_types.*' => 'in:Self-Contained Single,Self-Contained Double,Standard Single,Standard Double,Standard Triple,Standard Decker,En-suite Single,En-suite Triple,En-suite Quad,En-suite Quint,Single,Double,Twins',
             'check_in' => 'required|date',
             'check_out' => 'required|date|after:check_in',
         ]);

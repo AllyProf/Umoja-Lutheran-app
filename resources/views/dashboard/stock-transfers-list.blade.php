@@ -68,18 +68,18 @@
               <tbody id="transfersContainer">
                 @foreach($transfers as $transfer)
                   <tr class="transfer-row" data-transfer-ref="{{ strtolower($transfer->transfer_reference) }}"
-                    data-product-name="{{ strtolower($transfer->product->name) }}"
+                    data-product-name="{{ strtolower($transfer->product?->name ?? 'Deleted Product') }}"
                     data-transferred-by="{{ strtolower($transfer->transferredBy->name ?? '') }}"
                     data-status="{{ strtolower($transfer->status) }}">
                     <td><strong>{{ $transfer->transfer_reference }}</strong></td>
                     <td>{{ $transfer->transfer_date->format('M d, Y') }}</td>
-                    <td><strong>{{ $transfer->product->name }}</strong></td>
+                    <td><strong>{{ $transfer->product?->name ?? 'Deleted Product' }}</strong></td>
                     <td>
-                      {{ $transfer->productVariant->measurement }}
+                      {{ $transfer->productVariant?->measurement ?? 'N/A' }}
                       <br><small
-                        class="text-muted">{{ $transfer->productVariant->packaging_name ?? $transfer->productVariant->packaging }}
-                        - {{ $transfer->productVariant->items_per_package }}
-                        Bottles/{{ \Illuminate\Support\Str::singular($transfer->productVariant->packaging_name ?? $transfer->productVariant->packaging) }}</small>
+                        class="text-muted">{{ $transfer->productVariant?->packaging_name ?? $transfer->productVariant?->packaging ?? 'N/A' }}
+                        - {{ $transfer->productVariant?->items_per_package ?? 1 }}
+                        Bottles/{{ \Illuminate\Support\Str::singular($transfer->productVariant?->packaging_name ?? $transfer->productVariant?->packaging ?? 'Package') }}</small>
                     </td>
                     <td>
                       {{ number_format($transfer->quantity_transferred) }}
@@ -254,84 +254,84 @@
               : 'bottles';
 
             const html = `
-            <div class="row">
-              <div class="col-md-6">
-                <h5 class="mb-3">Transfer Information</h5>
-                <table class="table table-sm table-borderless">
-                  <tr>
-                    <td width="150"><strong>Transfer Reference:</strong></td>
-                    <td><span class="badge badge-secondary">${transfer.transfer_reference}</span></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Transfer Date:</strong></td>
-                    <td>${new Date(transfer.transfer_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Product:</strong></td>
-                    <td><strong>${transfer.product?.name || 'N/A'}</strong></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Variant:</strong></td>
-                    <td>${transfer.product_variant?.measurement || 'N/A'} (${transfer.product_variant?.packaging || 'N/A'})</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Quantity:</strong></td>
-                    <td>
-                      <strong>${transfer.quantity_transferred}</strong> ${quantityUnitName}
-                      ${transfer.quantity_unit === 'packages' ? `<br><small class="text-info">(${new Number(transfer.total_bottles).toLocaleString()} Bottles)</small>` : ''}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td><strong>Status:</strong></td>
-                    <td>
-                      ${transfer.status === 'pending' ? '<span class="badge badge-warning">Pending</span>' : ''}
-                      ${transfer.status === 'completed' ? '<span class="badge badge-success">Completed</span>' : ''}
-                      ${transfer.status === 'cancelled' ? '<span class="badge badge-danger">Cancelled</span>' : ''}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td><strong>Selling Price:</strong></td>
-                    <td><strong>${new Number(transfer.selling_price).toLocaleString()} TSh</strong> <small class="text-muted">per bottle</small></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Buying Price:</strong></td>
-                    <td><strong>${new Number(transfer.buying_price).toLocaleString()} TSh</strong> <small class="text-muted">per bottle</small></td>
-                  </tr>
-                  <tr class="table-info">
-                    <td><strong>Expected Collection:</strong></td>
-                    <td><strong class="text-info">${new Number(transfer.expected_revenue).toLocaleString()} TSh</strong><br><small>(Total Revenue from sales)</small></td>
-                  </tr>
-                  <tr class="table-success">
-                    <td><strong>Expected Profit:</strong></td>
-                    <td><strong class="text-success">${new Number(transfer.expected_profit).toLocaleString()} TSh</strong><br><small>(Net gain after subtracting buying cost)</small></td>
-                  </tr>
-                </table>
-              </div>
-              <div class="col-md-6">
-                <h5 class="mb-3">People Involved</h5>
-                <table class="table table-sm table-borderless">
-                  <tr>
-                    <td width="150"><strong>Transferred By:</strong></td>
-                    <td>${transfer.transferred_by?.name || 'N/A'}</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Received By:</strong></td>
-                    <td>${transfer.received_by?.name || 'Pending'}</td>
-                  </tr>
-                  ${transfer.received_at ? `
-                  <tr>
-                    <td><strong>Received At:</strong></td>
-                    <td>${new Date(transfer.received_at).toLocaleString('en-US')}</td>
-                  </tr>
+              <div class="row">
+                <div class="col-md-6">
+                  <h5 class="mb-3">Transfer Information</h5>
+                  <table class="table table-sm table-borderless">
+                    <tr>
+                      <td width="150"><strong>Transfer Reference:</strong></td>
+                      <td><span class="badge badge-secondary">${transfer.transfer_reference}</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>Transfer Date:</strong></td>
+                      <td>${new Date(transfer.transfer_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Product:</strong></td>
+                      <td><strong>${transfer.product?.name || 'N/A'}</strong></td>
+                    </tr>
+                    <tr>
+                      <td><strong>Variant:</strong></td>
+                      <td>${transfer.product_variant?.measurement || 'N/A'} (${transfer.product_variant?.packaging || 'N/A'})</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Quantity:</strong></td>
+                      <td>
+                        <strong>${transfer.quantity_transferred}</strong> ${quantityUnitName}
+                        ${transfer.quantity_unit === 'packages' ? `<br><small class="text-info">(${new Number(transfer.total_bottles).toLocaleString()} Bottles)</small>` : ''}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>Status:</strong></td>
+                      <td>
+                        ${transfer.status === 'pending' ? '<span class="badge badge-warning">Pending</span>' : ''}
+                        ${transfer.status === 'completed' ? '<span class="badge badge-success">Completed</span>' : ''}
+                        ${transfer.status === 'cancelled' ? '<span class="badge badge-danger">Cancelled</span>' : ''}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>Selling Price:</strong></td>
+                      <td><strong>${new Number(transfer.selling_price).toLocaleString()} TSh</strong> <small class="text-muted">per bottle</small></td>
+                    </tr>
+                    <tr>
+                      <td><strong>Buying Price:</strong></td>
+                      <td><strong>${new Number(transfer.buying_price).toLocaleString()} TSh</strong> <small class="text-muted">per bottle</small></td>
+                    </tr>
+                    <tr class="table-info">
+                      <td><strong>Expected Collection:</strong></td>
+                      <td><strong class="text-info">${new Number(transfer.expected_revenue).toLocaleString()} TSh</strong><br><small>(Total Revenue from sales)</small></td>
+                    </tr>
+                    <tr class="table-success">
+                      <td><strong>Expected Profit:</strong></td>
+                      <td><strong class="text-success">${new Number(transfer.expected_profit).toLocaleString()} TSh</strong><br><small>(Net gain after subtracting buying cost)</small></td>
+                    </tr>
+                  </table>
+                </div>
+                <div class="col-md-6">
+                  <h5 class="mb-3">People Involved</h5>
+                  <table class="table table-sm table-borderless">
+                    <tr>
+                      <td width="150"><strong>Transferred By:</strong></td>
+                      <td>${transfer.transferred_by?.name || 'N/A'}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Received By:</strong></td>
+                      <td>${transfer.received_by?.name || 'Pending'}</td>
+                    </tr>
+                    ${transfer.received_at ? `
+                    <tr>
+                      <td><strong>Received At:</strong></td>
+                      <td>${new Date(transfer.received_at).toLocaleString('en-US')}</td>
+                    </tr>
+                    ` : ''}
+                  </table>
+                  ${transfer.notes ? `
+                  <h5 class="mb-3">Notes</h5>
+                  <p class="text-muted">${transfer.notes}</p>
                   ` : ''}
-                </table>
-                ${transfer.notes ? `
-                <h5 class="mb-3">Notes</h5>
-                <p class="text-muted">${transfer.notes}</p>
-                ` : ''}
+                </div>
               </div>
-            </div>
-          `;
+            `;
 
             content.html(html);
           } else {
