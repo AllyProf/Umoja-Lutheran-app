@@ -6363,11 +6363,13 @@
                 document.getElementById('summaryNights').textContent = nights + (nights === 1 ? ' night' : ' nights');
 
                 // Calculate prices
+                const guests = parseInt(document.getElementById('number_of_guests').value) || 1;
+                const extraGuests = Math.max(0, guests - 1);
+                const extraGuestFee = parseFloat(room.extra_guest_fee || 0);
                 const pricePerNight = parseFloat(room.price_per_night || 0);
-                const totalPrice = parseFloat(room.calculated_price || pricePerNight * nights);
-                const subtotal = pricePerNight * nights;
 
-                // Total equals subtotal (no tax)
+                const nightlyRateWithExtras = pricePerNight + (extraGuests * extraGuestFee);
+                const subtotal = nightlyRateWithExtras * nights;
                 const finalTotal = subtotal;
 
                 // Update compact total
@@ -6376,6 +6378,29 @@
                 // Update detailed breakdown
                 const breakdown = document.getElementById('bookingSummaryBreakdown');
                 document.getElementById('breakdownPricePerNight').textContent = '$' + pricePerNight.toFixed(2);
+
+                // Show extra guest fee if applicable
+                const breakdownExtraFees = document.getElementById('breakdownExtraFees');
+                if (extraGuests > 0 && extraGuestFee > 0) {
+                    if (!breakdownExtraFees) {
+                        const extraFeeRow = document.createElement('div');
+                        extraFeeRow.className = 'breakdown-item';
+                        extraFeeRow.id = 'breakdownExtraFees';
+                        extraFeeRow.innerHTML = `
+                            <span class="breakdown-label">Extra guest fees (${extraGuests}):</span>
+                            <span class="breakdown-value">$${(extraGuests * extraGuestFee).toFixed(2)}</span>
+                        `;
+                        const subtotalRow = document.querySelector('.breakdown-subtotal');
+                        subtotalRow.parentNode.insertBefore(extraFeeRow, subtotalRow);
+                    } else {
+                        breakdownExtraFees.style.display = 'flex';
+                        breakdownExtraFees.querySelector('.breakdown-label').textContent = `Extra guest fees (${extraGuests}):`;
+                        breakdownExtraFees.querySelector('.breakdown-value').textContent = `$${(extraGuests * extraGuestFee).toFixed(2)}`;
+                    }
+                } else if (breakdownExtraFees) {
+                    breakdownExtraFees.style.display = 'none';
+                }
+
                 document.getElementById('breakdownNights').textContent = nights + (nights === 1 ? ' night' : ' nights');
                 document.getElementById('breakdownSubtotal').textContent = '$' + subtotal.toFixed(2);
                 document.getElementById('breakdownTotal').textContent = '$' + finalTotal.toFixed(2);

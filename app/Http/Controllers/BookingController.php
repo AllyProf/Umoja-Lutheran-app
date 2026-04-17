@@ -29,8 +29,12 @@ class BookingController extends Controller
      */
     public function index(Request $request)
     {
-        // Online booking is temporarily disabled - show coming soon page
-        return view('landing_page_views.booking-coming-soon');
+        // Re-enabled online booking
+        $initial_check_in = $request->query('check_in');
+        $initial_check_out = $request->query('check_out');
+        $initial_room_type = $request->query('room_type');
+
+        return view('landing_page_views.booking', compact('initial_check_in', 'initial_check_out', 'initial_room_type'));
     }
 
     /**
@@ -39,10 +43,7 @@ class BookingController extends Controller
      */
     public function checkAvailability(Request $request)
     {
-        return response()->json([
-            'success' => false,
-            'message' => 'Online booking is temporarily unavailable. Please contact us directly to make a reservation.',
-        ], 503);
+        return $this->getAvailableRooms($request);
     }
 
     /**
@@ -3211,6 +3212,16 @@ class BookingController extends Controller
         // Store general notes (will be included in emails)
         $generalNotes = $validated['general_notes'] ?? null;
 
+        // Group guests by room to calculate costs correctly
+        $guestsPerRoom = [];
+        foreach ($guests as $guestData) {
+            $roomId = $guestData['room_id'];
+            if (!isset($guestsPerRoom[$roomId])) {
+                $guestsPerRoom[$roomId] = 0;
+            }
+            $guestsPerRoom[$roomId]++;
+        }
+
         $createdBookings = [];
         $createdGuests = [];
         $errors = [];
@@ -3251,10 +3262,16 @@ class BookingController extends Controller
                     continue;
                 }
 
-                // Calculate room cost in USD (room prices are stored in USD per night)
-                // Company pays in USD, so we store in USD
-                $roomPriceUSD = $room->price_per_night;
-                $roomCostUSD = $roomPriceUSD * $nights; // Total cost in USD
+                // Calculate room cost proportionally for shared rooms
+                // Formula: (Base Price + (Extra Guests * Extra Fee)) * Nights
+                $guestsInRoomCount = $guestsPerRoom[$room->id] ?? 1;
+                $extraGuestsCount = max(0, $guestsInRoomCount - 1);
+                $extraGuestFeeUSD = $room->extra_guest_fee ?? 0;
+
+                $totalRoomCostUSD = ($room->price_per_night + ($extraGuestsCount * $extraGuestFeeUSD)) * $nights;
+
+                // Distribute cost equally among guests in this room
+                $roomCostUSD = $totalRoomCostUSD / $guestsInRoomCount;
                 $paymentResponsibility = $guestData['payment_responsibility'] ?? 'company';
 
                 // Generate unique booking reference
@@ -4099,9 +4116,11 @@ class BookingController extends Controller
             ], 422);
         }
 
-        // Calculate recommended price (room price * nights)
+        // Calculate recommended price (Base Price + (Extra Guests * Extra Fee)) * Nights
         $nights = $checkIn->diffInDays($checkOut);
-        $recommendedPrice = $room->price_per_night * $nights;
+        $extraGuests = max(0, (int) $validated['number_of_guests'] - 1);
+        $extraGuestFee = $room->extra_guest_fee ?? 0;
+        $recommendedPrice = ($room->price_per_night + ($extraGuests * $extraGuestFee)) * $nights;
 
         // Calculate payment amounts from amount_paid
         $totalPrice = $validated['total_price'];

@@ -1471,12 +1471,12 @@
         const item = document.createElement('div');
         item.className = 'image-preview-item';
         item.innerHTML = `
-          <img src="${fileData.data}" alt="${fileData.name}">
-          <button type="button" class="remove-btn" onclick="removeImage(${index})" title="Remove image">
-            <i class="fa fa-times"></i>
-          </button>
-          <div class="image-info">${fileData.name}</div>
-        `;
+            <img src="${fileData.data}" alt="${fileData.name}">
+            <button type="button" class="remove-btn" onclick="removeImage(${index})" title="Remove image">
+              <i class="fa fa-times"></i>
+            </button>
+            <div class="image-info">${fileData.name}</div>
+          `;
         preview.appendChild(item);
       }
 
@@ -1700,16 +1700,16 @@
 
         // Auto-pricing logic
         const roomTypeData = {
-          'Self-Contained Single': { price: 15000, capacity: 2, bed: 'Single', extra_fee: 15000 },
+          'Self-Contained Single': { price: 15000, capacity: 2, bed: 'Single', extra_fee: 10000 },
           'Self-Contained Double': { price: 30000, capacity: 2, bed: 'King', extra_fee: 20000 },
-          'Standard Single': { price: 15000, capacity: 1, bed: 'Single', extra_fee: 0 },
-          'Standard Double': { price: 30000, capacity: 2, bed: 'Queen', extra_fee: 0 },
-          'Standard Triple': { price: 45000, capacity: 3, bed: 'Twin', extra_fee: 0 },
-          'Standard Decker': { price: 60000, capacity: 4, bed: 'Bunk', extra_fee: 0 },
-          'En-suite Single': { price: 60000, capacity: 1, bed: 'King', extra_fee: 0 },
-          'En-suite Triple': { price: 90000, capacity: 3, bed: 'Twin', extra_fee: 0 },
-          'En-suite Quad': { price: 120000, capacity: 4, bed: 'Single', extra_fee: 0 },
-          'En-suite Quint': { price: 150000, capacity: 5, bed: 'Single', extra_fee: 0 }
+          'Standard Single': { price: 15000, capacity: 1, bed: 'Single', extra_fee: 10000 },
+          'Standard Double': { price: 30000, capacity: 2, bed: 'Queen', extra_fee: 20000 },
+          'Standard Triple': { price: 45000, capacity: 3, bed: 'Twin', extra_fee: 20000 },
+          'Standard Decker': { price: 60000, capacity: 4, bed: 'Bunk', extra_fee: 20000 },
+          'En-suite Single': { price: 60000, capacity: 1, bed: 'King', extra_fee: 30000 },
+          'En-suite Triple': { price: 90000, capacity: 3, bed: 'Twin', extra_fee: 30000 },
+          'En-suite Quad': { price: 120000, capacity: 4, bed: 'Single', extra_fee: 30000 },
+          'En-suite Quint': { price: 150000, capacity: 5, bed: 'Single', extra_fee: 30000 }
         };
 
         if (roomTypeSelect) {
@@ -2028,8 +2028,8 @@
           updatePriceConversions();
         @endif
 
-      // Setup amenities check all functionality
-      const checkboxes = document.querySelectorAll('.amenity-checkbox');
+        // Setup amenities check all functionality
+        const checkboxes = document.querySelectorAll('.amenity-checkbox');
       const checkAllBtn = document.getElementById('checkAllAmenities');
       const uncheckAllBtn = document.getElementById('uncheckAllAmenities');
 
