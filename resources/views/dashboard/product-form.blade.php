@@ -14,14 +14,14 @@
                 $routePrefix = 'admin';
         }
 
-        $title = $isEdit ? 'Edit Brand Family' : 'Register New Brand Family';
+        $title = $isEdit ? 'Edit Product' : 'Register New Product';
         $action = $isEdit ? route($routePrefix . '.products.update', $product->id) : route($routePrefix . '.products.store');
     @endphp
 
     <div class="app-title">
         <div>
             <h1><i class="fa fa-cubes"></i> {{ $title }}</h1>
-            <p>{{ $isEdit ? 'Update brand and variant details' : 'Register a new product family and its variants' }}</p>
+            <p>{{ $isEdit ? 'Update product and packaging details' : 'Register a new product and its packaging/sizes' }}</p>
         </div>
         <ul class="app-breadcrumb breadcrumb">
             <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
@@ -41,19 +41,19 @@
                 <!-- 1. Brand / Family Details -->
                 <div class="card shadow-sm mb-4 border-top-primary">
                     <div class="card-header bg-light">
-                        <h5 class="mb-0"><i class="fa fa-tag text-primary mr-2"></i> Brand Information</h5>
+                        <h5 class="mb-0"><i class="fa fa-tag text-primary mr-2"></i> Product Information</h5>
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label class="control-label font-weight-bold">Brand Name <span
+                                    <label class="control-label font-weight-bold">Product Name <span
                                             class="text-danger">*</span></label>
                                     <input class="form-control form-control-lg @error('name') is-invalid @enderror"
                                         type="text" id="brandNameInput" name="name"
-                                        value="{{ old('name', $product->name ?? '') }}" placeholder="e.g. COCA COLA"
-                                        required>
-                                    <small class="text-muted">Enter the main brand name here.</small>
+                                        value="{{ old('name', $product->name ?? '') }}"
+                                        placeholder="e.g. Vim, Kilimanjaro, Coca Cola" required>
+                                    <small class="text-muted">Enter the name of the product you are registering.</small>
                                     @error('name') <span class="invalid-feedback">{{ $message }}</span> @enderror
                                 </div>
                             </div>
@@ -254,9 +254,10 @@
                     <div class="col-md-7 border-right">
                         <div class="form-row">
                             <div class="col-md-12 form-group">
-                                <label class="small font-weight-bold text-muted">VARIANT NAME (e.g. Coca Cola 350ml)</label>
+                                <label class="small font-weight-bold text-muted">PACKAGING / LABEL (e.g. 500ml, Small, 1kg,
+                                    Standard)</label>
                                 <input type="text" class="form-control variant-name-input font-weight-bold"
-                                    name="variants[INDEX][name]" placeholder="Full Product Name" required>
+                                    name="variants[INDEX][name]" placeholder="e.g. Standard or 350ml" required>
                             </div>
 
                             <div class="col-md-6 form-group volume-weight-section">
@@ -479,15 +480,17 @@
             }
         }
 
-        // Auto-update variant names when brand name changes (for new variants only)
+        // Auto-update first variant name to 'Standard' if brand is typed and variant is empty
         document.getElementById('brandNameInput').addEventListener('input', function () {
             const brandName = this.value;
-            document.querySelectorAll('.variant-name-input').forEach(input => {
-                // Only update if it looks like a default or empty value, don't overwrite user custom text
-                if (input.value.trim() === '' || input.value.trim() === brandName.substring(0, brandName.length - 1)) {
-                    input.value = brandName + ' ';
+            const firstVariantInput = document.querySelector('.variant-name-input');
+            if (firstVariantInput && (firstVariantInput.value.trim() === '' || firstVariantInput.value === 'Standard')) {
+                if (brandName.trim() !== '') {
+                    firstVariantInput.value = 'Standard';
+                } else {
+                    firstVariantInput.value = '';
                 }
-            });
+            }
         });
 
         document.addEventListener('DOMContentLoaded', function () {

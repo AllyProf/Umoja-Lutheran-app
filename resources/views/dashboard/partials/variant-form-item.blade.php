@@ -20,9 +20,9 @@
     <div class="row">
         <div class="col-md-4">
             <div class="form-group">
-                <label class="control-label font-weight-bold">Product Name</label>
+                <label class="control-label font-weight-bold">Packaging / Specific Label</label>
                 <input type="text" class="form-control" name="variants[{{ $index }}][name]"
-                    value="{{ $variant->variant_name }}" required>
+                    value="{{ $variant->variant_name }}" placeholder="e.g. Standard, 500ml, 1kg" required>
             </div>
         </div>
         <div class="col-md-4 volume-weight-section">
