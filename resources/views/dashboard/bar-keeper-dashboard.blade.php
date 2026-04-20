@@ -1212,26 +1212,26 @@
       let rows = '';
       posCart.forEach(item => {
         rows += `<tr>
-                              <td style="padding:4px 0; font-size:15px; font-weight:bold; width:30px; border-bottom:1px solid #eee;">${item.qty}x</td>
-                              <td style="padding:4px 0; font-size:15px; border-bottom:1px solid #eee;">${item.name}</td>
-                            </tr>`;
+                  <td style="padding:10px 0; font-size:26px; font-weight:900; width:50px; border-bottom:2px solid #000;">${item.qty}x</td>
+                  <td style="padding:10px 0; font-size:26px; font-weight:900; border-bottom:2px solid #000;">${item.name}</td>
+                </tr>`;
       });
 
       const docketHtml = `<!DOCTYPE html>
                     <html><head>
                     <meta charset="UTF-8"><title>Kitchen Docket</title>
                     <style>
-                      * { margin:0; padding:0; box-sizing:border-box; }
-                      body { font-family:'Courier New',monospace; width:80mm; padding:10px; color:#000; background:#white; }
+                      * { margin:0; padding:0; box-sizing:border-box; color:#000 !important; }
+                      body { font-family:'Courier New',monospace; width:80mm; padding:5px; color:#000; background:#fff; font-weight:900 !important; }
                       .center { text-align:center; }
-                      .divider { border-top:2px dashed #000; margin:8px 0; }
-                      .hotel { font-size:13px; font-weight:bold; }
-                      .title { font-size:20px; font-weight:bold; margin:4px 0; letter-spacing:2px; }
-                      .info { font-size:13px; margin:3px 0; }
-                      table { width:100%; border-collapse:collapse; margin-top:5px; }
-                      td { vertical-align:top; }
-                      .footer { font-size:12px; margin-top:10px; font-style:italic; }
-                      @media print { body { margin:0; padding:10mm; } }
+                      .divider { border-top:4px dashed #000; margin:10px 0; }
+                      .hotel { font-size:18px; font-weight:900; border: 2px solid #000; padding: 2px; }
+                      .title { font-size:24px; font-weight:900; margin:8px 0; letter-spacing:2px; border: 3px solid #000; }
+                      .info { font-size:16px; margin:5px 0; font-weight:900; }
+                      table { width:100%; border-collapse:collapse; margin-top:10px; }
+                      td { vertical-align:top; border-bottom: 2px solid #000; }
+                      .footer { font-size:16px; margin-top:15px; font-weight:900; text-transform: uppercase; }
+                      @media print { body { margin:0; padding:5mm; } }
                     </style>
                     </head>
                     <body>
