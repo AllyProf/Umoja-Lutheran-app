@@ -32,14 +32,6 @@ class RoomController extends Controller
         $roomTypes = [
             'Self-Contained Single',
             'Self-Contained Double',
-            'Standard Single',
-            'Standard Double',
-            'Standard Triple',
-            'Standard Decker',
-            'En-suite Single',
-            'En-suite Triple',
-            'En-suite Quad',
-            'En-suite Quint',
             'Single',
             'Double',
             'Twins'
@@ -109,7 +101,7 @@ class RoomController extends Controller
 
             // Validate the request - room_type is always required
             $validationRules = [
-                'room_type' => 'required|in:Self-Contained Single,Self-Contained Double,Standard Single,Standard Double,Standard Triple,Standard Decker,En-suite Single,En-suite Triple,En-suite Quad,En-suite Quint,Single,Double,Twins',
+                'room_type' => 'required|in:Self-Contained Single,Self-Contained Double,Single,Double,Twins',
                 'capacity' => 'required|integer|min:1|max:10',
                 'bed_type' => 'required|string',
                 'floor_location' => 'nullable|string|max:255',
@@ -359,14 +351,6 @@ class RoomController extends Controller
                 $roomTypeNames = [
                     'Self-Contained Single' => 'Single Room (1 Pax)',
                     'Self-Contained Double' => 'Double Bed (2 Pax)',
-                    'Standard Single' => 'Single Room (1 Pax)',
-                    'Standard Double' => 'Double Room (2 Pax)',
-                    'Standard Triple' => 'Triple Room (3 Pax)',
-                    'Standard Decker' => 'Decker Room (4 Pax)',
-                    'En-suite Single' => 'Suite House (Single)',
-                    'En-suite Triple' => 'Family House (3 beds)',
-                    'En-suite Quad' => 'Suite Family (4 beds)',
-                    'En-suite Quint' => 'Family House (5 beds)',
                     'Single' => 'Single Room',
                     'Double' => 'Double Room',
                     'Twins' => 'Standard Twin Room'
@@ -438,7 +422,7 @@ class RoomController extends Controller
             // Validate the request
             $validated = $request->validate([
                 'room_number' => 'required|string|unique:rooms,room_number,' . $room->id,
-                'room_type' => 'required|in:Self-Contained Single,Self-Contained Double,Standard Single,Standard Double,Standard Triple,Standard Decker,En-suite Single,En-suite Triple,En-suite Quad,En-suite Quint,Single,Double,Twins',
+                'room_type' => 'required|in:Self-Contained Single,Self-Contained Double,Single,Double,Twins',
                 'capacity' => 'required|integer|min:1|max:10',
                 'bed_type' => 'required|string',
                 'floor_location' => 'nullable|string|max:255',
@@ -708,14 +692,6 @@ class RoomController extends Controller
         $validTypes = [
             'Self-Contained Single',
             'Self-Contained Double',
-            'Standard Single',
-            'Standard Double',
-            'Standard Triple',
-            'Standard Decker',
-            'En-suite Single',
-            'En-suite Triple',
-            'En-suite Quad',
-            'En-suite Quint',
             'Single',
             'Double',
             'Twins'
@@ -829,7 +805,7 @@ class RoomController extends Controller
         try {
             $validated = $request->validate([
                 'room_id' => 'required|exists:rooms,id',
-                'room_type' => 'required|in:Self-Contained Single,Self-Contained Double,Standard Single,Standard Double,Standard Triple,Standard Decker,En-suite Single,En-suite Triple,En-suite Quad,En-suite Quint,Single,Double,Twins',
+                'room_type' => 'required|in:Self-Contained Single,Self-Contained Double,Single,Double,Twins',
                 'capacity' => 'required|integer|min:1|max:10',
                 'bed_type' => 'required|string|max:255',
                 'price_per_night' => 'required|numeric|min:0',

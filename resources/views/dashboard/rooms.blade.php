@@ -68,25 +68,9 @@
                     $standardTypes = [
                       'Self-Contained Single',
                       'Self-Contained Double',
-                      'Standard Single',
-                      'Standard Double',
-                      'Standard Triple',
-                      'Standard Decker',
-                      'En-suite Single',
-                      'En-suite Triple',
-                      'En-suite Quad',
-                      'En-suite Quint',
                       'Single',
                       'Double',
                       'Twins'
-                    ];
-                    $currentType = isset($room) ? $room->room_type : '';
-                    $isOtherType = $currentType && !in_array($currentType, $standardTypes);
-                  @endphp
-                  @php
-                    $standardTypes = [
-                      'Self-Contained Single', 'Self-Contained Double',
-                      'Single', 'Double', 'Twins'
                     ];
                     $currentType = isset($room) ? $room->room_type : '';
                     $isOtherType = $currentType && !in_array($currentType, $standardTypes);
@@ -102,8 +86,10 @@
                       <option value="Twins" {{ (isset($room) && trim(strtolower($room->room_type)) == 'twins') ? 'selected' : '' }}>Standard Twin Room (Twins)</option>
                     </optgroup>
                     <optgroup label="Self Contained">
-                      <option value="Self-Contained Single" {{ (isset($room) && trim(strtolower($room->room_type)) == 'self-contained single') ? 'selected' : '' }}>Self-Contained Single</option>
-                      <option value="Self-Contained Double" {{ (isset($room) && trim(strtolower($room->room_type)) == 'self-contained double') ? 'selected' : '' }}>Self-Contained Double Bed</option>
+                      <option value="Self-Contained Single" {{ (isset($room) && trim(strtolower($room->room_type)) == 'self-contained single') ? 'selected' : '' }}>Self-Contained
+                        Single</option>
+                      <option value="Self-Contained Double" {{ (isset($room) && trim(strtolower($room->room_type)) == 'self-contained double') ? 'selected' : '' }}>Self-Contained
+                        Double Bed</option>
                     </optgroup>
                   </select>
                   <small class="form-text text-muted">Select room type first to enable bulk creation options</small>
@@ -1211,1019 +1197,1019 @@
   </style>
 
   <script>
-        let currentStep = 1;
-      const totalSteps = 5;
-      // Exchange rate logic removed as only TZS is used exclusively
-
-
-      function updateStepIndicator() {
-        const stepItems = document.querySelectorAll('.step-item');
-        stepItems.forEach((item, index) => {
-          const step = parseInt(item.getAttribute('data-step'));
-          item.classList.remove('active', 'completed');
-
-          if (step < currentStep) {
-            item.classList.add('completed');
-          } else if (step === currentStep) {
-            item.classList.add('active');
-          }
-        });
-
-        // Update arrow visibility
-        document.querySelectorAll('.step-arrow').forEach((arrow, index) => {
-          const stepAfterArrow = index + 1;
-          if (stepAfterArrow <= currentStep) {
-            arrow.style.opacity = '1';
-          } else {
-            arrow.style.opacity = '0.3';
-          }
-        });
-      }
-
-      function changeStep(direction) {
-        if (direction > 0) {
-          // Validate current step before moving forward
-          if (!validateStep(currentStep)) {
-            return;
-          }
-
-          if (currentStep < totalSteps) {
-            document.querySelector(`.wizard-step[data-step="${currentStep}"]`).style.display = 'none';
-            currentStep++;
-            document.querySelector(`.wizard-step[data-step="${currentStep}"]`).style.display = 'block';
-            updateStepIndicator();
-            updateButtons();
-          }
-        } else {
-          if (currentStep > 1) {
-            document.querySelector(`.wizard-step[data-step="${currentStep}"]`).style.display = 'none';
-            currentStep--;
-            document.querySelector(`.wizard-step[data-step="${currentStep}"]`).style.display = 'block';
-            updateStepIndicator();
-            updateButtons();
-          }
-        }
-      }
-
-      function updateButtons() {
-        // Buttons are now inside each step, so we don't need to manage them here
-        if (currentStep === totalSteps) {
-          updatePreview();
-        }
-      }
-
-
-
-      // Update preview with all form data
-      function updatePreview() {
-        // Basic Info
-        const roomNumber = document.getElementById('room_number').value.trim();
-        document.getElementById('preview_room_number').textContent = roomNumber || '-';
-
-        const roomType = document.getElementById('room_type').value;
-        document.getElementById('preview_room_type').textContent = roomType || '-';
-
-        const capacity = document.getElementById('capacity').value;
-        document.getElementById('preview_capacity').textContent = capacity ? capacity + ' guest(s)' : '-';
-
-        const bedType = document.getElementById('bed_type').value;
-        document.getElementById('preview_bed_type').textContent = bedType || '-';
-
-        const description = document.getElementById('description').value.trim();
-        document.getElementById('preview_description').textContent = description || '-';
-
-        // Pricing
-        const pricePerNight = document.getElementById('price_per_night').value;
-        if (pricePerNight && parseFloat(pricePerNight) > 0) {
-          document.getElementById('preview_price_per_night').innerHTML =
-            `TZS ${parseFloat(pricePerNight).toLocaleString()}`;
-        } else {
-          document.getElementById('preview_price_per_night').textContent = '-';
-        }
-
-        // Amenities
-        const amenities = Array.from(document.querySelectorAll('input[name="amenities[]"]:checked')).map(cb => cb.value);
-        const amenitiesContainer = document.getElementById('preview_amenities');
-        amenitiesContainer.innerHTML = '';
-        if (amenities.length > 0) {
-          amenities.forEach(amenity => {
-            const badge = document.createElement('span');
-            badge.className = 'badge';
-            badge.style.marginRight = '5px';
-            badge.style.marginBottom = '5px';
-            badge.textContent = amenity;
-            amenitiesContainer.appendChild(badge);
-          });
-        } else {
-          amenitiesContainer.innerHTML = '<span class="text-muted">No amenities selected</span>';
-        }
-
-        // Check-in/Check-out Times
-        const checkinTime = document.getElementById('checkin_time').value;
-        if (checkinTime) {
-          const time = checkinTime.split(':');
-          const hours = parseInt(time[0]);
-          const minutes = time[1];
-          const ampm = hours >= 12 ? 'PM' : 'AM';
-          const displayHours = hours % 12 || 12;
-          document.getElementById('preview_checkin_time').textContent = `${displayHours}:${minutes} ${ampm}`;
-        } else {
-          document.getElementById('preview_checkin_time').textContent = '-';
-        }
-
-        const checkoutTime = document.getElementById('checkout_time').value;
-        if (checkoutTime) {
-          const time = checkoutTime.split(':');
-          const hours = parseInt(time[0]);
-          const minutes = time[1];
-          const ampm = hours >= 12 ? 'PM' : 'AM';
-          const displayHours = hours % 12 || 12;
-          document.getElementById('preview_checkout_time').textContent = `${displayHours}:${minutes} ${ampm}`;
-        } else {
-          document.getElementById('preview_checkout_time').textContent = '-';
-        }
-
-        // Special Notes
-        const specialNotes = document.getElementById('special_notes').value.trim();
-        document.getElementById('preview_special_notes').textContent = specialNotes || '-';
-
-        // Status (removed - no longer needed)
-
-        // Images
-        const imagePreview = document.getElementById('preview_images');
-        if (uploadedFiles && uploadedFiles.length > 0) {
-          const container = document.createElement('div');
-          container.style.maxWidth = '500px';
-          container.style.margin = '0 auto';
-
-          const heading = document.createElement('h6');
-          heading.style.marginBottom = '15px';
-          heading.style.color = '#940000';
-          heading.textContent = 'Uploaded Images (' + uploadedFiles.length + '):';
-          container.appendChild(heading);
-
-          const grid = document.createElement('div');
-          grid.style.display = 'grid';
-          grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(100px, 1fr))';
-          grid.style.gap = '10px';
-          grid.style.maxWidth = '100%';
-
-          uploadedFiles.forEach((fileData, index) => {
-            const previewImg = document.createElement('img');
-            previewImg.src = fileData.data;
-            previewImg.alt = fileData.name;
-            previewImg.style.width = '100%';
-            previewImg.style.height = '100px';
-            previewImg.style.objectFit = 'cover';
-            previewImg.style.borderRadius = '6px';
-            previewImg.style.border = '2px solid #e0e0e0';
-            previewImg.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-            grid.appendChild(previewImg);
-          });
-
-          container.appendChild(grid);
-          imagePreview.innerHTML = '';
-          imagePreview.appendChild(container);
-        } else {
-          imagePreview.innerHTML = '<span class="text-muted">No images uploaded</span>';
-        }
-      }
-
-      function validateStep(step) {
-        const stepElement = document.querySelector(`.wizard-step[data-step="${step}"]`);
-        const requiredFields = stepElement.querySelectorAll('[required]');
-        let isValid = true;
-
-        requiredFields.forEach(field => {
-          if (!field.value.trim()) {
-            field.classList.add('is-invalid');
-            isValid = false;
-          } else {
-            field.classList.remove('is-invalid');
-          }
-        });
-
-        if (!isValid) {
-          swal({
-            title: "Validation Error",
-            text: "Please fill in all required fields",
-            type: "error",
-            confirmButtonColor: "#940000"
-          }, function () {
-            // Focus on first invalid field
-            const firstInvalid = stepElement.querySelector('.is-invalid');
-            if (firstInvalid) {
-              firstInvalid.focus();
-              firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          });
-        }
-
-        return isValid;
-      }
-
-      // Professional image upload with drag & drop
-      let uploadedFiles = [];
-
-      function setupImageUpload() {
-        const fileInput = document.getElementById('room_images');
-        const uploadArea = document.getElementById('uploadArea');
-        const preview = document.getElementById('imagePreview');
-        const imageCount = document.getElementById('imageCount');
-
-        // Click to upload
-        uploadArea.addEventListener('click', () => {
-          fileInput.click();
-        });
-
-        // Drag and drop
-        uploadArea.addEventListener('dragover', (e) => {
-          e.preventDefault();
-          uploadArea.classList.add('dragover');
-        });
-
-        uploadArea.addEventListener('dragleave', () => {
-          uploadArea.classList.remove('dragover');
-        });
-
-        uploadArea.addEventListener('drop', (e) => {
-          e.preventDefault();
-          uploadArea.classList.remove('dragover');
-          const files = Array.from(e.dataTransfer.files);
-          handleFiles(files);
-        });
-
-        // File input change
-        fileInput.addEventListener('change', (e) => {
-          const files = Array.from(e.target.files);
-          handleFiles(files);
-        });
-
-        function handleFiles(files) {
-          files.forEach(file => {
-            if (file.type.startsWith('image/')) {
-              // Check file size (5MB max)
-              if (file.size > 5 * 1024 * 1024) {
-                swal({
-                  title: "File too large",
-                  text: `${file.name} is larger than 5MB. Please choose a smaller file.`,
-                  type: "error",
-                  confirmButtonColor: "#940000"
-                });
-                return;
-              }
-
-              const reader = new FileReader();
-              reader.onload = function (e) {
-                const fileData = {
-                  name: file.name,
-                  size: file.size,
-                  data: e.target.result,
-                  file: file
-                };
-                uploadedFiles.push(fileData);
-                displayImage(fileData, uploadedFiles.length - 1);
-                updateImageCount();
-              };
-              reader.readAsDataURL(file);
-            }
-          });
-        }
-
-        function displayImage(fileData, index) {
-          const item = document.createElement('div');
-          item.className = 'image-preview-item';
-          item.innerHTML = `
-              <img src="${fileData.data}" alt="${fileData.name}">
-              <button type="button" class="remove-btn" onclick="removeImage(${index})" title="Remove image">
-                <i class="fa fa-times"></i>
-              </button>
-              <div class="image-info">${fileData.name}</div>
-            `;
-          preview.appendChild(item);
-        }
-
-        function updateImageCount() {
-          const count = uploadedFiles.length;
-          if (count > 0) {
-            imageCount.textContent = `${count} image${count > 1 ? 's' : ''} selected`;
-            imageCount.style.color = '#940000';
-            imageCount.style.fontWeight = '500';
-          } else {
-            imageCount.textContent = '';
-          }
-        }
-
-        window.removeImage = function (index) {
-          uploadedFiles.splice(index, 1);
-          preview.innerHTML = '';
-          uploadedFiles.forEach((fileData, idx) => {
-            displayImage(fileData, idx);
-          });
-          updateImageCount();
-
-          // Update file input
-          const dataTransfer = new DataTransfer();
-          uploadedFiles.forEach(fileData => {
-            dataTransfer.items.add(fileData.file);
-          });
-          fileInput.files = dataTransfer.files;
-        };
-      }
-
-      // Initialize image upload when page loads and populate form if editing
-      document.addEventListener('DOMContentLoaded', function () {
-        setupImageUpload();
-
-        // ============================================
-        // BULK ROOM CREATION LOGIC
-        // ============================================
-        @if(!isset($room))
-          const roomTypeSelect = document.getElementById('room_type');
-          const bulkCreationSection = document.getElementById('bulk_creation_section');
-          const enableBulkCreate = document.getElementById('enable_bulk_create');
-          const quantitySection = document.getElementById('quantity_section');
-          const bulkQuantity = document.getElementById('bulk_quantity');
-          const assignmentMethodSection = document.getElementById('assignment_method_section');
-          const autoGenerateSection = document.getElementById('auto_generate_section');
-          const manualAssignSection = document.getElementById('manual_assign_section');
-          const startingRoomNumber = document.getElementById('starting_room_number');
-          const manualRoomNumbers = document.getElementById('manual_room_numbers');
-          const autoPreview = document.getElementById('auto_preview');
-          const manualPreview = document.getElementById('manual_preview');
-          const roomNumberField = document.getElementById('room_number');
-          const autoGenerateRadio = document.getElementById('auto_generate');
-          const manualAssignRadio = document.getElementById('manual_assign');
-
-          // Get room type display name
-          function getRoomTypeDisplayName(roomType) {
-            const typeNames = {
-              'Single': 'Single Room',
-              'Double': 'Double Room',
-              'Twins': 'Standard Twin Room'
-            };
-            return typeNames[roomType] || 'Room';
-          }
-
-          // Update bulk creation labels based on room type
-          function updateBulkCreationLabels() {
-            const roomType = roomTypeSelect.value;
-            if (!roomType) {
-              bulkCreationSection.style.display = 'none';
-              return;
-            }
-
-            const displayName = getRoomTypeDisplayName(roomType);
-            const pluralName = displayName + 's';
-
-            // Update labels
-            const bulkRoomTypeLabel = document.getElementById('bulk_room_type_label');
-            const bulkCreateLabel = document.getElementById('bulk_create_label');
-            const bulkQuantityLabel = document.getElementById('bulk_quantity_label');
-
-            if (bulkRoomTypeLabel) bulkRoomTypeLabel.textContent = 'Create multiple ' + pluralName.toLowerCase() + ' at once';
-            if (bulkCreateLabel) bulkCreateLabel.textContent = 'Create Multiple ' + pluralName;
-            if (bulkQuantityLabel) bulkQuantityLabel.innerHTML = 'How many ' + pluralName + '? <span class="text-danger">*</span>';
-          }
-
-          // Show/hide bulk creation section based on room type
-          function toggleBulkCreationSection() {
-            if (!roomTypeSelect || !bulkCreationSection) {
-              console.log('Bulk creation elements not found:', {
-                roomTypeSelect: !!roomTypeSelect,
-                bulkCreationSection: !!bulkCreationSection
-              });
-              return;
-            }
-
-            const selectedRoomType = roomTypeSelect.value;
-            if (selectedRoomType) {
-              bulkCreationSection.style.display = 'block';
-              updateBulkCreationLabels();
-            } else {
-              bulkCreationSection.style.display = 'none';
-              // Reset bulk creation when no room type selected
-              if (enableBulkCreate) enableBulkCreate.checked = false;
-              resetBulkCreationFields();
-            }
-          }
-
-          // Reset all bulk creation fields
-          function resetBulkCreationFields() {
-            if (enableBulkCreate) enableBulkCreate.checked = false;
-            if (quantitySection) quantitySection.style.display = 'none';
-            if (assignmentMethodSection) assignmentMethodSection.style.display = 'none';
-            if (autoGenerateSection) autoGenerateSection.style.display = 'none';
-            if (manualAssignSection) manualAssignSection.style.display = 'none';
-            if (bulkQuantity) {
-              bulkQuantity.value = '2';
-              bulkQuantity.required = false;
-            }
-            if (startingRoomNumber) {
-              startingRoomNumber.value = '';
-              startingRoomNumber.required = false;
-            }
-            if (manualRoomNumbers) {
-              manualRoomNumbers.value = '';
-              manualRoomNumbers.required = false;
-            }
-            if (roomNumberField) {
-              roomNumberField.required = true;
-              roomNumberField.disabled = false;
-            }
-
-            // Update help text
-            const roomNumberHelpText = document.getElementById('room_number_help_text');
-            if (roomNumberHelpText) {
-              roomNumberHelpText.textContent = 'Enter a unique room number or name';
-            }
-            updatePreviews();
-          }
-
-          // Toggle bulk creation checkbox
-          if (enableBulkCreate) {
-            enableBulkCreate.addEventListener('change', function () {
-              if (this.checked) {
-                quantitySection.style.display = 'block';
-                bulkQuantity.required = true;
-                roomNumberField.required = false;
-                roomNumberField.disabled = true;
-                roomNumberField.value = '';
-
-                // Update help text
-                const roomNumberHelpText = document.getElementById('room_number_help_text');
-                if (roomNumberHelpText) {
-                  roomNumberHelpText.textContent = 'Room numbers will be specified in bulk creation fields below';
-                }
-
-                checkQuantityAndShowMethod();
-              } else {
-                resetBulkCreationFields();
-              }
-            });
-          }
-
-          // Check quantity and show assignment method section
-          function checkQuantityAndShowMethod() {
-            const quantity = parseInt(bulkQuantity.value) || 0;
-            if (quantity >= 2 && enableBulkCreate.checked) {
-              assignmentMethodSection.style.display = 'block';
-              // Wait a bit for Bootstrap to process the button toggle, then update
-              setTimeout(function () {
-                updateAssignmentMethod();
-              }, 50);
-            } else {
-              assignmentMethodSection.style.display = 'none';
-              autoGenerateSection.style.display = 'none';
-              manualAssignSection.style.display = 'none';
-            }
-          }
-
-          // Update assignment method sections
-          function updateAssignmentMethod() {
-            console.log('Updating assignment method:', {
-              autoChecked: autoGenerateRadio ? autoGenerateRadio.checked : false,
-              manualChecked: manualAssignRadio ? manualAssignRadio.checked : false
-            });
-
-            if (autoGenerateRadio && autoGenerateRadio.checked) {
-              console.log('Showing auto-generate section');
-              if (autoGenerateSection) {
-                autoGenerateSection.style.display = 'block';
-              }
-              if (manualAssignSection) {
-                manualAssignSection.style.display = 'none';
-              }
-              if (startingRoomNumber) {
-                startingRoomNumber.required = true;
-              }
-              if (manualRoomNumbers) {
-                manualRoomNumbers.required = false;
-                manualRoomNumbers.value = '';
-              }
-              updateAutoPreview();
-            } else if (manualAssignRadio && manualAssignRadio.checked) {
-              console.log('Showing manual assignment section');
-              if (autoGenerateSection) {
-                autoGenerateSection.style.display = 'none';
-              }
-              if (manualAssignSection) {
-                manualAssignSection.style.display = 'block';
-              }
-              if (startingRoomNumber) {
-                startingRoomNumber.required = false;
-                startingRoomNumber.value = '';
-              }
-              if (manualRoomNumbers) {
-                manualRoomNumbers.required = true;
-              }
-              updateManualPreview();
-            }
-          }
-
-          // Auto-pricing logic
-          const roomTypeData = {
-            'Single': { price: 15000, capacity: 1, bed: 'Single', extra_fee: 10000 },
-            'Double': { price: 30000, capacity: 2, bed: 'Queen', extra_fee: 20000 },
-            'Twins': { price: 45000, capacity: 2, bed: 'Twin', extra_fee: 20000 },
-            'Self-Contained Single': { price: 30000, capacity: 2, bed: 'Single', extra_fee: 10000 },
-            'Self-Contained Double': { price: 50000, capacity: 2, bed: 'King', extra_fee: 20000 }
-          };
-
-          if (roomTypeSelect) {
-            roomTypeSelect.addEventListener('change', function () {
-              const selected = roomTypeData[this.value];
-              if (selected) {
-                const priceInput = document.getElementById('price_per_night');
-                const extraFeeInput = document.getElementById('extra_guest_fee');
-                const capacityInput = document.getElementById('capacity');
-                const bedTypeSelect = document.getElementById('bed_type');
-
-                if (priceInput) priceInput.value = selected.price;
-                if (extraFeeInput) extraFeeInput.value = selected.extra_fee;
-                if (capacityInput) capacityInput.value = selected.capacity;
-                if (bedTypeSelect) bedTypeSelect.value = selected.bed;
-
-                // Trigger potential conversion updates
-                if (typeof updatePriceConversions === 'function') {
-                  updatePriceConversions();
-                }
-              }
-            });
-          }
-
-          // Initialize: Set manual as default and show it
-          if (manualAssignRadio && autoGenerateRadio) {
-            // Set manual as default
-            manualAssignRadio.checked = true;
-            autoGenerateRadio.checked = false;
-
-            if (manualAssignSection) {
-              manualAssignSection.style.display = 'block';
-              if (manualRoomNumbers) manualRoomNumbers.required = true;
-            }
-            if (autoGenerateSection) {
-              autoGenerateSection.style.display = 'none';
-              if (startingRoomNumber) startingRoomNumber.required = false;
-            }
-          }
-
-          // Update auto-generate preview
-          function updateAutoPreview() {
-            const startNum = startingRoomNumber.value.trim();
-            const quantity = parseInt(bulkQuantity.value) || 0;
-
-            if (!startNum || quantity < 2) {
-              autoPreview.innerHTML = '<small>Enter starting room number to see preview</small>';
-              return;
-            }
-
-            // Extract numeric part and prefix
-            const match = startNum.match(/^([^0-9]*)(\d+)$/);
-            if (!match) {
-              autoPreview.innerHTML = '<small class="text-danger">Invalid room number format</small>';
-              return;
-            }
-
-            const prefix = match[1];
-            const startNumInt = parseInt(match[2]);
-            const existingRooms = @json(\App\Models\Room::pluck('room_number')->toArray());
-
-            let previewNumbers = [];
-            let currentNum = startNumInt;
-            let skipped = 0;
-
-            while (previewNumbers.length < quantity && skipped < 100) {
-              const roomNum = prefix + currentNum;
-              if (!existingRooms.includes(roomNum)) {
-                previewNumbers.push(roomNum);
-              }
-              currentNum++;
-              skipped++;
-            }
-
-            if (previewNumbers.length < quantity) {
-              autoPreview.innerHTML = '<small class="text-warning">Could only generate ' + previewNumbers.length + ' unique room numbers. Some may already exist.</small>';
-            } else {
-              autoPreview.innerHTML = '<strong>Preview:</strong><br><small>' + previewNumbers.join(', ') + '</small>';
-            }
-          }
-
-          // Update manual assignment preview
-          function updateManualPreview() {
-            const input = manualRoomNumbers.value.trim();
-            const quantity = parseInt(bulkQuantity.value) || 0;
-
-            if (!input) {
-              manualPreview.innerHTML = '<small>Enter room numbers separated by commas (e.g., 100, 204, 4046)</small>';
-              return;
-            }
-
-            // Check if input contains invalid separators (dots, semicolons, etc.)
-            if (input.includes('.') || input.includes(';') || input.includes('|')) {
-              manualPreview.innerHTML = '<small class="text-danger"><strong>Error:</strong> Please use commas (,) to separate room numbers. Example: 100, 204, 4046</small>';
-              return;
-            }
-
-            // Only split by comma
-            const inputNumbers = input.split(',').map(n => n.trim()).filter(n => n);
-            const existingRooms = @json(\App\Models\Room::pluck('room_number')->toArray());
-
-            let validNumbers = [];
-            let duplicateNumbers = [];
-            let emptyNumbers = [];
-
-            inputNumbers.forEach(num => {
-              if (num.length === 0) {
-                emptyNumbers.push(num);
-                return;
-              }
-              if (existingRooms.includes(num)) {
-                duplicateNumbers.push(num);
-              } else if (validNumbers.includes(num)) {
-                duplicateNumbers.push(num);
-              } else {
-                validNumbers.push(num);
-              }
-            });
-
-            let previewHtml = '';
-
-            // Check if exact quantity is provided
-            if (inputNumbers.length > quantity) {
-              previewHtml += '<small class="text-danger"><strong>Error:</strong> You entered ' + inputNumbers.length + ' room numbers, but only need ' + quantity + '. Please remove ' + (inputNumbers.length - quantity) + ' number(s).</small><br>';
-            }
-
-            if (validNumbers.length > 0) {
-              const statusClass = validNumbers.length === quantity ? 'text-success' : 'text-info';
-              previewHtml += '<strong>Valid (' + validNumbers.length + '/' + quantity + '):</strong><br><small class="' + statusClass + '">' + validNumbers.join(', ') + '</small>';
-            }
-
-            if (duplicateNumbers.length > 0) {
-              previewHtml += '<br><strong>Already Exist (will be skipped):</strong><br><small class="text-warning">' + duplicateNumbers.join(', ') + '</small>';
-            }
-
-            if (validNumbers.length < quantity) {
-              previewHtml += '<br><small class="text-danger">Need ' + (quantity - validNumbers.length) + ' more valid room number(s)</small>';
-            } else if (validNumbers.length === quantity && inputNumbers.length === quantity) {
-              previewHtml += '<br><small class="text-success"><strong>✓ Ready to create ' + quantity + ' room(s)</strong></small>';
-            }
-
-            manualPreview.innerHTML = previewHtml || '<small>Enter room numbers separated by commas (e.g., 100, 204, 4046)</small>';
-          }
-
-          // Update all previews
-          function updatePreviews() {
-            updateAutoPreview();
-            updateManualPreview();
-          }
-
-          // Event listeners
-          if (roomTypeSelect && bulkCreationSection) {
-            // Show/hide on room type change
-            roomTypeSelect.addEventListener('change', function () {
-              console.log('Room type changed to:', this.value);
-              toggleBulkCreationSection();
-              updateBulkCreationLabels();
-            });
-
-            // Check on page load - wait a bit for DOM to be ready
-            setTimeout(function () {
-              console.log('Initializing bulk creation section');
-              toggleBulkCreationSection();
-              updateBulkCreationLabels();
-            }, 200);
-          } else {
-            console.error('Bulk creation elements not found on page load');
-          }
-
-          if (bulkQuantity) {
-            bulkQuantity.addEventListener('input', function () {
-              checkQuantityAndShowMethod();
-              updatePreviews();
-            });
-          }
-
-          if (startingRoomNumber) {
-            startingRoomNumber.addEventListener('input', updateAutoPreview);
-          }
-
-          if (manualRoomNumbers) {
-            manualRoomNumbers.addEventListener('input', function () {
-              // Validate input format - only allow commas as separators
-              let value = this.value;
-
-              // Replace common invalid separators with commas (for user convenience)
-              if (value.includes('.')) {
-                value = value.replace(/\./g, ',');
-                this.value = value;
-              }
-              if (value.includes(';')) {
-                value = value.replace(/;/g, ',');
-                this.value = value;
-              }
-              if (value.includes('|')) {
-                value = value.replace(/\|/g, ',');
-                this.value = value;
-              }
-
-              updateManualPreview();
-            });
-
-            // Also validate on blur
-            manualRoomNumbers.addEventListener('blur', function () {
-              const input = this.value.trim();
-              const quantity = parseInt(bulkQuantity.value) || 0;
-
-              if (input && quantity > 0) {
-                const inputNumbers = input.split(',').map(n => n.trim()).filter(n => n);
-                if (inputNumbers.length !== quantity) {
-                  alert('Please enter exactly ' + quantity + ' room number(s) separated by commas.\n\nExample: 100, 204, 4046');
-                  this.focus();
-                }
-              }
-            });
-          }
-
-          // Event listeners for assignment method radio buttons
-          if (autoGenerateRadio) {
-            autoGenerateRadio.addEventListener('change', function () {
-              console.log('Auto-generate selected');
-              updateAssignmentMethod();
-            });
-
-            // Also listen on the parent label for Bootstrap button toggle
-            const autoGenerateLabel = autoGenerateRadio.closest('label');
-            if (autoGenerateLabel) {
-              autoGenerateLabel.addEventListener('click', function () {
-                setTimeout(function () {
-                  updateAssignmentMethod();
-                }, 10);
-              });
-            }
-          }
-
-          if (manualAssignRadio) {
-            manualAssignRadio.addEventListener('change', function () {
-              console.log('Manual assignment selected');
-              updateAssignmentMethod();
-            });
-
-            // Also listen on the parent label for Bootstrap button toggle
-            const manualAssignLabel = manualAssignRadio.closest('label');
-            if (manualAssignLabel) {
-              manualAssignLabel.addEventListener('click', function () {
-                setTimeout(function () {
-                  updateAssignmentMethod();
-                }, 10);
-              });
-            }
-          }
-        @endif
-
-          // Populate form fields if editing
-          @if(isset($room))
-            const room = @json($room);
-
-            // Populate basic fields
-            if (room.room_type) {
-              document.getElementById('room_type').value = room.room_type;
-            }
-            if (room.extra_guest_fee) {
-              document.getElementById('extra_guest_fee').value = room.extra_guest_fee;
-            }
-            if (room.sku_code) {
-              document.getElementById('sku_code').value = room.sku_code;
-            }
-            if (room.discount_percentage) {
-              document.getElementById('discount_percentage').value = room.discount_percentage;
-            }
-            if (room.promo_code) {
-              document.getElementById('promo_code').value = room.promo_code;
-            }
-            if (room.bathroom_type) {
-              document.getElementById('bathroom_type').value = room.bathroom_type;
-            }
-            if (room.checkin_time) {
-              // Format time to H:i format (remove seconds if present)
-              const checkinTime = room.checkin_time.length > 5 ? room.checkin_time.substring(0, 5) : room.checkin_time;
-              document.getElementById('checkin_time').value = checkinTime;
-            }
-            if (room.checkout_time) {
-              // Format time to H:i format (remove seconds if present)
-              const checkoutTime = room.checkout_time.length > 5 ? room.checkout_time.substring(0, 5) : room.checkout_time;
-              document.getElementById('checkout_time').value = checkoutTime;
-            }
-            if (room.special_notes) {
-              document.getElementById('special_notes').value = room.special_notes;
-            }
-            if (room.wifi_password) {
-              document.getElementById('wifi_password').value = room.wifi_password;
-            }
-            if (room.wifi_network_name) {
-              document.getElementById('wifi_network_name').value = room.wifi_network_name;
-            }
-            if (room.status) {
-              document.getElementById('room_status').value = room.status;
-            }
-
-            // Populate checkboxes
-            if (room.pet_friendly) {
-              document.getElementById('pet_friendly').checked = true;
-            }
-            if (room.smoking_allowed) {
-              document.getElementById('smoking_allowed').checked = true;
-            }
-
-            // Populate amenities checkboxes
-            if (room.amenities && Array.isArray(room.amenities)) {
-              room.amenities.forEach(amenity => {
-                const checkbox = document.querySelector(`input[name="amenities[]"][value="${amenity}"]`);
-                if (checkbox) {
-                  checkbox.checked = true;
-                }
-              });
-            }
-
-            // Update price conversions
-            if (typeof updatePriceConversions === 'function') {
-              updatePriceConversions();
-            }
-          @endif
-
-          // Setup amenities check all functionality
-          const checkboxes = document.querySelectorAll('.amenity-checkbox');
-        const checkAllBtn = document.getElementById('checkAllAmenities');
-        const uncheckAllBtn = document.getElementById('uncheckAllAmenities');
-
-        if (checkboxes.length > 0) {
-          checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function () {
-              const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-              const noneChecked = Array.from(checkboxes).every(cb => !cb.checked);
-
-              if (allChecked) {
-                checkAllBtn.style.display = 'none';
-                uncheckAllBtn.style.display = 'inline-block';
-              } else if (noneChecked) {
-                checkAllBtn.style.display = 'inline-block';
-                uncheckAllBtn.style.display = 'none';
-              }
-            });
-          });
-
-          // Initialize button state based on current checkbox states
-          const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-          if (allChecked) {
-            checkAllBtn.style.display = 'none';
-            uncheckAllBtn.style.display = 'inline-block';
-          }
+    let currentStep = 1;
+    const totalSteps = 5;
+    // Exchange rate logic removed as only TZS is used exclusively
+
+
+    function updateStepIndicator() {
+      const stepItems = document.querySelectorAll('.step-item');
+      stepItems.forEach((item, index) => {
+        const step = parseInt(item.getAttribute('data-step'));
+        item.classList.remove('active', 'completed');
+
+        if (step < currentStep) {
+          item.classList.add('completed');
+        } else if (step === currentStep) {
+          item.classList.add('active');
         }
       });
 
-      // Form submission
-      document.getElementById('roomForm').addEventListener('submit', function (e) {
-        e.preventDefault();
+      // Update arrow visibility
+      document.querySelectorAll('.step-arrow').forEach((arrow, index) => {
+        const stepAfterArrow = index + 1;
+        if (stepAfterArrow <= currentStep) {
+          arrow.style.opacity = '1';
+        } else {
+          arrow.style.opacity = '0.3';
+        }
+      });
+    }
 
+    function changeStep(direction) {
+      if (direction > 0) {
+        // Validate current step before moving forward
         if (!validateStep(currentStep)) {
-          changeStep(0); // Go back to show validation errors
           return;
         }
 
-        const form = this;
+        if (currentStep < totalSteps) {
+          document.querySelector(`.wizard-step[data-step="${currentStep}"]`).style.display = 'none';
+          currentStep++;
+          document.querySelector(`.wizard-step[data-step="${currentStep}"]`).style.display = 'block';
+          updateStepIndicator();
+          updateButtons();
+        }
+      } else {
+        if (currentStep > 1) {
+          document.querySelector(`.wizard-step[data-step="${currentStep}"]`).style.display = 'none';
+          currentStep--;
+          document.querySelector(`.wizard-step[data-step="${currentStep}"]`).style.display = 'block';
+          updateStepIndicator();
+          updateButtons();
+        }
+      }
+    }
 
+    function updateButtons() {
+      // Buttons are now inside each step, so we don't need to manage them here
+      if (currentStep === totalSteps) {
+        updatePreview();
+      }
+    }
+
+
+
+    // Update preview with all form data
+    function updatePreview() {
+      // Basic Info
+      const roomNumber = document.getElementById('room_number').value.trim();
+      document.getElementById('preview_room_number').textContent = roomNumber || '-';
+
+      const roomType = document.getElementById('room_type').value;
+      document.getElementById('preview_room_type').textContent = roomType || '-';
+
+      const capacity = document.getElementById('capacity').value;
+      document.getElementById('preview_capacity').textContent = capacity ? capacity + ' guest(s)' : '-';
+
+      const bedType = document.getElementById('bed_type').value;
+      document.getElementById('preview_bed_type').textContent = bedType || '-';
+
+      const description = document.getElementById('description').value.trim();
+      document.getElementById('preview_description').textContent = description || '-';
+
+      // Pricing
+      const pricePerNight = document.getElementById('price_per_night').value;
+      if (pricePerNight && parseFloat(pricePerNight) > 0) {
+        document.getElementById('preview_price_per_night').innerHTML =
+          `TZS ${parseFloat(pricePerNight).toLocaleString()}`;
+      } else {
+        document.getElementById('preview_price_per_night').textContent = '-';
+      }
+
+      // Amenities
+      const amenities = Array.from(document.querySelectorAll('input[name="amenities[]"]:checked')).map(cb => cb.value);
+      const amenitiesContainer = document.getElementById('preview_amenities');
+      amenitiesContainer.innerHTML = '';
+      if (amenities.length > 0) {
+        amenities.forEach(amenity => {
+          const badge = document.createElement('span');
+          badge.className = 'badge';
+          badge.style.marginRight = '5px';
+          badge.style.marginBottom = '5px';
+          badge.textContent = amenity;
+          amenitiesContainer.appendChild(badge);
+        });
+      } else {
+        amenitiesContainer.innerHTML = '<span class="text-muted">No amenities selected</span>';
+      }
+
+      // Check-in/Check-out Times
+      const checkinTime = document.getElementById('checkin_time').value;
+      if (checkinTime) {
+        const time = checkinTime.split(':');
+        const hours = parseInt(time[0]);
+        const minutes = time[1];
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        document.getElementById('preview_checkin_time').textContent = `${displayHours}:${minutes} ${ampm}`;
+      } else {
+        document.getElementById('preview_checkin_time').textContent = '-';
+      }
+
+      const checkoutTime = document.getElementById('checkout_time').value;
+      if (checkoutTime) {
+        const time = checkoutTime.split(':');
+        const hours = parseInt(time[0]);
+        const minutes = time[1];
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        document.getElementById('preview_checkout_time').textContent = `${displayHours}:${minutes} ${ampm}`;
+      } else {
+        document.getElementById('preview_checkout_time').textContent = '-';
+      }
+
+      // Special Notes
+      const specialNotes = document.getElementById('special_notes').value.trim();
+      document.getElementById('preview_special_notes').textContent = specialNotes || '-';
+
+      // Status (removed - no longer needed)
+
+      // Images
+      const imagePreview = document.getElementById('preview_images');
+      if (uploadedFiles && uploadedFiles.length > 0) {
+        const container = document.createElement('div');
+        container.style.maxWidth = '500px';
+        container.style.margin = '0 auto';
+
+        const heading = document.createElement('h6');
+        heading.style.marginBottom = '15px';
+        heading.style.color = '#940000';
+        heading.textContent = 'Uploaded Images (' + uploadedFiles.length + '):';
+        container.appendChild(heading);
+
+        const grid = document.createElement('div');
+        grid.style.display = 'grid';
+        grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(100px, 1fr))';
+        grid.style.gap = '10px';
+        grid.style.maxWidth = '100%';
+
+        uploadedFiles.forEach((fileData, index) => {
+          const previewImg = document.createElement('img');
+          previewImg.src = fileData.data;
+          previewImg.alt = fileData.name;
+          previewImg.style.width = '100%';
+          previewImg.style.height = '100px';
+          previewImg.style.objectFit = 'cover';
+          previewImg.style.borderRadius = '6px';
+          previewImg.style.border = '2px solid #e0e0e0';
+          previewImg.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+          grid.appendChild(previewImg);
+        });
+
+        container.appendChild(grid);
+        imagePreview.innerHTML = '';
+        imagePreview.appendChild(container);
+      } else {
+        imagePreview.innerHTML = '<span class="text-muted">No images uploaded</span>';
+      }
+    }
+
+    function validateStep(step) {
+      const stepElement = document.querySelector(`.wizard-step[data-step="${step}"]`);
+      const requiredFields = stepElement.querySelectorAll('[required]');
+      let isValid = true;
+
+      requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+          field.classList.add('is-invalid');
+          isValid = false;
+        } else {
+          field.classList.remove('is-invalid');
+        }
+      });
+
+      if (!isValid) {
         swal({
-          title: "Are you sure?",
-          text: "{{ isset($room) ? 'Do you want to update this room?' : 'Do you want to add this room?' }}",
-          type: "warning",
-          showCancelButton: true,
-          confirmButtonColor: "#940000",
-          cancelButtonColor: "#d33",
-          confirmButtonText: "{{ isset($room) ? 'Yes, update it!' : 'Yes, add it!' }}",
-          cancelButtonText: "Cancel",
-          closeOnConfirm: false,
-          showLoaderOnConfirm: true
-        }, function (isConfirm) {
-          if (isConfirm) {
-            // Show loading spinner
-            swal({
-              title: "Processing...",
-              text: "Please wait while we save the room data",
-              type: "info",
-              showConfirmButton: false,
-              allowOutsideClick: false,
-              allowEscapeKey: false,
-              closeOnClickOutside: false
+          title: "Validation Error",
+          text: "Please fill in all required fields",
+          type: "error",
+          confirmButtonColor: "#940000"
+        }, function () {
+          // Focus on first invalid field
+          const firstInvalid = stepElement.querySelector('.is-invalid');
+          if (firstInvalid) {
+            firstInvalid.focus();
+            firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        });
+      }
+
+      return isValid;
+    }
+
+    // Professional image upload with drag & drop
+    let uploadedFiles = [];
+
+    function setupImageUpload() {
+      const fileInput = document.getElementById('room_images');
+      const uploadArea = document.getElementById('uploadArea');
+      const preview = document.getElementById('imagePreview');
+      const imageCount = document.getElementById('imageCount');
+
+      // Click to upload
+      uploadArea.addEventListener('click', () => {
+        fileInput.click();
+      });
+
+      // Drag and drop
+      uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+      });
+
+      uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+      });
+
+      uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const files = Array.from(e.dataTransfer.files);
+        handleFiles(files);
+      });
+
+      // File input change
+      fileInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files);
+        handleFiles(files);
+      });
+
+      function handleFiles(files) {
+        files.forEach(file => {
+          if (file.type.startsWith('image/')) {
+            // Check file size (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+              swal({
+                title: "File too large",
+                text: `${file.name} is larger than 5MB. Please choose a smaller file.`,
+                type: "error",
+                confirmButtonColor: "#940000"
+              });
+              return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              const fileData = {
+                name: file.name,
+                size: file.size,
+                data: e.target.result,
+                file: file
+              };
+              uploadedFiles.push(fileData);
+              displayImage(fileData, uploadedFiles.length - 1);
+              updateImageCount();
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      }
+
+      function displayImage(fileData, index) {
+        const item = document.createElement('div');
+        item.className = 'image-preview-item';
+        item.innerHTML = `
+                <img src="${fileData.data}" alt="${fileData.name}">
+                <button type="button" class="remove-btn" onclick="removeImage(${index})" title="Remove image">
+                  <i class="fa fa-times"></i>
+                </button>
+                <div class="image-info">${fileData.name}</div>
+              `;
+        preview.appendChild(item);
+      }
+
+      function updateImageCount() {
+        const count = uploadedFiles.length;
+        if (count > 0) {
+          imageCount.textContent = `${count} image${count > 1 ? 's' : ''} selected`;
+          imageCount.style.color = '#940000';
+          imageCount.style.fontWeight = '500';
+        } else {
+          imageCount.textContent = '';
+        }
+      }
+
+      window.removeImage = function (index) {
+        uploadedFiles.splice(index, 1);
+        preview.innerHTML = '';
+        uploadedFiles.forEach((fileData, idx) => {
+          displayImage(fileData, idx);
+        });
+        updateImageCount();
+
+        // Update file input
+        const dataTransfer = new DataTransfer();
+        uploadedFiles.forEach(fileData => {
+          dataTransfer.items.add(fileData.file);
+        });
+        fileInput.files = dataTransfer.files;
+      };
+    }
+
+    // Initialize image upload when page loads and populate form if editing
+    document.addEventListener('DOMContentLoaded', function () {
+      setupImageUpload();
+
+      // ============================================
+      // BULK ROOM CREATION LOGIC
+      // ============================================
+      @if(!isset($room))
+        const roomTypeSelect = document.getElementById('room_type');
+        const bulkCreationSection = document.getElementById('bulk_creation_section');
+        const enableBulkCreate = document.getElementById('enable_bulk_create');
+        const quantitySection = document.getElementById('quantity_section');
+        const bulkQuantity = document.getElementById('bulk_quantity');
+        const assignmentMethodSection = document.getElementById('assignment_method_section');
+        const autoGenerateSection = document.getElementById('auto_generate_section');
+        const manualAssignSection = document.getElementById('manual_assign_section');
+        const startingRoomNumber = document.getElementById('starting_room_number');
+        const manualRoomNumbers = document.getElementById('manual_room_numbers');
+        const autoPreview = document.getElementById('auto_preview');
+        const manualPreview = document.getElementById('manual_preview');
+        const roomNumberField = document.getElementById('room_number');
+        const autoGenerateRadio = document.getElementById('auto_generate');
+        const manualAssignRadio = document.getElementById('manual_assign');
+
+        // Get room type display name
+        function getRoomTypeDisplayName(roomType) {
+          const typeNames = {
+            'Single': 'Single Room',
+            'Double': 'Double Room',
+            'Twins': 'Standard Twin Room'
+          };
+          return typeNames[roomType] || 'Room';
+        }
+
+        // Update bulk creation labels based on room type
+        function updateBulkCreationLabels() {
+          const roomType = roomTypeSelect.value;
+          if (!roomType) {
+            bulkCreationSection.style.display = 'none';
+            return;
+          }
+
+          const displayName = getRoomTypeDisplayName(roomType);
+          const pluralName = displayName + 's';
+
+          // Update labels
+          const bulkRoomTypeLabel = document.getElementById('bulk_room_type_label');
+          const bulkCreateLabel = document.getElementById('bulk_create_label');
+          const bulkQuantityLabel = document.getElementById('bulk_quantity_label');
+
+          if (bulkRoomTypeLabel) bulkRoomTypeLabel.textContent = 'Create multiple ' + pluralName.toLowerCase() + ' at once';
+          if (bulkCreateLabel) bulkCreateLabel.textContent = 'Create Multiple ' + pluralName;
+          if (bulkQuantityLabel) bulkQuantityLabel.innerHTML = 'How many ' + pluralName + '? <span class="text-danger">*</span>';
+        }
+
+        // Show/hide bulk creation section based on room type
+        function toggleBulkCreationSection() {
+          if (!roomTypeSelect || !bulkCreationSection) {
+            console.log('Bulk creation elements not found:', {
+              roomTypeSelect: !!roomTypeSelect,
+              bulkCreationSection: !!bulkCreationSection
             });
+            return;
+          }
 
-            // Add loading spinner overlay
-            const loadingSpinner = document.createElement('div');
-            loadingSpinner.id = 'formLoadingSpinner';
-            loadingSpinner.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 99999; display: flex; align-items: center; justify-content: center;';
-            loadingSpinner.innerHTML = '<div style="background: white; padding: 30px; border-radius: 8px; text-align: center;"><i class="fa fa-spinner fa-spin fa-3x" style="color: #940000;"></i><p style="margin-top: 15px; font-size: 16px;">Saving room data...</p></div>';
-            document.body.appendChild(loadingSpinner);
+          const selectedRoomType = roomTypeSelect.value;
+          if (selectedRoomType) {
+            bulkCreationSection.style.display = 'block';
+            updateBulkCreationLabels();
+          } else {
+            bulkCreationSection.style.display = 'none';
+            // Reset bulk creation when no room type selected
+            if (enableBulkCreate) enableBulkCreate.checked = false;
+            resetBulkCreationFields();
+          }
+        }
 
-            // Create FormData object
-            const formData = new FormData(form);
+        // Reset all bulk creation fields
+        function resetBulkCreationFields() {
+          if (enableBulkCreate) enableBulkCreate.checked = false;
+          if (quantitySection) quantitySection.style.display = 'none';
+          if (assignmentMethodSection) assignmentMethodSection.style.display = 'none';
+          if (autoGenerateSection) autoGenerateSection.style.display = 'none';
+          if (manualAssignSection) manualAssignSection.style.display = 'none';
+          if (bulkQuantity) {
+            bulkQuantity.value = '2';
+            bulkQuantity.required = false;
+          }
+          if (startingRoomNumber) {
+            startingRoomNumber.value = '';
+            startingRoomNumber.required = false;
+          }
+          if (manualRoomNumbers) {
+            manualRoomNumbers.value = '';
+            manualRoomNumbers.required = false;
+          }
+          if (roomNumberField) {
+            roomNumberField.required = true;
+            roomNumberField.disabled = false;
+          }
 
-            // Add amenities as array
-            const amenities = Array.from(document.querySelectorAll('input[name="amenities[]"]:checked')).map(cb => cb.value);
-            amenities.forEach((amenity, index) => {
-              formData.append(`amenities[${index}]`, amenity);
-            });
+          // Update help text
+          const roomNumberHelpText = document.getElementById('room_number_help_text');
+          if (roomNumberHelpText) {
+            roomNumberHelpText.textContent = 'Enter a unique room number or name';
+          }
+          updatePreviews();
+        }
 
-            // Submit via AJAX
-            fetch(form.action, {
-              method: 'POST',
-              body: formData,
-              headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('input[name="_token"]').value
+        // Toggle bulk creation checkbox
+        if (enableBulkCreate) {
+          enableBulkCreate.addEventListener('change', function () {
+            if (this.checked) {
+              quantitySection.style.display = 'block';
+              bulkQuantity.required = true;
+              roomNumberField.required = false;
+              roomNumberField.disabled = true;
+              roomNumberField.value = '';
+
+              // Update help text
+              const roomNumberHelpText = document.getElementById('room_number_help_text');
+              if (roomNumberHelpText) {
+                roomNumberHelpText.textContent = 'Room numbers will be specified in bulk creation fields below';
               }
-            })
-              .then(async response => {
-                const data = await response.json();
-                // Remove loading spinner
-                const spinner = document.getElementById('formLoadingSpinner');
-                if (spinner) spinner.remove();
 
-                if (!response.ok || !data.success) {
-                  // Handle validation errors
-                  if (data.errors) {
-                    const errorMessages = Object.values(data.errors).flat().join('<br>');
-                    swal({
-                      title: "Validation Error!",
-                      html: true,
-                      text: errorMessages,
-                      type: "error",
-                      confirmButtonColor: "#940000"
-                    });
-                    return;
-                  }
+              checkQuantityAndShowMethod();
+            } else {
+              resetBulkCreationFields();
+            }
+          });
+        }
+
+        // Check quantity and show assignment method section
+        function checkQuantityAndShowMethod() {
+          const quantity = parseInt(bulkQuantity.value) || 0;
+          if (quantity >= 2 && enableBulkCreate.checked) {
+            assignmentMethodSection.style.display = 'block';
+            // Wait a bit for Bootstrap to process the button toggle, then update
+            setTimeout(function () {
+              updateAssignmentMethod();
+            }, 50);
+          } else {
+            assignmentMethodSection.style.display = 'none';
+            autoGenerateSection.style.display = 'none';
+            manualAssignSection.style.display = 'none';
+          }
+        }
+
+        // Update assignment method sections
+        function updateAssignmentMethod() {
+          console.log('Updating assignment method:', {
+            autoChecked: autoGenerateRadio ? autoGenerateRadio.checked : false,
+            manualChecked: manualAssignRadio ? manualAssignRadio.checked : false
+          });
+
+          if (autoGenerateRadio && autoGenerateRadio.checked) {
+            console.log('Showing auto-generate section');
+            if (autoGenerateSection) {
+              autoGenerateSection.style.display = 'block';
+            }
+            if (manualAssignSection) {
+              manualAssignSection.style.display = 'none';
+            }
+            if (startingRoomNumber) {
+              startingRoomNumber.required = true;
+            }
+            if (manualRoomNumbers) {
+              manualRoomNumbers.required = false;
+              manualRoomNumbers.value = '';
+            }
+            updateAutoPreview();
+          } else if (manualAssignRadio && manualAssignRadio.checked) {
+            console.log('Showing manual assignment section');
+            if (autoGenerateSection) {
+              autoGenerateSection.style.display = 'none';
+            }
+            if (manualAssignSection) {
+              manualAssignSection.style.display = 'block';
+            }
+            if (startingRoomNumber) {
+              startingRoomNumber.required = false;
+              startingRoomNumber.value = '';
+            }
+            if (manualRoomNumbers) {
+              manualRoomNumbers.required = true;
+            }
+            updateManualPreview();
+          }
+        }
+
+        // Auto-pricing logic
+        const roomTypeData = {
+          'Single': { price: 15000, capacity: 1, bed: 'Single', extra_fee: 10000 },
+          'Double': { price: 30000, capacity: 2, bed: 'Queen', extra_fee: 20000 },
+          'Twins': { price: 45000, capacity: 2, bed: 'Twin', extra_fee: 20000 },
+          'Self-Contained Single': { price: 30000, capacity: 2, bed: 'Single', extra_fee: 10000 },
+          'Self-Contained Double': { price: 50000, capacity: 2, bed: 'King', extra_fee: 20000 }
+        };
+
+        if (roomTypeSelect) {
+          roomTypeSelect.addEventListener('change', function () {
+            const selected = roomTypeData[this.value];
+            if (selected) {
+              const priceInput = document.getElementById('price_per_night');
+              const extraFeeInput = document.getElementById('extra_guest_fee');
+              const capacityInput = document.getElementById('capacity');
+              const bedTypeSelect = document.getElementById('bed_type');
+
+              if (priceInput) priceInput.value = selected.price;
+              if (extraFeeInput) extraFeeInput.value = selected.extra_fee;
+              if (capacityInput) capacityInput.value = selected.capacity;
+              if (bedTypeSelect) bedTypeSelect.value = selected.bed;
+
+              // Trigger potential conversion updates
+              if (typeof updatePriceConversions === 'function') {
+                updatePriceConversions();
+              }
+            }
+          });
+        }
+
+        // Initialize: Set manual as default and show it
+        if (manualAssignRadio && autoGenerateRadio) {
+          // Set manual as default
+          manualAssignRadio.checked = true;
+          autoGenerateRadio.checked = false;
+
+          if (manualAssignSection) {
+            manualAssignSection.style.display = 'block';
+            if (manualRoomNumbers) manualRoomNumbers.required = true;
+          }
+          if (autoGenerateSection) {
+            autoGenerateSection.style.display = 'none';
+            if (startingRoomNumber) startingRoomNumber.required = false;
+          }
+        }
+
+        // Update auto-generate preview
+        function updateAutoPreview() {
+          const startNum = startingRoomNumber.value.trim();
+          const quantity = parseInt(bulkQuantity.value) || 0;
+
+          if (!startNum || quantity < 2) {
+            autoPreview.innerHTML = '<small>Enter starting room number to see preview</small>';
+            return;
+          }
+
+          // Extract numeric part and prefix
+          const match = startNum.match(/^([^0-9]*)(\d+)$/);
+          if (!match) {
+            autoPreview.innerHTML = '<small class="text-danger">Invalid room number format</small>';
+            return;
+          }
+
+          const prefix = match[1];
+          const startNumInt = parseInt(match[2]);
+          const existingRooms = @json(\App\Models\Room::pluck('room_number')->toArray());
+
+          let previewNumbers = [];
+          let currentNum = startNumInt;
+          let skipped = 0;
+
+          while (previewNumbers.length < quantity && skipped < 100) {
+            const roomNum = prefix + currentNum;
+            if (!existingRooms.includes(roomNum)) {
+              previewNumbers.push(roomNum);
+            }
+            currentNum++;
+            skipped++;
+          }
+
+          if (previewNumbers.length < quantity) {
+            autoPreview.innerHTML = '<small class="text-warning">Could only generate ' + previewNumbers.length + ' unique room numbers. Some may already exist.</small>';
+          } else {
+            autoPreview.innerHTML = '<strong>Preview:</strong><br><small>' + previewNumbers.join(', ') + '</small>';
+          }
+        }
+
+        // Update manual assignment preview
+        function updateManualPreview() {
+          const input = manualRoomNumbers.value.trim();
+          const quantity = parseInt(bulkQuantity.value) || 0;
+
+          if (!input) {
+            manualPreview.innerHTML = '<small>Enter room numbers separated by commas (e.g., 100, 204, 4046)</small>';
+            return;
+          }
+
+          // Check if input contains invalid separators (dots, semicolons, etc.)
+          if (input.includes('.') || input.includes(';') || input.includes('|')) {
+            manualPreview.innerHTML = '<small class="text-danger"><strong>Error:</strong> Please use commas (,) to separate room numbers. Example: 100, 204, 4046</small>';
+            return;
+          }
+
+          // Only split by comma
+          const inputNumbers = input.split(',').map(n => n.trim()).filter(n => n);
+          const existingRooms = @json(\App\Models\Room::pluck('room_number')->toArray());
+
+          let validNumbers = [];
+          let duplicateNumbers = [];
+          let emptyNumbers = [];
+
+          inputNumbers.forEach(num => {
+            if (num.length === 0) {
+              emptyNumbers.push(num);
+              return;
+            }
+            if (existingRooms.includes(num)) {
+              duplicateNumbers.push(num);
+            } else if (validNumbers.includes(num)) {
+              duplicateNumbers.push(num);
+            } else {
+              validNumbers.push(num);
+            }
+          });
+
+          let previewHtml = '';
+
+          // Check if exact quantity is provided
+          if (inputNumbers.length > quantity) {
+            previewHtml += '<small class="text-danger"><strong>Error:</strong> You entered ' + inputNumbers.length + ' room numbers, but only need ' + quantity + '. Please remove ' + (inputNumbers.length - quantity) + ' number(s).</small><br>';
+          }
+
+          if (validNumbers.length > 0) {
+            const statusClass = validNumbers.length === quantity ? 'text-success' : 'text-info';
+            previewHtml += '<strong>Valid (' + validNumbers.length + '/' + quantity + '):</strong><br><small class="' + statusClass + '">' + validNumbers.join(', ') + '</small>';
+          }
+
+          if (duplicateNumbers.length > 0) {
+            previewHtml += '<br><strong>Already Exist (will be skipped):</strong><br><small class="text-warning">' + duplicateNumbers.join(', ') + '</small>';
+          }
+
+          if (validNumbers.length < quantity) {
+            previewHtml += '<br><small class="text-danger">Need ' + (quantity - validNumbers.length) + ' more valid room number(s)</small>';
+          } else if (validNumbers.length === quantity && inputNumbers.length === quantity) {
+            previewHtml += '<br><small class="text-success"><strong>✓ Ready to create ' + quantity + ' room(s)</strong></small>';
+          }
+
+          manualPreview.innerHTML = previewHtml || '<small>Enter room numbers separated by commas (e.g., 100, 204, 4046)</small>';
+        }
+
+        // Update all previews
+        function updatePreviews() {
+          updateAutoPreview();
+          updateManualPreview();
+        }
+
+        // Event listeners
+        if (roomTypeSelect && bulkCreationSection) {
+          // Show/hide on room type change
+          roomTypeSelect.addEventListener('change', function () {
+            console.log('Room type changed to:', this.value);
+            toggleBulkCreationSection();
+            updateBulkCreationLabels();
+          });
+
+          // Check on page load - wait a bit for DOM to be ready
+          setTimeout(function () {
+            console.log('Initializing bulk creation section');
+            toggleBulkCreationSection();
+            updateBulkCreationLabels();
+          }, 200);
+        } else {
+          console.error('Bulk creation elements not found on page load');
+        }
+
+        if (bulkQuantity) {
+          bulkQuantity.addEventListener('input', function () {
+            checkQuantityAndShowMethod();
+            updatePreviews();
+          });
+        }
+
+        if (startingRoomNumber) {
+          startingRoomNumber.addEventListener('input', updateAutoPreview);
+        }
+
+        if (manualRoomNumbers) {
+          manualRoomNumbers.addEventListener('input', function () {
+            // Validate input format - only allow commas as separators
+            let value = this.value;
+
+            // Replace common invalid separators with commas (for user convenience)
+            if (value.includes('.')) {
+              value = value.replace(/\./g, ',');
+              this.value = value;
+            }
+            if (value.includes(';')) {
+              value = value.replace(/;/g, ',');
+              this.value = value;
+            }
+            if (value.includes('|')) {
+              value = value.replace(/\|/g, ',');
+              this.value = value;
+            }
+
+            updateManualPreview();
+          });
+
+          // Also validate on blur
+          manualRoomNumbers.addEventListener('blur', function () {
+            const input = this.value.trim();
+            const quantity = parseInt(bulkQuantity.value) || 0;
+
+            if (input && quantity > 0) {
+              const inputNumbers = input.split(',').map(n => n.trim()).filter(n => n);
+              if (inputNumbers.length !== quantity) {
+                alert('Please enter exactly ' + quantity + ' room number(s) separated by commas.\n\nExample: 100, 204, 4046');
+                this.focus();
+              }
+            }
+          });
+        }
+
+        // Event listeners for assignment method radio buttons
+        if (autoGenerateRadio) {
+          autoGenerateRadio.addEventListener('change', function () {
+            console.log('Auto-generate selected');
+            updateAssignmentMethod();
+          });
+
+          // Also listen on the parent label for Bootstrap button toggle
+          const autoGenerateLabel = autoGenerateRadio.closest('label');
+          if (autoGenerateLabel) {
+            autoGenerateLabel.addEventListener('click', function () {
+              setTimeout(function () {
+                updateAssignmentMethod();
+              }, 10);
+            });
+          }
+        }
+
+        if (manualAssignRadio) {
+          manualAssignRadio.addEventListener('change', function () {
+            console.log('Manual assignment selected');
+            updateAssignmentMethod();
+          });
+
+          // Also listen on the parent label for Bootstrap button toggle
+          const manualAssignLabel = manualAssignRadio.closest('label');
+          if (manualAssignLabel) {
+            manualAssignLabel.addEventListener('click', function () {
+              setTimeout(function () {
+                updateAssignmentMethod();
+              }, 10);
+            });
+          }
+        }
+      @endif
+
+        // Populate form fields if editing
+        @if(isset($room))
+          const room = @json($room);
+
+          // Populate basic fields
+          if (room.room_type) {
+            document.getElementById('room_type').value = room.room_type;
+          }
+          if (room.extra_guest_fee) {
+            document.getElementById('extra_guest_fee').value = room.extra_guest_fee;
+          }
+          if (room.sku_code) {
+            document.getElementById('sku_code').value = room.sku_code;
+          }
+          if (room.discount_percentage) {
+            document.getElementById('discount_percentage').value = room.discount_percentage;
+          }
+          if (room.promo_code) {
+            document.getElementById('promo_code').value = room.promo_code;
+          }
+          if (room.bathroom_type) {
+            document.getElementById('bathroom_type').value = room.bathroom_type;
+          }
+          if (room.checkin_time) {
+            // Format time to H:i format (remove seconds if present)
+            const checkinTime = room.checkin_time.length > 5 ? room.checkin_time.substring(0, 5) : room.checkin_time;
+            document.getElementById('checkin_time').value = checkinTime;
+          }
+          if (room.checkout_time) {
+            // Format time to H:i format (remove seconds if present)
+            const checkoutTime = room.checkout_time.length > 5 ? room.checkout_time.substring(0, 5) : room.checkout_time;
+            document.getElementById('checkout_time').value = checkoutTime;
+          }
+          if (room.special_notes) {
+            document.getElementById('special_notes').value = room.special_notes;
+          }
+          if (room.wifi_password) {
+            document.getElementById('wifi_password').value = room.wifi_password;
+          }
+          if (room.wifi_network_name) {
+            document.getElementById('wifi_network_name').value = room.wifi_network_name;
+          }
+          if (room.status) {
+            document.getElementById('room_status').value = room.status;
+          }
+
+          // Populate checkboxes
+          if (room.pet_friendly) {
+            document.getElementById('pet_friendly').checked = true;
+          }
+          if (room.smoking_allowed) {
+            document.getElementById('smoking_allowed').checked = true;
+          }
+
+          // Populate amenities checkboxes
+          if (room.amenities && Array.isArray(room.amenities)) {
+            room.amenities.forEach(amenity => {
+              const checkbox = document.querySelector(`input[name="amenities[]"][value="${amenity}"]`);
+              if (checkbox) {
+                checkbox.checked = true;
+              }
+            });
+          }
+
+          // Update price conversions
+          if (typeof updatePriceConversions === 'function') {
+            updatePriceConversions();
+          }
+        @endif
+
+            // Setup amenities check all functionality
+            const checkboxes = document.querySelectorAll('.amenity-checkbox');
+      const checkAllBtn = document.getElementById('checkAllAmenities');
+      const uncheckAllBtn = document.getElementById('uncheckAllAmenities');
+
+      if (checkboxes.length > 0) {
+        checkboxes.forEach(checkbox => {
+          checkbox.addEventListener('change', function () {
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            const noneChecked = Array.from(checkboxes).every(cb => !cb.checked);
+
+            if (allChecked) {
+              checkAllBtn.style.display = 'none';
+              uncheckAllBtn.style.display = 'inline-block';
+            } else if (noneChecked) {
+              checkAllBtn.style.display = 'inline-block';
+              uncheckAllBtn.style.display = 'none';
+            }
+          });
+        });
+
+        // Initialize button state based on current checkbox states
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        if (allChecked) {
+          checkAllBtn.style.display = 'none';
+          uncheckAllBtn.style.display = 'inline-block';
+        }
+      }
+    });
+
+    // Form submission
+    document.getElementById('roomForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      if (!validateStep(currentStep)) {
+        changeStep(0); // Go back to show validation errors
+        return;
+      }
+
+      const form = this;
+
+      swal({
+        title: "Are you sure?",
+        text: "{{ isset($room) ? 'Do you want to update this room?' : 'Do you want to add this room?' }}",
+        type: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#940000",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "{{ isset($room) ? 'Yes, update it!' : 'Yes, add it!' }}",
+        cancelButtonText: "Cancel",
+        closeOnConfirm: false,
+        showLoaderOnConfirm: true
+      }, function (isConfirm) {
+        if (isConfirm) {
+          // Show loading spinner
+          swal({
+            title: "Processing...",
+            text: "Please wait while we save the room data",
+            type: "info",
+            showConfirmButton: false,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            closeOnClickOutside: false
+          });
+
+          // Add loading spinner overlay
+          const loadingSpinner = document.createElement('div');
+          loadingSpinner.id = 'formLoadingSpinner';
+          loadingSpinner.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 99999; display: flex; align-items: center; justify-content: center;';
+          loadingSpinner.innerHTML = '<div style="background: white; padding: 30px; border-radius: 8px; text-align: center;"><i class="fa fa-spinner fa-spin fa-3x" style="color: #940000;"></i><p style="margin-top: 15px; font-size: 16px;">Saving room data...</p></div>';
+          document.body.appendChild(loadingSpinner);
+
+          // Create FormData object
+          const formData = new FormData(form);
+
+          // Add amenities as array
+          const amenities = Array.from(document.querySelectorAll('input[name="amenities[]"]:checked')).map(cb => cb.value);
+          amenities.forEach((amenity, index) => {
+            formData.append(`amenities[${index}]`, amenity);
+          });
+
+          // Submit via AJAX
+          fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('input[name="_token"]').value
+            }
+          })
+            .then(async response => {
+              const data = await response.json();
+              // Remove loading spinner
+              const spinner = document.getElementById('formLoadingSpinner');
+              if (spinner) spinner.remove();
+
+              if (!response.ok || !data.success) {
+                // Handle validation errors
+                if (data.errors) {
+                  const errorMessages = Object.values(data.errors).flat().join('<br>');
                   swal({
-                    title: "Error!",
-                    text: data.message || "Failed to create room. Please try again.",
+                    title: "Validation Error!",
+                    html: true,
+                    text: errorMessages,
                     type: "error",
                     confirmButtonColor: "#940000"
                   });
                   return;
                 }
-
-                // Success
-                const successMessage = data.message || "{{ isset($room) ? 'Room has been updated successfully!' : 'Room has been added successfully!' }}";
-                const roomCount = data.rooms ? data.rooms.length : 1;
-
-                swal({
-                  title: "Success!",
-                  text: successMessage,
-                  type: "success",
-                  confirmButtonColor: "#940000",
-                  confirmButtonText: roomCount > 1 ? "View All Rooms" : "View Rooms List"
-                }, function () {
-                  // Redirect to rooms list (same route for both super admin and manager)
-                  window.location.href = "{{ route('admin.rooms.index') }}";
-                });
-              })
-              .catch(error => {
-                console.error('Error:', error);
-                // Remove loading spinner
-                const spinner = document.getElementById('formLoadingSpinner');
-                if (spinner) spinner.remove();
-
                 swal({
                   title: "Error!",
-                  html: true,
-                  text: error.message || "An error occurred while saving the room. Please try again.",
+                  text: data.message || "Failed to create room. Please try again.",
                   type: "error",
                   confirmButtonColor: "#940000"
                 });
+                return;
+              }
+
+              // Success
+              const successMessage = data.message || "{{ isset($room) ? 'Room has been updated successfully!' : 'Room has been added successfully!' }}";
+              const roomCount = data.rooms ? data.rooms.length : 1;
+
+              swal({
+                title: "Success!",
+                text: successMessage,
+                type: "success",
+                confirmButtonColor: "#940000",
+                confirmButtonText: roomCount > 1 ? "View All Rooms" : "View Rooms List"
+              }, function () {
+                // Redirect to rooms list (same route for both super admin and manager)
+                window.location.href = "{{ route('admin.rooms.index') }}";
               });
-          }
-        });
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              // Remove loading spinner
+              const spinner = document.getElementById('formLoadingSpinner');
+              if (spinner) spinner.remove();
+
+              swal({
+                title: "Error!",
+                html: true,
+                text: error.message || "An error occurred while saving the room. Please try again.",
+                type: "error",
+                confirmButtonColor: "#940000"
+              });
+            });
+        }
+      });
+    });
+
+    // Toggle all amenities checkboxes
+    function toggleAllAmenities(checkAll = true) {
+      const checkboxes = document.querySelectorAll('.amenity-checkbox');
+      const checkAllBtn = document.getElementById('checkAllAmenities');
+      const uncheckAllBtn = document.getElementById('uncheckAllAmenities');
+
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = checkAll;
       });
 
-      // Toggle all amenities checkboxes
-      function toggleAllAmenities(checkAll = true) {
-        const checkboxes = document.querySelectorAll('.amenity-checkbox');
-        const checkAllBtn = document.getElementById('checkAllAmenities');
-        const uncheckAllBtn = document.getElementById('uncheckAllAmenities');
-
-        checkboxes.forEach(checkbox => {
-          checkbox.checked = checkAll;
-        });
-
-        // Toggle button visibility
-        if (checkAll) {
-          checkAllBtn.style.display = 'none';
-          uncheckAllBtn.style.display = 'inline-block';
-        } else {
-          checkAllBtn.style.display = 'inline-block';
-          uncheckAllBtn.style.display = 'none';
-        }
+      // Toggle button visibility
+      if (checkAll) {
+        checkAllBtn.style.display = 'none';
+        uncheckAllBtn.style.display = 'inline-block';
+      } else {
+        checkAllBtn.style.display = 'inline-block';
+        uncheckAllBtn.style.display = 'none';
       }
+    }
 
-      // Initialize
-      updateStepIndicator();
-      updateButtons();
-    </script>
+    // Initialize
+    updateStepIndicator();
+    updateButtons();
+  </script>
 @endsection

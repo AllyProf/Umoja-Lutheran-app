@@ -2284,22 +2284,6 @@
                                                     <option value="">All Room Types</option>
                                                     <option value="Self-Contained Single" {{ isset($initial_room_type) && $initial_room_type == 'Self-Contained Single' ? 'selected' : '' }}>Self-Contained Single</option>
                                                     <option value="Self-Contained Double" {{ isset($initial_room_type) && $initial_room_type == 'Self-Contained Double' ? 'selected' : '' }}>Self-Contained Double</option>
-                                                    <option value="Standard Single" {{ isset($initial_room_type) && $initial_room_type == 'Standard Single' ? 'selected' : '' }}>
-                                                        Standard Single</option>
-                                                    <option value="Standard Double" {{ isset($initial_room_type) && $initial_room_type == 'Standard Double' ? 'selected' : '' }}>
-                                                        Standard Double</option>
-                                                    <option value="Standard Triple" {{ isset($initial_room_type) && $initial_room_type == 'Standard Triple' ? 'selected' : '' }}>
-                                                        Standard Triple</option>
-                                                    <option value="Standard Decker" {{ isset($initial_room_type) && $initial_room_type == 'Standard Decker' ? 'selected' : '' }}>
-                                                        Standard Decker</option>
-                                                    <option value="En-suite Single" {{ isset($initial_room_type) && $initial_room_type == 'En-suite Single' ? 'selected' : '' }}>
-                                                        En-suite Single</option>
-                                                    <option value="En-suite Triple" {{ isset($initial_room_type) && $initial_room_type == 'En-suite Triple' ? 'selected' : '' }}>
-                                                        En-suite Triple</option>
-                                                    <option value="En-suite Quad" {{ isset($initial_room_type) && $initial_room_type == 'En-suite Quad' ? 'selected' : '' }}>
-                                                        En-suite Quad</option>
-                                                    <option value="En-suite Quint" {{ isset($initial_room_type) && $initial_room_type == 'En-suite Quint' ? 'selected' : '' }}>
-                                                        En-suite Quint</option>
                                                     <option value="Single" {{ isset($initial_room_type) && $initial_room_type == 'Single' ? 'selected' : '' }}>Single Room
                                                     </option>
                                                     <option value="Double" {{ isset($initial_room_type) && $initial_room_type == 'Double' ? 'selected' : '' }}>Double Room
