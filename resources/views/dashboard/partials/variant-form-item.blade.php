@@ -10,19 +10,24 @@
 
 <div class="variant-card mb-4 border rounded p-3"
     style="background: #fdfdfd; border-left: 5px solid #009688 !important;">
-    <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
-        <h5 class="text-primary font-weight-bold">Variant #{{ $index + 1 }}</h5>
-        <span class="badge badge-info">Existing</span>
+    @php
+        $isFirstStandard = ($index === 0 && strtolower($variant->variant_name) === 'standard' && $product->variants->count() === 1);
+    @endphp
+
+    <div class="d-flex justify-content-between mb-3 border-bottom pb-2"
+        style="{{ $isFirstStandard ? 'display: none !important;' : '' }}">
+        <h5 class="text-primary font-weight-bold">Packaging Details #{{ $index + 1 }}</h5>
+        <span class="badge badge-info">Level: 1</span>
     </div>
 
     <input type="hidden" name="variants[{{ $index }}][id]" value="{{ $variant->id }}">
 
     <div class="row">
-        <div class="col-md-4">
+        <div class="col-md-4" style="{{ $isFirstStandard ? 'display: none;' : '' }}">
             <div class="form-group">
-                <label class="control-label font-weight-bold">Packaging / Specific Label</label>
+                <label class="control-label font-weight-bold">Packaging Label</label>
                 <input type="text" class="form-control" name="variants[{{ $index }}][name]"
-                    value="{{ $variant->variant_name }}" placeholder="e.g. Standard, 500ml, 1kg" required>
+                    value="{{ $variant->variant_name }}" required>
             </div>
         </div>
         <div class="col-md-4 volume-weight-section">

@@ -106,9 +106,9 @@
                     </div>
                 </div>
 
-                <!-- 2. Product Variants -->
-                <div class="mb-3">
-                    <h4 class="text-secondary mb-0"><i class="fa fa-cubes"></i> Product Variants</h4>
+                <!-- 2. Pricing & Packaging Details -->
+                <div class="mb-3 d-flex justify-content-between align-items-center">
+                    <h4 class="text-secondary mb-0"><i class="fa fa-money-bill"></i> Pricing & Unit Details</h4>
                 </div>
 
                 <div id="variants-container">
@@ -125,8 +125,8 @@
                 </div>
 
                 <div class="text-right mt-3 mb-4">
-                    <button class="btn btn-primary btn-sm shadow-sm" type="button" onclick="addVariant()">
-                        <i class="fa fa-plus-circle"></i> Add Another Variant
+                    <button class="btn btn-outline-primary btn-sm shadow-sm" type="button" onclick="addVariant()">
+                        <i class="fa fa-plus-circle"></i> Add another Size / Packaging
                     </button>
                 </div>
 
@@ -237,13 +237,13 @@
     <!-- Template for New Variant -->
     <template id="variant-template">
         <div class="variant-card card shadow-sm mb-4 border-left-info animate-fade-in">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-2 variant-header" style="display: none !important;">
                 <div>
                     <span class="badge badge-info mr-2">New</span>
-                    <strong class="text-primary">Variant Details</strong>
+                    <strong class="text-primary">Packaging Details</strong>
                 </div>
                 <button type="button" class="btn btn-outline-danger btn-sm rounded-circle p-1"
-                    style="width: 30px; height: 30px;" onclick="removeVariant(this)" title="Remove Variant">
+                    style="width: 30px; height: 30px;" onclick="removeVariant(this)" title="Remove">
                     <i class="fa fa-times"></i>
                 </button>
             </div>
@@ -253,11 +253,11 @@
                     <!-- Left Column: Basic Info -->
                     <div class="col-md-7 border-right">
                         <div class="form-row">
-                            <div class="col-md-12 form-group">
-                                <label class="small font-weight-bold text-muted">PACKAGING / LABEL (e.g. 500ml, Small, 1kg,
-                                    Standard)</label>
+                            <div class="col-md-12 form-group variant-name-field" style="display: none;">
+                                <label class="small font-weight-bold text-muted">SIZE / PACKAGING LABEL (Optional)</label>
                                 <input type="text" class="form-control variant-name-input font-weight-bold"
-                                    name="variants[INDEX][name]" placeholder="e.g. Standard or 350ml" required>
+                                    name="variants[INDEX][name]" value="Standard" placeholder="e.g. 500ml, 1kg, Large" required>
+                                <small class="text-muted">Only needed if you have multiple sizes for this product.</small>
                             </div>
 
                             <div class="col-md-6 form-group volume-weight-section">
@@ -437,12 +437,14 @@
 
             const div = document.createElement('div');
             div.innerHTML = newHtml;
-            container.appendChild(div.firstElementChild); // Extract the card from the wrapper div
+            const card = div.firstElementChild;
+            container.appendChild(card);
 
-            // Auto-fill name if brand exists
-            const brandName = document.getElementById('brandNameInput').value;
-            if (brandName) {
-                container.lastElementChild.querySelector('.variant-name-input').value = brandName + ' ';
+            // Show header and name field for subsequent variants
+            if (variantCount > 0) {
+                card.querySelector('.variant-header').style.setProperty('display', 'flex', 'important');
+                card.querySelector('.variant-name-field').style.display = 'block';
+                card.querySelector('.variant-name-input').value = ''; // Reset for manual entry
             }
 
             variantCount++;
