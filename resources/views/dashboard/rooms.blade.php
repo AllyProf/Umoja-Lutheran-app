@@ -67,20 +67,20 @@
                   <select class="form-control" id="room_type" name="room_type" required>
                     <option value="">Select Room Type</option>
                     <optgroup label="Self Contained">
-                      <option value="Self-Contained Single" {{ (isset($room) && $room->room_type == 'Self-Contained Single') ? 'selected' : '' }}>Single Room (1 Pax) - 30,000</option>
-                      <option value="Self-Contained Double" {{ (isset($room) && $room->room_type == 'Self-Contained Double') ? 'selected' : '' }}>Double Bed (2 Pax) - 50,000</option>
+                      <option value="Self-Contained Single" {{ (isset($room) && trim(strtolower($room->room_type)) == 'self-contained single') ? 'selected' : '' }}>Single Room (1 Pax) - 30,000</option>
+                      <option value="Self-Contained Double" {{ (isset($room) && trim(strtolower($room->room_type)) == 'self-contained double') ? 'selected' : '' }}>Double Bed (2 Pax) - 50,000</option>
                     </optgroup>
                     <optgroup label="Standard Room">
-                      <option value="Standard Single" {{ (isset($room) && $room->room_type == 'Standard Single') ? 'selected' : '' }}>Single Room (1 Pax) - 15,000</option>
-                      <option value="Standard Double" {{ (isset($room) && $room->room_type == 'Standard Double') ? 'selected' : '' }}>Double Room (2 Pax) - 30,000</option>
-                      <option value="Standard Triple" {{ (isset($room) && $room->room_type == 'Standard Triple') ? 'selected' : '' }}>Triple Room (3 Pax) - 45,000</option>
-                      <option value="Standard Decker" {{ (isset($room) && $room->room_type == 'Standard Decker') ? 'selected' : '' }}>Decker Room (4 Pax) - 60,000</option>
+                      <option value="Standard Single" {{ (isset($room) && trim(strtolower($room->room_type)) == 'standard single') ? 'selected' : '' }}>Single Room (1 Pax) - 15,000</option>
+                      <option value="Standard Double" {{ (isset($room) && trim(strtolower($room->room_type)) == 'standard double') ? 'selected' : '' }}>Double Room (2 Pax) - 30,000</option>
+                      <option value="Standard Triple" {{ (isset($room) && trim(strtolower($room->room_type)) == 'standard triple') ? 'selected' : '' }}>Triple Room (3 Pax) - 45,000</option>
+                      <option value="Standard Decker" {{ (isset($room) && trim(strtolower($room->room_type)) == 'standard decker') ? 'selected' : '' }}>Decker Room (4 Pax) - 60,000</option>
                     </optgroup>
                     <optgroup label="En-suite Rooms">
-                      <option value="En-suite Single" {{ (isset($room) && $room->room_type == 'En-suite Single') ? 'selected' : '' }}>Suite House (Single) - 60,000</option>
-                      <option value="En-suite Triple" {{ (isset($room) && $room->room_type == 'En-suite Triple') ? 'selected' : '' }}>Family House (3 beds) - 90,000</option>
-                      <option value="En-suite Quad" {{ (isset($room) && $room->room_type == 'En-suite Quad') ? 'selected' : '' }}>Suite Family (4 beds) - 120,000</option>
-                      <option value="En-suite Quint" {{ (isset($room) && $room->room_type == 'En-suite Quint') ? 'selected' : '' }}>Family House (5 beds) - 150,000</option>
+                      <option value="En-suite Single" {{ (isset($room) && trim(strtolower($room->room_type)) == 'en-suite single') ? 'selected' : '' }}>Suite House (Single) - 60,000</option>
+                      <option value="En-suite Triple" {{ (isset($room) && trim(strtolower($room->room_type)) == 'en-suite triple') ? 'selected' : '' }}>Family House (3 beds) - 90,000</option>
+                      <option value="En-suite Quad" {{ (isset($room) && trim(strtolower($room->room_type)) == 'en-suite quad') ? 'selected' : '' }}>Suite Family (4 beds) - 120,000</option>
+                      <option value="En-suite Quint" {{ (isset($room) && trim(strtolower($room->room_type)) == 'en-suite quint') ? 'selected' : '' }}>Family House (5 beds) - 150,000</option>
                     </optgroup>
                   </select>
                   <small class="form-text text-muted">Select room type first to enable bulk creation options</small>
@@ -1968,6 +1968,9 @@
           const room = @json($room);
 
           // Populate basic fields
+          if (room.room_type) {
+            document.getElementById('room_type').value = room.room_type;
+          }
           if (room.extra_guest_fee) {
             document.getElementById('extra_guest_fee').value = room.extra_guest_fee;
           }
@@ -2025,7 +2028,9 @@
           }
 
           // Update price conversions
-          updatePriceConversions();
+          if (typeof updatePriceConversions === 'function') {
+            updatePriceConversions();
+          }
         @endif
 
         // Setup amenities check all functionality
