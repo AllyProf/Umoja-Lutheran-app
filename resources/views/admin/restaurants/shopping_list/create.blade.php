@@ -1,554 +1,776 @@
 @extends('dashboard.layouts.app')
 
 @section('content')
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --shadow-premium: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+        }
+
+        .picker-container {
+            display: flex;
+            gap: 20px;
+            height: calc(100vh - 180px);
+            min-height: 600px;
+        }
+
+        /* Sidebar Categories */
+        .category-sidebar {
+            width: 250px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(8px);
+            border-radius: 15px;
+            border: 1px solid var(--glass-border);
+            padding: 15px;
+            overflow-y: auto;
+            box-shadow: var(--shadow-premium);
+        }
+
+        .category-btn {
+            display: block;
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border: none;
+            background: transparent;
+            text-align: left;
+            border-radius: 10px;
+            color: #4a5568;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .category-btn:hover {
+            background: rgba(118, 75, 162, 0.05);
+            padding-left: 20px;
+            color: #764ba2;
+        }
+
+        .category-btn.active {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
+        }
+
+        /* Product Grid Area */
+        .product-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .search-container {
+            position: relative;
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow-premium);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px 20px 15px 50px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a0aec0;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            border: 1px solid #edf2f7;
+            transition: all 0.3s ease;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            border-color: #764ba2;
+        }
+
+        .product-card .cat-tag {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #718096;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .product-card h5 {
+            margin: 0 0 10px 0;
+            font-size: 15px;
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .product-card .price {
+            font-weight: 700;
+            color: #764ba2;
+            font-size: 14px;
+        }
+
+        .product-card .add-btn {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: var(--primary-gradient);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            transition: transform 0.2s;
+        }
+
+        .product-card:hover .add-btn {
+            transform: scale(1.15);
+        }
+
+        /* Cart Sidebar */
+        .cart-sidebar {
+            width: 350px;
+            background: white;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-premium);
+            border: 1px solid #edf2f7;
+        }
+
+        .cart-header {
+            padding: 20px;
+            border-bottom: 1px solid #edf2f7;
+            background: var(--primary-gradient);
+            border-radius: 15px 15px 0 0;
+            color: white;
+        }
+
+        .cart-items {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .cart-item {
+            display: flex;
+            gap: 10px;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #f7fafc;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .cart-item-info {
+            flex: 1;
+        }
+
+        .cart-item-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .cart-item-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .qty-input {
+            width: 60px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            padding: 2px;
+        }
+
+        .remove-item {
+            color: #e53e3e;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .cart-footer {
+            padding: 20px;
+            border-top: 1px solid #edf2f7;
+            background: #f8fafc;
+            border-radius: 0 0 15px 15px;
+        }
+
+        .total-box {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        /* Form Details Modal Content Style */
+        .form-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-details .form-group {
+            margin-bottom: 0;
+        }
+
+        .form-details label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #718096;
+            margin-bottom: 3px;
+            display: block;
+        }
+
+        /* Pulse Animation for Add */
+        @keyframes pulse-purple {
+            0% {
+                box-shadow: 0 0 0 0 rgba(118, 75, 162, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(118, 75, 162, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(118, 75, 162, 0);
+            }
+        }
+
+        .pulse-add {
+            animation: pulse-purple 1s infinite;
+        }
+
+        .market-list-mode {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #e2e8f0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .market-list-mode.active {
+            background: #764ba2;
+            color: white;
+        }
+    </style>
+
     <div class="app-title">
         <div>
-            <h1><i class="fa fa-plus-square"></i> Create Shopping List</h1>
-            <p>Prepare a new market list</p>
+            <h1><i class="fa fa-shopping-basket"></i> Market List Builder</h1>
+            <p>Pick items to build your shopping list with premium precision</p>
         </div>
-        <ul class="app-breadcrumb breadcrumb">
-            <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
-            <li class="breadcrumb-item"><a href="{{ route('admin.restaurants.shopping-list.index') }}">Shopping Lists</a>
-            </li>
-            <li class="breadcrumb-item active"><a href="#">Create</a></li>
-        </ul>
+        <div class="d-flex align-items-center gap-3">
+            <div class="market-list-mode active mr-3" id="pickerModeBtn" onclick="setMode('picker')">Picker Mode</div>
+            <div class="market-list-mode" id="classicModeBtn" onclick="setMode('classic')">Classic Table</div>
+        </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-12">
-            <form action="{{ route('admin.restaurants.shopping-list.store') }}" method="POST">
-                @csrf
-                <div class="tile">
-                    <h3 class="tile-title">List Details</h3>
-                    <div class="tile-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label class="control-label">List Name</label>
-                                    <input class="form-control" type="text" name="name" value="{{ $prefillName ?? '' }}"
-                                        placeholder="e.g. Weekly Market Run" required>
+    <form action="{{ route('admin.restaurants.shopping-list.store') }}" method="POST" id="mainForm">
+        @csrf
+
+        {{-- Hidden Form Data --}}
+        <div id="hiddenItemsContainer"></div>
+
+        <div id="pickerContainer" class="picker-container">
+            <!-- Sidebar -->
+            <div class="category-sidebar">
+                <h6 class="text-uppercase text-muted mb-3 font-weight-bold" style="font-size: 11px;">Categories</h6>
+                <button type="button" class="category-btn active" onclick="filterCategory('all', this)">All Items</button>
+                @php
+                    $categories = $products->pluck('category')->unique()->sort();
+                @endphp
+                @foreach($categories as $cat)
+                    <button type="button" class="category-btn" onclick="filterCategory('{{ $cat }}', this)">
+                        {{ ucfirst(str_replace('_', ' ', $cat)) }}
+                    </button>
+                @endforeach
+                <button type="button" class="category-btn text-primary border-top mt-3" onclick="addManualItem()">
+                    <i class="fa fa-plus-circle"></i> Custom Item
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div class="product-area">
+                <div class="search-container">
+                    <i class="fa fa-search search-icon"></i>
+                    <input type="text" class="search-input" id="searchItems"
+                        placeholder="Search products, brands, or descriptions..." oninput="handleSearch()">
+                </div>
+
+                <div class="product-grid" id="productGrid">
+                    @foreach($products as $product)
+                        @if($product->variants->count() > 0)
+                            @foreach($product->variants as $variant)
+                                @php
+                                    $cartItem = [
+                                        "product_id" => $product->id,
+                                        "variant_id" => $variant->id,
+                                        "name" => $product->name . ($variant->variant_name && strtolower($variant->variant_name) != "standard" ? " - " . $variant->variant_name : ""),
+                                        "unit" => $variant->purchasing_unit ?: $variant->receiving_unit ?: $variant->measurement ?: "pcs",
+                                        "price" => 0,
+                                        "category" => $product->category
+                                    ];
+                                @endphp
+                                <div class="product-card" data-category="{{ $product->category }}"
+                                    data-name="{{ strtolower($product->name . ' ' . $variant->variant_name) }}"
+                                    onclick='addToCart(@json($cartItem))'>
+                                    <span class="cat-tag">{{ $product->category }}</span>
+                                    <h5>{{ $product->name }}</h5>
+                                    @if($variant->variant_name && strtolower($variant->variant_name) != 'standard')
+                                        <small class="text-muted d-block mb-2">{{ $variant->variant_name }}</small>
+                                    @endif
+                                    <div class="price">
+                                        {{ $variant->purchasing_unit ?: $variant->receiving_unit ?: $variant->measurement ?: 'unit' }}
+                                    </div>
+                                    <button type="button" class="add-btn"><i class="fa fa-plus"></i></button>
                                 </div>
+                            @endforeach
+                        @else
+                            @php
+                                $cartItem = [
+                                    "product_id" => $product->id,
+                                    "variant_id" => null,
+                                    "name" => $product->name,
+                                    "unit" => $product->unit ?: "pcs",
+                                    "price" => 0,
+                                    "category" => $product->category
+                                ];
+                            @endphp
+                            <div class="product-card" data-category="{{ $product->category }}"
+                                data-name="{{ strtolower($product->name) }}" onclick='addToCart(@json($cartItem))'>
+                                <span class="cat-tag">{{ $product->category }}</span>
+                                <h5>{{ $product->name }}</h5>
+                                <div class="price">pcs</div>
+                                <button type="button" class="add-btn"><i class="fa fa-plus"></i></button>
                             </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label class="control-label">Market Name</label>
-                                    <input class="form-control" type="text" name="market_name"
-                                        placeholder="e.g. City Market">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label class="control-label">Shopping Date</label>
-                                    <input class="form-control" type="date" name="shopping_date"
-                                        value="{{ $prefillDate ?? date('Y-m-d') }}">
-                                </div>
-                            </div>
+                        @endif
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Cart Sidebar -->
+            <div class="cart-sidebar">
+                <div class="cart-header">
+                    <h5 class="mb-0 font-weight-bold"><i class="fa fa-shopping-cart"></i> Your List</h5>
+                    <small id="itemCount">0 items selected</small>
+                </div>
+
+                <div class="p-3 bg-light border-bottom">
+                    <div class="form-details">
+                        <div class="form-group">
+                            <label>List Name</label>
+                            <input type="text" name="name" class="form-control form-control-sm"
+                                placeholder="Weekly Market..." required value="{{ $prefillName ?? '' }}">
                         </div>
                         <div class="form-group">
-                            <label class="control-label">Notes</label>
-                            <textarea class="form-control" name="notes" rows="2"></textarea>
+                            <label>Market Name</label>
+                            <input type="text" name="market_name" class="form-control form-control-sm"
+                                placeholder="City Market">
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size: 11px; text-transform: uppercase;">Estimated Date</label>
+                        <input type="date" name="shopping_date" class="form-control form-control-sm"
+                            value="{{ $prefillDate ?? date('Y-m-d') }}">
                     </div>
                 </div>
 
-                <div class="tile">
-                    <div class="tile-title-w-btn">
-                        <h3 class="title">Items</h3>
-                        <button type="button" class="btn btn-primary btn-sm" onclick="addItemRow()"><i
-                                class="fa fa-plus"></i> Add Item</button>
-                        <button type="button" class="btn btn-outline-primary btn-sm ml-2" onclick="openBulkModal()"><i
-                                class="fa fa-list"></i> Bulk Add Items</button>
-                    </div>
-                    <div class="tile-body">
-                        <table class="table table-bordered" id="itemsTable">
-                            <thead>
-                                <tr>
-                                    <th width="35%">Item / Ingredient</th>
-                                    <th width="15%">Quantity</th>
-                                    <th width="15%">Unit</th>
-                                    <th width="15%">Est. Unit Price</th>
-                                    <th width="15%">Total Est. Price</th>
-                                    <th width="5%"></th>
-                                </tr>
-                            </thead>
-                            <tbody id="itemsContainer">
-                                {{-- Rows will be added here --}}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="tile-footer">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="alert alert-info">
-                                    <strong>Total Estimated Cost:</strong>
-                                    <span id="totalEstimatedCost" style="font-size: 18px; font-weight: bold;">0.00
-                                        TZS</span>
-                                </div>
-                            </div>
-                            <div class="col-md-6 text-right">
-                                <button class="btn btn-primary" type="submit"><i
-                                        class="fa fa-fw fa-lg fa-check-circle"></i>Save Template</button>
-                                <a class="btn btn-secondary" href="{{ route('admin.restaurants.shopping-list.index') }}"><i
-                                        class="fa fa-fw fa-lg fa-times-circle"></i>Cancel</a>
-                            </div>
-                        </div>
+                <div class="cart-items">
+                    <div id="cartContent"></div>
+                    <div class="text-center text-muted mt-5" id="emptyCart">
+                        <i class="fa fa-shopping-basket fa-3x mb-3 opacity-25"></i>
+                        <p>No items picked yet.</p>
                     </div>
                 </div>
-            </form>
+
+                <div class="cart-footer">
+                    <div class="total-box">
+                        <span>EST. TOTAL</span>
+                        <span id="displayTotal">0.00 TZS</span>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block p-3 font-weight-bold"
+                        style="border-radius: 12px;">
+                        <i class="fa fa-check-circle mr-2"></i> FINALIZE & SAVE
+                    </button>
+                    <a href="{{ route('admin.restaurants.shopping-list.index') }}"
+                        class="btn btn-link btn-block text-muted btn-sm mt-2">Discard Changes</a>
+                </div>
+            </div>
         </div>
-    </div>
 
-    {{-- Data for JS suggestions --}}
-    <script>
-        var availableProducts = @json($products);
-    </script>
+        {{-- Classic Table Mode (Hidden by default) --}}
+        <div id="classicContainer" class="tile d-none">
+            <div class="tile-title-w-btn">
+                <h3 class="title">Manual Entry</h3>
+                <button type="button" class="btn btn-primary btn-sm" onclick="addManualItem()"><i class="fa fa-plus"></i>
+                    Add Row</button>
+            </div>
+            <div class="tile-body">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Qty</th>
+                            <th>Unit</th>
+                            <th>Est. Total Price</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="classicTbody">
+                        {{-- Managed by JS same as cart --}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </form>
 
-    <script>
-        let rowCount = 0;
-
-        function addItemRow() {
-            const tbody = document.getElementById('itemsContainer');
-            const tr = document.createElement('tr');
-            tr.id = `row-${rowCount}`;
-
-            let productOptions = '<option value="">-- Select Product --</option>';
-            availableProducts.forEach(p => {
-                productOptions += `<option value="${p.id}" data-cat="${p.category}" data-name="${p.name}">${p.name}</option>`;
-            });
-
-            tr.innerHTML = `
-                                                                                                <td>
-                                                                                                    <div class="input-group mb-2">
-                                                                                                        <select class="form-control product-select" name="items[${rowCount}][product_id]" onchange="updateProductVariants(this, ${rowCount})">
-                                                                                                            ${productOptions}
-                                                                                                        </select>
-                                                                                                        <input type="text" class="form-control product-manual d-none" name="items[${rowCount}][product_name]" placeholder="Item Name">
-                                                                                                        <div class="input-group-append">
-                                                                                                            <button class="btn btn-outline-secondary" type="button" onclick="toggleManual(this, ${rowCount})" title="Toggle Search/Type"><i class="fa fa-pencil"></i></button>
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                </td>
-                                                                                                <input type="hidden" name="items[${rowCount}][category]" id="cat-${rowCount}" value="other">
-                                                                                                <input type="hidden" name="items[${rowCount}][product_variant_id]" id="variant-${rowCount}" value="">
-                                                                                                            <td>
-                                                                                        <input type="number" step="0.01" class="form-control item-quantity" name="items[${rowCount}][quantity]" required placeholder="Qty" onchange="updateLineTotal(${rowCount})">
-                                                                                    </td>
-                                                                                    <td>
-                                                                                        <select class="form-control unit-select-dropdown" name="items[${rowCount}][unit]" id="unit-${rowCount}">
-                                                                                            <option value="pcs">Pieces (pcs)</option>
-                                                                                            <option value="liters">Liters (L)</option>
-                                                                                            <option value="ml">Milliliters (ml)</option>
-                                                                                            <option value="kg">Kilograms (kg)</option>
-                                                                                            <option value="g">Grams (g)</option>
-                                                                                            <option value="Sado">Sado</option>
-                                                                                            <option value="Debe">Debe</option>
-                                                                                            <option value="boxes">Boxes</option>
-                                                                                            <option value="bottles">PIC (Bottle)</option>
-                                                                                            <option value="rolls">Rolls</option>
-                                                                                            <option value="packs">Packs</option>
-                                                                                            <option value="cartons">Cartons</option>
-                                                                                            <option value="bags">Bags</option>
-                                                                                            <option value="bunches">Bunches</option>
-                                                                                            <option value="crates">Crates</option>
-                                                                                            <option value="trays">Trays</option>
-                                                                                             <option value="other">Other</option>
-                                                                                            <option value="custom">Custom Unit</option>
-                                                                                        </select>
-                                                                                    </td>
-                                                                                    <td>
-                                                                                        <input type="number" step="0.01" class="form-control est-unit-price" placeholder="Price/Unit" onchange="updateLineTotal(${rowCount})">
-                                                                                    </td>
-                                                                                    <td>
-                                                                                        <input type="number" step="0.01" class="form-control estimated-price-input total-est-price" name="items[${rowCount}][estimated_price]" placeholder="0.00" onchange="calculateTotal()">
-                                                                                    </td>            </td>
-                                                                                                <td>
-                                                                                                    <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(${rowCount})"><i class="fa fa-trash"></i></button>
-                                                                                                </td>
-                                                                                            `;
-
-            tbody.appendChild(tr);
-            rowCount++;
-        }
-
-        function removeRow(id) {
-            document.getElementById(`row-${id}`).remove();
-        }
-
-        function toggleManual(btn, id) {
-            const row = document.getElementById(`row-${id}`);
-            const select = row.querySelector('.product-select');
-            const manual = row.querySelector('.product-manual');
-
-            if (manual.classList.contains('d-none')) {
-                manual.classList.remove('d-none');
-                // select.parentElement.classList.add('d-none'); // Removed invalid logic
-                select.style.display = 'none';
-                // btn.innerHTML = '<i class="fa fa-list"></i>';
-                select.value = '';
-            } else {
-                manual.classList.add('d-none');
-                // select.parentElement.classList.remove('d-none'); // Ensure wrapper is visible
-                select.style.display = 'block';
-                // btn.innerHTML = '<i class="fa fa-pencil"></i>';
-                manual.value = '';
-            }
-        }
-
-        function updateProductVariants(select, id) {
-            const productId = select.value;
-            const categorySelect = document.getElementById(`cat-${id}`);
-            const unitSelect = document.getElementById(`unit-${id}`);
-            const variantSelect = document.getElementById(`variant-${id}`);
-
-            if (!productId) return;
-
-            // Find product in availableProducts
-            const product = availableProducts.find(p => p.id == productId);
-            if (product) {
-                // Update category
-                if (categorySelect) categorySelect.value = product.category || 'other';
-
-                // Automatically select unit based on product variant
-                if (unitSelect && product.variants && product.variants.length > 0) {
-                    const firstVariant = product.variants[0];
-                    if (variantSelect) variantSelect.value = firstVariant.id;
-
-                    // Prioritize purchasing_unit as requested
-                    let unit = firstVariant.purchasing_unit || firstVariant.receiving_unit || firstVariant.measurement || '';
-
-                    if (unit) {
-                        let found = false;
-                        for (let i = 0; i < unitSelect.options.length; i++) {
-                            if (unitSelect.options[i].value.toLowerCase() === unit.toLowerCase() ||
-                                (unitSelect.options[i].value === 'liters' && (unit.toLowerCase() === 'l' || unit.toLowerCase() === 'litre' || unit.toLowerCase() === 'litres')) ||
-                                (unitSelect.options[i].value === 'pcs' && (unit.toLowerCase() === 'piece' || unit.toLowerCase() === 'pieces'))) {
-                                unitSelect.value = unitSelect.options[i].value;
-                                found = true;
-                                break;
-                            }
-                        }
-
-                        // Fallbacks for common names if exact match not found
-                        if (!found) {
-                            if (unit.toLowerCase().includes('sado')) unitSelect.value = 'Sado';
-                            else if (unit.toLowerCase().includes('debe')) unitSelect.value = 'Debe';
-                            else if (unit.toLowerCase().includes('kg')) unitSelect.value = 'kg';
-                            else if (unit.toLowerCase().includes('ltr')) unitSelect.value = 'liters';
-                            else if (unit.toLowerCase().includes('ml')) unitSelect.value = 'ml';
-                            else if (unit.toLowerCase().includes('carton')) unitSelect.value = 'cartons';
-                            else if (unit.toLowerCase().includes('box')) unitSelect.value = 'boxes';
-                        }
-                    }
-                }
-            }
-        }
-
-        function updateLineTotal(id) {
-            const row = document.getElementById(`row-${id}`);
-            if (!row) return;
-            const qtyInput = row.querySelector('.item-quantity');
-            const unitPriceInput = row.querySelector('.est-unit-price');
-            const totalInput = row.querySelector('.total-est-price');
-
-            const qty = parseFloat(qtyInput.value) || 0;
-            const unitPrice = parseFloat(unitPriceInput.value) || 0;
-
-            totalInput.value = (qty * unitPrice).toFixed(2);
-            calculateTotal();
-        }
-
-        // Calculate total estimated cost
-        function calculateTotal() {
-            let total = 0;
-            document.querySelectorAll('.estimated-price-input').forEach(function (input) {
-                const value = parseFloat(input.value) || 0;
-                total += value;
-            });
-            document.getElementById('totalEstimatedCost').textContent = total.toFixed(2) + ' TZS';
-        }
-
-        // Recalculate when page loads (for pre-filled items)
-        document.addEventListener('DOMContentLoaded', function () {
-            setTimeout(calculateTotal, 500);
-        });
-
-        // Pre-fill items from purchase requests if available
-        var prefillItems = @json($prefillItems ?? []);
-
-        // Add initial row or pre-fill items
-        document.addEventListener('DOMContentLoaded', function () {
-            if (prefillItems && prefillItems.length > 0) {
-                // Pre-fill items from purchase requests
-                prefillItems.forEach(function (item, index) {
-                    addItemRow();
-                    const currentRowIndex = rowCount - 1;
-                    const lastRow = document.getElementById(`row-${currentRowIndex}`);
-                    if (lastRow) {
-                        // Set product name (manual input)
-                        const manualInput = lastRow.querySelector('.product-manual');
-                        const select = lastRow.querySelector('.product-select');
-
-                        if (manualInput && select) {
-                            // Check if we can find an existing product by name
-                            let matchedProduct = availableProducts.find(p => p.name.toLowerCase() === (item.product_name || '').toLowerCase());
-
-                            if (matchedProduct) {
-                                select.value = matchedProduct.id;
-                                updateProductVariants(select, currentRowIndex);
-                            } else {
-                                manualInput.classList.remove('d-none');
-                                select.style.display = 'none';
-                                manualInput.value = item.product_name || '';
-                            }
-                        }
-
-                        // Set category matching logic
-                        const categorySelect = lastRow.querySelector(`select[name="items[${currentRowIndex}][category]"]`);
-                        if (categorySelect) {
-                            var mappedCategory = item.category || 'other';
-                            // Try to find exact match first
-                            let exists = false;
-                            for (let i = 0; i < categorySelect.options.length; i++) {
-                                if (categorySelect.options[i].value === mappedCategory) {
-                                    exists = true;
-                                    break;
-                                }
-                            }
-
-                            if (exists) {
-                                categorySelect.value = mappedCategory;
-                            } else {
-                                const fallbackMap = {
-                                    'beverages': 'beverages',
-                                    'food': 'food',
-                                    'pantry': 'pantry_baking',
-                                    'baking': 'pantry_baking',
-                                    'soda': 'non_alcoholic_beverage',
-                                    'beer': 'alcoholic_beverage',
-                                    'wine': 'wines',
-                                    'spirit': 'spirits'
-                                };
-                                categorySelect.value = fallbackMap[mappedCategory] || 'other';
-                            }
-                        }
-
-                        // Set quantity
-                        const quantityInput = lastRow.querySelector(`input[name="items[${currentRowIndex}][quantity]"]`);
-                        if (quantityInput) {
-                            quantityInput.value = item.quantity || '';
-                        }
-
-                        // Set unit
-                        const unitSelect = lastRow.querySelector(`select[name="items[${currentRowIndex}][unit]"]`);
-                        if (unitSelect) {
-                            var unitValue = item.unit || 'pcs';
-                            if (unitValue === 'grams') unitValue = 'g';
-                            if (unitValue === 'litres') unitValue = 'liters';
-                            if (unitValue === 'packets') unitValue = 'packs';
-                            unitSelect.value = unitValue;
-                        }
-
-                        // Set estimated price
-                        const priceInput = lastRow.querySelector(`input[name="items[${currentRowIndex}][estimated_price]"]`);
-                        if (priceInput) {
-                            priceInput.value = item.estimated_price || '';
-                        }
-
-                        // Store purchase request ID
-                        if (item.purchase_request_id) {
-                            const hiddenInput = document.createElement('input');
-                            hiddenInput.type = 'hidden';
-                            hiddenInput.name = `items[${currentRowIndex}][purchase_request_id]`;
-                            hiddenInput.value = item.purchase_request_id;
-                            lastRow.appendChild(hiddenInput);
-                        }
-                    }
-                });
-            } else {
-                // Add one empty row if no pre-fill data
-                addItemRow();
-            }
-        });
-    </script>
-    {{-- Bulk Add Modal --}}
-    <div class="modal fade" id="bulkAddModal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
+    {{-- Manual Item Modal --}}
+    <div class="modal fade" id="manualItemModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="fa fa-list"></i> Bulk Add Items</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                    <h5 class="modal-title">Add Custom Item</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
                 </div>
                 <div class="modal-body">
-                    <div class="input-group mb-3 text-center">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text"><i class="fa fa-search text-primary"></i></span>
-                        </div>
-                        <input type="text" id="productSearch" class="form-control"
-                            placeholder="Search products by name or category...">
+                    <div class="form-group">
+                        <label>Item Name</label>
+                        <input type="text" id="manual_name" class="form-control" placeholder="e.g. Special Seasoning">
                     </div>
-                    <div id="productList"
-                        style="max-height: 450px; overflow-y: auto; padding: 10px; border: 1px solid #eee; border-radius: 4px;">
-                        <!-- Products will be listed here -->
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label>Category</label>
+                                <select id="manual_cat" class="form-control">
+                                    <option value="other">Other</option>
+                                    @foreach($categories as $cat)
+                                        <option value="{{ $cat }}">{{ ucfirst(str_replace('_', ' ', $cat)) }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label>Unit</label>
+                                <input type="text" id="manual_unit" class="form-control" placeholder="pcs, kg, etc.">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Estimated Price per Unit (TZS)</label>
+                        <input type="number" id="manual_price" class="form-control" placeholder="e.g. 5000">
                     </div>
                 </div>
-                <div class="modal-footer bg-light">
-                    <div class="mr-auto">
-                        <span id="selectedCount" class="badge badge-info p-2">0 items selected</span>
-                    </div>
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="addSelectedProducts()"><i
-                            class="fa fa-plus-circle"></i> Add Selected to List</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmManualAdd()">Add to List</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        function openBulkModal() {
-            const productList = document.getElementById('productList');
-            productList.innerHTML = '';
+        let cart = [];
+        let viewMode = 'picker';
+        const prefillItems = @json($prefillItems ?? []);
+        const unitOptions = ['pcs', 'kg', 'g', 'liters', 'ml', 'Sado', 'Debe', 'boxes', 'bottles', 'rolls', 'packs', 'cartons', 'bags', 'bunches', 'crates', 'trays', 'other'];
 
-            // Group variants/products by category
-            const grouped = {};
-            availableProducts.forEach(p => {
-                const catGroup = p.category || 'other';
-                if (!grouped[catGroup]) grouped[catGroup] = [];
-
-                const categoryTitle = catGroup.charAt(0).toUpperCase() + catGroup.slice(1).replace('_', ' ');
-
-                if (p.variants && p.variants.length > 0) {
-                    p.variants.forEach(v => {
-                        let displayName = p.name;
-                        // If there's more than one variant, or the variant name isn't generic, show it
-                        if (p.variants.length > 1 || (v.variant_name && v.variant_name.toLowerCase() !== 'standard' && v.variant_name.toLowerCase() !== 'unit')) {
-                            displayName += ` - ${v.variant_name}`;
-                        }
-
-                        grouped[catGroup].push({
-                            productId: p.id,
-                            variantId: v.id,
-                            displayName: displayName,
-                            categoryName: categoryTitle.toLowerCase()
-                        });
+        document.addEventListener('DOMContentLoaded', () => {
+            if (prefillItems.length > 0) {
+                prefillItems.forEach(item => {
+                    addToCart({
+                        product_id: item.product_id || null,
+                        variant_id: item.purchase_request_id ? null : (item.product_variant_id || null),
+                        name: item.product_name,
+                        unit: item.unit || 'pcs',
+                        price: item.estimated_price || 0,
+                        quantity: item.quantity || 1,
+                        category: item.category || 'other',
+                        purchase_request_id: item.purchase_request_id || null
                     });
-                } else {
-                    grouped[catGroup].push({
-                        productId: p.id,
-                        variantId: '',
-                        displayName: p.name,
-                        categoryName: categoryTitle.toLowerCase()
-                    });
-                }
-            });
-
-            const sortedCategories = Object.keys(grouped).sort();
-
-            sortedCategories.forEach(cat => {
-                const catTitle = cat.charAt(0).toUpperCase() + cat.slice(1).replace('_', ' ');
-                let html = `<div class="category-section mb-4" data-category="${cat}">
-                                                                    <h6 class="border-bottom pb-2 font-weight-bold text-primary">${catTitle}</h6>
-                                                                    <div class="row">`;
-
-                grouped[cat].forEach(item => {
-                    const uniqueId = item.variantId ? `v-${item.variantId}` : `p-${item.productId}`;
-                    html += `<div class="col-md-4 mb-2 product-item" data-name="${item.displayName.toLowerCase()}" data-category-name="${item.categoryName}">
-                                                                        <div class="custom-control custom-checkbox p-2 border rounded hover-bg-light">
-                                                                            <input type="checkbox" class="custom-control-input product-check" 
-                                                                                id="bulk-${uniqueId}" 
-                                                                                data-product-id="${item.productId}" 
-                                                                                data-variant-id="${item.variantId}"
-                                                                                onchange="updateSelectedCount()">
-                                                                            <label class="custom-control-label d-block cursor-pointer" for="bulk-${uniqueId}">${item.displayName}</label>
-                                                                        </div>
-                                                                    </div>`;
                 });
+            }
+        });
 
-                html += `</div></div>`;
-                productList.innerHTML += html;
-            });
+        function addToCart(item) {
+            // Check if already in cart
+            const existing = cart.find(i =>
+                (i.variant_id && i.variant_id === item.variant_id) ||
+                (!i.variant_id && i.product_id && i.product_id === item.product_id && i.name === item.name) ||
+                (!item.product_id && i.name === item.name)
+            );
 
-            updateSelectedCount();
-            $('#bulkAddModal').modal('show');
-        }
-
-        function updateSelectedCount() {
-            const count = document.querySelectorAll('.product-check:checked').length;
-            document.getElementById('selectedCount').textContent = `${count} items selected`;
-        }
-
-        function addSelectedProducts() {
-            const selected = document.querySelectorAll('.product-check:checked');
-            if (selected.length === 0) {
-                alert('Please select at least one item.');
-                return;
+            if (existing) {
+                existing.quantity = (parseFloat(existing.quantity) || 0) + 1;
+            } else {
+                item.quantity = item.quantity || 1;
+                cart.push(item);
             }
 
-            selected.forEach(check => {
-                const productId = check.dataset.productId;
-                const variantId = check.dataset.variantId;
-
-                addItemRow(); // This function manages rowCount
-                const lastIndex = rowCount - 1;
-                const row = document.getElementById(`row-${lastIndex}`);
-                if (row) {
-                    const productSelect = row.querySelector('.product-select');
-                    if (productSelect) {
-                        productSelect.value = productId;
-                        updateProductVariants(productSelect, lastIndex);
-
-                        // Select the specific variant if provided
-                        if (variantId) {
-                            const variantSelect = row.querySelector('.variant-select');
-                            if (variantSelect) {
-                                variantSelect.value = variantId;
-                                updateVariantDetails(variantSelect, lastIndex);
-                            }
-                        }
-                    }
-                }
-            });
-
-            $('#bulkAddModal').modal('hide');
+            renderCart();
+            showNotification('Item added to list');
         }
 
-        // Search functionality
-        document.getElementById('productSearch').addEventListener('input', function () {
-            const term = this.value.toLowerCase();
-            document.querySelectorAll('.product-item').forEach(item => {
-                const name = item.dataset.name;
-                const catName = item.dataset.categoryName;
-                if (name.includes(term) || catName.includes(term)) {
-                    item.style.display = 'block';
+        function renderCart() {
+            const container = document.getElementById('cartContent');
+            const hiddenContainer = document.getElementById('hiddenItemsContainer');
+            const itemCount = document.getElementById('itemCount');
+            const emptyCart = document.getElementById('emptyCart');
+            const displayTotal = document.getElementById('displayTotal');
+            const classicTbody = document.getElementById('classicTbody');
+
+            let cartHtml = '';
+            let hiddenHtml = '';
+            let classicHtml = '';
+            let total = 0;
+
+            if (cart.length === 0) {
+                emptyCart.style.display = 'block';
+                container.innerHTML = '';
+                classicTbody.innerHTML = '';
+            } else {
+                emptyCart.style.display = 'none';
+
+                cart.forEach((item, index) => {
+                    const priceVal = Number(item.price) || 0;
+                    const qtyVal = Number(item.quantity) || 0;
+                    const itemTotal = qtyVal * priceVal;
+                    total += itemTotal;
+
+                    // Render Cart Item
+                    cartHtml += `
+                                    <div class="cart-item">
+                                        <div class="cart-item-info">
+                                            <div class="cart-item-title">${item.name}</div>
+                                            <div class="cart-item-controls mt-2">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="mr-2">
+                                                        <small class="d-block text-muted">Quantity</small>
+                                                        <input type="number" step="0.01" class="qty-input" value="${item.quantity}" 
+                                                               oninput="liveUpdate(${index}, 'quantity', this.value)">
+                                                        <small class="text-muted ml-1">${item.unit}</small>
+                                                    </div>
+                                                    <div>
+                                                        <small class="d-block text-muted">Unit Price</small>
+                                                        <input type="number" step="1" class="qty-input" value="${item.price}" 
+                                                               style="width: 90px" placeholder="Price"
+                                                               oninput="liveUpdate(${index}, 'price', this.value)">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <small class="text-muted d-block" style="font-size: 9px;">Line Total</small>
+                                            <div class="font-weight-bold text-primary" style="font-size: 13px;" id="lineTotal-${index}">${itemTotal.toLocaleString()}</div>
+                                            <i class="fa fa-times remove-item mt-2" onclick="removeFromCart(${index})" title="Remove item"></i>
+                                        </div>
+                                    </div>
+                                `;
+
+                    // Render Classic Table Row
+                    classicHtml += `
+                                        <tr>
+                                            <td>${item.name}</td>
+                                            <td><input type="number" step="0.01" class="form-control form-control-sm" value="${item.quantity}" oninput="liveUpdate(${index}, 'quantity', this.value)"></td>
+                                            <td>
+                                                <select class="form-control form-control-sm" onchange="updateCartItem(${index}, 'unit', this.value)">
+                                                    ${unitOptions.map(u => `<option value="${u}" ${item.unit === u ? 'selected' : ''}>${u}</option>`).join('')}
+                                                </select>
+                                            </td>
+                                            <td><input type="number" step="1" class="form-control form-control-sm" value="${item.price}" oninput="liveUpdate(${index}, 'price', this.value)"></td>
+                                            <td><button type="button" class="btn btn-danger btn-sm" onclick="removeFromCart(${index})"><i class="fa fa-trash"></i></button></td>
+                                        </tr>
+                                    `;
+
+                    // Hidden Inputs
+                    hiddenHtml += `
+                            <input type="hidden" name="items[${index}][product_id]" value="${item.product_id || ''}">
+                            <input type="hidden" name="items[${index}][product_variant_id]" value="${item.variant_id || ''}">
+                            <input type="hidden" name="items[${index}][product_name]" value="${item.name}">
+                            <input type="hidden" name="items[${index}][quantity]" value="${item.quantity}" id="hiddenQty-${index}">
+                            <input type="hidden" name="items[${index}][unit]" value="${item.unit}">
+                            <input type="hidden" name="items[${index}][estimated_price]" value="${itemTotal || 0}" id="hiddenPrice-${index}">
+                            <input type="hidden" name="items[${index}][category]" value="${item.category || 'other'}">
+                            <input type="hidden" name="items[${index}][purchase_request_id]" value="${item.purchase_request_id || ''}">
+                        `;
+                });
+
+                container.innerHTML = cartHtml;
+                classicTbody.innerHTML = classicHtml;
+            }
+
+            hiddenContainer.innerHTML = hiddenHtml;
+            itemCount.textContent = `${cart.length} items picked`;
+            displayTotal.textContent = total.toLocaleString() + ' TZS';
+        }
+
+        function liveUpdate(index, key, value) {
+            cart[index][key] = Number(value) || 0;
+            
+            let total = 0;
+            cart.forEach((item, idx) => {
+                const itemTotal = (Number(item.quantity) || 0) * (Number(item.price) || 0);
+                total += itemTotal;
+                
+                const lineTotalEl = document.getElementById(`lineTotal-${idx}`);
+                if (lineTotalEl) lineTotalEl.textContent = itemTotal.toLocaleString();
+                
+                const hQty = document.getElementById(`hiddenQty-${idx}`);
+                if (hQty) hQty.value = item.quantity;
+                
+                const hPrice = document.getElementById(`hiddenPrice-${idx}`);
+                if (hPrice) hPrice.value = itemTotal; // We send line total as estimated_price
+            });
+            
+            document.getElementById('displayTotal').textContent = total.toLocaleString() + ' TZS';
+        }
+
+        function updateCartItem(index, key, value) {
+            if (key === 'quantity' || key === 'price') {
+                cart[index][key] = Number(value) || 0;
+            } else {
+                cart[index][key] = value;
+            }
+            renderCart();
+        }
+
+        function updateQty(index, val) {
+            cart[index].quantity = parseFloat(val) || 0;
+            renderCart();
+        }
+
+        function updatePrice(index, val) {
+            cart[index].price = parseFloat(val) || 0;
+            renderCart();
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            renderCart();
+        }
+
+        function filterCategory(cat, btn) {
+            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            document.querySelectorAll('.product-card').forEach(card => {
+                if (cat === 'all' || card.dataset.category === cat) {
+                    card.style.display = 'block';
                 } else {
-                    item.style.display = 'none';
+                    card.style.display = 'none';
                 }
+            });
+        }
+
+        function handleSearch() {
+            const term = document.getElementById('searchItems').value.toLowerCase();
+            document.querySelectorAll('.product-card').forEach(card => {
+                if (card.dataset.name.includes(term)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function setMode(mode) {
+            viewMode = mode;
+            if (mode === 'classic') {
+                document.getElementById('pickerContainer').classList.add('d-none');
+                document.getElementById('classicContainer').classList.remove('d-none');
+                document.getElementById('classicModeBtn').classList.add('active');
+                document.getElementById('pickerModeBtn').classList.remove('active');
+            } else {
+                document.getElementById('pickerContainer').classList.remove('d-none');
+                document.getElementById('classicContainer').classList.add('d-none');
+                document.getElementById('classicModeBtn').classList.remove('active');
+                document.getElementById('pickerModeBtn').classList.add('active');
+            }
+        }
+
+        function addManualItem() {
+            $('#manualItemModal').modal('show');
+        }
+
+        function confirmManualAdd() {
+            const name = document.getElementById('manual_name').value;
+            const unit = document.getElementById('manual_unit').value || 'pcs';
+            const cat = document.getElementById('manual_cat').value;
+            const price = document.getElementById('manual_price').value || 0;
+
+            if (!name) return alert('Item name is required');
+
+            addToCart({
+                product_id: null,
+                variant_id: null,
+                name: name,
+                unit: unit,
+                price: parseFloat(price),
+                category: cat
             });
 
-            // Hide category titles if no products match
-            document.querySelectorAll('.category-section').forEach(section => {
-                const visibleProducts = Array.from(section.querySelectorAll('.product-item')).filter(i => i.style.display !== 'none').length;
-                if (visibleProducts === 0 && term !== '') {
-                    section.style.display = 'none';
-                } else {
-                    section.style.display = 'block';
-                }
-            });
-        });
+            $('#manualItemModal').modal('hide');
+            document.getElementById('manual_name').value = '';
+            document.getElementById('manual_price').value = '';
+        }
+
+        function showNotification(msg) {
+            // Simple toast simulation
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                                                position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+                                                background: rgba(45, 55, 72, 0.9); color: white; padding: 10px 20px;
+                                                border-radius: 30px; z-index: 9999; font-size: 14px;
+                                                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                                            `;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
     </script>
-
-    <style>
-        .hover-bg-light:hover {
-            background-color: #f8f9fa;
-        }
-
-        .cursor-pointer {
-            cursor: pointer;
-        }
-
-        .d-none {
-            display: none !important;
-        }
-    </style>
 @endsection

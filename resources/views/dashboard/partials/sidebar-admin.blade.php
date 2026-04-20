@@ -137,9 +137,9 @@
                     Requests <i class="treeview-indicator fa fa-angle-right"></i></a>
                 <ul class="treeview-menu">
                     <li><a class="treeview-item" href="{{ route('stock-requests.index', ['type' => 'drink']) }}"><i
-                                class="fa fa-glass"></i> Beverage</a></li>
+                                class="fa fa-glass"></i> Counter Requests</a></li>
                     <li><a class="treeview-item" href="{{ route('stock-requests.index', ['type' => 'food']) }}"><i
-                                class="fa fa-cutlery"></i> Kitchen</a></li>
+                                class="fa fa-cutlery"></i> Chef Request</a></li>
                     <li><a class="treeview-item" href="{{ route('stock-requests.index', ['type' => 'housekeeping']) }}"><i
                                 class="fa fa-bed"></i> Housekeeping</a></li>
                 </ul>
@@ -297,9 +297,9 @@
         </a>
         <ul class="treeview-menu">
             <li><a class="treeview-item" href="{{ route('stock-requests.index', ['type' => 'drink']) }}"><i
-                        class="fa fa-glass"></i> Beverage</a></li>
+                        class="fa fa-glass"></i> Counter Requests</a></li>
             <li><a class="treeview-item" href="{{ route('stock-requests.index', ['type' => 'food']) }}"><i
-                        class="fa fa-cutlery"></i> Kitchen</a></li>
+                        class="fa fa-cutlery"></i> Chef Request</a></li>
             <li><a class="treeview-item" href="{{ route('stock-requests.index', ['type' => 'housekeeping']) }}"><i
                         class="fa fa-bed"></i> Housekeeping</a></li>
             <li><a class="treeview-item" href="{{ route('stock-requests.index') }}"><i class="fa fa-list"></i> All

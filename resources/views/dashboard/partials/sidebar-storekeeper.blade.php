@@ -60,22 +60,6 @@
     style="padding: 10px 20px; color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-top: 10px;">
     Stock Management</li>
 
-<li class="treeview {{ str_contains($activePage, 'stock-receipts') ? 'is-expanded' : '' }}">
-    <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-inbox"></i><span
-            class="app-menu__label">Receive Items</span><i class="treeview-indicator fa fa-angle-right"></i></a>
-    <ul class="treeview-menu">
-        <li><a class="treeview-item" href="{{ route('storekeeper.stock-receipts.create', ['type' => 'drink']) }}"><i
-                    class="icon fa fa-glass"></i> Receive Beverages</a></li>
-        <li><a class="treeview-item" href="{{ route('storekeeper.stock-receipts.create', ['type' => 'food']) }}"><i
-                    class="icon fa fa-cutlery"></i> Receive Kitchen Items</a></li>
-        <li><a class="treeview-item"
-                href="{{ route('storekeeper.stock-receipts.create', ['type' => 'housekeeping']) }}"><i
-                    class="icon fa fa-bed"></i> Receive Housekeeping</a></li>
-        <li class="treeview-divider"></li>
-        <li><a class="treeview-item" href="{{ route('storekeeper.stock-receipts.index') }}"><i
-                    class="icon fa fa-list"></i> Receipt History</a></li>
-    </ul>
-</li>
 
 <li>
     <a class="app-menu__item {{ str_contains($activePage, 'storekeeper/stock-returns') ? 'active' : '' }}"
@@ -92,9 +76,9 @@
             class="app-menu__label">Stock Requests</span><i class="treeview-indicator fa fa-angle-right"></i></a>
     <ul class="treeview-menu">
         <li><a class="treeview-item" href="{{ route('stock-requests.index', ['type' => 'drink']) }}"><i
-                    class="icon fa fa-glass"></i> Beverage Requests</a></li>
+                    class="icon fa fa-glass"></i> Counter Requests</a></li>
         <li><a class="treeview-item" href="{{ route('stock-requests.index', ['type' => 'food']) }}"><i
-                    class="icon fa fa-cutlery"></i> Kitchen Requests</a></li>
+                    class="icon fa fa-cutlery"></i> Chef Request</a></li>
         <li><a class="treeview-item" href="{{ route('stock-requests.index', ['type' => 'housekeeping']) }}"><i
                     class="icon fa fa-bed"></i> Housekeeping Requests</a></li>
         <li class="treeview-divider"></li>

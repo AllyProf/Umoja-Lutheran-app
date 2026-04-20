@@ -109,7 +109,7 @@ class KitchenController extends Controller
             // Calculate total estimated cost
             $totalEstimatedCost = 0;
             foreach ($request->items as $itemData) {
-                $totalEstimatedCost += ($itemData['estimated_price'] ?? 0) * ($itemData['quantity'] ?? 0);
+                $totalEstimatedCost += ($itemData['estimated_price'] ?? 0);
             }
 
             $list = ShoppingList::create([
@@ -248,7 +248,7 @@ class KitchenController extends Controller
             // Calculate total estimated cost
             $totalEstimatedCost = 0;
             foreach ($request->items as $itemData) {
-                $totalEstimatedCost += ($itemData['estimated_price'] ?? 0) * ($itemData['quantity'] ?? 0);
+                $totalEstimatedCost += ($itemData['estimated_price'] ?? 0);
             }
 
             $shoppingList->update([
