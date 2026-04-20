@@ -83,33 +83,27 @@
                     $currentType = isset($room) ? $room->room_type : '';
                     $isOtherType = $currentType && !in_array($currentType, $standardTypes);
                   @endphp
+                  @php
+                    $standardTypes = [
+                      'Self-Contained Single', 'Self-Contained Double',
+                      'Single', 'Double', 'Twins'
+                    ];
+                    $currentType = isset($room) ? $room->room_type : '';
+                    $isOtherType = $currentType && !in_array($currentType, $standardTypes);
+                  @endphp
                   <select class="form-control" id="room_type" name="room_type" required>
                     <option value="">Select Room Type</option>
                     @if($isOtherType)
                       <option value="{{ $currentType }}" selected>{{ $currentType }} (Current)</option>
                     @endif
                     <optgroup label="General Types">
-                      <option value="Single" {{ (isset($room) && trim(strtolower($room->room_type)) == 'single') ? 'selected' : '' }}>Single</option>
-                      <option value="Double" {{ (isset($room) && trim(strtolower($room->room_type)) == 'double') ? 'selected' : '' }}>Double</option>
+                      <option value="Single" {{ (isset($room) && trim(strtolower($room->room_type)) == 'single') ? 'selected' : '' }}>Single Room</option>
+                      <option value="Double" {{ (isset($room) && trim(strtolower($room->room_type)) == 'double') ? 'selected' : '' }}>Double Room</option>
                       <option value="Twins" {{ (isset($room) && trim(strtolower($room->room_type)) == 'twins') ? 'selected' : '' }}>Standard Twin Room (Twins)</option>
                     </optgroup>
                     <optgroup label="Self Contained">
-                      <option value="Self-Contained Single" {{ (isset($room) && trim(strtolower($room->room_type)) == 'self-contained single') ? 'selected' : '' }}>Single Room (1
-                        Pax) - 30,000</option>
-                      <option value="Self-Contained Double" {{ (isset($room) && trim(strtolower($room->room_type)) == 'self-contained double') ? 'selected' : '' }}>Double Bed (2
-                        Pax) - 50,000</option>
-                    </optgroup>
-                    <optgroup label="Standard Room">
-                      <option value="Standard Single" {{ (isset($room) && trim(strtolower($room->room_type)) == 'standard single') ? 'selected' : '' }}>Single Room (1 Pax) - 15,000</option>
-                      <option value="Standard Double" {{ (isset($room) && trim(strtolower($room->room_type)) == 'standard double') ? 'selected' : '' }}>Double Room (2 Pax) - 30,000</option>
-                      <option value="Standard Triple" {{ (isset($room) && trim(strtolower($room->room_type)) == 'standard triple') ? 'selected' : '' }}>Triple Room (3 Pax) - 45,000</option>
-                      <option value="Standard Decker" {{ (isset($room) && trim(strtolower($room->room_type)) == 'standard decker') ? 'selected' : '' }}>Decker Room (4 Pax) - 60,000</option>
-                    </optgroup>
-                    <optgroup label="En-suite Rooms">
-                      <option value="En-suite Single" {{ (isset($room) && trim(strtolower($room->room_type)) == 'en-suite single') ? 'selected' : '' }}>Suite House (Single) - 60,000</option>
-                      <option value="En-suite Triple" {{ (isset($room) && trim(strtolower($room->room_type)) == 'en-suite triple') ? 'selected' : '' }}>Family House (3 beds) - 90,000</option>
-                      <option value="En-suite Quad" {{ (isset($room) && trim(strtolower($room->room_type)) == 'en-suite quad') ? 'selected' : '' }}>Suite Family (4 beds) - 120,000</option>
-                      <option value="En-suite Quint" {{ (isset($room) && trim(strtolower($room->room_type)) == 'en-suite quint') ? 'selected' : '' }}>Family House (5 beds) - 150,000</option>
+                      <option value="Self-Contained Single" {{ (isset($room) && trim(strtolower($room->room_type)) == 'self-contained single') ? 'selected' : '' }}>Self-Contained Single</option>
+                      <option value="Self-Contained Double" {{ (isset($room) && trim(strtolower($room->room_type)) == 'self-contained double') ? 'selected' : '' }}>Self-Contained Double Bed</option>
                     </optgroup>
                   </select>
                   <small class="form-text text-muted">Select room type first to enable bulk creation options</small>
@@ -1729,16 +1723,11 @@
 
           // Auto-pricing logic
           const roomTypeData = {
-            'Self-Contained Single': { price: 15000, capacity: 2, bed: 'Single', extra_fee: 10000 },
-            'Self-Contained Double': { price: 30000, capacity: 2, bed: 'King', extra_fee: 20000 },
-            'Standard Single': { price: 15000, capacity: 1, bed: 'Single', extra_fee: 10000 },
-            'Standard Double': { price: 30000, capacity: 2, bed: 'Queen', extra_fee: 20000 },
-            'Standard Triple': { price: 45000, capacity: 3, bed: 'Twin', extra_fee: 20000 },
-            'Standard Decker': { price: 60000, capacity: 4, bed: 'Bunk', extra_fee: 20000 },
-            'En-suite Single': { price: 60000, capacity: 1, bed: 'King', extra_fee: 30000 },
-            'En-suite Triple': { price: 90000, capacity: 3, bed: 'Twin', extra_fee: 30000 },
-            'En-suite Quad': { price: 120000, capacity: 4, bed: 'Single', extra_fee: 30000 },
-            'En-suite Quint': { price: 150000, capacity: 5, bed: 'Single', extra_fee: 30000 }
+            'Single': { price: 15000, capacity: 1, bed: 'Single', extra_fee: 10000 },
+            'Double': { price: 30000, capacity: 2, bed: 'Queen', extra_fee: 20000 },
+            'Twins': { price: 45000, capacity: 2, bed: 'Twin', extra_fee: 20000 },
+            'Self-Contained Single': { price: 30000, capacity: 2, bed: 'Single', extra_fee: 10000 },
+            'Self-Contained Double': { price: 50000, capacity: 2, bed: 'King', extra_fee: 20000 }
           };
 
           if (roomTypeSelect) {
