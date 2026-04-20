@@ -10,38 +10,41 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            color: #000 !important;
+            /* Force black for maximum contrast */
         }
 
         body {
             font-family: 'Courier New', monospace;
-            font-weight: bold;
-            padding: 10px;
-            max-width: 400px;
-            /* Thinner for thermal printer style */
+            font-weight: 900 !important;
+            /* Maximum weight */
+            font-size: 15px;
+            padding: 5px;
+            max-width: 380px;
             margin: 0 auto;
             background: #fff;
             position: relative;
         }
 
         .docket {
-            border: 2px solid #940000;
-            /* Primary Color */
-            padding: 15px;
+            border: 3px solid #000;
+            /* Thick black border */
+            padding: 10px;
             position: relative;
             background: #fff;
         }
 
         .header {
             text-align: center;
-            border-bottom: 2px dashed #940000;
+            border-bottom: 3px dashed #000;
             padding-bottom: 10px;
             margin-bottom: 15px;
         }
 
         .header h1 {
-            font-size: 20px;
+            font-size: 26px;
+            /* Larger */
             margin-bottom: 5px;
-            color: #940000;
             text-transform: uppercase;
         }
 
@@ -53,17 +56,18 @@
 
         .section {
             margin: 10px 0;
-            border-bottom: 1px dashed #940000;
+            border-bottom: 2px dashed #000;
             padding-bottom: 10px;
         }
 
         .section-title {
-            font-weight: bold;
-            font-size: 14px;
+            font-weight: 900;
+            font-size: 18px;
             margin-bottom: 8px;
             text-align: center;
             text-transform: uppercase;
-            color: #940000;
+            border: 2px solid #000;
+            padding: 2px;
         }
 
         .info-row {
@@ -74,12 +78,15 @@
         }
 
         .item-row {
-            margin: 15px 0;
-            font-size: 16px;
-            font-weight: bold;
+            margin: 20px 0;
+            font-size: 24px;
+            /* Extreme size for the cook */
+            font-weight: 900;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
         }
 
         .item-details {
@@ -88,10 +95,12 @@
         }
 
         .item-qty {
-            font-size: 16px;
-            color: #940000;
-            margin-right: 10px;
-            font-weight: bold;
+            font-size: 32px;
+            /* Very big quantity */
+            margin-right: 15px;
+            font-weight: 900;
+            border: 3px solid #000;
+            padding: 0 10px;
         }
 
         .notes {
@@ -159,15 +168,15 @@
     <div class="docket">
         <!-- Header -->
         <div class="header">
-            <h1 style="font-size: 24px;">Umoja Lutheran Hostel</h1>
-            <p style="font-weight: bold; letter-spacing: 2px; color: #940000;">
+            <h1 style="font-size: 28px;">Umoja Lutheran Hostel</h1>
+            <p style="font-weight: 900; letter-spacing: 2px; font-size: 18px; border: 2px solid #000; margin: 5px 0;">
                 @if(in_array(($order->payment_status ?? 'pending'), ['paid', 'room_charge']))
                     GUEST BILL RECEIPT
                 @else
                     KITCHEN ORDER DOCKET
                 @endif
             </p>
-            <p>{{ now()->format('M d, Y - h:i A') }}</p>
+            <p style="font-size: 16px;">{{ now()->format('M d, Y - h:i A') }}</p>
         </div>
 
         <!-- Order Information -->
@@ -198,7 +207,7 @@
                     <span class="item-qty">{{ $order->quantity }}x</span>
                     <span>{{ $itemName }}</span>
                 </div>
-                <span>{{ number_format($order->unit_price_tsh) }}</span>
+                <span>{{ number_format((float) ($order->unit_price_tsh ?? 0)) }}</span>
             </div>
 
             @if($note)
@@ -219,7 +228,7 @@
                 ORDER STATUS: {{ $status }}
             </div>
             <div class="total-pay">
-                TOTAL BILL: {{ number_format($order->total_price_tsh) }} TZS
+                TOTAL BILL: {{ number_format((float) ($order->total_price_tsh ?? 0)) }} TZS
             </div>
         </div>
 

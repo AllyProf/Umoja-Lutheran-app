@@ -10,34 +10,35 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            color: #000 !important;
         }
 
         body {
             font-family: 'Courier New', monospace;
-            font-weight: bold;
-            padding: 10px;
-            max-width: 400px;
+            font-weight: 900 !important;
+            font-size: 15px;
+            padding: 5px;
+            max-width: 380px;
             margin: 0 auto;
             background: #fff;
         }
 
         .docket {
-            border: 2px solid #940000;
-            padding: 15px;
+            border: 3px solid #000;
+            padding: 10px;
             background: #fff;
         }
 
         .header {
             text-align: center;
-            border-bottom: 2px dashed #940000;
+            border-bottom: 3px dashed #000;
             padding-bottom: 10px;
             margin-bottom: 15px;
         }
 
         .header h1 {
-            font-size: 20px;
+            font-size: 26px;
             margin-bottom: 5px;
-            color: #940000;
             text-transform: uppercase;
         }
 
@@ -54,12 +55,12 @@
         }
 
         .section-title {
-            font-weight: bold;
-            font-size: 14px;
+            font-weight: 900;
+            font-size: 18px;
             margin-bottom: 8px;
             text-align: center;
             text-transform: uppercase;
-            color: #940000;
+            border: 2px solid #000;
         }
 
         .info-row {
@@ -70,11 +71,12 @@
         }
 
         .item-row {
-            margin: 10px 0;
-            font-size: 14px;
+            margin: 15px 0;
+            font-size: 22px;
+            font-weight: 900;
             padding: 8px;
-            background: #f9f9f9;
-            border-left: 3px solid #940000;
+            background: #fff;
+            border: 2px solid #000;
         }
 
         .item-header {
@@ -85,7 +87,9 @@
         }
 
         .item-qty {
-            color: #940000;
+            font-size: 28px;
+            border: 2px solid #000;
+            padding: 0 5px;
         }
 
         .item-note {
