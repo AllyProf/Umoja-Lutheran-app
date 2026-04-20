@@ -38,6 +38,7 @@
               <th>Reference</th>
               <th>Service Type</th>
               <th>Guest Name</th>
+              <th>Vehicle / Plate No</th>
               <th>Phone</th>
               <th>Date & Time</th>
               <th>People</th>
@@ -55,6 +56,14 @@
                 <span class="badge badge-info">{{ $service->service_type_name }}</span>
               </td>
               <td>{{ $service->guest_name }}</td>
+              <td>
+                @if($service->vehicle_name)
+                  <strong>{{ $service->vehicle_name }}</strong><br>
+                  <small class="text-muted">{{ $service->plate_number }}</small>
+                @else
+                  <span class="text-muted">N/A</span>
+                @endif
+              </td>
               <td>{{ $service->guest_phone ?? 'N/A' }}</td>
               <td>
                 {{ $service->service_date->format('M d, Y') }}<br>
@@ -238,6 +247,7 @@ function viewService(serviceId) {
   .then(data => {
     if (data.success) {
       const service = data.day_service;
+      const serviceKey = (service.service_type || '').toLowerCase();
       const serviceDate = new Date(service.service_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
       
       document.getElementById('serviceDetailsContent').innerHTML = `
@@ -249,7 +259,7 @@ function viewService(serviceId) {
               <tr><td><strong>Service Type:</strong></td><td><span class="badge badge-info">${service.service_type_name}</span></td></tr>
               <tr><td><strong>Date:</strong></td><td>${serviceDate}</td></tr>
               <tr><td><strong>Time:</strong></td><td>${service.service_time}</td></tr>
-              <tr><td><strong>Number of ${service.service_type === 'parking' ? 'Vehicles' : 'People'}:</strong></td><td>${service.number_of_people}</td></tr>
+              <tr><td><strong>Number of ${serviceKey === 'parking' ? 'Vehicles' : 'People'}:</strong></td><td>${service.number_of_people}</td></tr>
               ${service.vehicle_name ? `<tr><td><strong>Vehicle:</strong></td><td>${service.vehicle_name}</td></tr>` : ''}
               ${service.plate_number ? `<tr><td><strong>Plate No:</strong></td><td>${service.plate_number}</td></tr>` : ''}
               ${service.expected_checkout_date ? `<tr><td><strong>Checkout Date:</strong></td><td>${service.expected_checkout_date}</td></tr>` : ''}

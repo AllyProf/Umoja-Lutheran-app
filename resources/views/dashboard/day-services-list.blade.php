@@ -191,6 +191,10 @@
               <th>Reference</th>
               <th>Service Type</th>
               <th>Guest Name</th>
+              @if(request('tab') === 'parking')
+                <th>Vehicle</th>
+                <th>Plate No</th>
+              @endif
               <th>Phone</th>
               <th>Date & Time</th>
               <th>{{ request('tab') === 'parking' ? 'Vehicles' : 'People' }}</th>
@@ -213,6 +217,10 @@
                 @endif
               </td>
               <td>{{ $service->guest_name }}</td>
+              @if(request('tab') === 'parking')
+                <td>{{ $service->vehicle_name ?? 'N/A' }}</td>
+                <td>{{ $service->plate_number ?? 'N/A' }}</td>
+              @endif
               <td>{{ str_replace('+255+255', '+255', $service->guest_phone ?? 'N/A') }}</td>
               <td data-date="{{ $service->service_date->format('Y-m-d') }}">
                 {{ $service->service_date->format('M d, Y') }}<br>
@@ -780,7 +788,7 @@ function filterTable() {
       if (table) {
         const emptyRow = document.createElement('tr');
         emptyRow.className = 'no-results-message';
-        emptyRow.innerHTML = '<td colspan="11" style="text-align: center; padding: 40px; color: #999;"><i class="fa fa-search"></i> No services match your filters.</td>';
+        emptyRow.innerHTML = '<td colspan="{{ request("tab") === "parking" ? 13 : 11 }}" style="text-align: center; padding: 40px; color: #999;"><i class="fa fa-search"></i> No services match your filters.</td>';
         table.querySelector('tbody').appendChild(emptyRow);
       }
     }
@@ -948,9 +956,11 @@ function viewService(serviceId) {
             <table class="table table-sm table-bordered">
               <tr><td><strong>Reference:</strong></td><td>${service.service_reference}</td></tr>
               <tr><td><strong>Service Type:</strong></td><td><span class="badge badge-info">${serviceTypeName}</span></td></tr>
+              ${service.vehicle_name ? `<tr><td><strong>Vehicle Name:</strong></td><td>${service.vehicle_name}</td></tr>` : ''}
+              ${service.plate_number ? `<tr><td><strong>Plate Number:</strong></td><td>${service.plate_number}</td></tr>` : ''}
               <tr><td><strong>Date:</strong></td><td>${serviceDate}</td></tr>
               <tr><td><strong>Time:</strong></td><td>${serviceTime}</td></tr>
-              <tr><td><strong>Number of People:</strong></td><td>${service.number_of_people}</td></tr>
+              <tr><td><strong>Number of ${serviceKey === 'parking' ? 'Vehicles' : 'People'}:</strong></td><td>${service.number_of_people}</td></tr>
               ${packageItemsHtml}
               ${service.items_ordered ? `<tr><td><strong>Items Ordered:</strong></td><td>${service.items_ordered}</td></tr>` : ''}
             </table>
