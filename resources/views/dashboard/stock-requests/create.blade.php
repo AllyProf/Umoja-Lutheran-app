@@ -37,14 +37,15 @@
         </div>
 
         <div class="row">
-            <div class="col-lg-9 col-md-12">
+            <div class="col-lg-12">
                 <div class="card">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h4 class="card-title mb-0">Request {{ $cardItemLabel }} Items</h4>
-                            <button type="button" class="btn btn-outline-success btn-sm" id="addRowBtn">
-                                <i class="fa fa-plus"></i> Add Item
-                            </button>
+                            <h4 class="card-title mb-0">Request {{ $cardItemLabel }} Items (Quick Entry)</h4>
+                            <div class="search-box" style="width: 300px;">
+                                <input type="text" id="itemSearch" class="form-control"
+                                    placeholder="Search {{ $itemType }}...">
+                            </div>
                         </div>
 
                         @if(session('error_list'))
@@ -57,65 +58,115 @@
                                 </ul>
                                 <hr>
                                 <p class="mb-0 small text-dark">Please adjust your requested quantities or contact the
-                                    storekeeper to check inventory levels.</p>
+                                    storekeeper.</p>
                             </div>
                         @endif
 
                         <form action="{{ route('stock-requests.store') }}" method="POST" id="stockRequestForm">
                             @csrf
 
-                            <div class="table-responsive mb-3">
-                                <table class="table table-bordered align-middle" id="itemsTable">
-                                    <thead class="thead-light">
+                            <div class="table-responsive mb-3" style="max-height: 600px; overflow-y: auto;">
+                                <table class="table table-bordered table-hover align-middle" id="itemsTable">
+                                    <thead class="thead-light sticky-top bg-white">
                                         <tr>
-                                            <th style="min-width:260px;"># &nbsp;
-                                                {{ $itemType }}
-                                            </th>
-                                            <th style="min-width:110px;">Quantity</th>
+                                            <th style="min-width:260px;">{{ $itemType }}</th>
+                                            <th style="min-width:110px;">Store Stock</th>
+                                            <th style="min-width:120px;">Quantity</th>
                                             <th style="min-width:140px;">Unit</th>
-                                            <th class="text-right" style="min-width:100px;">Unit Cost</th>
-                                            @if(!$isChef && !(isset($isHousekeeper) && $isHousekeeper))
-                                                <th class="text-right" style="min-width:120px;">Est. Revenue</th>
-                                                <th class="text-right" style="min-width:120px;">Est. Profit</th>
-                                            @endif
-                                            <th class="text-right" style="min-width:120px;">Total Cost</th>
-                                            <th style="width:50px;"></th>
+                                            <th class="text-right" style="min-width:100px;">Est. Revenue</th>
+                                            <th class="text-right" style="min-width:120px;">Subtotal (Cost)</th>
                                         </tr>
                                     </thead>
                                     <tbody id="itemsBody">
-                                        @include('dashboard.stock-requests._item_row', ['index' => 0, 'products' => $products, 'isChef' => $isChef, 'isHousekeeper' => $isHousekeeper])
+                                        @foreach($products as $index => $variant)
+                                            @php
+                                                $category = $variant->product->category ?? '';
+                                                $beverageCategories = ['spirits', 'wines', 'non_alcoholic_beverage', 'alcoholic_beverage', 'energy_drinks', 'juices', 'water', 'hot_beverages', 'cocktails', 'drinks', 'beverage'];
+                                                $isBeverage = in_array(strtolower($category), $beverageCategories);
+
+                                                $vName = $variant->variant_name;
+                                                $label = $variant->product->name ?? 'Item';
+                                                if (strtolower($vName) !== 'standard' && $vName !== '') {
+                                                    $label .= ' – ' . $vName;
+                                                }
+
+                                                $unitPrice = $variant->getLatestUnitCost();
+                                                $sellingPrice = $variant->selling_price_per_pic ?? 0;
+                                                $currentStock = $variant->getCurrentStock();
+                                                $baseUnit = ($isChef) ? ($variant->receiving_unit ?? 'kg') : 'units';
+                                            @endphp
+                                            <tr class="item-row" data-search="{{ strtolower($label) }}">
+                                                <td>
+                                                    <strong>{{ $label }}</strong>
+                                                    <input type="hidden" name="items[{{ $index }}][product_variant_id]"
+                                                        value="{{ $variant->id }}">
+                                                    <input type="hidden" class="row-unit-cost" value="{{ $unitPrice }}">
+                                                    <input type="hidden" class="row-selling-price" value="{{ $sellingPrice }}">
+                                                    <input type="hidden" class="row-ratio"
+                                                        value="{{ $variant->items_per_package ?? 1 }}">
+                                                    <input type="hidden" class="row-is-beverage"
+                                                        value="{{ $isBeverage ? 1 : 0 }}">
+                                                </td>
+                                                <td>
+                                                    <span
+                                                        class="badge {{ $currentStock <= ($variant->minimum_stock_level ?? 0) ? 'badge-danger' : 'badge-info' }}">
+                                                        {{ number_format($currentStock, 2) }} {{ $baseUnit }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <input type="number" name="items[{{ $index }}][quantity]"
+                                                        class="form-control qty-input" step="0.01" min="0" placeholder="0.00">
+                                                </td>
+                                                <td>
+                                                    <select name="items[{{ $index }}][unit]" class="form-control unit-select">
+                                                        @if($isChef)
+                                                            <option value="kg">Kg</option>
+                                                            <option value="grams">Grams</option>
+                                                            <option value="ltr">Litres</option>
+                                                            <option value="pcs">Pieces</option>
+                                                            <option value="packets">Packets</option>
+                                                            <option value="packages">Bulk/Ratio</option>
+                                                        @elseif(isset($isHousekeeper) && $isHousekeeper)
+                                                            <option value="packages">Boxes/Bundles</option>
+                                                            <option value="bottles">Pcs</option>
+                                                        @else
+                                                            @if($isBeverage)
+                                                                <option value="packages">Crates/Cartons</option>
+                                                                <option value="bottles">Individual Bottles</option>
+                                                            @else
+                                                                <option value="pcs">Pieces (Pcs)</option>
+                                                                <option value="packets">Packets (Pkt)</option>
+                                                                <option value="packages">Boxes (Box)</option>
+                                                                <option value="other">Other</option>
+                                                            @endif
+                                                        @endif
+                                                    </select>
+                                                </td>
+                                                <td class="text-right text-info">
+                                                    <span class="revenue-display">0.00</span>
+                                                </td>
+                                                <td class="text-right font-weight-bold">
+                                                    <span class="subtotal-display">0.00</span>
+                                                </td>
+                                            </tr>
+                                        @endforeach
                                     </tbody>
-                                    <tfoot>
-                                        <tr class="bg-light">
-                                            <td colspan="4" class="text-right font-weight-bold">GRAND TOTAL:</td>
-                                            <td class="text-right font-weight-bold">
-                                                <span id="grandTotalDisplay">0.00</span> TSh
-                                            </td>
-                                            <td></td>
-                                        </tr>
-                                    </tfoot>
                                 </table>
                             </div>
 
                             <div class="row mt-4">
                                 <div class="col-md-12">
-                                    <div class="card bg-light">
+                                    <div class="card bg-light border">
                                         <div class="card-body">
                                             <div class="row text-center">
-                                                <div class="col-md-4">
-                                                    <h6 class="text-muted">Total Items</h6>
-                                                    <h4 id="grand-total-qty">0.00</h4>
+                                                <div class="col-md-6">
+                                                    <h6 class="text-muted">Total Estimated Cost</h6>
+                                                    <h3 id="grandTotalDisplay">0.00</h3>
                                                 </div>
-                                                <div class="col-md-4">
-                                                    <h6 class="text-muted">Estimated Total Cost</h6>
-                                                    <h4 id="grand-total-cost">0.00</h4>
+                                                <div class="col-md-6">
+                                                    <h6 class="text-muted">Total Estimated Revenue</h6>
+                                                    <h3 id="grandRevenueDisplay" class="text-info">0.00</h3>
                                                 </div>
-                                                @if(!$isChef && !(isset($isHousekeeper) && $isHousekeeper))
-                                                    <div class="col-md-4">
-                                                        <h6 class="text-muted">Estimated Total Profit</h6>
-                                                        <h4 id="grand-total-profit" class="text-success">0.00</h4>
-                                                    </div>
-                                                @endif
                                             </div>
                                         </div>
                                     </div>
@@ -123,298 +174,125 @@
                             </div>
 
                             <div class="form-actions mt-4">
-                                <label class="font-weight-bold">Notes <span class="text-muted font-weight-normal">(Optional
-                                        — applies to all items)</span></label>
-                                <textarea name="notes" class="form-control" rows="2"
-                                    placeholder="Additional details or reasons for request..."></textarea>
+                                <label class="font-weight-bold">Notes <span
+                                        class="text-muted font-weight-normal">(Optional)</span></label>
+                                <textarea name="notes" class="form-control mb-3" rows="2"
+                                    placeholder="Additional details..."></textarea>
                             </div>
 
                             <div class="form-group m-b-0" style="display:flex; gap:0.5rem;">
-                                <button type="submit" class="btn btn-success text-white">
+                                <button type="submit" class="btn btn-success btn-lg text-white">
                                     <i class="fa fa-paper-plane"></i> Submit Request
                                 </button>
-                                <a href="{{ route('stock-requests.index') }}" class="btn btn-secondary">Cancel</a>
+                                <a href="{{ route('stock-requests.index') }}" class="btn btn-secondary btn-lg">Cancel</a>
                             </div>
                         </form>
                     </div>
                 </div>
             </div>
-
-            <div class="col-lg-3 col-md-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h4 class="card-title">How it works</h4>
-                        <ul class="list-icons">
-                            @php
-                                $userRole = Auth::guard('staff')->user()->role ?? '';
-                                $skipAccountant = in_array(strtolower($userRole), ['bar_keeper', 'bar keeper', 'bartender', 'head_chef', 'housekeeper']);
-                            @endphp
-                            @if(!$skipAccountant)
-                                <li><i class="fa fa-chevron-right text-info"></i> Verified by <strong>Accountant</strong> first.
-                                </li>
-                            @endif
-                            <li><i class="fa fa-chevron-right text-info"></i> <strong>Manager</strong> must approve.</li>
-                            <li><i class="fa fa-chevron-right text-info"></i> <strong>Storekeeper</strong> issues
-                                items.</li>
-                            <li><i class="fa fa-chevron-right text-info"></i> You'll be notified once ready.</li>
-                        </ul>
-                        <div class="alert alert-success py-2 small mb-0">
-                            <i class="fa fa-list-ul"></i>
-                            Use <strong>Add Item</strong> to include multiple ingredients in a single request.
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
-
-    {{-- Hidden template row for cloning --}}
-    <table style="display: none;">
-        <tbody id="hiddenTemplateBody">
-            <tr class="item-row template-row">
-                <td>
-                    <select class="form-control select-clone" required>
-                        <option value="">-- Select --</option>
-                        @foreach($products as $variant)
-                            @php
-                                $category = $variant->product->category ?? '';
-                                $beverageCategories = ['spirits', 'wines', 'non_alcoholic_beverage', 'alcoholic_beverage', 'energy_drinks', 'juices', 'water', 'hot_beverages', 'cocktails'];
-                                $isBeverage = in_array($category, $beverageCategories);
-                                $foodCategories = ['food', 'meat_poultry', 'seafood', 'vegetables', 'dairy', 'pantry_baking', 'spices_herbs', 'oils_fats', 'kitchen', 'snacks'];
-                                $isFood = in_array($category, $foodCategories);
-
-                                $vName = $variant->variant_name;
-                                if ($category === 'cleaning_supplies') {
-                                    $vName = trim(str_ireplace(['(ml)', 'ml', '(l)', 'l'], '', $vName));
-                                } else {
-                                    $vName = trim(str_ireplace(['(Kg)', 'kg'], '', $vName));
-                                }
-                                $label = $variant->product->name ?? $variant->product->product_name ?? 'Item';
-                                if (strtolower($vName) !== 'unit' && $vName !== '') {
-                                    $label .= ' – ' . $vName;
-                                }
-                                if ($category === 'cleaning_supplies') {
-                                    $vName = trim(str_ireplace(['(ml)', 'ml', '(l)', 'l'], '', $vName));
-                                    $measure = '';
-                                } else {
-                                    $measure = trim($variant->measurement);
-                                }
-                                $details = [];
-                                if (!$isFood) {
-                                    $pName = trim($variant->packaging_name);
-                                    if ($pName !== '' && !in_array(strtolower($pName), ['standard', 'unit']))
-                                        $details[] = $pName;
-
-                                    if ($measure !== '' && !in_array(strtolower($measure), ['0 ml', '0ml', '0', 'ml', 'litres', 'ltr', 'grams', 'g', 'kg']))
-                                        $details[] = $measure;
-
-                                    if ($details)
-                                        $label .= ' (' . implode(' – ', $details) . ')';
-                                }
-                                $unitPrice = $variant->getLatestUnitCost();
-                                $sellingPrice = $variant->selling_price_per_pic ?? 0;
-                            @endphp
-                            <option value="{{ $variant->id }}" data-unit-cost="{{ $unitPrice }}"
-                                data-selling-price="{{ $sellingPrice }}" data-is-beverage="{{ $isBeverage ? 1 : 0 }}"
-                                data-ratio="{{ $variant->items_per_package ?? 1 }}">
-                                {{ $label }}
-                            </option>
-                        @endforeach
-                    </select>
-                </td>
-                <td>
-                    <input type="number" class="form-control qty-clone qty-input" step="0.01" min="0.01" placeholder="0.00"
-                        required>
-                </td>
-                <td>
-                    <select class="form-control unit-clone unit-select" required>
-                        @if($isChef)
-                            <option value="kg">Kilograms (Kg)</option>
-                            <option value="grams">Grams (g)</option>
-                            <option value="ltr">Litres (L)</option>
-                            <option value="pcs">Pieces (Pcs)</option>
-                            <option value="packets">Packets (Pkt)</option>
-                            <option value="bags">Bags (Bag)</option>
-                            <option value="boxes">Boxes (Box)</option>
-                            <option value="packages">Bulk/Crates (Ratio)</option>
-                            <option value="other">Other</option>
-                        @elseif(isset($isHousekeeper) && $isHousekeeper)
-                            <option value="packages">Boxes / Bundles</option>
-                            <option value="bottles">Individual Units (Pcs)</option>
-                            <option value="other">Other</option>
-                        @else
-                            <option value="packages">Crates / Packages</option>
-                            <option value="bottles">Individual Bottles/Units</option>
-                            <option value="other">Other</option>
-                        @endif
-                    </select>
-                </td>
-                <td class="text-right vertical-align-middle">
-                    <span class="unit-cost-display">0.00</span>
-                </td>
-                @if(!$isChef && !(isset($isHousekeeper) && $isHousekeeper))
-                    <td class="text-right vertical-align-middle text-info">
-                        <span class="revenue-display">0.00</span>
-                    </td>
-                    <td class="text-right vertical-align-middle text-success">
-                        <span class="profit-display">0.00</span>
-                    </td>
-                @endif
-                <td class="text-right vertical-align-middle font-weight-bold">
-                    <span class="subtotal-display">0.00</span>
-                </td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn" title="Remove">
-                        <i class="fa fa-times"></i>
-                    </button>
-                </td>
-            </tr>
-        </tbody>
-    </table>
 @endsection
 
 @section('styles')
-    <link href="{{ asset('assets/node_modules/select2/dist/css/select2.min.css') }}" rel="stylesheet" type="text/css" />
     <style>
         #itemsTable th {
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: .5px;
         }
 
-        .item-row td {
-            vertical-align: middle;
+        .sticky-top {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .item-row.hidden {
+            display: none;
+        }
+
+        #itemsTable td {
+            padding: 8px;
+        }
+
+        .qty-input:focus {
+            border-color: #28a745;
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, .25);
+        }
+
+        .qty-input {
+            border: 1px solid #ced4da;
+        }
+
+        .item-row:hover {
+            background-color: rgba(0, 0, 0, 0.02);
         }
     </style>
 @endsection
 
 @section('scripts')
-    <script src="{{ asset('assets/node_modules/select2/dist/js/select2.full.min.js') }}" type="text/javascript"></script>
     <script>
-        let rowIndex = 1;
-
-        function initSelect2(row) {
-            try {
-                // Ensure we only initialize Select2 on the product dropdown, not the unit dropdown
-                $(row).find('.select-clone, .select2-item').select2({ width: '100%' });
-            } catch (e) {
-                console.error("Select2 init error:", e);
-            }
-        }
-
-        function updateRemoveButtons() {
-            var rows = $('#itemsBody .item-row');
-            rows.find('.remove-row-btn').prop('disabled', rows.length === 1);
-        }
-
         $(document).ready(function () {
-            try {
-                initSelect2($('#itemsBody .item-row').first());
-            } catch (e) {
-                console.error("Initial row setup error:", e);
-            }
-
-            $('#addRowBtn').on('click', function (e) {
-                e.preventDefault();
-
-                try {
-                    // Clone the entire row from the hidden table body
-                    var $newRow = $('#hiddenTemplateBody .template-row').clone();
-                    $newRow.removeClass('template-row');
-
-                    // Assign proper names based on current rowIndex
-                    $newRow.find('.select-clone').attr('name', 'items[' + rowIndex + '][product_variant_id]');
-                    $newRow.find('.qty-clone').attr('name', 'items[' + rowIndex + '][quantity]');
-                    $newRow.find('.unit-clone').attr('name', 'items[' + rowIndex + '][unit]');
-
-                    // Append first so Select2 attaches to an element inside the DOM
-                    $('#itemsBody').append($newRow);
-
-                    // Initialize Select2 on the new row
-                    initSelect2($newRow);
-
-                    rowIndex++;
-                    updateRemoveButtons();
-                } catch (error) {
-                    alert("Debug Error: " + error.message);
-                    console.error("Add item error:", error);
-                }
+            // --- SEARCH FUNCTIONALITY ---
+            $('#itemSearch').on('keyup', function () {
+                const value = $(this).val().toLowerCase();
+                $("#itemsBody tr").filter(function () {
+                    $(this).toggle($(this).data('search').indexOf(value) > -1)
+                });
             });
 
-            $(document).on('click', '.remove-row-btn', function () {
-                $(this).closest('.item-row').remove();
-                updateRemoveButtons();
-                calculateGrandTotal();
-            });
+            // --- REAL-TIME CALCULATION ---
+            function calculateRow(row) {
+                const qty = parseFloat(row.find('.qty-input').val()) || 0;
+                const unit = row.find('.unit-select').val();
+                const unitCost = parseFloat(row.find('.row-unit-cost').val()) || 0;
+                const sellingPrice = parseFloat(row.find('.row-selling-price').val()) || 0;
+                const ratio = parseFloat(row.find('.row-ratio').val()) || 1;
+                const isBeverage = parseInt(row.find('.row-is-beverage').val()) || 0;
 
-            // --- REAL-TIME COST CALCULATION ---
-            function calculateRowCost(row) {
-                const select = row.find('select[name*="product_variant_id"], .select-clone');
-                const selectedOption = select.find('option:selected');
-                const unitCost = parseFloat(selectedOption.data('unit-cost')) || 0;
-                const sellingPrice = parseFloat(selectedOption.data('selling-price')) || 0;
-                const ratio = parseFloat(selectedOption.data('ratio')) || 1;
-                const isBeverage = parseInt(selectedOption.data('is-beverage')) || 0;
-
-                const qtyInput = row.find('.qty-input');
-                const qty = parseFloat(qtyInput.val()) || 0;
-
-                const unitSelect = row.find('.unit-select');
-                const unit = unitSelect.val();
-
-                // Calculate subtotal and total items
                 let totalItems = qty;
-                let unitCostValue = unitCost;
-
-                if (unit === 'packages' || unit === 'crates' || unit === 'carton') {
+                if (unit === 'packages' || unit === 'crates' || unit === 'carton' || unit === 'boxes' || unit === 'packets') {
                     totalItems = qty * ratio;
-                    unitCostValue = unitCost * ratio;
-                } else if (unit === 'grams') {
-                    totalItems = qty / 1000;
-                    unitCostValue = unitCost * 1000; // Not really used for display but for consistency
                 }
 
-                // Show unit cost per selected unit (e.g. Crate price vs Bottle price)
-                row.find('.unit-cost-display').text(unitCostValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-
-                // Calculate subtotal (Cost)
                 const subtotal = totalItems * unitCost;
                 row.find('.subtotal-display').text(subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
-                // Calculate Revenue and Profit for beverages
+                let revenue = 0;
                 if (isBeverage && sellingPrice > 0) {
-                    const revenue = totalItems * sellingPrice;
-                    const profit = revenue - subtotal;
-
+                    revenue = totalItems * sellingPrice;
                     row.find('.revenue-display').text(revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-                    row.find('.profit-display').text(profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
                 } else {
-                    row.find('.revenue-display, .profit-display').text('—');
+                    row.find('.revenue-display').text('—');
                 }
 
-                return subtotal;
+                return { cost: subtotal, revenue: revenue };
             }
 
-            function calculateGrandTotal() {
-                let grandTotal = 0;
-                $('#itemsTable .item-row').each(function () {
-                    if (!$(this).hasClass('template-row')) {
-                        grandTotal += calculateRowCost($(this));
-                    }
+            function calculateTotals() {
+                let grandCost = 0;
+                let grandRevenue = 0;
+
+                $('#itemsBody tr').each(function () {
+                    const result = calculateRow($(this));
+                    grandCost += result.cost;
+                    grandRevenue += result.revenue;
                 });
-                $('#grandTotalDisplay').text(grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-            }
 
-            $(document).on('change', '.select2-item, .select-clone, .unit-select', function () {
-                calculateGrandTotal();
-            });
+                $('#grandTotalDisplay').text(grandCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                $('#grandRevenueDisplay').text(grandRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            }
 
             $(document).on('input', '.qty-input', function () {
-                calculateGrandTotal();
+                calculateTotals();
             });
 
-            // Run once
-            calculateGrandTotal();
+            $(document).on('change', '.unit-select', function () {
+                calculateTotals();
+            });
+
+            // Initial calculation
+            calculateTotals();
         });
     </script>
 @endsection

@@ -112,6 +112,18 @@ class StockRequestController extends Controller
         $isChef = in_array($normalizedRole, ['head_chef', 'head chef', 'chef']);
         $isHousekeeper = ($normalizedRole === 'housekeeper');
 
+        // Filter out items with no quantity before validation
+        $items = collect($request->items)->filter(function ($item) {
+            return !empty($item['quantity']) && (float) $item['quantity'] > 0;
+        })->toArray();
+
+        if (empty($items)) {
+            return redirect()->back()->withInput()->with('error', 'Please enter a quantity for at least one item.');
+        }
+
+        // Validate only the filtered items
+        $request->merge(['items' => $items]);
+
         $request->validate([
             'items' => 'required|array|min:1',
             'items.*.product_variant_id' => 'required|exists:product_variants,id',
@@ -128,7 +140,7 @@ class StockRequestController extends Controller
 
         // Stock availability check
         $errors = [];
-        foreach ($request->items as $item) {
+        foreach ($items as $item) {
             $variant = ProductVariant::with('product')->find($item['product_variant_id']);
             if (!$variant)
                 continue;
@@ -168,7 +180,7 @@ class StockRequestController extends Controller
         $nextNum = $lastBatch ? (int) substr($lastBatch->batch_reference, -3) + 1 : 1;
         $batchRef = "REQ-$today-" . str_pad($nextNum, 3, '0', STR_PAD_LEFT);
 
-        foreach ($request->items as $item) {
+        foreach ($items as $item) {
             $variant = ProductVariant::find($item['product_variant_id']);
             $unitPrice = $variant ? $variant->getLatestUnitCost() : 0;
 

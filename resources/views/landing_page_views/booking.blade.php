@@ -5576,7 +5576,7 @@
                     html += thumbnailHtml;
                     // Calculate prices in both currencies (only per night)
                     const exchangeRate = window.exchangeRate || 2500;
-                    const pricePerNightTZS = pricePerNight * exchangeRate;
+                    const pricePerNightTZS = totalNightlyRate * exchangeRate;
 
                     // Check for discount (per night only)
                     const originalPrice = parseFloat(room.original_price || room.price_per_night || 0);
@@ -5585,9 +5585,9 @@
                     const discountPerNightTZS = discountPerNight * exchangeRate;
 
                     // Display only per-night price
-                    html += '<p class="price-from" data-usd="' + pricePerNight + '" data-tzs="' + pricePerNightTZS + '">';
+                    html += '<p class="price-from" data-usd="' + totalNightlyRate + '" data-tzs="' + pricePerNightTZS + '">';
                     html += '<span class="price-currency-symbol">$</span>';
-                    html += '<span class="price-amount">' + pricePerNight.toFixed(2) + '</span>';
+                    html += '<span class="price-amount">' + totalNightlyRate.toFixed(2) + '</span>';
                     html += '<span class="room-price-per-night">/night</span>';
                     if (hasDiscount) {
                         html += '<span class="discount-badge" data-usd="' + discountPerNight + '" data-tzs="' + discountPerNightTZS + '" style="display: block; margin-top: 5px; color: #28a745; font-size: 11px; font-weight: 600;">';

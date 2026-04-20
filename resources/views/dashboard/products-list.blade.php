@@ -222,9 +222,15 @@ $routePrefix = request()->is('bar-keeper*') ? 'bar-keeper' : 'admin';
 
                       <div class="card-body p-3 d-flex flex-column">
                         <h5 class="card-title mb-1 font-weight-bold text-dark" style="font-size: 1.05rem; line-height: 1.2;">
-                          {{ $variant->variant_name }}
+                          {{ $product->name }}
                         </h5>
-                        <p class="small text-muted mb-2 font-italic">{{ $product->name }}</p>
+                        <p class="small text-muted mb-2 font-italic">
+                          @if($variant->variant_name && strtolower($variant->variant_name) !== 'standard')
+                            {{ $variant->variant_name }}
+                          @else
+                            {{ $variant->measurement }}
+                          @endif
+                        </p>
                         
                         <div class="small text-muted mb-3">
                            <i class="fa fa-building-o mr-1"></i> {{ $product->supplier->name ?? 'Direct Supply' }}
@@ -413,7 +419,8 @@ function viewProduct(id) {
                     ${v.image ? `<img src="/storage/${v.image}" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;">` : '<div class="bg-light rounded d-flex align-items-center justify-content-center border" style="width: 40px; height: 40px;"><i class="fa fa-image text-muted"></i></div>'}
                   </td>
                   <td class="font-weight-bold align-middle">
-                      ${v.variant_name || 'Standard'} <span class="text-muted small">(${v.measurement})</span>
+                      ${(v.variant_name && v.variant_name.toLowerCase() !== 'standard') ? v.variant_name : ''} 
+                      <span class="text-muted small">${v.measurement ? '(' + v.measurement + ')' : ''}</span>
                   </td>
                   <td class="align-middle">
                       ${v.can_sell_as_pic ? '<span class="badge badge-success mr-1">Bottle</span>' : ''}

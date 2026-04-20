@@ -2401,8 +2401,16 @@
         cardHtml += '  <span class="ml-2"><i class="fa fa-users mr-1"></i>' + (room.capacity || 1) + '</span>';
         cardHtml += '</div>';
 
+        // Calculate current total price based on guest count
+        const numberOfGuestsInput = document.getElementById('number_of_guests');
+        const numberOfGuests = numberOfGuestsInput ? (parseInt(numberOfGuestsInput.value) || 1) : 1;
+        const extraGuests = Math.max(0, numberOfGuests - 1);
+        const extraFee = parseFloat(room.extra_guest_fee || 0);
+        const basePrice = parseFloat(room.price_per_night || 0);
+        const currentTotalPrice = basePrice + (extraGuests * extraFee);
+
         cardHtml += '<div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">';
-        cardHtml += '  <div class="font-weight-bold text-primary" style="font-size: 14px;">' + parseFloat(room.price_per_night).toLocaleString() + '</div>';
+        cardHtml += '  <div class="font-weight-bold text-primary room-price-display" style="font-size: 14px;">' + currentTotalPrice.toLocaleString() + '</div>';
         cardHtml += '  <div class="selected-icon text-success" style="display:none;"><i class="fa fa-check-circle"></i></div>';
         cardHtml += '</div>';
 
@@ -2477,23 +2485,23 @@
         }
       }
 
-                                    // Show other available rooms (feature disabled - button removed)
-                                    /* showOtherRoomsBtn.addEventListener('click', function() {
-                                      if (otherAvailableRooms.length === 0) return;
+                                        // Show other available rooms (feature disabled - button removed)
+                                        /* showOtherRoomsBtn.addEventListener('click', function() {
+                                          if (otherAvailableRooms.length === 0) return;
 
-                                      const modal = document.createElement('div');
-                                      modal.className = 'modal fade';
-                                      modal.innerHTML = `
-                                        <div class="modal-dialog">
-                                          <div class="modal-content">
-                                            <div class="modal-header">
-                                              <h5 class="modal-title">Other Available Rooms</h5>
-                                              <button type="button" class="close" data-dismiss="modal">&times;</button>
-                                            </div>
-                                            <div class="modal-body">
-                                              <div class="row" id="other_rooms_grid">
-                                                ${otherAvailableRooms.map(room => {
-                                                  const defaultImage = '{{ asset("royal-master/image/rooms/room1.jpg") }}';
+                                          const modal = document.createElement('div');
+                                          modal.className = 'modal fade';
+                                          modal.innerHTML = `
+                                            <div class="modal-dialog">
+                                              <div class="modal-content">
+                                                <div class="modal-header">
+                                                  <h5 class="modal-title">Other Available Rooms</h5>
+                                                  <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                                </div>
+                                                <div class="modal-body">
+                                                  <div class="row" id="other_rooms_grid">
+                                                    ${otherAvailableRooms.map(room => {
+                                                      const defaultImage = '{{ asset("royal-master/image/rooms/room1.jpg") }}';
       let imageUrl = defaultImage;
       if (room.image) {
         let imgPath = room.image;
@@ -2536,717 +2544,730 @@
         '</div>' +
         '</div>';
     }).join('')}
-                                              </div >
-                                            </div >
+                                                  </div >
+                                                </div >
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-primary" id="select_other_room_btn">Select This Room</button>
       </div>
-                                          </div >
-                                        </div >
+                                              </div >
+                                            </div >
       `;
-                                      document.body.appendChild(modal);
-                                      $(modal).modal('show');
+                                          document.body.appendChild(modal);
+                                          $(modal).modal('show');
 
-                                      // Add click handlers for other rooms modal cards (after modal is added to DOM)
-                                      setTimeout(function() {
-                                        const otherRoomsCards = document.querySelectorAll('#other_rooms_grid .room-card');
-                                        otherRoomsCards.forEach(card => {
-                                          card.addEventListener('click', function() {
-                                            otherRoomsCards.forEach(c => c.classList.remove('selected'));
-                                            this.classList.add('selected');
+                                          // Add click handlers for other rooms modal cards (after modal is added to DOM)
+                                          setTimeout(function() {
+                                            const otherRoomsCards = document.querySelectorAll('#other_rooms_grid .room-card');
+                                            otherRoomsCards.forEach(card => {
+                                              card.addEventListener('click', function() {
+                                                otherRoomsCards.forEach(c => c.classList.remove('selected'));
+                                                this.classList.add('selected');
+                                              });
+                                            });
+                                          }, 100);
+
+                                          document.getElementById('select_other_room_btn').addEventListener('click', function() {
+                                            const selectedCard = document.querySelector('#other_rooms_grid .room-card.selected');
+                                            if (selectedCard) {
+                                              const roomId = selectedCard.getAttribute('data-room-id');
+                                              const roomPrice = selectedCard.getAttribute('data-room-price');
+                                              const roomCapacity = selectedCard.getAttribute('data-room-capacity');
+
+                                              // Set hidden input
+                                              const hiddenRoomInput = document.getElementById('room_id');
+                                              hiddenRoomInput.value = roomId;
+                                              hiddenRoomInput.dispatchEvent(new Event('change'));
+
+                                              // Update number of guests based on room capacity
+                                              const capacity = parseInt(roomCapacity) || 1;
+                                              document.getElementById('number_of_guests').value = capacity;
+
+                                              // Trigger price calculation
+                                              calculateRecommendedPrice();
+                                            }
+                                            $(modal).modal('hide');
+                                            setTimeout(() => modal.remove(), 500);
                                           });
-                                        });
-                                      }, 100);
+                                        }); */
 
-                                      document.getElementById('select_other_room_btn').addEventListener('click', function() {
-                                        const selectedCard = document.querySelector('#other_rooms_grid .room-card.selected');
-                                        if (selectedCard) {
-                                          const roomId = selectedCard.getAttribute('data-room-id');
-                                          const roomPrice = selectedCard.getAttribute('data-room-price');
-                                          const roomCapacity = selectedCard.getAttribute('data-room-capacity');
-
-                                          // Set hidden input
+                                        // Calculate recommended price when room is selected
+                                        function calculateRecommendedPrice() {
                                           const hiddenRoomInput = document.getElementById('room_id');
-                                          hiddenRoomInput.value = roomId;
-                                          hiddenRoomInput.dispatchEvent(new Event('change'));
+                                          const roomId = hiddenRoomInput ? hiddenRoomInput.value : null;
+                                          const checkIn = checkInInput.value;
+                                          const checkOut = checkOutInput.value;
 
-                                          // Update number of guests based on room capacity
-                                          const capacity = parseInt(roomCapacity) || 1;
-                                          document.getElementById('number_of_guests').value = capacity;
+                                          if (!roomId || !checkIn || !checkOut) {
+                                            recommendedPriceInput.value = '';
+                                            return;
+                                          }
 
-                                          // Trigger price calculation
-                                          calculateRecommendedPrice();
+                                          // Get room data from selected card
+                                          const selectedCard = document.querySelector('.room-card.selected');
+                                          if (!selectedCard) {
+                                            recommendedPriceInput.value = '';
+                                            return;
+                                          }
+
+                                        const pricePerNight = parseFloat(selectedCard.getAttribute('data-room-price')) || 0;
+                                        const extraGuestFee = parseFloat(selectedCard.getAttribute('data-room-extra-fee')) || 0;
+                                        const numberOfGuestsInput = document.getElementById('number_of_guests');
+                                        const numberOfGuests = numberOfGuestsInput ? (parseInt(numberOfGuestsInput.value) || 1) : 1;
+
+                                        if (pricePerNight <= 0) {
+                                          recommendedPriceInput.value = '';
+                                          return;
                                         }
-                                        $(modal).modal('hide');
-                                        setTimeout(() => modal.remove(), 500);
-                                      });
-                                    }); */
 
-                                    // Calculate recommended price when room is selected
-                                    function calculateRecommendedPrice() {
-                                      const hiddenRoomInput = document.getElementById('room_id');
-                                      const roomId = hiddenRoomInput ? hiddenRoomInput.value : null;
-                                      const checkIn = checkInInput.value;
-                                      const checkOut = checkOutInput.value;
+                                        const checkInDate = new Date(checkIn + 'T00:00:00');
+                                        const checkOutDate = new Date(checkOut + 'T00:00:00');
 
-                                      if (!roomId || !checkIn || !checkOut) {
-                                        recommendedPriceInput.value = '';
-                                        return;
-                                      }
-
-                                      // Get room data from selected card
-                                      const selectedCard = document.querySelector('.room-card.selected');
-                                      if (!selectedCard) {
-                                        recommendedPriceInput.value = '';
-                                        return;
-                                      }
-
-                                    const pricePerNight = parseFloat(selectedCard.getAttribute('data-room-price')) || 0;
-                                    const extraGuestFee = parseFloat(selectedCard.getAttribute('data-room-extra-fee')) || 0;
-                                    const numberOfGuestsInput = document.getElementById('number_of_guests');
-                                    const numberOfGuests = numberOfGuestsInput ? (parseInt(numberOfGuestsInput.value) || 1) : 1;
-
-                                    if (pricePerNight <= 0) {
-                                      recommendedPriceInput.value = '';
-                                      return;
-                                    }
-
-                                    const checkInDate = new Date(checkIn + 'T00:00:00');
-                                    const checkOutDate = new Date(checkOut + 'T00:00:00');
-
-                                    if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
-                                      recommendedPriceInput.value = '';
-                                      return;
-                                    }
-
-                                    // Calculate nights
-                                    const timeDiff = checkOutDate.getTime() - checkInDate.getTime();
-                                    const nights = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-
-                                    if (nights > 0 && pricePerNight > 0) {
-                                      // Formula: (Base Price + (Extra Guests * Extra Fee)) * Nights
-                                      const extraGuests = Math.max(0, numberOfGuests - 1);
-                                      const recommendedTZS = (pricePerNight + (extraGuests * extraGuestFee)) * nights;
-
-                                      recommendedPriceInput.value = recommendedTZS.toFixed(0);
-                                      totalPriceInput.value = recommendedTZS.toFixed(0);
-
-                                        // Recalculate payment percentage and remaining amount if amount paid is already entered
-                                        const amountPaidInput = document.getElementById('amount_paid');
-                                        if (amountPaidInput && amountPaidInput.value) {
-                                          calculatePaymentFromAmount(true); // Skip auto-fill to prevent overwriting total price
+                                        if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
+                                          recommendedPriceInput.value = '';
+                                          return;
                                         }
-                                      } else {
-                                        recommendedPriceInput.value = '';
-                                      }
-                                    }
 
-                                    // Calculate payment percentage from amount paid
-                                    function calculatePaymentFromAmount(skipAutoFill = false) {
-                                      const totalPrice = parseFloat(totalPriceInput.value) || 0;
-                                      const amountPaid = parseFloat(amountPaidInput.value) || 0;
+                                        // Calculate nights
+                                        const timeDiff = checkOutDate.getTime() - checkInDate.getTime();
+                                        const nights = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
 
-                                      if (!skipAutoFill && (!totalPriceInput.value || totalPriceInput.value === '0' || totalPriceInput.value === '')) {
-                                        const recommendedPrice = parseFloat(recommendedPriceInput.value) || 0;
-                                        if (recommendedPrice > 0) {
-                                          totalPriceInput.value = recommendedPrice.toFixed(0);
-                                          const newTotalPrice = recommendedPrice;
-                                          if (newTotalPrice > 0 && amountPaid > 0) {
-                                            const percentage = (amountPaid / newTotalPrice) * 100;
+                                        if (nights > 0 && pricePerNight > 0) {
+                                          // Formula: (Base Price + (Extra Guests * Extra Fee)) * Nights
+                                          const extraGuests = Math.max(0, numberOfGuests - 1);
+                                          const recommendedTZS = (pricePerNight + (extraGuests * extraGuestFee)) * nights;
+
+                                          recommendedPriceInput.value = recommendedTZS.toFixed(0);
+                                          totalPriceInput.value = recommendedTZS.toFixed(0);
+
+                                            // Recalculate payment percentage and remaining amount if amount paid is already entered
+                                            const amountPaidInput = document.getElementById('amount_paid');
+                                            if (amountPaidInput && amountPaidInput.value) {
+                                              calculatePaymentFromAmount(true); // Skip auto-fill to prevent overwriting total price
+                                            }
+                                          } else {
+                                            recommendedPriceInput.value = '';
+                                          }
+                                        }
+
+                                        // Calculate payment percentage from amount paid
+                                        function calculatePaymentFromAmount(skipAutoFill = false) {
+                                          const totalPrice = parseFloat(totalPriceInput.value) || 0;
+                                          const amountPaid = parseFloat(amountPaidInput.value) || 0;
+
+                                          if (!skipAutoFill && (!totalPriceInput.value || totalPriceInput.value === '0' || totalPriceInput.value === '')) {
+                                            const recommendedPrice = parseFloat(recommendedPriceInput.value) || 0;
+                                            if (recommendedPrice > 0) {
+                                              totalPriceInput.value = recommendedPrice.toFixed(0);
+                                              const newTotalPrice = recommendedPrice;
+                                              if (newTotalPrice > 0 && amountPaid > 0) {
+                                                const percentage = (amountPaid / newTotalPrice) * 100;
+                                                paymentPercentageInput.value = percentage.toFixed(2);
+
+                                                const remaining = newTotalPrice - amountPaid;
+                                                remainingAmountInput.value = remaining >= 0 ? remaining.toFixed(0) : '0';
+                                              } else {
+                                                paymentPercentageInput.value = '';
+                                                remainingAmountInput.value = '';
+                                              }
+                                              return;
+                                            }
+                                          }
+
+                                          if (totalPrice > 0 && amountPaid > 0) {
+                                            const percentage = (amountPaid / totalPrice) * 100;
                                             paymentPercentageInput.value = percentage.toFixed(2);
 
-                                            const remaining = newTotalPrice - amountPaid;
+                                            const remaining = totalPrice - amountPaid;
                                             remainingAmountInput.value = remaining >= 0 ? remaining.toFixed(0) : '0';
                                           } else {
                                             paymentPercentageInput.value = '';
                                             remainingAmountInput.value = '';
                                           }
-                                          return;
                                         }
-                                      }
 
-                                      if (totalPrice > 0 && amountPaid > 0) {
-                                        const percentage = (amountPaid / totalPrice) * 100;
-                                        paymentPercentageInput.value = percentage.toFixed(2);
-
-                                        const remaining = totalPrice - amountPaid;
-                                        remainingAmountInput.value = remaining >= 0 ? remaining.toFixed(0) : '0';
-                                      } else {
-                                        paymentPercentageInput.value = '';
-                                        remainingAmountInput.value = '';
-                                      }
-                                    }
-
-                                    // Update currency conversion values
-                                    function updateCurrencyValues() {
-                                      // No conversion needed
-                                    }
-
-                                    // Populate payment provider options based on payment method
-                                    function populatePaymentProvider() {
-                                      if (!paymentProviderSelect || !paymentMethodSelect) return;
-
-                                      const paymentMethod = paymentMethodSelect.value;
-                                      const providers = paymentProviders[paymentMethod] || [];
-
-                                      // Clear existing options
-                                      paymentProviderSelect.innerHTML = '<option value="">Select Provider</option>';
-
-                                      if (providers.length > 0) {
-                                        providers.forEach(provider => {
-                                          const option = document.createElement('option');
-                                          option.value = provider.value;
-                                          option.textContent = provider.label;
-                                          paymentProviderSelect.appendChild(option);
-                                        });
-                                      }
-                                    }
-
-                                    // Toggle payment provider and reference fields based on payment method
-                                    function togglePaymentFields() {
-                                      if (!paymentMethodSelect) return;
-
-                                      const paymentMethod = paymentMethodSelect.value;
-                                      const requiresProvider = ['mobile', 'bank', 'card', 'online'].includes(paymentMethod);
-                                      const requiresReference = paymentMethod && paymentMethod !== 'cash'&& paymentMethod !== 'pay_later';
-
-                                      // Specific logic for Pay Later
-                                      if (paymentMethod === 'pay_later') {
-                                        if (amountPaidInput) {
-                                          amountPaidInput.value = '0';
-                                          calculatePaymentFromAmount(true);
+                                        // Update currency conversion values
+                                        function updateCurrencyValues() {
+                                          // No conversion needed
                                         }
-                                      }
 
-                                      // Show/hide provider field
-                                      if (paymentProviderWrapper) {
-                                        if (requiresProvider) {
-                                          paymentProviderWrapper.style.display = 'block';
-                                          if (paymentProviderSelect) {
-                                            paymentProviderSelect.setAttribute('required', 'required');
-                                          }
-                                          populatePaymentProvider();
-                                        } else {
-                                          paymentProviderWrapper.style.display = 'none';
-                                          if (paymentProviderSelect) {
-                                            paymentProviderSelect.removeAttribute('required');
-                                            paymentProviderSelect.value = '';
-                                          }
-                                        }
-                                      }
+                                        // Populate payment provider options based on payment method
+                                        function populatePaymentProvider() {
+                                          if (!paymentProviderSelect || !paymentMethodSelect) return;
 
-                                      // Show/hide reference field
-                                      if (paymentReferenceWrapper && paymentReferenceInput) {
-                                        if (requiresReference) {
-                                          paymentReferenceWrapper.style.display = 'block';
-                                          paymentReferenceInput.setAttribute('required', 'required');
-                                        } else {
-                                          paymentReferenceWrapper.style.display = 'none';
-                                          paymentReferenceInput.removeAttribute('required');
-                                          paymentReferenceInput.value = '';
-                                        }
-                                      }
-                                    }
+                                          const paymentMethod = paymentMethodSelect.value;
+                                          const providers = paymentProviders[paymentMethod] || [];
 
-                                    // Event listeners
-                                    if (paymentMethodSelect) {
-                                      paymentMethodSelect.addEventListener('change', togglePaymentFields);
-                                      // Initial call to set up the fields
-                                      togglePaymentFields();
-                                    }
+                                          // Clear existing options
+                                          paymentProviderSelect.innerHTML = '<option value="">Select Provider</option>';
 
-                                    $(roomTypeSelect).on('change', function() {
-                                      // Update number of guests based on room type capacity
-                                      const selectedRoomType = $(this).val();
-                                      if (selectedRoomType && roomTypeCapacities[selectedRoomType]) {
-                                        const capacity = roomTypeCapacities[selectedRoomType];
-                                        document.getElementById('number_of_guests').value = capacity;
-                                      }
-                                      // Fetch available rooms only if check-in and check-out dates are already selected
-                                      const checkIn = document.getElementById('check_in').value;
-                                      const checkOut = document.getElementById('check_out').value;
-                                      if (checkIn && checkOut) {
-                                        fetchAvailableRooms();
-                                      }
-                                    });
-                                    checkInInput.addEventListener('change', function() {
-                                      if (checkInInput.value) {
-                                        const nextDay = new Date(checkInInput.value);
-                                        nextDay.setDate(nextDay.getDate() + 1);
-                                        checkOutInput.setAttribute('min', nextDay.toISOString().split('T')[0]);
-                                      }
-                                      fetchAvailableRooms();
-                                    });
-                                    checkOutInput.addEventListener('change', fetchAvailableRooms);
-
-                                    if (document.getElementById('number_of_guests')) {
-                                      document.getElementById('number_of_guests').addEventListener('change', function() {
-                                        calculateRecommendedPrice();
-                                      });
-                                    }
-
-                                    // Listen for room selection changes (from cards)
-                                    const hiddenRoomInput = document.getElementById('room_id');
-                                    if (hiddenRoomInput) {
-                                      hiddenRoomInput.addEventListener('change', function() {
-                                        calculateRecommendedPrice();
-                                      });
-                                    }
-                                    // When total price is manually edited, don't auto-fill it
-                                    totalPriceInput.addEventListener('input', function() {
-                                      calculatePaymentFromAmount(true); // Skip auto-fill when user is editing
-                                      updateCurrencyValues();
-                                    });
-                                    totalPriceInput.addEventListener('change', function() {
-                                      calculatePaymentFromAmount(true); // Skip auto-fill when user is editing
-                                      updateCurrencyValues();
-                                    });
-                                    amountPaidInput.addEventListener('input', function() {
-                                      calculatePaymentFromAmount(true); // Skip auto-fill when amount paid changes
-                                    });
-                                    amountPaidInput.addEventListener('change', calculatePaymentFromAmount);
-                                    amountPaidInput.addEventListener('keyup', calculatePaymentFromAmount);
-
-                                    // Form submission
-                                    document.getElementById('manualBookingForm').addEventListener('submit', function(e) {
-                                      e.preventDefault();
-
-                                      const form = this;
-                                      const formData = new FormData(form);
-
-                                      // For Tanzanian guests, ensure nationality is set to Tanzania
-                                      const guestType = document.getElementById('guest_type').value;
-                                      if (guestType === 'tanzanian') {
-                                        const nationalitySelect = document.getElementById('nationality');
-                                        if (nationalitySelect) {
-                                          nationalitySelect.value = 'Tanzania';
-                                          formData.set('nationality', 'Tanzania');
-                                          formData.set('country_code', '+255');
-                                        }
-                                      }
-
-                                      // Ensure total_price is set from recommended_price if not already set
-                                      if (!totalPriceInput.value && recommendedPriceInput.value) {
-                                        totalPriceInput.value = recommendedPriceInput.value;
-                                      }
-
-                                      // Validate required fields
-                                      const hiddenRoomInput = document.getElementById('room_id');
-                                      const paymentMethod = paymentMethodSelect.value;
-                                      const isZeroAllowed = paymentMethod === 'pay_later';
-
-                                      if (!roomTypeSelect.value || !hiddenRoomInput.value || !totalPriceInput.value || !paymentMethodSelect.value || (!isZeroAllowed && (!amountPaidInput.value || parseFloat(amountPaidInput.value) <= 0))) {
-                                        swal({
-                                          title: "Validation Error",
-                                          text: "Please fill in all required fields (Total Price, Payment Method, and Amount Paid)",
-                                          type: "error",
-                                          confirmButtonColor: "#940000"
-                                        });
-                                        return;
-                                      }
-
-                                      // Validate payment provider and reference if required
-                                      const requiresProvider = ['mobile', 'bank', 'card', 'online'].includes(paymentMethod);
-                                      const requiresReference = paymentMethod && paymentMethod !== 'cash'&& paymentMethod !== 'pay_later';
-
-                                      if (requiresProvider && (!paymentProviderSelect || !paymentProviderSelect.value)) {
-                                        swal({
-                                          title: "Validation Error",
-                                          text: "Please select a payment provider",
-                                          type: "error",
-                                          confirmButtonColor: "#940000"
-                                        });
-                                        return;
-                                      }
-
-                                      if (requiresReference && (!paymentReferenceInput || !paymentReferenceInput.value || !paymentReferenceInput.value.trim())) {
-                                        swal({
-                                          title: "Validation Error",
-                                          text: "Please enter a reference number for the selected payment method",
-                                          type: "error",
-                                          confirmButtonColor: "#940000"
-                                        });
-                                        return;
-                                      }
-
-                                      swal({
-                                        title: "Create Booking?",
-                                        text: "This will create the booking, send emails to guest, reception, and manager, and generate a receipt.",
-                                        type: "warning",
-                                        showCancelButton: true,
-                                        confirmButtonColor: "#940000",
-                                        cancelButtonColor: "#d33",
-                                        confirmButtonText: "Yes, create it!",
-                                        cancelButtonText: "Cancel",
-                                        closeOnConfirm: false,
-                                        showLoaderOnConfirm: true
-                                      }, function(isConfirm) {
-                                        if (isConfirm) {
-                                          // Show loading
-                                          swal({
-                                            title: "Processing...",
-                                            text: "Creating booking, sending notifications, and generating receipt",
-                                            type: "info",
-                                            showConfirmButton: false,
-                                            allowOutsideClick: false
-                                          });
-
-                                          fetch(form.action, {
-                                            method: 'POST',
-                                            body: formData,
-                                            headers: {
-                                              'X-Requested-With': 'XMLHttpRequest',
-                                              'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
-                                            }
-                                          })
-                                          .then(async response => {
-                                            const data = await response.json();
-
-                                            if (!response.ok || !data.success) {
-                                              throw new Error(data.message || 'Failed to create booking');
-                                            }
-
-                                            return data;
-                                          })
-                                          .then(data => {
-                                            swal({
-                                              title: "Success!",
-                                              text: data.message || "Booking created successfully! Emails sent and receipt generated.",
-                                              type: "success",
-                                              confirmButtonColor: "#940000",
-                                              confirmButtonText: "View Booking"
-                                            }, function() {
-                                              // Open receipt in new window if available
-                                              if (data.receipt_url) {
-                                                window.open(data.receipt_url, '_blank');
-                                              }
-                                              window.location.href = "{{ $role === 'reception' ? route('reception.bookings') : route('admin.bookings.index') }}";
+                                          if (providers.length > 0) {
+                                            providers.forEach(provider => {
+                                              const option = document.createElement('option');
+                                              option.value = provider.value;
+                                              option.textContent = provider.label;
+                                              paymentProviderSelect.appendChild(option);
                                             });
-                                          })
-                                          .catch(error => {
+                                          }
+                                        }
+
+                                        // Toggle payment provider and reference fields based on payment method
+                                        function togglePaymentFields() {
+                                          if (!paymentMethodSelect) return;
+
+                                          const paymentMethod = paymentMethodSelect.value;
+                                          const requiresProvider = ['mobile', 'bank', 'card', 'online'].includes(paymentMethod);
+                                          const requiresReference = paymentMethod && paymentMethod !== 'cash'&& paymentMethod !== 'pay_later';
+
+                                          // Specific logic for Pay Later
+                                          if (paymentMethod === 'pay_later') {
+                                            if (amountPaidInput) {
+                                              amountPaidInput.value = '0';
+                                              calculatePaymentFromAmount(true);
+                                            }
+                                          }
+
+                                          // Show/hide provider field
+                                          if (paymentProviderWrapper) {
+                                            if (requiresProvider) {
+                                              paymentProviderWrapper.style.display = 'block';
+                                              if (paymentProviderSelect) {
+                                                paymentProviderSelect.setAttribute('required', 'required');
+                                              }
+                                              populatePaymentProvider();
+                                            } else {
+                                              paymentProviderWrapper.style.display = 'none';
+                                              if (paymentProviderSelect) {
+                                                paymentProviderSelect.removeAttribute('required');
+                                                paymentProviderSelect.value = '';
+                                              }
+                                            }
+                                          }
+
+                                          // Show/hide reference field
+                                          if (paymentReferenceWrapper && paymentReferenceInput) {
+                                            if (requiresReference) {
+                                              paymentReferenceWrapper.style.display = 'block';
+                                              paymentReferenceInput.setAttribute('required', 'required');
+                                            } else {
+                                              paymentReferenceWrapper.style.display = 'none';
+                                              paymentReferenceInput.removeAttribute('required');
+                                              paymentReferenceInput.value = '';
+                                            }
+                                          }
+                                        }
+
+                                        // Event listeners
+                                        if (paymentMethodSelect) {
+                                          paymentMethodSelect.addEventListener('change', togglePaymentFields);
+                                          // Initial call to set up the fields
+                                          togglePaymentFields();
+                                        }
+
+                                        $(roomTypeSelect).on('change', function() {
+                                          // Update number of guests based on room type capacity
+                                          const selectedRoomType = $(this).val();
+                                          if (selectedRoomType && roomTypeCapacities[selectedRoomType]) {
+                                            const capacity = roomTypeCapacities[selectedRoomType];
+                                            document.getElementById('number_of_guests').value = capacity;
+                                          }
+                                          // Fetch available rooms only if check-in and check-out dates are already selected
+                                          const checkIn = document.getElementById('check_in').value;
+                                          const checkOut = document.getElementById('check_out').value;
+                                          if (checkIn && checkOut) {
+                                            fetchAvailableRooms();
+                                          }
+                                        });
+                                        checkInInput.addEventListener('change', function() {
+                                          if (checkInInput.value) {
+                                            const nextDay = new Date(checkInInput.value);
+                                            nextDay.setDate(nextDay.getDate() + 1);
+                                            checkOutInput.setAttribute('min', nextDay.toISOString().split('T')[0]);
+                                          }
+                                          fetchAvailableRooms();
+                                        });
+                                        checkOutInput.addEventListener('change', fetchAvailableRooms);
+
+                                        if (document.getElementById('number_of_guests')) {
+                                          document.getElementById('number_of_guests').addEventListener('change', function() {
+                                            calculateRecommendedPrice();
+                                          // Update all visible room cards to reflect new pricing
+                                          document.querySelectorAll('.room-card').forEach(card => {
+                                            const basePrice = parseFloat(card.getAttribute('data-room-price')) || 0;
+                                            const extraFee = parseFloat(card.getAttribute('data-room-extra-fee')) || 0;
+                                            const guests = parseInt(this.value) || 1;
+                                            const extras = Math.max(0, guests - 1);
+                                            const total = basePrice + (extras * extraFee);
+
+                                            const display = card.querySelector('.room-price-display');
+                                            if (display) {
+                                              display.textContent = total.toLocaleString();
+                                            }
+                                          });
+                                        });
+                                        }
+
+                                        // Listen for room selection changes (from cards)
+                                        const hiddenRoomInput = document.getElementById('room_id');
+                                        if (hiddenRoomInput) {
+                                          hiddenRoomInput.addEventListener('change', function() {
+                                            calculateRecommendedPrice();
+                                          });
+                                        }
+                                        // When total price is manually edited, don't auto-fill it
+                                        totalPriceInput.addEventListener('input', function() {
+                                          calculatePaymentFromAmount(true); // Skip auto-fill when user is editing
+                                          updateCurrencyValues();
+                                        });
+                                        totalPriceInput.addEventListener('change', function() {
+                                          calculatePaymentFromAmount(true); // Skip auto-fill when user is editing
+                                          updateCurrencyValues();
+                                        });
+                                        amountPaidInput.addEventListener('input', function() {
+                                          calculatePaymentFromAmount(true); // Skip auto-fill when amount paid changes
+                                        });
+                                        amountPaidInput.addEventListener('change', calculatePaymentFromAmount);
+                                        amountPaidInput.addEventListener('keyup', calculatePaymentFromAmount);
+
+                                        // Form submission
+                                        document.getElementById('manualBookingForm').addEventListener('submit', function(e) {
+                                          e.preventDefault();
+
+                                          const form = this;
+                                          const formData = new FormData(form);
+
+                                          // For Tanzanian guests, ensure nationality is set to Tanzania
+                                          const guestType = document.getElementById('guest_type').value;
+                                          if (guestType === 'tanzanian') {
+                                            const nationalitySelect = document.getElementById('nationality');
+                                            if (nationalitySelect) {
+                                              nationalitySelect.value = 'Tanzania';
+                                              formData.set('nationality', 'Tanzania');
+                                              formData.set('country_code', '+255');
+                                            }
+                                          }
+
+                                          // Ensure total_price is set from recommended_price if not already set
+                                          if (!totalPriceInput.value && recommendedPriceInput.value) {
+                                            totalPriceInput.value = recommendedPriceInput.value;
+                                          }
+
+                                          // Validate required fields
+                                          const hiddenRoomInput = document.getElementById('room_id');
+                                          const paymentMethod = paymentMethodSelect.value;
+                                          const isZeroAllowed = paymentMethod === 'pay_later';
+
+                                          if (!roomTypeSelect.value || !hiddenRoomInput.value || !totalPriceInput.value || !paymentMethodSelect.value || (!isZeroAllowed && (!amountPaidInput.value || parseFloat(amountPaidInput.value) <= 0))) {
                                             swal({
-                                              title: "Error!",
-                                              text: error.message || "An error occurred while creating the booking.",
+                                              title: "Validation Error",
+                                              text: "Please fill in all required fields (Total Price, Payment Method, and Amount Paid)",
                                               type: "error",
                                               confirmButtonColor: "#940000"
                                             });
+                                            return;
+                                          }
+
+                                          // Validate payment provider and reference if required
+                                          const requiresProvider = ['mobile', 'bank', 'card', 'online'].includes(paymentMethod);
+                                          const requiresReference = paymentMethod && paymentMethod !== 'cash'&& paymentMethod !== 'pay_later';
+
+                                          if (requiresProvider && (!paymentProviderSelect || !paymentProviderSelect.value)) {
+                                            swal({
+                                              title: "Validation Error",
+                                              text: "Please select a payment provider",
+                                              type: "error",
+                                              confirmButtonColor: "#940000"
+                                            });
+                                            return;
+                                          }
+
+                                          if (requiresReference && (!paymentReferenceInput || !paymentReferenceInput.value || !paymentReferenceInput.value.trim())) {
+                                            swal({
+                                              title: "Validation Error",
+                                              text: "Please enter a reference number for the selected payment method",
+                                              type: "error",
+                                              confirmButtonColor: "#940000"
+                                            });
+                                            return;
+                                          }
+
+                                          swal({
+                                            title: "Create Booking?",
+                                            text: "This will create the booking, send emails to guest, reception, and manager, and generate a receipt.",
+                                            type: "warning",
+                                            showCancelButton: true,
+                                            confirmButtonColor: "#940000",
+                                            cancelButtonColor: "#d33",
+                                            confirmButtonText: "Yes, create it!",
+                                            cancelButtonText: "Cancel",
+                                            closeOnConfirm: false,
+                                            showLoaderOnConfirm: true
+                                          }, function(isConfirm) {
+                                            if (isConfirm) {
+                                              // Show loading
+                                              swal({
+                                                title: "Processing...",
+                                                text: "Creating booking, sending notifications, and generating receipt",
+                                                type: "info",
+                                                showConfirmButton: false,
+                                                allowOutsideClick: false
+                                              });
+
+                                              fetch(form.action, {
+                                                method: 'POST',
+                                                body: formData,
+                                                headers: {
+                                                  'X-Requested-With': 'XMLHttpRequest',
+                                                  'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
+                                                }
+                                              })
+                                              .then(async response => {
+                                                const data = await response.json();
+
+                                                if (!response.ok || !data.success) {
+                                                  throw new Error(data.message || 'Failed to create booking');
+                                                }
+
+                                                return data;
+                                              })
+                                              .then(data => {
+                                                swal({
+                                                  title: "Success!",
+                                                  text: data.message || "Booking created successfully! Emails sent and receipt generated.",
+                                                  type: "success",
+                                                  confirmButtonColor: "#940000",
+                                                  confirmButtonText: "View Booking"
+                                                }, function() {
+                                                  // Open receipt in new window if available
+                                                  if (data.receipt_url) {
+                                                    window.open(data.receipt_url, '_blank');
+                                                  }
+                                                  window.location.href = "{{ $role === 'reception' ? route('reception.bookings') : route('admin.bookings.index') }}";
+                                                });
+                                              })
+                                              .catch(error => {
+                                                swal({
+                                                  title: "Error!",
+                                                  text: error.message || "An error occurred while creating the booking.",
+                                                  type: "error",
+                                                  confirmButtonColor: "#940000"
+                                                });
+                                              });
+                                            }
+                                          });
+                                        });
+                                      });
+
+                                        // Department selection functions
+                                        function toggleDepartment(checkboxId) {
+                                          const checkbox = document.getElementById(checkboxId);
+                                          if (checkbox) {
+                                            checkbox.checked = !checkbox.checked;
+                                            updateDepartmentCard(checkbox);
+                                          }
+                                        }
+
+                                        function updateDepartmentCard(checkbox) {
+                                          const card = checkbox.closest('.department-card');
+                                          const badgeId = checkbox.id.replace('notify_', '') + '-badge';
+                                          const badge = document.getElementById(badgeId);
+
+                                          if (checkbox.checked) {
+                                            card.style.borderColor = getDepartmentColor(checkbox.id);
+                                            card.style.backgroundColor = getDepartmentColor(checkbox.id, true);
+                                            card.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                                            if (badge) badge.style.display = 'inline-block';
+                                          } else {
+                                            card.style.borderColor = '#e0e0e0';
+                                            card.style.backgroundColor = '#fff';
+                                            card.style.boxShadow = 'none';
+                                            if (badge) badge.style.display = 'none';
+                                          }
+
+                                          updateDepartmentPreview();
+                                        }
+
+                                        function getDepartmentColor(checkboxId, isBackground = false) {
+                                          const colors = {
+                                            'notify_reception': isBackground ? '#e3f2fd' : '#2196F3',
+                                            'notify_bar': isBackground ? '#fff3e0' : '#ff9800',
+                                            'notify_kitchen': isBackground ? '#ffebee' : '#f44336'
+                                          };
+                                          return colors[checkboxId] || '#e0e0e0';
+                                        }
+
+                                        function selectAllDepartments() {
+                                          const checkboxes = document.querySelectorAll('.department-checkbox');
+                                          checkboxes.forEach(cb => {
+                                            cb.checked = true;
+                                            updateDepartmentCard(cb);
                                           });
                                         }
-                                      });
-                                    });
-                                  });
 
-                                    // Department selection functions
-                                    function toggleDepartment(checkboxId) {
-                                      const checkbox = document.getElementById(checkboxId);
-                                      if (checkbox) {
-                                        checkbox.checked = !checkbox.checked;
-                                        updateDepartmentCard(checkbox);
-                                      }
-                                    }
+                                        function deselectAllDepartments() {
+                                          const checkboxes = document.querySelectorAll('.department-checkbox');
+                                          checkboxes.forEach(cb => {
+                                            cb.checked = false;
+                                            updateDepartmentCard(cb);
+                                          });
+                                        }
 
-                                    function updateDepartmentCard(checkbox) {
-                                      const card = checkbox.closest('.department-card');
-                                      const badgeId = checkbox.id.replace('notify_', '') + '-badge';
-                                      const badge = document.getElementById(badgeId);
+                                        function updateDepartmentPreview() {
+                                          const selected = document.querySelectorAll('.department-checkbox:checked');
+                                          const previewDiv = document.getElementById('department-preview');
+                                          const previewText = document.getElementById('preview-text');
 
-                                      if (checkbox.checked) {
-                                        card.style.borderColor = getDepartmentColor(checkbox.id);
-                                        card.style.backgroundColor = getDepartmentColor(checkbox.id, true);
-                                        card.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
-                                        if (badge) badge.style.display = 'inline-block';
-                                      } else {
-                                        card.style.borderColor = '#e0e0e0';
-                                        card.style.backgroundColor = '#fff';
-                                        card.style.boxShadow = 'none';
-                                        if (badge) badge.style.display = 'none';
-                                      }
+                                          if (selected.length > 0) {
+                                            const departmentNames = Array.from(selected).map(cb => {
+                                              const label = document.querySelector(`label[for= "${cb.id}"]`) || 
+                                                           cb.closest('.card-body').querySelector('h6');
+                                              return label ? label.textContent.trim() : cb.value;
+                                            });
 
-                                      updateDepartmentPreview();
-                                    }
-
-                                    function getDepartmentColor(checkboxId, isBackground = false) {
-                                      const colors = {
-                                        'notify_reception': isBackground ? '#e3f2fd' : '#2196F3',
-                                        'notify_bar': isBackground ? '#fff3e0' : '#ff9800',
-                                        'notify_kitchen': isBackground ? '#ffebee' : '#f44336'
-                                      };
-                                      return colors[checkboxId] || '#e0e0e0';
-                                    }
-
-                                    function selectAllDepartments() {
-                                      const checkboxes = document.querySelectorAll('.department-checkbox');
-                                      checkboxes.forEach(cb => {
-                                        cb.checked = true;
-                                        updateDepartmentCard(cb);
-                                      });
-                                    }
-
-                                    function deselectAllDepartments() {
-                                      const checkboxes = document.querySelectorAll('.department-checkbox');
-                                      checkboxes.forEach(cb => {
-                                        cb.checked = false;
-                                        updateDepartmentCard(cb);
-                                      });
-                                    }
-
-                                    function updateDepartmentPreview() {
-                                      const selected = document.querySelectorAll('.department-checkbox:checked');
-                                      const previewDiv = document.getElementById('department-preview');
-                                      const previewText = document.getElementById('preview-text');
-
-                                      if (selected.length > 0) {
-                                        const departmentNames = Array.from(selected).map(cb => {
-                                          const label = document.querySelector(`label[for= "${cb.id}"]`) || 
-                                                       cb.closest('.card-body').querySelector('h6');
-                                          return label ? label.textContent.trim() : cb.value;
-                                        });
-
-                                        previewDiv.style.display = 'block';
-                                        previewText.textContent = `The following ${ selected.length } department(s) will be notified: ${ departmentNames.join(', ') }. They will receive a notification with the guest's special requests/notes.`;
-                                      } else {
-      previewDiv.style.display = 'none';
-    }
-                                    }
-
-    // Initialize department cards on page load
-    document.addEventListener('DOMContentLoaded', function () {
-      const checkboxes = document.querySelectorAll('.department-checkbox');
-      checkboxes.forEach(cb => {
-        updateDepartmentCard(cb);
-      });
-
-      // Guest Search Functionality
-      const guestSearchInput = document.getElementById('guestSearchInput');
-      const guestSearchResults = document.getElementById('guestSearchResults');
-
-      if (guestSearchInput) {
-        let debounceTimer;
-        guestSearchInput.addEventListener('input', function () {
-          clearTimeout(debounceTimer);
-          const query = this.value;
-          const icon = document.getElementById('guestSearchIcon');
-
-          if (query.length < 2) {
-            guestSearchResults.style.display = 'none';
-            if (icon) icon.className = 'fa fa-search';
-            return;
-          }
-
-          if (icon) icon.className = 'fa fa-spinner fa-spin';
-
-          debounceTimer = setTimeout(() => {
-            fetch(`{{ route('admin.bookings.search.guests') }}?q=${encodeURIComponent(query)}`)
-              .then(response => response.json())
-              .then(data => {
-                if (icon) icon.className = 'fa fa-search';
-                guestSearchResults.innerHTML = '';
-                if (data.length > 0) {
-                  data.forEach(guest => {
-                    const item = document.createElement('a');
-                    item.href = 'javascript:void(0)';
-                    item.className = 'list-group-item list-group-item-action py-3 border-left-0 border-right-0';
-                    item.style.transition = 'all 0.2s ease';
-                    item.style.borderBottom = '1px solid #f0f0f0';
-
-                    item.innerHTML = `
-                                                      <div class="d-flex w-100 justify-content-between align-items-center">
-                                                        <div style="flex: 1;">
-                                                          <h6 class="mb-1" style="color: #00796b; font-weight: 700; font-size: 15px;">${guest.name}</h6>
-                                                          <p class="mb-1 small text-muted">
-                                                            <i class="fa fa-envelope-o mr-1"></i>${guest.email} 
-                                                            <span class="mx-2" style="opacity: 0.3;">|</span> 
-                                                            <i class="fa fa-phone mr-1"></i>${guest.phone || 'No phone'}
-                                                          </p>
-                                                          <div class="d-flex align-items-center mt-1">
-                                                             ${(guest.nationality || guest.country) ? `<small class="badge badge-light border text-secondary mr-2" style="font-size: 10px; background: #fff;"><i class="fa fa-globe mr-1"></i>${guest.nationality || guest.country}</small>` : ''}
-                                                             <small class="text-muted" style="font-size: 10px;"><i class="fa fa-history mr-1"></i>Last: ${guest.last_booking_date}</small>
-                                                          </div>
-                                                        </div>
-                                                        <div class="text-right ml-3 d-flex flex-column align-items-end">
-                                                          <button type="button" class="btn btn-sm btn-outline-primary mb-1 view-history-btn" style="font-size: 10px; padding: 2px 8px; border-radius: 4px;" onclick="event.stopPropagation(); showLastBookingModal('${encodeURIComponent(JSON.stringify(guest.last_booking_details))}', '${guest.name}')">
-                                                             <i class="fa fa-eye"></i> Details
-                                                          </button>
-                                                          <span class="badge badge-pill" style="background: #e0f2f1; color: #00796b; font-size: 10px; padding: 6px 12px; font-weight: 700; border: 1px solid #b2dfdb;">SELECT</span>
-                                                        </div>
-                                                      </div>
-                                                    `;
-                    item.onclick = () => fillGuestData(guest);
-
-                    // Hover effect via JS
-                    item.onmouseover = function () {
-                      this.style.backgroundColor = '#f4fbfb';
-                      this.style.boxShadow = 'inset 4px 0 0 #009688';
-                    };
-                    item.onmouseout = function () {
-                      this.style.backgroundColor = '';
-                      this.style.boxShadow = '';
-                    };
-
-                    guestSearchResults.appendChild(item);
-                  });
-                  guestSearchResults.style.display = 'block';
-                } else {
-                  guestSearchResults.innerHTML = `
-                                                    <div class="list-group-item text-muted text-center py-5">
-                                                      <i class="fa fa-user-times fa-3x mb-3" style="opacity: 0.2;"></i>
-                                                      <p class="mb-0 font-weight-bold">No matching guests found</p>
-                                                      <small>Try searching with a different name or email</small>
-                                                    </div>`;
-                  guestSearchResults.style.display = 'block';
-                }
-              })
-              .catch(err => {
-                if (icon) icon.className = 'fa fa-search';
-                console.error('Search error:', err);
-              });
-          }, 250);
-        });
-
-        // Close results when clicking outside
-        document.addEventListener('click', function (e) {
-          if (!guestSearchInput.contains(e.target) && !guestSearchResults.contains(e.target)) {
-            guestSearchResults.style.display = 'none';
-          }
-        });
+                                            previewDiv.style.display = 'block';
+                                            previewText.textContent = `The following ${ selected.length } department(s) will be notified: ${ departmentNames.join(', ') }. They will receive a notification with the guest's special requests/notes.`;
+                                          } else {
+        previewDiv.style.display = 'none';
       }
+                                        }
 
-      function fillGuestData(guest) {
-        console.log('Auto-filling guest data for:', guest.name);
+      // Initialize department cards on page load
+      document.addEventListener('DOMContentLoaded', function () {
+        const checkboxes = document.querySelectorAll('.department-checkbox');
+        checkboxes.forEach(cb => {
+          updateDepartmentCard(cb);
+        });
 
-        // Basic info
-        document.getElementById('full_name').value = guest.name || '';
-        document.getElementById('guest_email').value = guest.email || '';
+        // Guest Search Functionality
+        const guestSearchInput = document.getElementById('guestSearchInput');
+        const guestSearchResults = document.getElementById('guestSearchResults');
 
-        // Determine guest type and nationality logic
-        const rawNat = (guest.nationality || guest.country || '').trim();
-        const natLower = rawNat.toLowerCase();
-        const isTanzanian = natLower === 'tanzania' || natLower === 'tanzanian' || natLower === 'tz';
+        if (guestSearchInput) {
+          let debounceTimer;
+          guestSearchInput.addEventListener('input', function () {
+            clearTimeout(debounceTimer);
+            const query = this.value;
+            const icon = document.getElementById('guestSearchIcon');
 
-        const typeSelect = document.getElementById('guest_type');
-        if (typeSelect) {
-          typeSelect.value = isTanzanian ? 'tanzanian' : 'international';
-          // Dispatch event to trigger existing UI logic (like phone prefix update)
-          typeSelect.dispatchEvent(new Event('change'));
-        }
-
-        // Handle phone parsing - remove country code if present since form has it separately
-        let phone = guest.phone || '';
-        if (phone) {
-          // Remove common prefixes
-          phone = phone.replace(/^\+/, '');
-
-          // Try to stripping matched country code based on detected nationality
-          let matchedCountry = null;
-          if (isTanzanian) {
-            matchedCountry = window.countries.find(c => c.name === 'Tanzania');
-          } else if (rawNat) {
-            matchedCountry = window.countries.find(c => c.name.toLowerCase() === natLower || c.name.toLowerCase().includes(natLower));
-          }
-
-          if (matchedCountry) {
-            const codeClean = matchedCountry.code.replace('+', '');
-            if (phone.startsWith(codeClean)) {
-              phone = phone.substring(codeClean.length);
+            if (query.length < 2) {
+              guestSearchResults.style.display = 'none';
+              if (icon) icon.className = 'fa fa-search';
+              return;
             }
-          }
-        }
-        document.getElementById('guest_phone').value = phone;
 
-        // Auto-fill nationality for International guests
-        if (!isTanzanian && rawNat) {
-          // Find canonical name in our countries array
-          const canonical = window.countries.find(c => c.name.toLowerCase() === natLower || c.name.toLowerCase().includes(natLower));
-          const finalValue = canonical ? canonical.name : rawNat;
+            if (icon) icon.className = 'fa fa-spinner fa-spin';
 
-          setTimeout(() => {
-            const natSelect = $('#nationality');
-            if (natSelect.length) {
-              // Force option existence
-              if (!natSelect.find("option[value='" + finalValue + "']").length) {
-                natSelect.append(new Option(finalValue, finalValue, true, true));
-              }
-              natSelect.val(finalValue).trigger('change');
+            debounceTimer = setTimeout(() => {
+              fetch(`{{ route('admin.bookings.search.guests') }}?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                  if (icon) icon.className = 'fa fa-search';
+                  guestSearchResults.innerHTML = '';
+                  if (data.length > 0) {
+                    data.forEach(guest => {
+                      const item = document.createElement('a');
+                      item.href = 'javascript:void(0)';
+                      item.className = 'list-group-item list-group-item-action py-3 border-left-0 border-right-0';
+                      item.style.transition = 'all 0.2s ease';
+                      item.style.borderBottom = '1px solid #f0f0f0';
 
-              // Also update flag prefix manually to be sure
-              if (canonical) {
-                const flagPrefix = document.getElementById('nationality_flag_prefix');
-                if (flagPrefix) {
-                  flagPrefix.textContent = canonical.flag;
-                  flagPrefix.style.display = 'block';
-                }
-              }
+                      item.innerHTML = `
+                                                          <div class="d-flex w-100 justify-content-between align-items-center">
+                                                            <div style="flex: 1;">
+                                                              <h6 class="mb-1" style="color: #00796b; font-weight: 700; font-size: 15px;">${guest.name}</h6>
+                                                              <p class="mb-1 small text-muted">
+                                                                <i class="fa fa-envelope-o mr-1"></i>${guest.email} 
+                                                                <span class="mx-2" style="opacity: 0.3;">|</span> 
+                                                                <i class="fa fa-phone mr-1"></i>${guest.phone || 'No phone'}
+                                                              </p>
+                                                              <div class="d-flex align-items-center mt-1">
+                                                                 ${(guest.nationality || guest.country) ? `<small class="badge badge-light border text-secondary mr-2" style="font-size: 10px; background: #fff;"><i class="fa fa-globe mr-1"></i>${guest.nationality || guest.country}</small>` : ''}
+                                                                 <small class="text-muted" style="font-size: 10px;"><i class="fa fa-history mr-1"></i>Last: ${guest.last_booking_date}</small>
+                                                              </div>
+                                                            </div>
+                                                            <div class="text-right ml-3 d-flex flex-column align-items-end">
+                                                              <button type="button" class="btn btn-sm btn-outline-primary mb-1 view-history-btn" style="font-size: 10px; padding: 2px 8px; border-radius: 4px;" onclick="event.stopPropagation(); showLastBookingModal('${encodeURIComponent(JSON.stringify(guest.last_booking_details))}', '${guest.name}')">
+                                                                 <i class="fa fa-eye"></i> Details
+                                                              </button>
+                                                              <span class="badge badge-pill" style="background: #e0f2f1; color: #00796b; font-size: 10px; padding: 6px 12px; font-weight: 700; border: 1px solid #b2dfdb;">SELECT</span>
+                                                            </div>
+                                                          </div>
+                                                        `;
+                      item.onclick = () => fillGuestData(guest);
+
+                      // Hover effect via JS
+                      item.onmouseover = function () {
+                        this.style.backgroundColor = '#f4fbfb';
+                        this.style.boxShadow = 'inset 4px 0 0 #009688';
+                      };
+                      item.onmouseout = function () {
+                        this.style.backgroundColor = '';
+                        this.style.boxShadow = '';
+                      };
+
+                      guestSearchResults.appendChild(item);
+                    });
+                    guestSearchResults.style.display = 'block';
+                  } else {
+                    guestSearchResults.innerHTML = `
+                                                        <div class="list-group-item text-muted text-center py-5">
+                                                          <i class="fa fa-user-times fa-3x mb-3" style="opacity: 0.2;"></i>
+                                                          <p class="mb-0 font-weight-bold">No matching guests found</p>
+                                                          <small>Try searching with a different name or email</small>
+                                                        </div>`;
+                    guestSearchResults.style.display = 'block';
+                  }
+                })
+                .catch(err => {
+                  if (icon) icon.className = 'fa fa-search';
+                  console.error('Search error:', err);
+                });
+            }, 250);
+          });
+
+          // Close results when clicking outside
+          document.addEventListener('click', function (e) {
+            if (!guestSearchInput.contains(e.target) && !guestSearchResults.contains(e.target)) {
+              guestSearchResults.style.display = 'none';
             }
-          }, 100);
-        }
-
-        // UI Success Alert
-        if (typeof swal === 'function') {
-          swal({
-            title: "Guest Recognized!",
-            text: `Welcome back, ${guest.name}! Profile details have been auto-filled.`,
-            type: "success",
-            timer: 2500,
-            showConfirmButton: false
           });
         }
 
-        // Close results and reset search input
-        const guestSearchResults = document.getElementById('guestSearchResults');
-        const guestSearchInput = document.getElementById('guestSearchInput');
-        if (guestSearchResults) guestSearchResults.style.display = 'none';
-        if (guestSearchInput) guestSearchInput.value = '';
-      }
+        function fillGuestData(guest) {
+          console.log('Auto-filling guest data for:', guest.name);
 
-      // Modal display for last booking
-      window.showLastBookingModal = function (detailsEncoded, name) {
-        const detailsStr = decodeURIComponent(detailsEncoded);
-        let details = null;
-        try { details = JSON.parse(detailsStr); } catch (e) { }
+          // Basic info
+          document.getElementById('full_name').value = guest.name || '';
+          document.getElementById('guest_email').value = guest.email || '';
 
-        const content = document.getElementById('lastBookingDetailsContent');
-        if (!details || details === "null") {
-          content.innerHTML = `
-                                            <div class="text-center py-4">
-                                              <i class="fa fa-calendar-times-o fa-3x text-muted mb-3"></i>
-                                              <p class="font-weight-bold">No Booking History</p>
-                                              <small class="text-muted">${name} is a new guest with no previous records recorded in the system.</small>
-                                            </div>`;
-        } else {
-          content.innerHTML = `
-                                            <div class="guest-info-summary mb-4 text-center">
-                                              <h5 class="font-weight-bold text-dark mb-1">${name}</h5>
-                                              <span class="badge badge-success px-3 py-2" style="border-radius: 20px;">Returning Member</span>
-                                            </div>
-                                            <div class="detail-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                                              <div class="detail-item p-3 border" style="border-radius: 10px; background: #fdfdfd;">
-                                                <small class="text-muted d-block text-uppercase" style="font-size: 10px; letter-spacing: 1px;">Room Number</small>
-                                                <span class="font-weight-bold" style="font-size: 18px; color: #00796b;">${details.room || 'N/A'}</span>
-                                              </div>
-                                              <div class="detail-item p-3 border" style="border-radius: 10px; background: #fdfdfd;">
-                                                <small class="text-muted d-block text-uppercase" style="font-size: 10px; letter-spacing: 1px;">Stay Dates</small>
-                                                <span class="font-weight-bold" style="font-size: 13px;">${details.dates || 'N/A'}</span>
-                                              </div>
-                                              <div class="detail-item p-3 border" style="border-radius: 10px; background: #fdfdfd;">
-                                                <small class="text-muted d-block text-uppercase" style="font-size: 10px; letter-spacing: 1px;">Room Type</small>
-                                                <span class="font-weight-bold">${details.type || 'N/A'}</span>
-                                              </div>
-                                              <div class="detail-item p-3 border" style="border-radius: 10px; background: #fdfdfd;">
-                                                <small class="text-muted d-block text-uppercase" style="font-size: 10px; letter-spacing: 1px;">Total Price Paid</small>
-                                                <span class="font-weight-bold text-success">$${details.total_price || '0.00'}</span>
-                                              </div>
-                                            </div>
-                                            <div class="mt-4 p-3 bg-light border-left border-primary" style="border-radius: 4px; border-left-width: 4px !important;">
-                                              <i class="fa fa-info-circle text-primary mr-2"></i>
-                                              <small class="text-dark">Last reservation status was <strong>${details.status}</strong>. Use these details to provide personalized service.</small>
-                                            </div>
-                                          `;
+          // Determine guest type and nationality logic
+          const rawNat = (guest.nationality || guest.country || '').trim();
+          const natLower = rawNat.toLowerCase();
+          const isTanzanian = natLower === 'tanzania' || natLower === 'tanzanian' || natLower === 'tz';
+
+          const typeSelect = document.getElementById('guest_type');
+          if (typeSelect) {
+            typeSelect.value = isTanzanian ? 'tanzanian' : 'international';
+            // Dispatch event to trigger existing UI logic (like phone prefix update)
+            typeSelect.dispatchEvent(new Event('change'));
+          }
+
+          // Handle phone parsing - remove country code if present since form has it separately
+          let phone = guest.phone || '';
+          if (phone) {
+            // Remove common prefixes
+            phone = phone.replace(/^\+/, '');
+
+            // Try to stripping matched country code based on detected nationality
+            let matchedCountry = null;
+            if (isTanzanian) {
+              matchedCountry = window.countries.find(c => c.name === 'Tanzania');
+            } else if (rawNat) {
+              matchedCountry = window.countries.find(c => c.name.toLowerCase() === natLower || c.name.toLowerCase().includes(natLower));
+            }
+
+            if (matchedCountry) {
+              const codeClean = matchedCountry.code.replace('+', '');
+              if (phone.startsWith(codeClean)) {
+                phone = phone.substring(codeClean.length);
+              }
+            }
+          }
+          document.getElementById('guest_phone').value = phone;
+
+          // Auto-fill nationality for International guests
+          if (!isTanzanian && rawNat) {
+            // Find canonical name in our countries array
+            const canonical = window.countries.find(c => c.name.toLowerCase() === natLower || c.name.toLowerCase().includes(natLower));
+            const finalValue = canonical ? canonical.name : rawNat;
+
+            setTimeout(() => {
+              const natSelect = $('#nationality');
+              if (natSelect.length) {
+                // Force option existence
+                if (!natSelect.find("option[value='" + finalValue + "']").length) {
+                  natSelect.append(new Option(finalValue, finalValue, true, true));
+                }
+                natSelect.val(finalValue).trigger('change');
+
+                // Also update flag prefix manually to be sure
+                if (canonical) {
+                  const flagPrefix = document.getElementById('nationality_flag_prefix');
+                  if (flagPrefix) {
+                    flagPrefix.textContent = canonical.flag;
+                    flagPrefix.style.display = 'block';
+                  }
+                }
+              }
+            }, 100);
+          }
+
+          // UI Success Alert
+          if (typeof swal === 'function') {
+            swal({
+              title: "Guest Recognized!",
+              text: `Welcome back, ${guest.name}! Profile details have been auto-filled.`,
+              type: "success",
+              timer: 2500,
+              showConfirmButton: false
+            });
+          }
+
+          // Close results and reset search input
+          const guestSearchResults = document.getElementById('guestSearchResults');
+          const guestSearchInput = document.getElementById('guestSearchInput');
+          if (guestSearchResults) guestSearchResults.style.display = 'none';
+          if (guestSearchInput) guestSearchInput.value = '';
         }
-        $('#lastBookingModal').modal('show');
-      };
-    });
-  </script>
+
+        // Modal display for last booking
+        window.showLastBookingModal = function (detailsEncoded, name) {
+          const detailsStr = decodeURIComponent(detailsEncoded);
+          let details = null;
+          try { details = JSON.parse(detailsStr); } catch (e) { }
+
+          const content = document.getElementById('lastBookingDetailsContent');
+          if (!details || details === "null") {
+            content.innerHTML = `
+                                                <div class="text-center py-4">
+                                                  <i class="fa fa-calendar-times-o fa-3x text-muted mb-3"></i>
+                                                  <p class="font-weight-bold">No Booking History</p>
+                                                  <small class="text-muted">${name} is a new guest with no previous records recorded in the system.</small>
+                                                </div>`;
+          } else {
+            content.innerHTML = `
+                                                <div class="guest-info-summary mb-4 text-center">
+                                                  <h5 class="font-weight-bold text-dark mb-1">${name}</h5>
+                                                  <span class="badge badge-success px-3 py-2" style="border-radius: 20px;">Returning Member</span>
+                                                </div>
+                                                <div class="detail-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                                  <div class="detail-item p-3 border" style="border-radius: 10px; background: #fdfdfd;">
+                                                    <small class="text-muted d-block text-uppercase" style="font-size: 10px; letter-spacing: 1px;">Room Number</small>
+                                                    <span class="font-weight-bold" style="font-size: 18px; color: #00796b;">${details.room || 'N/A'}</span>
+                                                  </div>
+                                                  <div class="detail-item p-3 border" style="border-radius: 10px; background: #fdfdfd;">
+                                                    <small class="text-muted d-block text-uppercase" style="font-size: 10px; letter-spacing: 1px;">Stay Dates</small>
+                                                    <span class="font-weight-bold" style="font-size: 13px;">${details.dates || 'N/A'}</span>
+                                                  </div>
+                                                  <div class="detail-item p-3 border" style="border-radius: 10px; background: #fdfdfd;">
+                                                    <small class="text-muted d-block text-uppercase" style="font-size: 10px; letter-spacing: 1px;">Room Type</small>
+                                                    <span class="font-weight-bold">${details.type || 'N/A'}</span>
+                                                  </div>
+                                                  <div class="detail-item p-3 border" style="border-radius: 10px; background: #fdfdfd;">
+                                                    <small class="text-muted d-block text-uppercase" style="font-size: 10px; letter-spacing: 1px;">Total Price Paid</small>
+                                                    <span class="font-weight-bold text-success">$${details.total_price || '0.00'}</span>
+                                                  </div>
+                                                </div>
+                                                <div class="mt-4 p-3 bg-light border-left border-primary" style="border-radius: 4px; border-left-width: 4px !important;">
+                                                  <i class="fa fa-info-circle text-primary mr-2"></i>
+                                                  <small class="text-dark">Last reservation status was <strong>${details.status}</strong>. Use these details to provide personalized service.</small>
+                                                </div>
+                                              `;
+          }
+          $('#lastBookingModal').modal('show');
+        };
+      });
+    </script>
 @endsection
 
 <!-- Last Booking Details Modal -->

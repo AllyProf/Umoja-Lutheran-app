@@ -73,7 +73,11 @@
             <div class="position-absolute" style="bottom: 12px; right: 12px;">
                 <span class="badge badge-primary shadow-sm px-2 py-1"
                     style="font-size: 11px; background-color: var(--primary-color);">
-                    {{ $item['variant_name'] }}
+                    @if($item['variant_name'] && strtolower($item['variant_name']) !== 'standard')
+                        {{ $item['variant_name'] }}
+                    @else
+                        {{ $item['brand_name'] }}
+                    @endif
                 </span>
             </div>
 
@@ -90,11 +94,13 @@
             <!-- Product Info -->
             <div class="mb-3">
                 <h5 class="card-title mb-1 font-weight-bold text-dark" style="font-size: 1.05rem; line-height: 1.2;">
-                    {{ $item['product_name'] }}
+                    {{ $item['brand_name'] }}
                 </h5>
-                @if(($item['brand_name'] ?? '') !== $item['product_name'])
-                    <p class="small text-muted mb-0 font-italic">{{ $item['brand_name'] }}</p>
-                @endif
+                <p class="small text-muted mb-0 font-italic">
+                    @if($item['variant_name'] && strtolower($item['variant_name']) !== 'standard')
+                        {{ $item['variant_name'] }}
+                    @endif
+                </p>
             </div>
 
             <!-- Enhanced Stock Bar -->
@@ -139,7 +145,8 @@
                 <div class="mt-auto pt-2 d-flex justify-content-between align-items-center border-top">
                     <div class="small">
                         <div class="text-muted" style="font-size: 10px;">
-                            {{ $item['product_category'] === 'drinks' ? 'BOTTLE' : 'UNIT' }} PRICE</div>
+                            {{ $item['product_category'] === 'drinks' ? 'BOTTLE' : 'UNIT' }} PRICE
+                        </div>
                         <div class="font-weight-bold">{{ number_format($item['selling_price_per_pic'], 0) }} TSH</div>
                     </div>
                     @if($item['selling_price_per_serving'] > 0)
@@ -160,23 +167,10 @@
             <div class="btn-group w-100 shadow-sm border rounded overflow-hidden">
                 <button class="btn btn-sm btn-white text-primary py-2 border-0 view-track-btn"
                     data-variant-id="{{ $item['variant_id'] }}"
-                    data-item-name="{{ $item['product_name'] }} ({{ $item['variant_name'] }})" title="History"
-                    style="flex: 1; border-right: 1px solid #eee !important;">
-                    <i class="fa fa-history"></i>
+                    data-item-name="{{ $item['brand_name'] }} {{ (strtolower($item['variant_name'] ?? '') !== 'standard') ? ($item['variant_name'] ?? '') : '' }}"
+                    title="Usage History" style="flex: 1;">
+                    <i class="fa fa-history"></i> History
                 </button>
-                <button class="btn btn-sm btn-white text-info py-2 border-0 settings-stock-btn"
-                    data-variant-id="{{ $item['variant_id'] }}"
-                    data-item-name="{{ $item['product_name'] }} ({{ $item['variant_name'] }})"
-                    data-minimum-stock="{{ $item['minimum_stock'] ?? 0 }}"
-                    data-price-pic="{{ $item['selling_price_per_pic'] }}"
-                    data-price-glass="{{ $item['selling_price_per_serving'] }}" title="Settings"
-                    style="flex: 1; border-right: 1px solid #eee !important;">
-                    <i class="fa fa-cog"></i>
-                </button>
-                <a href="{{ route('bar-keeper.purchase-requests.create', ['ids' => $item['variant_id']]) }}"
-                    class="btn btn-sm btn-white text-warning py-2 border-0" title="Restock" style="flex: 1;">
-                    <i class="fa fa-plus-circle"></i>
-                </a>
             </div>
         </div>
     </div>

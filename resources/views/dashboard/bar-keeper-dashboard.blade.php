@@ -1,31 +1,88 @@
 @extends('dashboard.layouts.app')
 
 @section('content')
-  <div class="tile-title-w-btn">
-    <div>
-      <h1><i class="fa fa-dashboard"></i> Counter Dashboard</h1>
+  <style>
+    .shift-management-card {
+      background: #ffffff;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      margin-bottom: 25px;
+      border-left: 5px solid #009688;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .shift-status-info h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .shift-btn {
+      padding: 12px 25px;
+      border-radius: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border: none;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: white !important;
+    }
+    .shift-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+    .shift-btn-open {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+    .shift-btn-close {
+      background: linear-gradient(135deg, #FF512F 0%, #DD2476 100%);
+    }
+    .pulse-animation {
+      animation: pulse-green 2s infinite;
+    }
+    @keyframes pulse-green {
+      0% { box-shadow: 0 0 0 0 rgba(56, 239, 125, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(56, 239, 125, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(56, 239, 125, 0); }
+    }
+  </style>
+
+  <div class="shift-management-card shadow-sm">
+    <div class="shift-status-info">
+      <h1><i class="fa fa-dashboard text-primary"></i> Counter Dashboard</h1>
       @if($activeShift)
-        <p class="text-success mb-0 font-weight-bold"><i class="fa fa-clock-o"></i> Shift Active since
-          {{ $activeShift->opened_at->format('H:i') }} ({{ $activeShift->opened_at->diffForHumans() }})
-        </p>
+        <div class="d-flex align-items-center">
+          <span class="badge badge-success pulse-animation mr-2" style="width: 10px; height: 10px; border-radius: 50%; padding: 0;">&nbsp;</span>
+          <p class="text-success mb-0 font-weight-bold">
+            <i class="fa fa-clock-o"></i> Shift Active: {{ $activeShift->opened_at->format('H:i') }} 
+            <span class="text-muted font-weight-normal small ml-1">({{ $activeShift->opened_at->diffForHumans() }})</span>
+          </p>
+        </div>
       @else
-        <p class="text-danger mb-0 font-weight-bold"><i class="fa fa-warning"></i> Shift is CLOSED. Please open a shift to
-          record sales.</p>
+        <p class="text-danger mb-0 font-weight-bold">
+          <i class="fa fa-warning pulse-animation"></i> Shift is CLOSED. Please open to start sales.
+        </p>
       @endif
     </div>
     <div>
       @if($activeShift)
-        <button class="btn btn-warning shadow-sm" onclick="openShiftClosureModal()">
-          <i class="fa fa-power-off"></i> Funga Hesabu (End Shift)
+        <button class="shift-btn shift-btn-close shadow-sm" onclick="openShiftClosureModal()">
+          <i class="fa fa-power-off"></i> FUNGA HESABU
         </button>
       @else
-        <button class="btn btn-success btn-lg shadow-sm" onclick="openShift()">
-          <i class="fa fa-play-circle"></i> FUNGUA SHIFT (Check-in)
+        <button class="shift-btn shift-btn-open shadow-sm" onclick="openShift()">
+          <i class="fa fa-play-circle fa-lg"></i> FUNGUA HESABU
         </button>
       @endif
     </div>
   </div>
-  <ul class="app-breadcrumb breadcrumb">
+
+  <ul class="app-breadcrumb breadcrumb mb-4">
     <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
     <li class="breadcrumb-item"><a href="#">Dashboard</a></li>
   </ul>
