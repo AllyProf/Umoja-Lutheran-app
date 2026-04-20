@@ -171,6 +171,11 @@
                     title="Usage History" style="flex: 1;">
                     <i class="fa fa-history"></i> History
                 </button>
+                <button class="btn btn-sm btn-white text-danger py-2 border-left hide-item-btn"
+                    onclick="toggleItemVisibility({{ $item['variant_id'] }}, '{{ addslashes($item['brand_name']) }}')"
+                    title="Hide from Inventory" style="flex: 1;">
+                    <i class="fa fa-eye-slash"></i> Hide
+                </button>
             </div>
         </div>
     </div>

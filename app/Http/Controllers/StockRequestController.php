@@ -89,7 +89,7 @@ class StockRequestController extends Controller
             $barCategories = ['non_alcoholic_beverage', 'alcoholic_beverage', 'drinks', 'beverage', 'water', 'juices', 'energy_drinks', 'soft_drinks', 'beers', 'wines', 'spirits', 'cocktails', 'liquor', 'supplies', 'equipment', 'sauces', 'hot_beverages'];
             $query->whereHas('product', function ($q) use ($barCategories, $sharedCategories) {
                 $q->whereIn('category', array_merge($barCategories, $sharedCategories));
-            });
+            })->where('is_visible_to_bar', true); // Hide items the bar keeper marked as unused
         }
 
         $products = $query->get();

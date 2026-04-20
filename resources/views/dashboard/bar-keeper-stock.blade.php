@@ -520,6 +520,47 @@
                 });
             });
         });
+
+        function toggleItemVisibility(variantId, itemName) {
+            swal({
+                title: "Hide " + itemName + "?",
+                text: "This item will be removed from your counter inventory and stock request pages. You can restore it later from the Products list.",
+                icon: "warning",
+                buttons: {
+                    cancel: "Cancel",
+                    confirm: {
+                        text: "Yes, Hide it",
+                        value: true,
+                        visible: true,
+                        className: "btn-danger",
+                        closeModal: false
+                    }
+                },
+                dangerMode: true,
+            }).then((willHide) => {
+                if (willHide) {
+                    $.ajax({
+                        url: '/bar-keeper/stock/toggle-visibility/' + variantId,
+                        method: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            visible: false
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                swal("Hidden!", response.message, "success");
+                                setTimeout(function () { location.reload(); }, 1000);
+                            } else {
+                                swal("Error", response.message, "error");
+                            }
+                        },
+                        error: function (xhr) {
+                            swal("Error", "Failed to hide item. Please try again.", "error");
+                        }
+                    });
+                }
+            });
+        }
     </script>
 @endsection
 

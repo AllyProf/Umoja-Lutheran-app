@@ -19,6 +19,7 @@ class ProductVariant extends Model
         'minimum_stock_level_unit',
         'display_order',
         'is_active',
+        'is_visible_to_bar',
         // PIC-based inventory tracking
         'servings_per_pic',
         'selling_unit',
@@ -34,6 +35,7 @@ class ProductVariant extends Model
         'minimum_stock_level' => 'integer',
         'display_order' => 'integer',
         'is_active' => 'boolean',
+        'is_visible_to_bar' => 'boolean',
         // PIC-based casts
         'servings_per_pic' => 'integer',
         'can_sell_as_pic' => 'boolean',
@@ -83,6 +85,11 @@ class ProductVariant extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    public function scopeActiveForBar($query)
+    {
+        return $query->where('is_visible_to_bar', true);
     }
 
     // Helper Methods for Revenue Calculations

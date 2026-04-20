@@ -247,14 +247,22 @@ $routePrefix = request()->is('bar-keeper*') ? 'bar-keeper' : 'admin';
 
                       <div class="card-footer bg-white border-top-0 p-3 d-flex">
                         <div class="btn-group w-100 shadow-sm border rounded">
-                            <button class="btn btn-sm btn-white text-primary {{ $role === 'bar_keeper' ? 'rounded' : 'rounded-left' }} py-2 w-100" onclick="event.stopPropagation(); viewProduct({{ $product->id }})" title="View Details" style="border: none;">
+                            <button class="btn btn-sm btn-white text-primary {{ ($role === 'bar_keeper' && $variant->is_visible_to_bar) ? 'rounded' : 'rounded-left' }} py-2 w-100" onclick="event.stopPropagation(); viewProduct({{ $product->id }})" title="View Details" style="border: none;">
                               <i class="fa fa-eye"></i> View
                             </button>
+                            
+                            @if($role === 'bar_keeper' && !$variant->is_visible_to_bar)
+                            <button class="btn btn-sm btn-white text-success rounded-right py-2 border-left" 
+                                    onclick="event.stopPropagation(); restoreItem({{ $variant->id }}, '{{ addslashes($product->name) }}')" 
+                                    title="Restore to Inventory" style="border: none;">
+                              <i class="fa fa-undo"></i> Restore
+                            </button>
+                            @endif
+
                             @if($role !== 'bar_keeper')
                             <a href="{{ route($routePrefix . '.products.edit', $product) }}" class="btn btn-sm btn-white text-info py-2" onclick="event.stopPropagation();" title="Edit Family" style="border: none; border-left: 1px solid #eee; border-right: 1px solid #eee;">
                               <i class="fa fa-edit"></i>
                             </a>
-                            <!-- Deleting single variant via main list is tricky, might delete main product if not careful. For now keeping link to main deletion or hiding -->
                              <button class="btn btn-sm btn-white text-danger rounded-right py-2" onclick="event.stopPropagation(); deleteVariant({{ $variant->id }})" title="Delete Variant" style="border: none;">
                               <i class="fa fa-trash"></i>
                             </button>
@@ -472,32 +480,32 @@ function deleteVariant(id) {
     });
 }
 
-function deleteProduct(id) {
-    Swal.fire({
-        title: 'Are you sure?',
-        text: "You won't be able to revert this! This product will be removed from inventory lists.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`{{ route($routePrefix . ".products.destroy", ":id") }}`.replace(':id', id), {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json'
-                }
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Deleted!', data.message, 'success').then(() => location.reload());
-                } else {
-                    Swal.fire('Failed!', data.message || 'Error occurred', 'error');
-                }
-            });
+    });
+}
+
+function restoreItem(variantId, itemName) {
+    $.ajax({
+        url: '/bar-keeper/stock/toggle-visibility/' + variantId,
+        method: 'POST',
+        data: {
+            _token: '{{ csrf_token() }}',
+            visible: true
+        },
+        success: function (response) {
+            if (response.success) {
+                Swal.fire({
+                    title: "Restored!",
+                    text: itemName + " is now back in your inventory.",
+                    icon: "success",
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => location.reload());
+            } else {
+                Swal.fire("Error", response.message, "error");
+            }
+        },
+        error: function (xhr) {
+            Swal.fire("Error", "Failed to restore item. Please try again.", "error");
         }
     });
 }

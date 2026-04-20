@@ -751,6 +751,7 @@ Route::prefix('bar-keeper')->group(function () {
         Route::get('/my-stock', [\App\Http\Controllers\BarKeeperController::class, 'stock'])->name('bar-keeper.stock.index');
         Route::post('/stock/update-minimum/{variant}', [\App\Http\Controllers\BarKeeperController::class, 'updateMinimumStock'])->name('bar-keeper.stock.update-minimum');
         Route::post('/stock/update-prices/{variant}', [\App\Http\Controllers\BarKeeperController::class, 'updatePrices'])->name('bar-keeper.stock.update-prices');
+        Route::post('/stock/toggle-visibility/{variant}', [\App\Http\Controllers\BarKeeperController::class, 'toggleBarVisibility'])->name('bar-keeper.stock.toggle-visibility');
         Route::get('/stock/{variant}/usage-track', [\App\Http\Controllers\BarKeeperController::class, 'getBarItemUsageTrack'])->name('bar-keeper.stock.usage-track');
 
         // Guest Orders

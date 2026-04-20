@@ -429,7 +429,7 @@ class BarKeeperController extends Controller
         $reportData = [];
         foreach ($variants as $variant) {
             // Check if product belongs to bar categories
-            if (!in_array($variant->product->category, $barCategories)) {
+            if (!$variant->product || !in_array($variant->product->category, $barCategories)) {
                 continue;
             }
 
@@ -930,6 +930,7 @@ class BarKeeperController extends Controller
             ->whereHas('product', function ($q) use ($barCategories) {
                 $q->whereIn('category', $barCategories);
             })
+            ->where('is_visible_to_bar', true) // Filter hidden items
             ->get();
 
         foreach ($allVariants as $variant) {
@@ -1128,12 +1129,34 @@ class BarKeeperController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Prices updated successfully for ' . $variant->product->name
+                'message' => 'Prices updated successfully for ' . ($variant->product->name ?? 'Product')
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error updating prices: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Toggle visibility of an item for the bar keeper
+     */
+    public function toggleBarVisibility(Request $request, $variantId)
+    {
+        try {
+            $variant = \App\Models\ProductVariant::findOrFail($variantId);
+            $variant->is_visible_to_bar = $request->input('visible', false) == 'true' || $request->input('visible') === true;
+            $variant->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => $variant->is_visible_to_bar ? 'Item restored to inventory.' : 'Item hidden from counter inventory.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error toggling visibility: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -1278,7 +1301,7 @@ class BarKeeperController extends Controller
 
         return response()->json([
             'success' => true,
-            'item_name' => $variant->product->name . ' (' . $variant->measurement . ')',
+            'item_name' => ($variant->product->name ?? 'Deleted Product') . ' (' . $variant->measurement . ')',
             'movements' => array_reverse($formatted)
         ]);
     }
