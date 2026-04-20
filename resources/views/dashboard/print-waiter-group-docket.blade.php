@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,40 +11,48 @@
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
             font-family: 'Courier New', monospace;
-            padding: 20px;
+            font-weight: bold;
+            padding: 10px;
             max-width: 400px;
             margin: 0 auto;
             background: #fff;
         }
+
         .docket {
             border: 2px solid #940000;
             padding: 15px;
             background: #fff;
         }
+
         .header {
             text-align: center;
             border-bottom: 2px dashed #940000;
             padding-bottom: 10px;
             margin-bottom: 15px;
         }
+
         .header h1 {
             font-size: 20px;
             margin-bottom: 5px;
             color: #940000;
             text-transform: uppercase;
         }
+
         .header p {
             font-size: 11px;
             margin: 2px 0;
             color: #333;
         }
+
         .section {
             margin: 10px 0;
             border-bottom: 1px dashed #940000;
             padding-bottom: 10px;
         }
+
         .section-title {
             font-weight: bold;
             font-size: 14px;
@@ -52,12 +61,14 @@
             text-transform: uppercase;
             color: #940000;
         }
+
         .info-row {
             display: flex;
             justify-content: space-between;
             margin: 5px 0;
             font-size: 13px;
         }
+
         .item-row {
             margin: 10px 0;
             font-size: 14px;
@@ -65,26 +76,31 @@
             background: #f9f9f9;
             border-left: 3px solid #940000;
         }
+
         .item-header {
             display: flex;
             justify-content: space-between;
             font-weight: bold;
             margin-bottom: 5px;
         }
+
         .item-qty {
             color: #940000;
         }
+
         .item-note {
             font-size: 11px;
             font-style: italic;
             color: #666;
             margin-top: 5px;
         }
+
         .total-section {
             margin-top: 15px;
             padding-top: 10px;
             border-top: 2px solid #940000;
         }
+
         .total-row {
             display: flex;
             justify-content: space-between;
@@ -93,6 +109,7 @@
             color: #940000;
             margin: 10px 0;
         }
+
         .footer {
             text-align: center;
             margin-top: 15px;
@@ -101,14 +118,17 @@
             font-size: 11px;
             color: #666;
         }
+
         @media print {
             body {
                 padding: 0;
             }
+
             .no-print {
                 display: none;
             }
         }
+
         .watermark {
             position: absolute;
             top: 40%;
@@ -126,12 +146,13 @@
         }
     </style>
 </head>
+
 <body>
     <div class="docket">
         @php
             $isPaid = $orders->every(fn($o) => in_array($o->payment_status, ['paid', 'room_charge']));
         @endphp
-        
+
         @if($isPaid)
             <div class="watermark">PAID</div>
         @endif
@@ -165,38 +186,38 @@
             <div class="section-title">Items Ordered</div>
             @php
                 // Group items by Name AND Payment Status to separate Paid vs Pending
-                $groupedItems = $orders->groupBy(function($item) {
-                     $name = $item->service_specific_data['item_name'] ?? $item->service->name;
-                     $isPaid = in_array($item->payment_status, ['paid', 'room_charge']);
-                     return $name . '|' . ($isPaid ? 'PAID' : 'PENDING');
+                $groupedItems = $orders->groupBy(function ($item) {
+                    $name = $item->service_specific_data['item_name'] ?? $item->service->name;
+                    $isPaid = in_array($item->payment_status, ['paid', 'room_charge']);
+                    return $name . '|' . ($isPaid ? 'PAID' : 'PENDING');
                 });
             @endphp
 
             @foreach($groupedItems as $groupKey => $items)
                 @php
                     list($itemName, $status) = explode('|', $groupKey);
-                    
+
                     $qty = $items->sum('quantity');
                     $total = $items->sum('total_price_tsh');
                     $unitPrice = $qty > 0 ? $total / $qty : 0;
-                    
+
                     // Collect and clean notes
                     $notes = [];
-                    foreach($items as $item) {
+                    foreach ($items as $item) {
                         $rawNote = $item->guest_request;
-                        
+
                         // Fallback to reception notes if guest_request is empty
                         if (!$rawNote && $item->reception_notes && str_contains($item->reception_notes, '- Msg: ')) {
-                             $parts = explode('- Msg: ', $item->reception_notes);
-                             $rawNote = $parts[1] ?? null;
+                            $parts = explode('- Msg: ', $item->reception_notes);
+                            $rawNote = $parts[1] ?? null;
                         }
-                        
+
                         if ($rawNote) {
                             // Clean system messages (everything after |)
                             $cleanNote = trim(explode('|', $rawNote)[0]);
                             // Also remove "Completed by Kitchen" if it appears directly
                             $cleanNote = trim(explode('Completed by', $cleanNote)[0]);
-                            
+
                             if ($cleanNote && !in_array($cleanNote, $notes)) {
                                 $notes[] = $cleanNote;
                             }
@@ -208,9 +229,11 @@
                         <span>
                             {{ $itemName }}
                             @if($status === 'PAID')
-                                <span style="font-size: 10px; color: green; border: 1px solid green; padding: 1px 3px; border-radius: 2px; margin-left: 5px;">PAID</span>
+                                <span
+                                    style="font-size: 10px; color: green; border: 1px solid green; padding: 1px 3px; border-radius: 2px; margin-left: 5px;">PAID</span>
                             @else
-                                <span style="font-size: 10px; color: #940000; border: 1px solid #940000; padding: 1px 3px; border-radius: 2px; margin-left: 5px;">PENDING</span>
+                                <span
+                                    style="font-size: 10px; color: #940000; border: 1px solid #940000; padding: 1px 3px; border-radius: 2px; margin-left: 5px;">PENDING</span>
                             @endif
                         </span>
                         <span>{{ number_format($total) }} TZS</span>
@@ -231,21 +254,23 @@
                 <span>TOTAL:</span>
                 <span>{{ number_format($totalAmount) }} TZS</span>
             </div>
-            
+
             @php
                 $paidAmount = $orders->whereIn('payment_status', ['paid', 'room_charge'])->sum('total_price_tsh');
                 $pendingAmount = $totalAmount - $paidAmount;
             @endphp
 
             @if($paidAmount > 0 && $pendingAmount > 0)
-                <div class="info-row" style="color: green; font-weight: bold; justify-content: space-between; font-size: 14px;">
+                <div class="info-row"
+                    style="color: green; font-weight: bold; justify-content: space-between; font-size: 14px;">
                     <span>PAID:</span>
                     <span>{{ number_format($paidAmount) }} TZS</span>
                 </div>
             @endif
 
             @if($pendingAmount > 0)
-                <div class="total-row" style="color: #d35400; border-top: 1px dashed #ccc; padding-top: 5px; margin-top: 5px;">
+                <div class="total-row"
+                    style="color: #d35400; border-top: 1px dashed #ccc; padding-top: 5px; margin-top: 5px;">
                     <span>PENDING:</span>
                     <span>{{ number_format($pendingAmount) }} TZS</span>
                 </div>
@@ -259,10 +284,12 @@
     </div>
 
     <div class="no-print" style="text-align: center; margin-top: 20px;">
-        <button onclick="window.print()" style="padding: 10px 20px; background: #940000; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+        <button onclick="window.print()"
+            style="padding: 10px 20px; background: #940000; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
             🖨️ Print Bill
         </button>
-        <button onclick="window.close()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin-left: 10px;">
+        <button onclick="window.close()"
+            style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin-left: 10px;">
             Close
         </button>
     </div>
@@ -272,4 +299,5 @@
         // window.onload = function() { window.print(); }
     </script>
 </body>
+
 </html>
