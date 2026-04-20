@@ -166,6 +166,10 @@ class BarKeeperController extends Controller
         $drinks = [];
         foreach ($products as $product) {
             foreach ($product->variants as $variant) {
+                // Filter out hidden items for bar keeper
+                if (!$variant->is_visible_to_bar) {
+                    continue;
+                }
                 $options = [];
                 // Option A: Bottle (PIC)
                 if ($variant->can_sell_as_pic && $variant->selling_price_per_pic > 0) {
