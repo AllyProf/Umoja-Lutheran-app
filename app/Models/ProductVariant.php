@@ -27,6 +27,7 @@ class ProductVariant extends Model
         'can_sell_as_serving',
         'selling_price_per_pic',
         'selling_price_per_serving',
+        'buying_price',
         'price_history',
     ];
 
@@ -42,6 +43,7 @@ class ProductVariant extends Model
         'can_sell_as_serving' => 'boolean',
         'selling_price_per_pic' => 'decimal:2',
         'selling_price_per_serving' => 'decimal:2',
+        'buying_price' => 'decimal:2',
         'price_history' => 'array',
     ];
 

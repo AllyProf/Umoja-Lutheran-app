@@ -45,42 +45,34 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="control-label font-weight-bold">Product Name <span
-                                            class="text-danger">*</span></label>
-                                    <input class="form-control form-control-lg @error('name') is-invalid @enderror"
-                                        type="text" id="brandNameInput" name="name"
-                                        value="{{ old('name', $product->name ?? '') }}"
-                                        placeholder="e.g. Vim, Kilimanjaro, Coca Cola" required>
-                                    <small class="text-muted">Enter the name of the product you are registering.</small>
-                                    @error('name') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="control-label font-weight-bold">Category <span
-                                            class="text-danger">*</span></label>
-                                    <select class="form-control form-control-lg @error('category') is-invalid @enderror"
-                                        name="category" id="categorySelect" required>
-                                        <option value="">Select Category</option>
-                                        <option value="spirits" {{ (old('category', $product->category ?? '') == 'spirits') ? 'selected' : '' }}>Spirits (Whisky, Vodka, Gin)</option>
-                                        <option value="wines" {{ (old('category', $product->category ?? '') == 'wines') ? 'selected' : '' }}>Wines</option>
-                                        <option value="alcoholic_beverage" {{ (old('category', $product->category ?? '') == 'alcoholic_beverage') ? 'selected' : '' }}>Beers / Ciders</option>
-                                        <option value="cocktails" {{ (old('category', $product->category ?? '') == 'cocktails') ? 'selected' : '' }}>Cocktails</option>
-                                        <option value="non_alcoholic_beverage" {{ (old('category', $product->category ?? '') == 'non_alcoholic_beverage') ? 'selected' : '' }}>Soft Drinks / Sodas</option>
-                                        <option value="cleaning_supplies" {{ (old('category', $product->category ?? '') == 'cleaning_supplies') ? 'selected' : '' }}>Housekeeping (Cleaning materials)
-                                        </option>
-                                        <option value="energy_drinks" {{ (old('category', $product->category ?? '') == 'energy_drinks') ? 'selected' : '' }}>Energy Drinks</option>
-                                        <option value="water" {{ (old('category', $product->category ?? '') == 'water') ? 'selected' : '' }}>Water</option>
-                                        <option value="juices" {{ (old('category', $product->category ?? '') == 'juices') ? 'selected' : '' }}>Juices</option>
-                                        <option value="hot_beverages" {{ (old('category', $product->category ?? '') == 'hot_beverages') ? 'selected' : '' }}>Hot Beverages</option>
-                                        <option value="food" {{ (old('category', $product->category ?? '') == 'food') ? 'selected' : '' }}>Food / Snacks</option>
-                                        <option value="other" {{ (old('category', $product->category ?? '') == 'other') ? 'selected' : '' }}>Other</option>
-                                    </select>
+                            <div class="col-md-12">
+                                <div class="form-group mb-0">
+                                    <label class="control-label font-weight-bold text-uppercase small text-primary">1.
+                                        Select Category <span class="text-danger">*</span></label>
+                                    <div class="d-flex align-items-center">
+                                        <select
+                                            class="form-control form-control-lg border-primary shadow-sm mr-3 @error('category') is-invalid @enderror"
+                                            name="category" id="categorySelect" required onchange="checkFoodCategory()"
+                                            style="flex: 1;">
+                                            <option value="">Select Category (Drink / Food / Housekeeping)</option>
+                                            <option value="vinywaji" {{ (old('category', $product->category ?? '') == 'vinywaji') ? 'selected' : '' }}>Vinywaji (Drinks)</option>
+                                            <option value="chakula" {{ (old('category', $product->category ?? '') == 'chakula') ? 'selected' : '' }}>Chakula (Food)</option>
+                                            <option value="housekeeping" {{ (old('category', $product->category ?? '') == 'housekeeping') ? 'selected' : '' }}>Housekeeping</option>
+                                            <option value="general">General / Shared</option>
+                                        </select>
+                                        <div class="custom-control custom-switch">
+                                            <input type="checkbox" class="custom-control-input" id="showManualDept"
+                                                onchange="checkFoodCategory()">
+                                            <label
+                                                class="custom-control-label small font-weight-bold text-muted text-uppercase"
+                                                for="showManualDept">Manual Departments</label>
+                                        </div>
+                                    </div>
                                     @error('category') <span class="invalid-feedback">{{ $message }}</span> @enderror
                                 </div>
                             </div>
+                            <!-- Bulk name placeholder for controller -->
+                            <input type="hidden" name="name" value="Bulk Registration">
                             <div class="col-md-12" id="returnableSection" style="display: none;">
                                 <div class="form-group">
                                     <div class="custom-control custom-checkbox">
@@ -101,7 +93,6 @@
                                         placeholder="Brief description of this product family...">{{ old('description', $product->description ?? '') }}</textarea>
                                 </div>
                             </div>
-                            <input type="hidden" name="type" value="bar">
                         </div>
                     </div>
                 </div>
@@ -125,13 +116,14 @@
                 </div>
 
                 <div class="text-right mt-3 mb-4">
-                    <button class="btn btn-outline-primary btn-sm shadow-sm" type="button" onclick="addVariant()">
-                        <i class="fa fa-plus-circle"></i> Add another Size / Packaging
+                    <button class="btn btn-primary btn-sm shadow-sm rounded-pill px-4" type="button" onclick="addVariant()">
+                        <i class="fa fa-plus-circle"></i> Add another Item
                     </button>
                 </div>
 
-                <!-- 3. Departments & Placement -->
-                <div class="card shadow-sm mb-4 border-top-primary mt-4">
+                <!-- Hidden Departments Section (Handled automatically) -->
+                <!-- Departments Section -->
+                <div class="card shadow-sm mb-4 border-top-primary mt-4" id="departmentsCard" style="display: none;">
                     <div class="card-header bg-light">
                         <h5 class="mb-0"><i class="fa fa-sitemap text-primary mr-2"></i> Departments & Placement</h5>
                     </div>
@@ -237,10 +229,11 @@
     <!-- Template for New Variant -->
     <template id="variant-template">
         <div class="variant-card card shadow-sm mb-4 border-left-info animate-fade-in">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center py-2 variant-header" style="display: none !important;">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-2 variant-header"
+                style="display: none !important;">
                 <div>
                     <span class="badge badge-info mr-2">New</span>
-                    <strong class="text-primary">Packaging Details</strong>
+                    <strong class="text-primary">Product Unit Configuration</strong>
                 </div>
                 <button type="button" class="btn btn-outline-danger btn-sm rounded-circle p-1"
                     style="width: 30px; height: 30px;" onclick="removeVariant(this)" title="Remove">
@@ -253,161 +246,154 @@
                     <!-- Left Column: Basic Info -->
                     <div class="col-md-7 border-right">
                         <div class="form-row">
-                            <div class="col-md-12 form-group variant-name-field" style="display: none;">
-                                <label class="small font-weight-bold text-muted">SIZE / PACKAGING LABEL (Optional)</label>
+                            <div class="col-md-12 form-group variant-name-field">
+                                <label class="small font-weight-bold text-primary text-uppercase">Item Name / Size</label>
                                 <input type="text" class="form-control variant-name-input font-weight-bold"
-                                    name="variants[INDEX][name]" value="Standard" placeholder="e.g. 500ml, 1kg, Large" required>
-                                <small class="text-muted">Only needed if you have multiple sizes for this product.</small>
+                                    name="variants[INDEX][name]" placeholder="e.g. Salt, Sugar 1kg, Soda 500ml" required>
+                                <small class="text-muted">Enter the full name for this specific item.</small>
                             </div>
 
-                            <div class="col-md-6 form-group volume-weight-section">
-                                <label class="small font-weight-bold text-muted">VOLUME/WEIGHT</label>
-                                <div class="input-group">
-                                    <input type="number" class="form-control measurement-input"
-                                        name="variants[INDEX][measurement]" placeholder="e.g. 500" step="any">
-                                    <div class="input-group-append">
-                                        <select class="form-control bg-light unit-select" name="variants[INDEX][unit]"
-                                            style="max-width: 80px;">
-                                            <option value="ml">ml</option>
-                                            <option value="l">L</option>
-                                            <option value="kg">kg</option>
-                                            <option value="g">g</option>
-                                            <option value="pcs">pcs</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6 form-group selling-type-section">
-                                <label class="small font-weight-bold text-muted">SELLING TYPE</label>
-                                <select class="form-control selling-method-select" name="variants[INDEX][selling_method]"
-                                    onchange="togglePricing(this)" required>
-                                    <option value="pic">By Item/Bottle Only</option>
-                                    <option value="glass">By Glass/Tot Only</option>
-                                    <option value="mixed">Mixed (Bottle & Glass)</option>
-                                </select>
-                            </div>
-
-                            <!-- Food Units (Hidden by default, shown for food items) -->
-                            <div class="col-md-12 form-group food-units-section"
-                                style="display: none; border-left: 3px solid #ff9800; padding-left: 10px;">
+                            <div class="registration-units-section bg-light p-3 rounded mb-3"
+                                style="border-left: 4px solid #4e73df;">
                                 <div class="row">
-                                    <div class="col-md-6">
-                                        <label class="small font-weight-bold text-muted">PURCHASING UNIT</label>
+                                    <div class="col-md-6 form-group">
+                                        <label class="small font-weight-bold text-dark text-uppercase">Purchasing Unit (e.g.
+                                            Crate/Carton)</label>
                                         <select class="form-control purchasing-unit-select"
-                                            name="variants[INDEX][purchasing_unit]">
-                                            <option value="">Select Unit</option>
-                                            <option value="Sado">Sado</option>
-                                            <option value="Debe">Debe</option>
-                                            <option value="Kiroba">Kiroba</option>
-                                            <option value="Carton">Carton</option>
+                                            name="variants[INDEX][purchasing_unit]" required>
                                             <option value="Crate">Crate</option>
-                                            <option value="Kg">Kg</option>
-                                            <option value="L">L (Litre)</option>
-                                            <option value="Dozen">Dozen</option>
-                                            <option value="Piece">Piece</option>
-                                            <option value="Packet">Packet</option>
-                                            <option value="Bunch">Bunch</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="small font-weight-bold text-muted">RECEIVING UNIT</label>
-                                        <select class="form-control receiving-unit-select"
-                                            name="variants[INDEX][receiving_unit]">
-                                            <option value="">Select Unit</option>
-                                            <option value="Kg">Kg</option>
-                                            <option value="Grams">Grams</option>
-                                            <option value="Litres">Litres</option>
-                                            <option value="Pieces">Pieces</option>
-                                            <option value="pcs">pcs</option>
-                                            <option value="PIC">PIC</option>
+                                            <option value="Carton">Carton</option>
+                                            <option value="Box">Box</option>
+                                            <option value="Pack">Pack</option>
+                                            <option value="Bag">Bag</option>
                                             <option value="Tray">Tray</option>
                                             <option value="Sado">Sado</option>
                                             <option value="Debe">Debe</option>
                                             <option value="Kiroba">Kiroba</option>
-                                            <option value="Carton">Carton</option>
-                                            <option value="Crate">Crate</option>
                                             <option value="Dozen">Dozen</option>
+                                            <option value="Pcs">Piece (Pcs)</option>
+                                            <option value="Kg">Kg</option>
+                                            <option value="Grams">Grams (g)</option>
+                                            <option value="Litres">Litres (L)</option>
+                                            <option value="ml">ml</option>
+                                            <option value="Bucket">Bucket (Ndoo)</option>
+                                            <option value="Bundle">Bundle (Funga)</option>
                                             <option value="Packet">Packet</option>
+                                            <option value="Bottle">Bottle</option>
+                                            <option value="Glass">Glass</option>
+                                            <option value="Shot">Shot / Tot</option>
                                             <option value="Bunch">Bunch</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-12 mt-2 ratio-entry-section">
-                                        <label class="small font-weight-bold text-warning"><i
-                                                class="fa fa-balance-scale"></i> RATIO: How many Receiving Units in 1
-                                            Purchasing Unit?</label>
-                                        <input type="number" class="form-control items-per-package-input"
-                                            name="variants[INDEX][items_per_package]" placeholder="e.g. 5 (5 Kg per 1 Sado)"
-                                            step="0.01" value="1">
-                                        <small class="text-muted">Used to automatically calculate total received
-                                            inventory.</small>
+                                    <div class="col-md-6 form-group">
+                                        <label class="small font-weight-bold text-dark text-uppercase">Receiving Unit (e.g.
+                                            Bottle/Piece)</label>
+                                        <select class="form-control receiving-unit-select"
+                                            name="variants[INDEX][receiving_unit]" required>
+                                            <option value="Crate">Crate</option>
+                                            <option value="Carton">Carton</option>
+                                            <option value="Box">Box</option>
+                                            <option value="Pack">Pack</option>
+                                            <option value="Bag">Bag</option>
+                                            <option value="Tray">Tray</option>
+                                            <option value="Sado">Sado</option>
+                                            <option value="Debe">Debe</option>
+                                            <option value="Kiroba">Kiroba</option>
+                                            <option value="Dozen">Dozen</option>
+                                            <option value="Pcs">Piece (Pcs)</option>
+                                            <option value="Kg">Kg</option>
+                                            <option value="Grams">Grams (g)</option>
+                                            <option value="Litres">Litres (L)</option>
+                                            <option value="ml">ml</option>
+                                            <option value="Bucket">Bucket (Ndoo)</option>
+                                            <option value="Bundle">Bundle (Funga)</option>
+                                            <option value="Packet">Packet</option>
+                                            <option value="Bottle">Bottle</option>
+                                            <option value="Glass">Glass</option>
+                                            <option value="Shot">Shot / Tot</option>
+                                            <option value="Bunch">Bunch</option>
+                                        </select>
                                     </div>
+                                </div>
+                                <!-- Ratio (Shown only for Vinywaji) -->
+                                <div class="ratio-entry-section mt-2 border-top pt-2" style="display: none;">
+                                    <label class="small font-weight-bold text-primary text-uppercase">
+                                        Number of <span class="servings-unit-label">Bottle</span>s in 1 <span
+                                            class="purchase-unit-label">Crate</span>
+                                    </label>
+                                    <input type="number" class="form-control items-per-package-input"
+                                        name="variants[INDEX][items_per_package]" value="1" step="0.01">
                                 </div>
                             </div>
 
-                            <!-- Servings (Hidden by default) -->
-                            <div class="col-md-12 pricing-glass bg-light p-2 rounded mb-3 servings-section"
-                                style="display: none; border: 1px dashed #d6d8db;">
-                                <label class="small font-weight-bold text-warning"><i class="fa fa-glass"></i> SERVINGS PER
-                                    <span class="servings-unit-label">BOTTLE</span></label>
-                                <input type="number" class="form-control servings-input" name="variants[INDEX][servings]"
-                                    placeholder="How many glasses/servings in one unit?">
-                                <small class="text-muted">Required for tracking stock when selling by serving/glass.</small>
+                            <!-- Pricing Section -->
+                            <div class="selling-type-section border p-3 rounded">
+                                <div class="row">
+                                    <div class="col-md-4 form-group">
+                                        <label class="small font-weight-bold text-dark text-uppercase">Buying Price</label>
+                                        <input type="number" step="0.01" class="form-control font-weight-bold"
+                                            name="variants[INDEX][buying_price]" placeholder="TZS (Optional)">
+                                    </div>
+                                    <div class="col-md-4 form-group">
+                                        <label class="small font-weight-bold text-dark text-uppercase">Selling Price</label>
+                                        <input type="number" step="0.01" class="form-control font-weight-bold text-primary"
+                                            name="variants[INDEX][selling_price_per_pic]" placeholder="TZS (Optional)">
+                                    </div>
+                                    <div class="col-md-4 form-group drink-only-section serving-price-field"
+                                        style="display: none;">
+                                        <label class="small font-weight-bold text-dark text-uppercase">Glass/Shot
+                                            Price</label>
+                                        <input type="number" step="0.01" class="form-control font-weight-bold text-info"
+                                            name="variants[INDEX][selling_price_per_serving]" placeholder="TZS (Optional)">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Right Column: Image & Pricing -->
-                    <div class="col-md-5">
-                        <div class="row h-100">
-                            <div
-                                class="col-md-12 d-flex flex-column justify-content-center align-items-center border-bottom pb-3 mb-3">
-                                <label class="small font-weight-bold text-muted w-100 text-center">PRODUCT IMAGE</label>
-                                <div class="image-upload-wrapper text-center">
-                                    <div class="preview-box mb-2 shadow-sm rounded overflow-hidden"
-                                        style="width: 100px; height: 100px; background: #f8f9fa; border: 2px solid #eaecf4; display: flex; align-items: center; justify-content: center;">
-                                        <img class="img-preview" src="{{ asset('dashboard_assets/img/no-image.png') }}"
-                                            style="max-width: 100%; max-height: 100%; object-fit: contain;">
-                                    </div>
-                                    <label class="btn btn-sm btn-outline-primary btn-file mb-0">
-                                        <i class="fa fa-camera"></i> Choose <input type="file" style="display: none;"
-                                            name="variants[INDEX][image]" accept="image/*"
-                                            onchange="previewVariantImage(this)">
-                                    </label>
+                <!-- Right Column: Image & Pricing -->
+                <div class="col-md-5">
+                    <div class="row h-100">
+                        <!-- Product Image -->
+                        <div class="col-md-12 text-center">
+                            <label class="small font-weight-bold text-muted d-block mb-2">IMAGE (OPTIONAL)</label>
+                            <div class="image-upload-wrapper">
+                                <div class="preview-box mx-auto mb-2 shadow-sm rounded overflow-hidden"
+                                    style="width: 120px; height: 120px; background: #fff; border: 2px dashed #ddd; display: flex; align-items: center; justify-content: center;">
+                                    <img class="img-preview" src="{{ asset('dashboard_assets/img/no-image.png') }}"
+                                        style="max-width: 100%; max-height: 100%; object-fit: contain;">
                                 </div>
-                            </div>
-
-                            <!-- Initial Pricing (Drinks Only) -->
-                            <div class="col-md-12 drink-only-section">
-                                <div class="form-group mb-2">
-                                    <label class="small font-weight-bold text-primary"><i class="fa fa-money-bill"></i>
-                                        SELLING PRICE / PIC (TSH)</label>
-                                    <input type="number" class="form-control border-primary"
-                                        name="variants[INDEX][selling_price_per_pic]" placeholder="Set price per bottle"
-                                        min="0">
-                                </div>
-                                <div class="form-group mb-0 pricing-glass" style="display: none;">
-                                    <label class="small font-weight-bold text-info"><i class="fa fa-glass"></i> SELLING
-                                        PRICE / GLASS (TSH)</label>
-                                    <input type="number" class="form-control border-info"
-                                        name="variants[INDEX][selling_price_per_serving]" placeholder="Set price per glass"
-                                        min="0">
-                                </div>
+                                <label class="btn btn-sm btn-outline-primary btn-file">
+                                    <i class="fa fa-camera"></i> Change <input type="file" style="display: none;"
+                                        name="variants[INDEX][image]" accept="image/*" onchange="previewVariantImage(this)">
+                                </label>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        </div>
     </template>
 
     <style>
         .border-top-primary {
-            border-top: 4px solid #007bff;
+            border-top: 5px solid #4e73df !important;
         }
 
-        .border-left-info {
-            border-left: 5px solid #17a2b8 !important;
+        .form-control-lg {
+            border-radius: 8px;
+            font-size: 1.1rem;
+        }
+
+        .card {
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .bg-light {
+            background-color: #f8f9fc !important;
         }
 
         .animate-fade-in {
@@ -440,13 +426,6 @@
             const card = div.firstElementChild;
             container.appendChild(card);
 
-            // Show header and name field for subsequent variants
-            if (variantCount > 0) {
-                card.querySelector('.variant-header').style.setProperty('display', 'flex', 'important');
-                card.querySelector('.variant-name-field').style.display = 'block';
-                card.querySelector('.variant-name-input').value = ''; // Reset for manual entry
-            }
-
             variantCount++;
             const msg = document.getElementById('no-variants-msg');
             if (msg) msg.style.display = 'none';
@@ -460,17 +439,6 @@
             }
         }
 
-        function togglePricing(select) {
-            const card = select.closest('.variant-card');
-            const glassSections = card.querySelectorAll('.pricing-glass');
-            const val = select.value;
-
-            if (val === 'pic') {
-                glassSections.forEach(el => el.style.display = 'none');
-            } else {
-                glassSections.forEach(el => el.style.display = 'block');
-            }
-        }
 
         function previewVariantImage(input) {
             if (input.files && input.files[0]) {
@@ -531,145 +499,126 @@
         }
 
         function checkFoodCategory() {
-            let isFood = false;
-            let isBeverage = false;
-            let isHousekeeping = false;
-
-            // 1. Check main Category dropdown
             const mainCategory = document.getElementById('categorySelect').value;
-            const foodCategories = ['food', 'meat_poultry', 'seafood', 'vegetables', 'dairy', 'pantry_baking', 'spices_herbs', 'oils_fats', 'snacks', 'kitchen', 'other'];
-            const beverageCategories = ['spirits', 'wines', 'alcoholic_beverage', 'non_alcoholic_beverage', 'energy_drinks', 'water', 'juices', 'hot_beverages', 'cocktails', 'soda', 'soft_drinks'];
+            const isBeverage = mainCategory === 'vinywaji';
+            const isChakula = mainCategory === 'chakula';
+            const isHousekeeping = mainCategory === 'housekeeping';
+            const isGeneral = mainCategory === 'general';
 
-            console.log("Checking categories... Main:", mainCategory);
+            const showManualSwitch = document.getElementById('showManualDept');
+            const showManual = showManualSwitch.checked || isGeneral;
+            const deptCard = document.getElementById('departmentsCard');
 
-            if (foodCategories.includes(mainCategory) || mainCategory === 'juices') {
-                isFood = true;
-            }
-            if (beverageCategories.includes(mainCategory) || mainCategory.includes('drink') || mainCategory.includes('beverage') || mainCategory.includes('soda')) {
-                isBeverage = true;
-            }
-            if (mainCategory === 'cleaning_supplies' || mainCategory === 'linens') {
-                isHousekeeping = true;
-            }
+            // 1. Show/Hide manual departments card
+            if (deptCard) deptCard.style.display = showManual ? 'block' : 'none';
 
-            // 2. Check if any active department select has a 'food' related category selected (for overrides)
-            const selects = document.querySelectorAll('.dept-checkbox:checked ~ div select');
-            selects.forEach(select => {
-                if (foodCategories.includes(select.value)) {
-                    isFood = true;
+            // 2. Auto-Department Assignment (Only if NOT manual)
+            if (!showManual) {
+                const deptCheckboxes = document.querySelectorAll('.dept-checkbox');
+                const findDeptByCode = (name) => {
+                    let found = null;
+                    deptCheckboxes.forEach(cb => {
+                        const label = cb.nextElementSibling.textContent.toLowerCase();
+                        if (label.includes(name)) found = cb;
+                    });
+                    return found;
+                };
+
+                const barCb = findDeptByCode('bar');
+                const kitchenCb = findDeptByCode('kitchen');
+                const hkCb = findDeptByCode('housekeeping');
+
+                // Reset all
+                document.querySelectorAll('.dept-checkbox').forEach(cb => {
+                    cb.checked = false;
+                    toggleDeptCategory(cb.value);
+                });
+
+                if (isBeverage && barCb) {
+                    barCb.checked = true;
+                    toggleDeptCategory(barCb.value);
+                    const sel = document.querySelector('select[name="department_categories[' + barCb.value + ']"]');
+                    if (sel) sel.value = 'non_alcoholic_beverage';
+                } else if (isChakula && kitchenCb) {
+                    kitchenCb.checked = true;
+                    toggleDeptCategory(kitchenCb.value);
+                    const sel = document.querySelector('select[name="department_categories[' + kitchenCb.value + ']"]');
+                    if (sel) sel.value = 'food';
+                } else if (isHousekeeping && hkCb) {
+                    hkCb.checked = true;
+                    toggleDeptCategory(hkCb.value);
+                    const sel = document.querySelector('select[name="department_categories[' + hkCb.value + ']"]');
+                    if (sel) sel.value = 'cleaning_supplies';
                 }
-                if (beverageCategories.includes(select.value) || select.value.includes('drink') || select.value.includes('beverage') || select.value.includes('soda')) {
-                    isBeverage = true;
-                }
-                if (select.value === 'cleaning_supplies' || select.value === 'linens') {
-                    isHousekeeping = true;
-                }
-            });
+            }
 
-            // Show/Hide Returnable Section
+            // 3. Show/Hide Returnable Section
             const returnableSection = document.getElementById('returnableSection');
-            if (isHousekeeping) {
-                returnableSection.style.display = 'block';
-            } else {
-                returnableSection.style.display = 'none';
-                document.getElementById('is_returnable').checked = false;
+            if (returnableSection) {
+                if (isHousekeeping || isGeneral) {
+                    returnableSection.style.display = 'block';
+                } else {
+                    returnableSection.style.display = 'none';
+                    const retCheckbox = document.getElementById('is_returnable');
+                    if (retCheckbox) retCheckbox.checked = false;
+                }
             }
 
             document.querySelectorAll('.variant-card').forEach(card => {
-                const sellingTypeSection = card.querySelector('.selling-type-section');
-                const volumeWeightSection = card.querySelector('.volume-weight-section');
-                const foodUnitsSection = card.querySelector('.food-units-section');
-                const servingsSection = card.querySelector('.servings-section');
-
-                // Inputs
-                const measurementInput = card.querySelector('.measurement-input');
-                const unitSelect = card.querySelector('.unit-select');
-                const sellingMethodSelect = card.querySelector('.selling-method-select');
-                const purchasingSelect = card.querySelector('.purchasing-unit-select');
-                const receivingSelect = card.querySelector('.receiving-unit-select');
+                const ratioSection = card.querySelector('.ratio-entry-section');
                 const ratioInput = card.querySelector('.items-per-package-input');
+                const servingPriceField = card.querySelector('.serving-price-field');
+                const receivingSelect = card.querySelector('.receiving-unit-select');
 
-                // Selling details (Pricing & Type) - Hidden for Categories that don't EVER sell
-                const hideSellingWhole = (isHousekeeping || (mainCategory === 'food' && !isBeverage) || mainCategory === 'snacks');
-                const hideSellingMethod = (hideSellingWhole || mainCategory === 'non_alcoholic_beverage' || mainCategory === 'water' || mainCategory === 'energy_drinks');
+                // 1. Ratio ONLY for Beverages (Drinks)
+                if (ratioSection) {
+                    const showManual = document.getElementById('showManualDept').checked;
+                    const deptCard = document.getElementById('departmentsCard');
 
-                if (hideSellingWhole) {
-                    sellingTypeSection.style.display = 'none';
-                    sellingMethodSelect.removeAttribute('required');
-                    if (servingsSection) servingsSection.style.display = 'none';
-                    card.querySelectorAll('.drink-only-section').forEach(el => el.style.display = 'none');
-                } else if (isFood || isBeverage) {
-                    sellingTypeSection.style.display = 'block';
-
-                    // Hide "Selling Method" (By Glass/Pic) for specific categories (Sodas AND Juices)
-                    if (hideSellingMethod || mainCategory === 'juices') {
-                        sellingMethodSelect.value = 'mixed'; // Default to mixed for Juices to allow both prices
-                        sellingMethodSelect.closest('.form-group').style.display = 'none';
+                    if (showManual || category === 'general') {
+                        deptCard.style.display = 'block';
                     } else {
-                        sellingMethodSelect.closest('.form-group').style.display = 'block';
+                        deptCard.style.display = 'none';
                     }
 
-                    sellingMethodSelect.removeAttribute('required');
-                    card.querySelectorAll('.drink-only-section').forEach(el => el.style.display = 'block');
-                    togglePricing(sellingMethodSelect);
-                } else {
-                    // Default / Other
-                    sellingTypeSection.style.display = 'block';
-                    sellingMethodSelect.setAttribute('required', 'required');
-                    card.querySelectorAll('.drink-only-section').forEach(el => el.style.display = 'block');
-                    togglePricing(sellingMethodSelect);
+                    if (isBeverage && !showManual) {
+                        ratioSection.style.setProperty('display', 'block', 'important');
+                        if (ratioInput && (ratioInput.value === '1' || ratioInput.value === '')) ratioInput.value = '24';
+                    } else {
+                        ratioSection.style.display = 'none';
+                        if (ratioInput) ratioInput.value = '1';
+                    }
                 }
 
-                // Update Servings Label based on unit
-                const updateServingsLabel = () => {
-                    const label = card.querySelector('.servings-unit-label');
-                    if (!label) return;
+                // 2. Pricing details based on Category
+                if (isHousekeeping) {
+                    // Hide pricing section if needed? User didn't ask for this, but usually HK items have value
+                    card.querySelectorAll('.drink-only-section').forEach(el => el.style.display = 'none');
+                } else if (isBeverage) {
+                    card.querySelectorAll('.drink-only-section').forEach(el => el.style.setProperty('display', 'block', 'important'));
+                    if (servingPriceField) servingPriceField.style.setProperty('display', 'block', 'important');
+                } else {
+                    // Chakula/Food
+                    card.querySelectorAll('.drink-only-section').forEach(el => el.style.display = 'none');
+                }
 
-                    if (isFood || isBeverage) {
-                        const unitValue = receivingSelect.value || 'Unit';
-                        label.textContent = unitValue.charAt(0).toUpperCase() + unitValue.slice(1).toLowerCase();
-                    } else {
-                        label.textContent = 'Bottle';
+                // 3. Update labels dynamically
+                const updateLabels = () => {
+                    const servingLabel = card.querySelector('.servings-unit-label');
+                    const purchaseLabel = card.querySelector('.purchase-unit-label');
+                    const receivingSelect = card.querySelector('.receiving-unit-select');
+                    const purchasingSelect = card.querySelector('.purchasing-unit-select');
+
+                    if (servingLabel && receivingSelect) {
+                        servingLabel.textContent = receivingSelect.value || 'Bottle';
+                    }
+                    if (purchaseLabel && purchasingSelect) {
+                        purchaseLabel.textContent = purchasingSelect.value || 'Crate';
                     }
                 };
 
-                if (receivingSelect) {
-                    receivingSelect.addEventListener('change', updateServingsLabel);
-                    updateServingsLabel(); // Initial call
-                }
-
-                // Volume/Weight vs Food Units
-                if (isFood || isBeverage) {
-                    volumeWeightSection.style.display = 'none';
-                    if (measurementInput) measurementInput.removeAttribute('required');
-
-                    foodUnitsSection.style.display = 'block';
-                    purchasingSelect.setAttribute('required', 'required');
-                    receivingSelect.setAttribute('required', 'required');
-
-                    // Ratio Entry
-                    const ratioSection = card.querySelector('.ratio-entry-section');
-                    if (ratioSection) {
-                        // For food, ratio is 1:1 behind scenes (per user request 48d97bab)
-                        // For beverages, ratio is visible and required (e.g. 24 bottles per crate)
-                        if (isFood && receivingSelect && (receivingSelect.value.toLowerCase() === 'kg' || receivingSelect.value.toLowerCase() === 'grams' || mainCategory === 'juices')) {
-                            ratioSection.style.display = 'none';
-                            if (ratioInput) ratioInput.value = '1';
-                        } else {
-                            ratioSection.style.display = 'block';
-                            if (ratioInput && isBeverage && ratioInput.value === '1' && mainCategory !== 'juices') ratioInput.value = '24';
-                        }
-                    }
-                } else {
-                    // Show Volume/Weight (Normal drinks AND Housekeeping)
-                    volumeWeightSection.style.display = 'block';
-                    if (measurementInput) measurementInput.removeAttribute('required');
-
-                    foodUnitsSection.style.display = 'none';
-                    purchasingSelect.removeAttribute('required');
-                    receivingSelect.removeAttribute('required');
-                    if (ratioInput) ratioInput.removeAttribute('required');
-                }
+                if (receivingSelect) receivingSelect.addEventListener('change', updateLabels);
+                updateLabels();
             });
         }
 

@@ -139,9 +139,9 @@ class ProductController extends Controller
         DB::beginTransaction();
         try {
             // Determine valid type (drink, food, housekeeping)
-            $foodCategories = ['food', 'meat_poultry', 'seafood', 'pantry', 'dairy', 'baking', 'vegetables', 'spices', 'sauces', 'bakery', 'pantry_baking', 'spices_herbs', 'oils_fats', 'snacks', 'kitchen'];
-            $beverageCategories = ['spirits', 'wines', 'alcoholic_beverage', 'non_alcoholic_beverage', 'energy_drinks', 'juices', 'water', 'hot_beverages', 'cocktails', 'soda', 'soft_drinks'];
-            $housekeepingCategories = ['cleaning_supplies', 'linens', 'amenities', 'housekeeping'];
+            $foodCategories = ['chakula', 'food', 'meat_poultry', 'seafood', 'pantry', 'dairy', 'baking', 'vegetables', 'spices', 'sauces', 'bakery', 'pantry_baking', 'spices_herbs', 'oils_fats', 'snacks', 'kitchen'];
+            $beverageCategories = ['vinywaji', 'spirits', 'wines', 'alcoholic_beverage', 'non_alcoholic_beverage', 'energy_drinks', 'juices', 'water', 'hot_beverages', 'cocktails', 'soda', 'soft_drinks'];
+            $housekeepingCategories = ['housekeeping', 'cleaning_supplies', 'linens', 'amenities'];
 
             if (in_array($validated['category'], $foodCategories)) {
                 $type = 'food';
@@ -150,85 +150,112 @@ class ProductController extends Controller
             } elseif (in_array($validated['category'], $housekeepingCategories)) {
                 $type = 'housekeeping';
             } else {
-                $type = $validated['type'] ?? 'general';
+                $type = $validated['category'] === 'general' ? 'general' : ($validated['type'] ?? 'general');
             }
 
-            // 1. Create Parent Product (Brand)
-            $productData = [
-                'name' => $validated['name'],
-                'category' => $validated['category'],
-                'description' => $validated['description'],
-                'type' => $type,
-                'is_returnable' => $request->boolean('is_returnable'),
-                'is_active' => true,
-                'supplier_id' => null, // Optional now
-            ];
+            // 1. Logic for Bulk vs Grouped Registration
+            // For Food and Housekeeping, we usually want separate products for each row.
+            // For Drinks, we group them as variants of one brand.
+            $isGrouped = ($type === 'drink');
 
-            $product = Product::create($productData);
+            if (!$isGrouped) {
+                // BULK REGISTRATION (Separate Products)
+                foreach ($request->variants as $index => $variantData) {
+                    // Create a separate product for each row
+                    $product = Product::create([
+                        'name' => $variantData['name'] ?? $validated['name'],
+                        'category' => $validated['category'],
+                        'description' => $validated['description'],
+                        'type' => $type,
+                        'is_returnable' => $request->boolean('is_returnable'),
+                        'is_active' => true,
+                    ]);
 
-            // 2. Create Variants
-            foreach ($request->variants as $index => $variantData) {
-                // Determine selling flags (only applicable to drinks usually, but default applied)
-                $method = $variantData['selling_method'] ?? 'pic';
+                    // Create precisely one variant for this product
+                    $this->createItemVariant($product, $variantData, $type, 0);
 
-                // For food items selling_method might be null/missing, so default to pic behavior logically
-                $canSellPic = in_array($method, ['pic', 'mixed']);
-                $canSellServing = in_array($method, ['glass', 'mixed']) && $type !== 'food';
-
-                // Handle Variant Image
-                $imagePath = null;
-                if (isset($variantData['image']) && $variantData['image'] instanceof \Illuminate\Http\UploadedFile) {
-                    $imagePath = $variantData['image']->store('products/variants', 'public');
+                    // Attach departments to this specific product
+                    $this->attachDepartments($product, $request);
                 }
-
-                ProductVariant::create([
-                    'product_id' => $product->id,
-                    'variant_name' => $variantData['name'],
-                    'measurement' => isset($variantData['measurement']) && isset($variantData['unit'])
-                        ? ($variantData['measurement'] . ' ' . $variantData['unit'])
-                        : ($variantData['measurement'] ?? $variantData['unit'] ?? null),
-                    'image' => $imagePath,
-
-                    // Box/Crate/Unit Configurations
-                    'purchasing_unit' => $variantData['purchasing_unit'] ?? null,
-                    'receiving_unit' => $variantData['receiving_unit'] ?? null,
-                    'items_per_package' => $variantData['items_per_package'] ?? 1, // Default conversion is 1:1
-
-                    // Selling Config
-                    'can_sell_as_pic' => $canSellPic,
-                    'can_sell_as_serving' => $canSellServing,
-                    'selling_unit' => $canSellServing ? (($variantData['unit'] ?? '') === 'ml' ? 'glass' : 'serving') : 'pic',
-                    'servings_per_pic' => $variantData['servings'] ?? 1,
-
-                    // Prices
-                    'selling_price_per_pic' => $variantData['selling_price_per_pic'] ?? 0,
-                    'selling_price_per_serving' => $variantData['selling_price_per_serving'] ?? 0,
-
-                    'display_order' => $index,
+            } else {
+                // GROUPED REGISTRATION (One Product, Many Variants - for Drinks)
+                $product = Product::create([
+                    'name' => $validated['name'],
+                    'category' => $validated['category'],
+                    'description' => $validated['description'],
+                    'type' => $type,
+                    'is_returnable' => $request->boolean('is_returnable'),
                     'is_active' => true,
                 ]);
-            }
 
-            // 3. Attach Departments and their Category Overrides
-            if (isset($request->departments) && is_array($request->departments)) {
-                $attachments = [];
-                foreach ($request->departments as $deptId) {
-                    $attachments[$deptId] = [
-                        'category' => $request->department_categories[$deptId] ?? null,
-                    ];
+                foreach ($request->variants as $index => $variantData) {
+                    $this->createItemVariant($product, $variantData, $type, $index);
                 }
-                $product->departments()->sync($attachments);
+
+                $this->attachDepartments($product, $request);
             }
 
             DB::commit();
 
             $routePrefix = $isBarKeeper ? 'bar-keeper' : 'admin';
             return redirect()->route($routePrefix . '.products.index')
-                ->with('success', 'Brand and ' . count($request->variants) . ' items registered successfully!');
+                ->with('success', 'Items registered successfully!');
 
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Failed to register product: ' . $e->getMessage())->withInput();
+        }
+    }
+
+    /**
+     * Helper to create a product variant
+     */
+    private function createItemVariant($product, $variantData, $type, $index)
+    {
+        // Default to selling as a whole unit
+        $canSellPic = true;
+        $canSellServing = $type === 'drink' && !empty($variantData['selling_price_per_serving']);
+
+        $imagePath = null;
+        if (isset($variantData['image']) && $variantData['image'] instanceof \Illuminate\Http\UploadedFile) {
+            $imagePath = $variantData['image']->store('products/variants', 'public');
+        }
+
+        return ProductVariant::create([
+            'product_id' => $product->id,
+            'variant_name' => $variantData['name'],
+            'measurement' => isset($variantData['measurement']) && isset($variantData['unit'])
+                ? ($variantData['measurement'] . ' ' . $variantData['unit'])
+                : ($variantData['measurement'] ?? $variantData['unit'] ?? null),
+            'image' => $imagePath,
+            'purchasing_unit' => $variantData['purchasing_unit'] ?? null,
+            'receiving_unit' => $variantData['receiving_unit'] ?? null,
+            'items_per_package' => $variantData['items_per_package'] ?? 1,
+            'can_sell_as_pic' => $canSellPic,
+            'can_sell_as_serving' => $canSellServing,
+            'selling_unit' => $canSellServing ? (($variantData['unit'] ?? '') === 'ml' ? 'glass' : 'serving') : 'pic',
+            'servings_per_pic' => $variantData['servings'] ?? 1,
+            'selling_price_per_pic' => $variantData['selling_price_per_pic'] ?? 0,
+            'selling_price_per_serving' => $variantData['selling_price_per_serving'] ?? 0,
+            'buying_price' => $variantData['buying_price'] ?? 0,
+            'display_order' => $index,
+            'is_active' => true,
+        ]);
+    }
+
+    /**
+     * Helper to attach departments to a product
+     */
+    private function attachDepartments($product, $request)
+    {
+        if (isset($request->departments) && is_array($request->departments)) {
+            $attachments = [];
+            foreach ($request->departments as $deptId) {
+                $attachments[$deptId] = [
+                    'category' => $request->department_categories[$deptId] ?? null,
+                ];
+            }
+            $product->departments()->sync($attachments);
         }
     }
 
@@ -297,9 +324,9 @@ class ProductController extends Controller
         DB::beginTransaction();
         try {
             // Determine type
-            $foodCategories = ['food', 'meat_poultry', 'seafood', 'pantry', 'dairy', 'baking', 'vegetables', 'spices', 'sauces', 'bakery', 'pantry_baking', 'spices_herbs', 'oils_fats', 'snacks', 'kitchen'];
-            $beverageCategories = ['spirits', 'wines', 'non_alcoholic_beverage', 'alcoholic_beverage', 'energy_drinks', 'juices', 'water', 'hot_beverages', 'cocktails', 'soda', 'soft_drinks'];
-            $housekeepingCategories = ['cleaning_supplies', 'linens', 'amenities', 'housekeeping'];
+            $foodCategories = ['chakula', 'food', 'meat_poultry', 'seafood', 'pantry', 'dairy', 'baking', 'vegetables', 'spices', 'sauces', 'bakery', 'pantry_baking', 'spices_herbs', 'oils_fats', 'snacks', 'kitchen'];
+            $beverageCategories = ['vinywaji', 'spirits', 'wines', 'non_alcoholic_beverage', 'alcoholic_beverage', 'energy_drinks', 'juices', 'water', 'hot_beverages', 'cocktails', 'soda', 'soft_drinks'];
+            $housekeepingCategories = ['housekeeping', 'cleaning_supplies', 'linens', 'amenities'];
 
             if (in_array($validated['category'], $foodCategories)) {
                 $type = 'food';
