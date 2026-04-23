@@ -402,6 +402,20 @@ Route::prefix('manager')->group(function () {
         Route::delete('/newsletter/subscriptions/{id}', [\App\Http\Controllers\NewsletterController::class, 'destroy'])->name('admin.newsletter.destroy');
         Route::get('/newsletter/subscriptions/export', [\App\Http\Controllers\NewsletterController::class, 'export'])->name('admin.newsletter.export');
 
+        // Local Purchase Order (LPO) Routes
+        Route::get('/lpo', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'index'])->name('lpo.index');
+        Route::get('/lpo/create', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'create'])->name('lpo.create');
+        Route::post('/lpo', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'store'])->name('lpo.store');
+        Route::get('/lpo/{lpo}', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'show'])->name('lpo.show');
+        Route::get('/lpo/{lpo}/edit', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'edit'])->name('lpo.edit');
+        Route::put('/lpo/{lpo}', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'update'])->name('lpo.update');
+        Route::post('/lpo/{lpo}/send', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'sendToAccountant'])->name('lpo.send');
+        Route::post('/lpo/{lpo}/send-to-manager', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'sendToManager'])->name('lpo.send-to-manager');
+        Route::post('/lpo/{lpo}/manager-verify', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'managerVerify'])->name('lpo.manager-verify');
+        Route::post('/lpo/{lpo}/close', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'close'])->name('lpo.close');
+        Route::get('/lpo/{lpo}/receive', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'receiveForm'])->name('lpo.receive');
+        Route::post('/lpo/{lpo}/receive', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'processReceive'])->name('lpo.process-receive');
+
         // Extension requests (Manager/Reception)
         Route::get('/extension-requests', [\App\Http\Controllers\AdminController::class, 'extensionRequests'])->name('admin.extension-requests');
     });
@@ -1050,3 +1064,20 @@ Route::get('/login-success-test', function () {
 
 // Emergency Direct Login (for recovery)
 Route::get('/emergency-direct-login/{token}', [App\Http\Controllers\EmergencyAuthController::class, 'emergencyDirectLogin'])->name('emergency-login');
+
+// Supplier Weekly Orders
+Route::middleware(['check.auth', 'role:storekeeper,accountant,manager,super_admin'])->group(function () {
+    Route::get('/supplier-orders', [App\Http\Controllers\SupplierOrderController::class, 'index'])->name('supplier-orders.index');
+    Route::get('/supplier-orders/create', [App\Http\Controllers\SupplierOrderController::class, 'create'])->name('supplier-orders.create');
+    Route::post('/supplier-orders', [App\Http\Controllers\SupplierOrderController::class, 'store'])->name('supplier-orders.store');
+    Route::get('/supplier-orders/{supplierOrder}', [App\Http\Controllers\SupplierOrderController::class, 'show'])->name('supplier-orders.show');
+    Route::get('/supplier-orders/{supplierOrder}/edit', [App\Http\Controllers\SupplierOrderController::class, 'edit'])->name('supplier-orders.edit');
+    Route::put('/supplier-orders/{supplierOrder}', [App\Http\Controllers\SupplierOrderController::class, 'update'])->name('supplier-orders.update');
+    Route::post('/supplier-orders/{supplierOrder}/send', [App\Http\Controllers\SupplierOrderController::class, 'sendToAccountant'])->name('supplier-orders.send');
+    Route::post('/supplier-orders/{supplierOrder}/send-to-manager', [App\Http\Controllers\SupplierOrderController::class, 'sendToManager'])->name('supplier-orders.send-to-manager');
+    Route::post('/supplier-orders/{supplierOrder}/manager-verify', [App\Http\Controllers\SupplierOrderController::class, 'managerVerify'])->name('supplier-orders.manager-verify');
+    Route::post('/supplier-orders/{supplierOrder}/close', [App\Http\Controllers\SupplierOrderController::class, 'close'])->name('supplier-orders.close');
+    Route::get('/supplier-orders/{supplierOrder}/receive', [App\Http\Controllers\SupplierOrderController::class, 'receiveForm'])->name('supplier-orders.receive');
+    Route::post('/supplier-orders/{supplierOrder}/receive', [App\Http\Controllers\SupplierOrderController::class, 'processReceive'])->name('supplier-orders.process-receive');
+    Route::post('/supplier-orders/{supplierOrder}/payment', [App\Http\Controllers\SupplierOrderController::class, 'recordPayment'])->name('supplier-orders.payment');
+});

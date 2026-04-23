@@ -131,31 +131,42 @@
                                     </div>
 
                                         <div class="inventory-levels mb-3">
+                                            @php
+                                                $beverageCategories = ['spirits', 'wines', 'alcoholic_beverage', 'non_alcoholic_beverage', 'energy_drinks', 'water', 'juices', 'hot_beverages', 'cocktails', 'soda', 'soft_drinks'];
+                                                $isBeverage = in_array($product->category, $beverageCategories);
+                                                
+                                                // Robust unit detection
+                                                $pUnit = $variant->purchasing_unit ?: ($variant->packaging ?: 'Package');
+                                                $rUnit = $variant->receiving_unit ?: 'pcs';
+                                                
+                                                // Handle potential user swap (if Crate is the 'receiving' unit but it's the larger one)
+                                                if ($isBeverage && strtolower($rUnit) === 'crate' && strtolower($pUnit) === 'bottle') {
+                                                    $temp = $pUnit; $pUnit = $rUnit; $rUnit = $temp;
+                                                }
+                                            @endphp
+
                                             <div class="d-flex justify-content-between py-2 border-bottom">
                                                 <span class="text-muted font-weight-bold small text-uppercase">Stock Level:</span>
                                                 <span class="font-weight-bold {{ $isLowStock ? 'text-danger' : 'text-success' }}">
-                                                    {{ $product->category === 'food' ? number_format($totalStock, 2) : number_format($totalStock) }} {{ $variant->receiving_unit ?: 'pcs' }}
+                                                    @if(($variant->items_per_package > 1 || $isBeverage) && $itemsPerPackage > 0)
+                                                        @if($packages > 0)
+                                                            {{ number_format($packages) }} {{ $pUnit }}
+                                                            @if($remItems > 0) + {{ number_format($remItems) }} {{ $rUnit }} @endif
+                                                        @else
+                                                            {{ number_format($totalStock) }} {{ $rUnit }}
+                                                        @endif
+                                                    @else
+                                                        {{ $product->category === 'food' ? number_format($totalStock, 2) : number_format($totalStock) }} {{ $rUnit }}
+                                                    @endif
                                                     @if($isLowStock) <i class="fa fa-warning small"></i> @endif
                                                 </span>
                                             </div>
-                                            @php
-                                                $beverageCategories = ['spirits', 'wines', 'alcoholic_beverage', 'non_alcoholic_beverage', 'energy_drinks', 'water', 'juices', 'hot_beverages', 'cocktails'];
-                                                $isBeverage = in_array($product->category, $beverageCategories);
-                                            @endphp
+
                                             @if(($variant->items_per_package > 1 || $isBeverage) && $product->category !== 'food')
                                             <div class="d-flex justify-content-between py-2">
-                                                <span class="text-muted font-weight-bold small text-uppercase">Packages:</span>
+                                                <span class="text-muted font-weight-bold small text-uppercase">Total Units:</span>
                                                 <span class="font-weight-bold text-dark">
-                                                    @if($itemsPerPackage > 0)
-                                                        @if($packages > 0)
-                                                            {{ number_format($packages) }} {{ Str::plural(ucfirst($variant->packaging ?: 'Package'), $packages) }}
-                                                            @if($remItems > 0) + {{ number_format($remItems) }} {{ $variant->receiving_unit ?: 'pcs' }} @endif
-                                                        @else
-                                                            {{ number_format($totalStock) }} {{ $variant->receiving_unit ?: 'pcs' }}
-                                                        @endif
-                                                    @else
-                                                        {{ number_format($totalStock) }} pcs
-                                                    @endif
+                                                    {{ number_format($totalStock) }} {{ $rUnit }}
                                                 </span>
                                             </div>
                                             @endif

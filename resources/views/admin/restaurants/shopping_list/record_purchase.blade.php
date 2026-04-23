@@ -207,7 +207,8 @@
                     <span class="stat-label">Initial Budget</span>
                     <div class="stat-value">
                         {{ number_format($shoppingList->budget_amount ?: $shoppingList->total_estimated_cost, 0) }}
-                        <small>TZS</small></div>
+                        <small>TZS</small>
+                    </div>
                 </div>
                 <div class="stat-card">
                     <span class="stat-label">Amount Used</span>
@@ -263,7 +264,7 @@
                                 </td>
                                 <td class="text-right">
                                     <input type="number" step="1" class="premium-input text-right unit-price"
-                                        style="width: 100px; padding: 5px;"
+                                        name="items[{{ $item->id }}][unit_price]" style="width: 100px; padding: 5px;"
                                         value="{{ $item->purchased_quantity > 0 ? round($item->purchased_cost / $item->purchased_quantity) : round($item->estimated_price / ($item->quantity ?: 1)) }}">
                                 </td>
                                 <td class="text-right">
@@ -316,104 +317,108 @@
         </div>
     </form>
 
-    <script src="{{ asset('dashboard_assets/js/plugins/sweetalert.min.js') }}"></script>
+@endsection
+
+@section('scripts')
     <script>
         $(document).ready(function () {
             function calculateTotals() {
                 let totalCost = 0;
                 let missingCount = 0;
 
-                $('.item-row').each(function () {
-                    const isFound = $(this).find('.is-found-checkbox').is(':checked');
+                $('tr.item-row').each(function () {
+                    const row = $(this);
+                    const isFound = row.find('.is-found-checkbox').prop('checked');
+                    
                     if (!isFound) {
                         missingCount++;
-                        $(this).addClass('is-missing');
-                        $(this).find('input:not(.is-found-checkbox)').prop('disabled', true);
+                        row.addClass('is-missing');
+                        row.find('input:not(.is-found-checkbox)').prop('disabled', true);
                     } else {
-                        $(this).removeClass('is-missing');
-                        $(this).find('input').prop('disabled', false);
-                        const cost = parseFloat($(this).find('.total-cost').val()) || 0;
+                        row.removeClass('is-missing');
+                        row.find('input').prop('disabled', false);
+                        const cost = parseFloat(row.find('.total-cost').val()) || 0;
                         totalCost += cost;
                     }
                 });
 
-                $('#total_cost_display').text(totalCost.toLocaleString() + ' TZS');
-                $('#amount_used_display').text(totalCost.toLocaleString());
+                const formattedTotal = totalCost.toLocaleString();
+                $('#total_cost_display').text(formattedTotal + ' TZS');
+                $('#amount_used_display').text(formattedTotal);
                 $('#missing_items_count').text(missingCount);
             }
 
-            // Unit Price and Total Cost Sync
-            $(document).on('input', '.unit-price', function () {
+            // Sync logic
+            $(document).on('input change', '.unit-price, .total-cost, .purchased-quantity, .is-found-checkbox', function () {
                 const row = $(this).closest('.item-row');
                 const qty = parseFloat(row.find('.purchased-quantity').val()) || 0;
-                const unitPrice = parseFloat($(this).val()) || 0;
-                if (qty > 0) {
-                    row.find('.total-cost').val(Math.round(qty * unitPrice));
+                
+                if ($(this).hasClass('unit-price')) {
+                    const unitPrice = parseFloat($(this).val()) || 0;
+                    if (qty > 0) row.find('.total-cost').val(Math.round(qty * unitPrice));
+                } else if ($(this).hasClass('total-cost')) {
+                    const totalCost = parseFloat($(this).val()) || 0;
+                    if (qty > 0) row.find('.unit-price').val(Math.round(totalCost / qty));
+                } else if ($(this).hasClass('purchased-quantity')) {
+                    const unitPrice = parseFloat(row.find('.unit-price').val()) || 0;
+                    if (qty > 0) row.find('.total-cost').val(Math.round(qty * unitPrice));
                 }
-                calculateTotals();
-            });
-
-            $(document).on('input', '.total-cost', function () {
-                const row = $(this).closest('.item-row');
-                const qty = parseFloat(row.find('.purchased-quantity').val()) || 0;
-                const totalCost = parseFloat($(this).val()) || 0;
-                if (qty > 0) {
-                    row.find('.unit-price').val(Math.round(totalCost / qty));
-                }
-                calculateTotals();
-            });
-
-            $(document).on('input', '.purchased-quantity', function () {
-                const row = $(this).closest('.item-row');
-                const qty = parseFloat($(this).val()) || 0;
-                const unitPrice = parseFloat(row.find('.unit-price').val()) || 0;
-                if (qty > 0) {
-                    row.find('.total-cost').val(Math.round(qty * unitPrice));
-                }
-                calculateTotals();
-            });
-
-            $(document).on('change', '.is-found-checkbox', function () {
+                
                 calculateTotals();
             });
 
             calculateTotals();
 
             $('#finalizeBtn').on('click', function () {
-                // Re-enable everything for form submission
+                // Ensure everything is enabled for form data gathering
                 $('.item-row input').prop('disabled', false);
 
-                swal({
+                Swal.fire({
                     title: "Submit for Verification?",
                     text: "The budget used and actual quantities will be sent for final verification.",
-                    type: "info",
+                    icon: "question",
                     showCancelButton: true,
                     confirmButtonText: "Yes, submit it!",
-                    closeOnConfirm: false,
-                    showLoaderOnConfirm: true
-                }, function () {
-                    const form = $('#purchaseForm');
-                    const formData = new FormData(form[0]);
-                    formData.append('finalize', '1');
+                    confirmButtonColor: '#940000',
+                    showLoaderOnConfirm: true,
+                    preConfirm: () => {
+                        const form = $('#purchaseForm');
+                        const formData = new FormData(form[0]);
+                        formData.append('finalize', '1');
 
-                    fetch(form.attr('action'), {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': $('input[name="_token"]').val()
-                        }
-                    })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                swal("Success!", data.message, "success");
-                                setTimeout(() => window.location.href = data.redirect_url, 1500);
-                            } else {
-                                swal("Error", data.message, "error");
+                        return fetch(form.attr('action'), {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': $('input[name="_token"]').val()
                             }
                         })
-                        .catch(err => swal("Error", "Server connection failed", "error"));
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(json => { throw new Error(json.message || 'Server error'); });
+                            }
+                            return response.json();
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(`Request failed: ${error.message || error}`);
+                        });
+                    },
+                    allowOutsideClick: () => !Swal.isLoading()
+                }).then((result) => {
+                    if (result.isConfirmed && result.value && result.value.success) {
+                        Swal.fire({
+                            title: "Success!",
+                            text: result.value.message,
+                            icon: "success",
+                            confirmButtonColor: '#940000'
+                        }).then(() => {
+                            window.location.href = result.value.redirect_url;
+                        });
+                    } else if (result.dismiss === Swal.DismissReason.cancel) {
+                        // Restore disabled state for rows that are not found
+                        calculateTotals();
+                    }
                 });
             });
         });

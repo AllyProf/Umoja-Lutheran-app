@@ -1,7 +1,7 @@
-{{-- Manager/Admin/HeadChef Sidebar Menu --}}
 @php
     use App\Services\RolePermissionService;
 
+    $currentUser = $currentUser ?? auth()->guard('staff')->user();
     $currentRoute = request()->route() ? request()->route()->getName() : '';
     $activePage = request()->path();
 
@@ -285,6 +285,14 @@
                         class="icon fa fa-exchange"></i> Stock Transfers</a></li>
         </ul>
     </li>
+
+    <li><a class="app-menu__item {{ str_contains($activePage, 'supplier-orders') ? 'active' : '' }}"
+            href="{{ route('supplier-orders.index') }}"><i class="app-menu__icon fa fa-truck"></i><span
+                class="app-menu__label">Weekly Supplier Orders</span></a></li>
+
+    <li><a class="app-menu__item {{ str_contains($activePage, 'lpo') ? 'active' : '' }}" href="{{ route('lpo.index') }}"><i
+                class="app-menu__icon fa fa-file-text"></i><span class="app-menu__label">Local Purchase Orders
+                (LPO)</span></a></li>
 
     <li class="treeview {{ str_contains($activePage, 'stock-requests') ? 'is-expanded' : '' }}">
         <a class="app-menu__item" href="#" data-toggle="treeview">

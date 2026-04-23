@@ -413,6 +413,17 @@
                                 placeholder="City Market">
                         </div>
                     </div>
+                    <div class="form-group mb-2">
+                        <label>LPO Budget Period</label>
+                        <select name="lpo_id" class="form-control form-control-sm">
+                            <option value="">-- Standalone (No Budget) --</option>
+                            @foreach($lpos as $lpo)
+                                <option value="{{ $lpo->id }}">LPO #{{ $lpo->id }} ({{ $lpo->start_date->format('d M') }} -
+                                    {{ $lpo->end_date->format('d M Y') }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
                     <div class="form-group">
                         <label style="font-size: 11px; text-transform: uppercase;">Estimated Date</label>
                         <input type="date" name="shopping_date" class="form-control form-control-sm"
@@ -518,9 +529,18 @@
         let cart = [];
         let viewMode = 'picker';
         const prefillItems = @json($prefillItems ?? []);
+        const lpos = @json($lpos);
         const unitOptions = ['pcs', 'kg', 'g', 'liters', 'ml', 'Sado', 'Debe', 'boxes', 'bottles', 'rolls', 'packs', 'cartons', 'bags', 'bunches', 'crates', 'trays', 'other'];
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Listen for LPO change
+            const lpoSelect = document.querySelector('select[name="lpo_id"]');
+            if (lpoSelect) {
+                lpoSelect.addEventListener('change', function () {
+                    syncPricesWithLPO(this.value);
+                });
+            }
+
             if (prefillItems.length > 0) {
                 prefillItems.forEach(item => {
                     addToCart({
@@ -538,6 +558,21 @@
         });
 
         function addToCart(item) {
+            // Auto-fill price from selected LPO if available
+            const lpoId = document.querySelector('select[name="lpo_id"]').value;
+            if (lpoId) {
+                const selectedLpo = lpos.find(l => l.id == lpoId);
+                if (selectedLpo && selectedLpo.items) {
+                    const lpoItem = selectedLpo.items.find(li => 
+                        (li.product_variant_id && li.product_variant_id == item.variant_id) ||
+                        (!li.product_variant_id && li.item_name && li.item_name.toLowerCase() === item.name.toLowerCase())
+                    );
+                    if (lpoItem) {
+                        item.price = lpoItem.unit_price;
+                    }
+                }
+            }
+
             // Check if already in cart
             const existing = cart.find(i =>
                 (i.variant_id && i.variant_id === item.variant_id) ||
@@ -584,60 +619,60 @@
 
                     // Render Cart Item
                     cartHtml += `
-                                    <div class="cart-item">
-                                        <div class="cart-item-info">
-                                            <div class="cart-item-title">${item.name}</div>
-                                            <div class="cart-item-controls mt-2">
-                                                <div class="d-flex align-items-center">
-                                                    <div class="mr-2">
-                                                        <small class="d-block text-muted">Quantity</small>
-                                                        <input type="number" step="0.01" class="qty-input" value="${item.quantity}" 
-                                                               oninput="liveUpdate(${index}, 'quantity', this.value)">
-                                                        <small class="text-muted ml-1">${item.unit}</small>
+                                                <div class="cart-item">
+                                                    <div class="cart-item-info">
+                                                        <div class="cart-item-title">${item.name}</div>
+                                                        <div class="cart-item-controls mt-2">
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="mr-2">
+                                                                    <small class="d-block text-muted">Quantity</small>
+                                                                    <input type="number" step="0.01" class="qty-input" value="${item.quantity}" 
+                                                                           oninput="liveUpdate(${index}, 'quantity', this.value)">
+                                                                    <small class="text-muted ml-1">${item.unit}</small>
+                                                                </div>
+                                                                <div>
+                                                                    <small class="d-block text-muted">Unit Price</small>
+                                                                    <input type="number" step="1" class="qty-input" value="${item.price}" 
+                                                                           style="width: 90px" placeholder="Price"
+                                                                           oninput="liveUpdate(${index}, 'price', this.value)">
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <small class="d-block text-muted">Unit Price</small>
-                                                        <input type="number" step="1" class="qty-input" value="${item.price}" 
-                                                               style="width: 90px" placeholder="Price"
-                                                               oninput="liveUpdate(${index}, 'price', this.value)">
+                                                    <div class="text-right">
+                                                        <small class="text-muted d-block" style="font-size: 9px;">Line Total</small>
+                                                        <div class="font-weight-bold text-primary" style="font-size: 13px;" id="lineTotal-${index}">${itemTotal.toLocaleString()}</div>
+                                                        <i class="fa fa-times remove-item mt-2" onclick="removeFromCart(${index})" title="Remove item"></i>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                        <div class="text-right">
-                                            <small class="text-muted d-block" style="font-size: 9px;">Line Total</small>
-                                            <div class="font-weight-bold text-primary" style="font-size: 13px;" id="lineTotal-${index}">${itemTotal.toLocaleString()}</div>
-                                            <i class="fa fa-times remove-item mt-2" onclick="removeFromCart(${index})" title="Remove item"></i>
-                                        </div>
-                                    </div>
-                                `;
+                                            `;
 
                     // Render Classic Table Row
                     classicHtml += `
-                                        <tr>
-                                            <td>${item.name}</td>
-                                            <td><input type="number" step="0.01" class="form-control form-control-sm" value="${item.quantity}" oninput="liveUpdate(${index}, 'quantity', this.value)"></td>
-                                            <td>
-                                                <select class="form-control form-control-sm" onchange="updateCartItem(${index}, 'unit', this.value)">
-                                                    ${unitOptions.map(u => `<option value="${u}" ${item.unit === u ? 'selected' : ''}>${u}</option>`).join('')}
-                                                </select>
-                                            </td>
-                                            <td><input type="number" step="1" class="form-control form-control-sm" value="${item.price}" oninput="liveUpdate(${index}, 'price', this.value)"></td>
-                                            <td><button type="button" class="btn btn-danger btn-sm" onclick="removeFromCart(${index})"><i class="fa fa-trash"></i></button></td>
-                                        </tr>
-                                    `;
+                                                    <tr>
+                                                        <td>${item.name}</td>
+                                                        <td><input type="number" step="0.01" class="form-control form-control-sm" value="${item.quantity}" oninput="liveUpdate(${index}, 'quantity', this.value)"></td>
+                                                        <td>
+                                                            <select class="form-control form-control-sm" onchange="updateCartItem(${index}, 'unit', this.value)">
+                                                                ${unitOptions.map(u => `<option value="${u}" ${item.unit === u ? 'selected' : ''}>${u}</option>`).join('')}
+                                                            </select>
+                                                        </td>
+                                                        <td><input type="number" step="1" class="form-control form-control-sm" value="${item.price}" oninput="liveUpdate(${index}, 'price', this.value)"></td>
+                                                        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeFromCart(${index})"><i class="fa fa-trash"></i></button></td>
+                                                    </tr>
+                                                `;
 
                     // Hidden Inputs
                     hiddenHtml += `
-                            <input type="hidden" name="items[${index}][product_id]" value="${item.product_id || ''}">
-                            <input type="hidden" name="items[${index}][product_variant_id]" value="${item.variant_id || ''}">
-                            <input type="hidden" name="items[${index}][product_name]" value="${item.name}">
-                            <input type="hidden" name="items[${index}][quantity]" value="${item.quantity}" id="hiddenQty-${index}">
-                            <input type="hidden" name="items[${index}][unit]" value="${item.unit}">
-                            <input type="hidden" name="items[${index}][estimated_price]" value="${itemTotal || 0}" id="hiddenPrice-${index}">
-                            <input type="hidden" name="items[${index}][category]" value="${item.category || 'other'}">
-                            <input type="hidden" name="items[${index}][purchase_request_id]" value="${item.purchase_request_id || ''}">
-                        `;
+                                        <input type="hidden" name="items[${index}][product_id]" value="${item.product_id || ''}">
+                                        <input type="hidden" name="items[${index}][product_variant_id]" value="${item.variant_id || ''}">
+                                        <input type="hidden" name="items[${index}][product_name]" value="${item.name}">
+                                        <input type="hidden" name="items[${index}][quantity]" value="${item.quantity}" id="hiddenQty-${index}">
+                                        <input type="hidden" name="items[${index}][unit]" value="${item.unit}">
+                                        <input type="hidden" name="items[${index}][estimated_price]" value="${itemTotal || 0}" id="hiddenPrice-${index}">
+                                        <input type="hidden" name="items[${index}][category]" value="${item.category || 'other'}">
+                                        <input type="hidden" name="items[${index}][purchase_request_id]" value="${item.purchase_request_id || ''}">
+                                    `;
                 });
 
                 container.innerHTML = cartHtml;
@@ -651,22 +686,22 @@
 
         function liveUpdate(index, key, value) {
             cart[index][key] = Number(value) || 0;
-            
+
             let total = 0;
             cart.forEach((item, idx) => {
                 const itemTotal = (Number(item.quantity) || 0) * (Number(item.price) || 0);
                 total += itemTotal;
-                
+
                 const lineTotalEl = document.getElementById(`lineTotal-${idx}`);
                 if (lineTotalEl) lineTotalEl.textContent = itemTotal.toLocaleString();
-                
+
                 const hQty = document.getElementById(`hiddenQty-${idx}`);
                 if (hQty) hQty.value = item.quantity;
-                
+
                 const hPrice = document.getElementById(`hiddenPrice-${idx}`);
                 if (hPrice) hPrice.value = itemTotal; // We send line total as estimated_price
             });
-            
+
             document.getElementById('displayTotal').textContent = total.toLocaleString() + ' TZS';
         }
 
@@ -763,14 +798,32 @@
             // Simple toast simulation
             const toast = document.createElement('div');
             toast.style.cssText = `
-                                                position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-                                                background: rgba(45, 55, 72, 0.9); color: white; padding: 10px 20px;
-                                                border-radius: 30px; z-index: 9999; font-size: 14px;
-                                                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                                            `;
+                                                            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+                                                            background: rgba(45, 55, 72, 0.9); color: white; padding: 10px 20px;
+                                                            border-radius: 30px; z-index: 9999; font-size: 14px;
+                                                            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                                                        `;
             toast.textContent = msg;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 2000);
+        }
+
+        function syncPricesWithLPO(lpoId) {
+            if (!lpoId) return;
+            const selectedLpo = lpos.find(l => l.id == lpoId);
+            if (!selectedLpo || !selectedLpo.items) return;
+
+            cart.forEach(item => {
+                const lpoItem = selectedLpo.items.find(li => 
+                    (li.product_variant_id && li.product_variant_id == item.variant_id) ||
+                    (!li.product_variant_id && li.item_name && li.item_name.toLowerCase() === item.name.toLowerCase())
+                );
+                if (lpoItem) {
+                    item.price = lpoItem.unit_price;
+                }
+            });
+            renderCart();
+            showNotification('Prices updated from LPO Budget');
         }
     </script>
 @endsection

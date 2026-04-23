@@ -90,13 +90,20 @@ class KitchenController extends Controller
         // Clear session data after retrieving
         session()->forget(['shopping_list_prefill_items', 'shopping_list_prefill_name', 'shopping_list_prefill_date', 'purchase_requests_for_shopping_list']);
 
-        return view('admin.restaurants.shopping_list.create', compact('products', 'prefillItems', 'prefillName', 'prefillDate', 'purchaseRequestIds'));
+        // Get active LPOs
+        $lpos = \App\Models\LocalPurchaseOrder::whereIn('status', ['verified_by_manager', 'closed'])
+            ->with('items')
+            ->latest()
+            ->get();
+
+        return view('admin.restaurants.shopping_list.create', compact('products', 'prefillItems', 'prefillName', 'prefillDate', 'purchaseRequestIds', 'lpos'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'lpo_id' => 'nullable|exists:local_purchase_orders,id',
             'shopping_date' => 'nullable|date',
             'market_name' => 'nullable|string',
             'items' => 'required|array|min:1',
@@ -114,6 +121,7 @@ class KitchenController extends Controller
 
             $list = ShoppingList::create([
                 'name' => $request->name,
+                'lpo_id' => $request->lpo_id,
                 'shopping_date' => $request->shopping_date,
                 'market_name' => $request->market_name,
                 'notes' => $request->notes,
@@ -226,7 +234,13 @@ class KitchenController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('admin.restaurants.shopping_list.edit', compact('shoppingList', 'products'));
+        // Get active LPOs
+        $lpos = \App\Models\LocalPurchaseOrder::whereIn('status', ['verified_by_manager', 'closed'])
+            ->with('items')
+            ->latest()
+            ->get();
+
+        return view('admin.restaurants.shopping_list.edit', compact('shoppingList', 'products', 'lpos'));
     }
 
     public function update(Request $request, ShoppingList $shoppingList)
@@ -236,6 +250,7 @@ class KitchenController extends Controller
         }
         $request->validate([
             'name' => 'required|string|max:255',
+            'lpo_id' => 'nullable|exists:local_purchase_orders,id',
             'shopping_date' => 'nullable|date',
             'market_name' => 'nullable|string',
             'items' => 'required|array|min:1',
@@ -253,6 +268,7 @@ class KitchenController extends Controller
 
             $shoppingList->update([
                 'name' => $request->name,
+                'lpo_id' => $request->lpo_id,
                 'shopping_date' => $request->shopping_date,
                 'market_name' => $request->market_name,
                 'notes' => $request->notes,

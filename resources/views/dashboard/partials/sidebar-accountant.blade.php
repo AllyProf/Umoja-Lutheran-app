@@ -121,6 +121,29 @@
     </ul>
 </li>
 
+<li>
+    <a class="app-menu__item {{ str_contains($activePage, 'supplier-orders') ? 'active' : '' }}"
+        href="{{ route('supplier-orders.index') }}">
+        <i class="app-menu__icon fa fa-truck"></i>
+        <span class="app-menu__label">Weekly Supplier Orders</span>
+    </a>
+</li>
+
+<li>
+    <a class="app-menu__item {{ str_contains($activePage, 'lpo') ? 'active' : '' }}" href="{{ route('lpo.index') }}">
+        <i class="app-menu__icon fa fa-file-text"></i>
+        <span class="app-menu__label">Local Purchase Orders (LPO)</span>
+    </a>
+</li>
+
+<li>
+    <a class="app-menu__item {{ str_contains($activePage, 'restaurants/suppliers') ? 'active' : '' }}"
+        href="{{ route('admin.suppliers.index') }}">
+        <i class="app-menu__icon fa fa-address-book"></i>
+        <span class="app-menu__label">Manage Suppliers</span>
+    </a>
+</li>
+
 {{-- 4. REPORTS --}}
 <li class="treeview-item-header"
     style="padding: 10px 20px; color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-top: 10px;">

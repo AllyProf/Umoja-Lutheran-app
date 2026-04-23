@@ -8,6 +8,7 @@ class ShoppingList extends Model
 {
     protected $fillable = [
         'name',
+        'lpo_id',
         'status',
         'total_estimated_cost',
         'total_actual_cost',
@@ -37,6 +38,11 @@ class ShoppingList extends Model
     public function purchaser()
     {
         return $this->belongsTo(Staff::class, 'purchaser_id');
+    }
+
+    public function lpo()
+    {
+        return $this->belongsTo(LocalPurchaseOrder::class, 'lpo_id');
     }
 
     /**
