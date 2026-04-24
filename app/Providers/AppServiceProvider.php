@@ -264,29 +264,32 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Storage::extend('google', function ($app, $config) {
-            $client = new Client();
-            $client->setClientId($config['clientId']);
-            $client->setClientSecret($config['clientSecret']);
-            $client->refreshToken($config['refreshToken']);
+            $client = new \Google\Client();
+            $client->setClientId($config['clientId'] ?? config('filesystems.disks.google.clientId'));
+            $client->setClientSecret($config['clientSecret'] ?? config('filesystems.disks.google.clientSecret'));
+            $client->refreshToken($config['refreshToken'] ?? config('filesystems.disks.google.refreshToken'));
 
-            $service = new Drive($client);
-            $root = $config['folderId'] ?? '/';
-            $adapter = new GoogleDriveAdapter($service, $root, ['useHashes' => false]);
-            $driver = new Filesystem($adapter);
+            $service = new \Google\Service\Drive($client);
+
+            // Read root from possible keys
+            $root = $config['root'] ?? $config['folderId'] ?? config('filesystems.disks.google.root', '/');
+
+            $adapter = new \Masbug\Flysystem\GoogleDriveAdapter($service, $root);
+            $driver = new \League\Flysystem\Filesystem($adapter);
 
             return new \Illuminate\Filesystem\FilesystemAdapter($driver, $adapter);
         });
 
         // SMS Notifications for Backup
         \Illuminate\Support\Facades\Event::listen(\Spatie\Backup\Events\BackupWasSuccessful::class, function () {
-            $phone = env('BACKUP_NOTIFICATION_PHONE');
+            $phone = config('filesystems.disks.google.notification_phone');
             if ($phone) {
                 app(\App\Services\SmsService::class)->sendSms($phone, 'Umoja Lutheran: Database backup was successful and uploaded to Google Drive.');
             }
         });
 
         \Illuminate\Support\Facades\Event::listen(\Spatie\Backup\Events\BackupHasFailed::class, function () {
-            $phone = env('BACKUP_NOTIFICATION_PHONE');
+            $phone = config('filesystems.disks.google.notification_phone');
             if ($phone) {
                 app(\App\Services\SmsService::class)->sendSms($phone, 'Umoja Lutheran ALERT: Database backup FAILED. Please check the logs.');
             }
