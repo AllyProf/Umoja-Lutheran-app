@@ -276,6 +276,21 @@ class AppServiceProvider extends ServiceProvider
 
             return new \Illuminate\Filesystem\FilesystemAdapter($driver, $adapter);
         });
+
+        // SMS Notifications for Backup
+        \Illuminate\Support\Facades\Event::listen(\Spatie\Backup\Events\BackupWasSuccessful::class, function () {
+            $phone = env('BACKUP_NOTIFICATION_PHONE');
+            if ($phone) {
+                app(\App\Services\SmsService::class)->sendSms($phone, 'Umoja Lutheran: Database backup was successful and uploaded to Google Drive.');
+            }
+        });
+
+        \Illuminate\Support\Facades\Event::listen(\Spatie\Backup\Events\BackupHasFailed::class, function () {
+            $phone = env('BACKUP_NOTIFICATION_PHONE');
+            if ($phone) {
+                app(\App\Services\SmsService::class)->sendSms($phone, 'Umoja Lutheran ALERT: Database backup FAILED. Please check the logs.');
+            }
+        });
     }
 
     public function register()
