@@ -280,41 +280,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function register()
     {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        $this->app->register(\Spatie\Backup\BackupServiceProvider::class);
     }
 }
 
