@@ -31,3 +31,15 @@ Schedule::command('bookings:send-feedback-requests')
     ->dailyAt('10:00')
     ->timezone('Africa/Dar_es_Salaam')
     ->description('Send feedback request emails to guests 1-2 days after check-out');
+
+// Schedule Database Backups - daily at 03:00 AM EAT
+Schedule::command('backup:run --only-db')
+    ->dailyAt('03:00')
+    ->timezone('Africa/Dar_es_Salaam')
+    ->description('Run daily database backup to Google Drive');
+
+// Schedule Backup Cleanup - daily at 04:00 AM EAT
+Schedule::command('backup:clean')
+    ->dailyAt('04:00')
+    ->timezone('Africa/Dar_es_Salaam')
+    ->description('Clean up old database backups');
