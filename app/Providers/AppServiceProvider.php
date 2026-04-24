@@ -13,6 +13,11 @@ use App\Models\IssueReport;
 use App\Models\HousekeepingInventoryItem;
 
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Storage;
+use Google\Client;
+use Google\Service\Drive;
+use Masbug\Flysystem\GoogleDriveAdapter;
+use League\Flysystem\Filesystem;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -256,6 +261,20 @@ class AppServiceProvider extends ServiceProvider
                     'userName' => 'User',
                 ]);
             }
+        });
+
+        Storage::extend('google', function ($app, $config) {
+            $client = new Client();
+            $client->setClientId($config['clientId']);
+            $client->setClientSecret($config['clientSecret']);
+            $client->refreshToken($config['refreshToken']);
+
+            $service = new Drive($client);
+            $root = $config['folderId'] ?? '/';
+            $adapter = new GoogleDriveAdapter($service, $root, ['useHashes' => false]);
+            $driver = new Filesystem($adapter);
+
+            return new \Illuminate\Filesystem\FilesystemAdapter($driver, $adapter);
         });
     }
 

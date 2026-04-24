@@ -21,6 +21,12 @@
             <div class="tile">
                 <div class="tile-title-w-btn">
                     <h3 class="title">Batch Items</h3>
+                    @if($supplierOrder->status !== 'pending')
+                        <div class="alert alert-warning mb-0 ml-3 py-1">
+                            <i class="fa fa-warning"></i> <strong>Amendment Mode:</strong> Adding items or increasing quantities
+                            will reset the status for re-approval.
+                        </div>
+                    @endif
                     <p><button class="btn btn-primary icon-btn" type="button" id="addRow"><i class="fa fa-plus"></i>Add Item
                             Row</button></p>
                 </div>
@@ -50,32 +56,31 @@
                                                     <option value="">-- Select Registered Product --</option>
                                                     @foreach($products as $product)
                                                         @foreach($product->variants as $variant)
-                                                            @php
-                                                                $displayText = $product->name . ' (' . $variant->variant_name . ')';
-                                                            @endphp
                                                             <option value="{{ $variant->id }}" {{ $item->product_variant_id == $variant->id ? 'selected' : '' }}>
-                                                                {{ $displayText }}
+                                                                {{ $product->name }} ({{ $variant->variant_name }})
                                                             </option>
                                                         @endforeach
                                                     @endforeach
                                                 </select>
-                                                {{-- Hidden field to store the name for legacy/display purposes if needed --}}
+                                                {{-- Hidden fields for sync --}}
+                                                <input type="hidden" name="items[{{ $index }}][id]" value="{{ $item->id }}">
                                                 <input type="hidden" name="items[{{ $index }}][item_name]"
                                                     class="item-name-hidden" value="{{ $item->item_name }}">
                                             </td>
                                             <td><input type="number" name="items[{{ $index }}][quantity]"
-                                                    class="form-control qty" step="0.01" value="{{ $item->quantity }}" required>
+                                                    class="form-control qty" step="any" value="{{ (float) $item->quantity }}"
+                                                    required>
                                             </td>
                                             <td>
                                                 <select name="items[{{ $index }}][unit]" class="form-control">
-                                                    @foreach(['Kg', 'Pcs', 'Ltrs', 'Trays', 'Bunches', 'Packets', 'Boxes', 'Crate', 'Sado', 'Debe'] as $u)
+                                                    @foreach(['Piece (Pcs)', 'Kg', 'Litres (L)', 'Grams (g)', 'Tray', 'Packet', 'Box', 'Carton', 'Crate', 'Sado', 'Debe', 'Kiroba', 'Bunch', 'Bucket', 'Bundle', 'Bottle', 'Dozen'] as $u)
                                                         <option value="{{ $u }}" {{ $item->unit == $u ? 'selected' : '' }}>{{ $u }}
                                                         </option>
                                                     @endforeach
                                                 </select>
                                             </td>
                                             <td><input type="number" name="items[{{ $index }}][unit_price]"
-                                                    class="form-control price" step="0.01" value="{{ $item->unit_price }}"
+                                                    class="form-control price" step="any" value="{{ (int) $item->unit_price }}"
                                                     required></td>
                                             <td class="text-center">
                                                 <button type="button" class="btn btn-danger btn-sm removeRow"><i
@@ -101,20 +106,16 @@
                                                 <input type="hidden" name="items[0][item_name]" class="item-name-hidden">
                                             </td>
                                             <td><input type="number" name="items[0][quantity]" class="form-control qty"
-                                                    step="0.01" required></td>
+                                                    step="any" required></td>
                                             <td>
                                                 <select name="items[0][unit]" class="form-control">
-                                                    <option value="Pcs">Pcs</option>
-                                                    <option value="Kg">Kg</option>
-                                                    <option value="Ltrs">Ltrs</option>
-                                                    <option value="Trays">Trays</option>
-                                                    <option value="Packets">Packets</option>
-                                                    <option value="Boxes">Boxes</option>
-                                                    <option value="Crate">Crate</option>
+                                                    @foreach(['Piece (Pcs)', 'Kg', 'Litres (L)', 'Grams (g)', 'Tray', 'Packet', 'Box', 'Carton', 'Crate', 'Sado', 'Debe', 'Kiroba', 'Bunch', 'Bucket', 'Bundle', 'Bottle', 'Dozen'] as $u)
+                                                        <option value="{{ $u }}">{{ $u }}</option>
+                                                    @endforeach
                                                 </select>
                                             </td>
                                             <td><input type="number" name="items[0][unit_price]" class="form-control price"
-                                                    step="0.01" required></td>
+                                                    step="any" required></td>
                                             <td class="text-center">
                                                 <button type="button" class="btn btn-danger btn-sm removeRow"><i
                                                         class="fa fa-trash"></i></button>
@@ -127,7 +128,8 @@
                             <div class="row mb-3">
                                 <div class="col-md-12 text-right">
                                     <h4 id="grandTotalDisplay">Grand Total:
-                                        {{ number_format($supplierOrder->total_amount, 2) }} TZS</h4>
+                                        {{ number_format($supplierOrder->total_amount, 0) }} TZS
+                                    </h4>
                                 </div>
                             </div>
                             <button class="btn btn-success" type="submit"><i class="fa fa-fw fa-lg fa-save"></i>Save Items &
@@ -149,41 +151,37 @@
 
             // Prepare options HTML once to reuse in JS
             const productOptions = `
-                    <option value="">-- Select Registered Product --</option>
-                    @foreach($products as $product)
-                        @foreach($product->variants as $variant)
-                            <option value="{{ $variant->id }}">{{ $product->name }} ({{ $variant->variant_name }})</option>
-                        @endforeach
-                    @endforeach
-                `;
+                                <option value="">-- Select Registered Product --</option>
+                                @foreach($products as $product)
+                                    @foreach($product->variants as $variant)
+                                        <option value="{{ $variant->id }}">{{ $product->name }} ({{ $variant->variant_name }})</option>
+                                    @endforeach
+                                @endforeach
+                            `;
 
             $('#addRow').click(function () {
                 let newRow = `
-                        <tr>
-                            <td>
-                                <select name="items[${rowCount}][product_variant_id]" class="form-control product-select" required>
-                                    ${productOptions}
-                                </select>
-                                <input type="hidden" name="items[${rowCount}][item_name]" class="item-name-hidden">
-                            </td>
-                            <td><input type="number" name="items[${rowCount}][quantity]" class="form-control qty" step="0.01" required></td>
-                            <td>
-                                <select name="items[${rowCount}][unit]" class="form-control">
-                                    <option value="Pcs">Pcs</option>
-                                    <option value="Kg">Kg</option>
-                                    <option value="Ltrs">Ltrs</option>
-                                    <option value="Trays">Trays</option>
-                                    <option value="Packets">Packets</option>
-                                    <option value="Boxes">Boxes</option>
-                                    <option value="Crate">Crate</option>
-                                </select>
-                            </td>
-                            <td><input type="number" name="items[${rowCount}][unit_price]" class="form-control price" step="0.01" required></td>
-                            <td class="text-center">
-                                <button type="button" class="btn btn-danger btn-sm removeRow"><i class="fa fa-trash"></i></button>
-                            </td>
-                        </tr>
-                    `;
+                                    <tr>
+                                        <td>
+                                            <select name="items[${rowCount}][product_variant_id]" class="form-control product-select" required>
+                                                ${productOptions}
+                                            </select>
+                                            <input type="hidden" name="items[${rowCount}][item_name]" class="item-name-hidden">
+                                        </td>
+                                        <td><input type="number" name="items[${rowCount}][quantity]" class="form-control qty" step="any" required></td>
+                                        <td>
+                                            <select name="items[${rowCount}][unit]" class="form-control">
+                                                @foreach(['Piece (Pcs)', 'Kg', 'Litres (L)', 'Grams (g)', 'Tray', 'Packet', 'Box', 'Carton', 'Crate', 'Sado', 'Debe', 'Kiroba', 'Bunch', 'Bucket', 'Bundle', 'Bottle', 'Dozen'] as $u)
+                                                    <option value="{{ $u }}">{{ $u }}</option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                        <td><input type="number" name="items[${rowCount}][unit_price]" class="form-control price" step="any" required></td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-danger btn-sm removeRow"><i class="fa fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                `;
                 $('#itemsTable tbody').append(newRow);
                 rowCount++;
             });

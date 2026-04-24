@@ -121,8 +121,9 @@
                     <label class="small font-weight-bold text-warning"><i class="fa fa-balance-scale"></i> RATIO: How
                         many Receiving Units in 1 Purchasing Unit?</label>
                     <input type="number" class="form-control items-per-package-input"
-                        name="variants[{{ $index }}][items_per_package]" value="{{ $variant->items_per_package ?: 1 }}"
-                        placeholder="e.g. 5 (5 Kg per 1 Sado)" step="0.01">
+                        name="variants[{{ $index }}][items_per_package]"
+                        value="{{ (float) $variant->items_per_package ?: 1 }}" placeholder="e.g. 5 (5 Kg per 1 Sado)"
+                        step="any">
                     <small class="text-muted">Used to automatically calculate total received inventory.</small>
                 </div>
             </div>
@@ -147,6 +148,15 @@
 
         <div class="col-md-8">
             <div class="row">
+                <!-- Pricing -->
+                <div class="col-md-12 mb-2">
+                    <div class="form-group mb-0">
+                        <label class="control-label font-weight-bold">Buying Price (TSH)</label>
+                        <input type="number" class="form-control" name="variants[{{ $index }}][buying_price]"
+                            value="{{ (int) ($variant->buying_price ?? 0) }}" step="any" placeholder="Optional">
+                    </div>
+                </div>
+
                 <!-- Selling Prices (Drink Only) -->
                 <div class="col-md-6 drink-only-section">
                     <div class="form-group mb-2">
@@ -154,7 +164,7 @@
                             Selling Price / PIC (TSH)</label>
                         <input type="number" class="form-control border-primary"
                             name="variants[{{ $index }}][selling_price_per_pic]"
-                            value="{{ $variant->selling_price_per_pic }}" min="0" placeholder="0.00">
+                            value="{{ (int) $variant->selling_price_per_pic }}" min="0" step="any">
                     </div>
                 </div>
 
@@ -165,7 +175,7 @@
                             Price / Serving (TSH)</label>
                         <input type="number" class="form-control border-info"
                             name="variants[{{ $index }}][selling_price_per_serving]"
-                            value="{{ $variant->selling_price_per_serving }}" min="0" placeholder="0.00">
+                            value="{{ (int) $variant->selling_price_per_serving }}" min="0" step="any">
                     </div>
                 </div>
 

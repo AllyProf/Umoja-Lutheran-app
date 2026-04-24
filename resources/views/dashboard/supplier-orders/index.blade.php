@@ -56,7 +56,7 @@
                                             {{ \Carbon\Carbon::parse($order->start_date)->format('M d') }} -
                                             {{ \Carbon\Carbon::parse($order->end_date)->format('M d, Y') }}
                                         </td>
-                                        <td>{{ number_format($order->total_amount, 2) }} TZS</td>
+                                        <td>{{ number_format($order->total_amount, 0) }} TZS</td>
                                         <td>
                                             @php
                                                 $badgeClass = match ($order->status) {

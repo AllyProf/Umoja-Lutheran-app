@@ -78,8 +78,10 @@ class SupplierOrderController extends Controller
 
     public function edit(SupplierWeeklyOrder $supplierOrder)
     {
-        if ($supplierOrder->status !== 'pending') {
-            return redirect()->route('supplier-orders.show', $supplierOrder->id)->with('error', 'Only pending orders can be edited.');
+        // Allow editing for pending, verified, and closed orders (amendment)
+        $allowedStatuses = ['pending', 'verified_by_manager', 'closed'];
+        if (!in_array($supplierOrder->status, $allowedStatuses)) {
+            return redirect()->route('supplier-orders.show', $supplierOrder->id)->with('error', 'Only pending or verified orders can be amended.');
         }
         $supplierOrder->load('items');
         $products = Product::active()->orderBy('name')->get();
@@ -88,12 +90,14 @@ class SupplierOrderController extends Controller
 
     public function update(Request $request, SupplierWeeklyOrder $supplierOrder)
     {
-        if ($supplierOrder->status !== 'pending') {
+        $allowedStatuses = ['pending', 'verified_by_manager', 'closed'];
+        if (!in_array($supplierOrder->status, $allowedStatuses)) {
             return back()->with('error', 'Cannot update order in current status.');
         }
 
         $request->validate([
             'items' => 'required|array|min:1',
+            'items.*.id' => 'nullable|exists:supplier_weekly_order_items,id',
             'items.*.item_name' => 'required|string',
             'items.*.quantity' => 'required|numeric|min:0.01',
             'items.*.unit' => 'nullable|string',
@@ -102,32 +106,79 @@ class SupplierOrderController extends Controller
 
         DB::beginTransaction();
         try {
-            // Remove old items and add new ones (simpler for this type of form)
-            $supplierOrder->items()->delete();
-
+            $existingIds = $supplierOrder->items->pluck('id')->toArray();
+            $updatedIds = [];
             $totalAmount = 0;
+            $hasMajorChanges = false;
+
             foreach ($request->items as $itemData) {
                 $totalPrice = $itemData['quantity'] * $itemData['unit_price'];
                 $variantId = $itemData['product_variant_id'] ?? null;
+                $itemId = $itemData['id'] ?? null;
 
-                $supplierOrder->items()->create([
-                    'item_name' => $itemData['item_name'],
-                    'product_variant_id' => $variantId,
-                    'quantity' => $itemData['quantity'],
-                    'unit' => $itemData['unit'] ?? null,
-                    'unit_price' => $itemData['unit_price'],
-                    'total_price' => $totalPrice,
-                ]);
+                if ($itemId && in_array($itemId, $existingIds)) {
+                    // Update existing item
+                    $item = SupplierWeeklyOrderItem::find($itemId);
+
+                    // Validation: cannot reduce quantity below received
+                    if ($itemData['quantity'] < (float) $item->qty_received) {
+                        throw new \Exception("Cannot reduce quantity for '{$item->item_name}' below the received amount (" . (float) $item->qty_received . ").");
+                    }
+
+                    if ((float) $itemData['quantity'] > (float) $item->quantity) {
+                        $hasMajorChanges = true; // Increasing quantity is an amendment
+                    }
+
+                    $item->update([
+                        'item_name' => $itemData['item_name'],
+                        'product_variant_id' => $variantId,
+                        'quantity' => $itemData['quantity'],
+                        'unit' => $itemData['unit'] ?? null,
+                        'unit_price' => $itemData['unit_price'],
+                        'total_price' => $totalPrice,
+                    ]);
+                    $updatedIds[] = $itemId;
+                } else {
+                    // Create new item
+                    $supplierOrder->items()->create([
+                        'item_name' => $itemData['item_name'],
+                        'product_variant_id' => $variantId,
+                        'quantity' => $itemData['quantity'],
+                        'unit' => $itemData['unit'] ?? null,
+                        'unit_price' => $itemData['unit_price'],
+                        'total_price' => $totalPrice,
+                    ]);
+                    $hasMajorChanges = true;
+                }
                 $totalAmount += $totalPrice;
             }
 
-            $supplierOrder->update([
+            // Remove items that were deleted from form (only if not received)
+            $itemsToRemove = $supplierOrder->items()->whereNotIn('id', $updatedIds)->get();
+            foreach ($itemsToRemove as $item) {
+                if ((float) $item->qty_received > 0) {
+                    throw new \Exception("Cannot remove '{$item->item_name}' as it has partial deliveries recorded.");
+                }
+                $item->delete();
+                $hasMajorChanges = true;
+            }
+
+            // Update order totals
+            $updateData = [
                 'total_amount' => $totalAmount,
                 'notes' => $request->notes ?? $supplierOrder->notes,
-            ]);
+            ];
+
+            // If it's an amendment to a verified/closed order, reset status to pending or sent_to_accountant
+            if ($hasMajorChanges && $supplierOrder->status !== 'pending') {
+                $updateData['status'] = 'sent_to_accountant';
+                $updateData['notes'] .= " | AMENDED ON " . now()->format('Y-m-d H:i');
+            }
+
+            $supplierOrder->update($updateData);
 
             DB::commit();
-            return redirect()->route('supplier-orders.show', $supplierOrder->id)->with('success', 'Order items updated successfully.');
+            return redirect()->route('supplier-orders.show', $supplierOrder->id)->with('success', 'Order items updated successfully.' . ($hasMajorChanges ? ' Order sent for re-approval.' : ''));
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Error updating order: ' . $e->getMessage());

@@ -150,13 +150,13 @@
                                                 <span class="font-weight-bold {{ $isLowStock ? 'text-danger' : 'text-success' }}">
                                                     @if(($variant->items_per_package > 1 || $isBeverage) && $itemsPerPackage > 0)
                                                         @if($packages > 0)
-                                                            {{ number_format($packages) }} {{ $pUnit }}
-                                                            @if($remItems > 0) + {{ number_format($remItems) }} {{ $rUnit }} @endif
+                                                            {{ (float)$packages }} {{ $pUnit }}
+                                                            @if($remItems > 0) + {{ (float)$remItems }} {{ $rUnit }} @endif
                                                         @else
-                                                            {{ number_format($totalStock) }} {{ $rUnit }}
+                                                            {{ (float)$totalStock }} {{ $rUnit }}
                                                         @endif
                                                     @else
-                                                        {{ $product->category === 'food' ? number_format($totalStock, 2) : number_format($totalStock) }} {{ $rUnit }}
+                                                        {{ (float)$totalStock }} {{ $rUnit }}
                                                     @endif
                                                     @if($isLowStock) <i class="fa fa-warning small"></i> @endif
                                                 </span>
@@ -176,11 +176,11 @@
                                     <div class="row no-gutters text-center border rounded overflow-hidden pricing-info">
                                         <div class="col border-right p-2 bg-light-gray">
                                             <div class="small text-muted mb-1 text-uppercase font-weight-bold" style="font-size: 10px;">Bottle Price</div>
-                                            <div class="font-weight-bold font-italic" style="font-size: 13px;">Tsh {{ number_format($variant->selling_price_per_pic ?? 0) }}</div>
+                                            <div class="font-weight-bold font-italic" style="font-size: 13px;">Tsh {{ number_format($variant->selling_price_per_pic ?? 0, 0) }}</div>
                                         </div>
                                         <div class="col p-2 bg-light-gray">
                                             <div class="small text-muted mb-1 text-uppercase font-weight-bold" style="font-size: 10px;">Glass/Tot</div>
-                                            <div class="font-weight-bold text-muted font-italic" style="font-size: 13px;">{{ $variant->can_sell_as_serving ? 'Tsh ' . number_format($variant->selling_price_per_serving) : 'N/A' }}</div>
+                                            <div class="font-weight-bold text-muted font-italic" style="font-size: 13px;">{{ $variant->can_sell_as_serving ? 'Tsh ' . number_format($variant->selling_price_per_serving, 0) : 'N/A' }}</div>
                                         </div>
                                     </div>
                                     @endif

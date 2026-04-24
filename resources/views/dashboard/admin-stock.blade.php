@@ -55,17 +55,17 @@
                             <div class="col-12 mb-2">
                                 <span class="d-block text-muted small uppercase">Selling Price</span>
                                 <span class="h6 font-weight-bold text-dark">
-                                    {{ $item['selling_price'] ? number_format($item['selling_price']) . ' TZS' : 'N/A' }}
+                                    {{ $item['selling_price'] ? number_format($item['selling_price'], 0) . ' TZS' : 'N/A' }}
                                 </span>
                             </div>
 
                             <div class="col-6 border-right">
                                 <small class="text-muted d-block uppercase">Sold (Global)</small>
                                 <span class="h5 {{ $item['total_sold'] > 0 ? 'text-primary' : 'text-muted' }}">
-                                    {{ number_format($item['total_sold']) }}
+                                    {{ (float) $item['total_sold'] }}
                                 </span>
                                 <small class="d-block text-success">
-                                    <i class="fa fa-money"></i> {{ number_format($item['generated_revenue']) }}
+                                    <i class="fa fa-money"></i> {{ number_format($item['generated_revenue'], 0) }}
                                 </small>
                             </div>
                             <div class="col-6">

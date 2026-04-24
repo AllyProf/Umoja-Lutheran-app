@@ -59,10 +59,10 @@
                     <td>{{ $receipt->supplier->name }}</td>
                     <td>{{ $receipt->quantity_received_packages }}</td>
                     <td>{{ number_format($receipt->total_bottles) }}</td>
-                    <td>{{ number_format($receipt->buying_price_per_bottle, 2) }} TSh/PIC</td>
-                    <td>{{ number_format($receipt->selling_price_per_bottle, 2) }} TSh/PIC</td>
-                    <td>{{ number_format($receipt->total_buying_cost, 2) }} TSh</td>
-                    <td class="text-success"><strong>{{ number_format($receipt->total_profit, 2) }} TSh</strong></td>
+                    <td>{{ number_format($receipt->buying_price_per_bottle, 0) }} TSh/PIC</td>
+                    <td>{{ number_format($receipt->selling_price_per_bottle, 0) }} TSh/PIC</td>
+                    <td>{{ number_format($receipt->total_buying_cost, 0) }} TSh</td>
+                    <td class="text-success"><strong>{{ number_format($receipt->total_profit, 0) }} TSh</strong></td>
                     <td>{{ $receipt->receivedBy->name ?? 'N/A' }}</td>
                     <td class="text-center">
                       <a href="{{ route('storekeeper.stock-receipts.download', $receipt->id) }}" target="_blank"

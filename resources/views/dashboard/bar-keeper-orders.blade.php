@@ -69,7 +69,8 @@
                                     <tr>
                                         <td>
                                             <div class="font-weight-bold">
-                                                {{ $order->completed_at ? $order->completed_at->format('M d, Y') : '-' }}</div>
+                                                {{ $order->completed_at ? $order->completed_at->format('M d, Y') : '-' }}
+                                            </div>
                                             <small
                                                 class="text-muted">{{ $order->completed_at ? $order->completed_at->format('H:i A') : '-' }}</small>
                                         </td>
@@ -113,7 +114,7 @@
                                                             "{{ $order->guest_request }}"</i></small></div>
                                             @endif
                                         </td>
-                                        <td>{{ $order->quantity }}</td>
+                                        <td>{{ (float) $order->quantity }}</td>
                                         <td>
                                             @php
                                                 $pStatus = strtoupper($order->payment_status ?? 'PENDING');
@@ -131,7 +132,8 @@
                                                 <span class="text-muted italic small">N/A</span>
                                             @endif
                                         </td>
-                                        <td class="text-right font-weight-bold">{{ number_format($order->total_price_tsh) }}
+                                        <td class="text-right font-weight-bold">
+                                            {{ number_format((float) $order->total_price_tsh, 0) }}
                                         </td>
                                     </tr>
                                 @empty

@@ -63,10 +63,10 @@
                                         @endphp
                                         <tr>
                                             <td><strong>{{ $item->item_name }}</strong></td>
-                                            <td>{{ number_format($item->quantity, 2) }} {{ $item->unit }}</td>
+                                            <td>{{ (float) $item->quantity }} {{ $item->unit }}</td>
                                             <td>
                                                 <span class="badge badge-secondary px-2">
-                                                    {{ number_format($item->qty_received, 2) }} {{ $item->unit ?: 'pkg' }}
+                                                    {{ (float) $item->qty_received }} {{ $item->unit ?: 'pkg' }}
                                                 </span>
                                             </td>
                                             <td>

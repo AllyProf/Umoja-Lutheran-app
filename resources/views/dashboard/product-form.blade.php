@@ -322,7 +322,7 @@
                                             class="purchase-unit-label">Crate</span>
                                     </label>
                                     <input type="number" class="form-control items-per-package-input"
-                                        name="variants[INDEX][items_per_package]" value="1" step="0.01">
+                                        name="variants[INDEX][items_per_package]" value="1" step="any">
                                 </div>
                             </div>
 
@@ -331,19 +331,19 @@
                                 <div class="row">
                                     <div class="col-md-4 form-group">
                                         <label class="small font-weight-bold text-dark text-uppercase">Buying Price</label>
-                                        <input type="number" step="0.01" class="form-control font-weight-bold"
+                                        <input type="number" step="any" class="form-control font-weight-bold"
                                             name="variants[INDEX][buying_price]" placeholder="TZS (Optional)">
                                     </div>
                                     <div class="col-md-4 form-group">
                                         <label class="small font-weight-bold text-dark text-uppercase">Selling Price</label>
-                                        <input type="number" step="0.01" class="form-control font-weight-bold text-primary"
+                                        <input type="number" step="any" class="form-control font-weight-bold text-primary"
                                             name="variants[INDEX][selling_price_per_pic]" placeholder="TZS (Optional)">
                                     </div>
                                     <div class="col-md-4 form-group drink-only-section serving-price-field"
                                         style="display: none;">
                                         <label class="small font-weight-bold text-dark text-uppercase">Glass/Shot
                                             Price</label>
-                                        <input type="number" step="0.01" class="form-control font-weight-bold text-info"
+                                        <input type="number" step="any" class="form-control font-weight-bold text-info"
                                             name="variants[INDEX][selling_price_per_serving]" placeholder="TZS (Optional)">
                                     </div>
                                 </div>

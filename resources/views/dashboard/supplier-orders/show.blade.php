@@ -39,7 +39,7 @@
                         </tr>
                         <tr>
                             <th>Total Amount:</th>
-                            <td class="text-primary h5">{{ number_format($supplierOrder->total_amount, 2) }} TZS</td>
+                            <td class="text-primary h5">{{ number_format($supplierOrder->total_amount, 0) }} TZS</td>
                         </tr>
                         <tr>
                             <th>Status:</th>
@@ -95,13 +95,13 @@
                         </tr>
                         <tr>
                             <th>Amount Paid:</th>
-                            <td class="text-success font-weight-bold">{{ number_format($supplierOrder->amount_paid, 2) }}
+                            <td class="text-success font-weight-bold">{{ number_format($supplierOrder->amount_paid, 0) }}
                                 TZS</td>
                         </tr>
                         <tr>
                             <th>Balance:</th>
                             <td class="text-danger font-weight-bold">
-                                {{ number_format($supplierOrder->total_amount - $supplierOrder->amount_paid, 2) }} TZS
+                                {{ number_format($supplierOrder->total_amount - $supplierOrder->amount_paid, 0) }} TZS
                             </td>
                         </tr>
                     </table>
@@ -123,6 +123,11 @@
                                     class="fa fa-paper-plane"></i> Send to
                                 Accountant</button>
                         </form>
+                    @endif
+
+                    @if(in_array($supplierOrder->status, ['verified_by_manager', 'closed', 'sent_to_accountant', 'sent_to_manager']) && auth()->guard('staff')->user()->role === 'storekeeper')
+                        <a href="{{ route('supplier-orders.edit', $supplierOrder->id) }}"
+                            class="btn btn-info btn-block mb-2"><i class="fa fa-edit"></i> Amend / Extend Items</a>
                     @endif
 
                     @if($supplierOrder->status === 'sent_to_accountant' && auth()->guard('staff')->user()->role === 'accountant')
@@ -188,9 +193,9 @@
                                 <tr>
                                     <td>{{ $index + 1 }}</td>
                                     <td>{{ $item->item_name }}</td>
-                                    <td class="text-center">{{ number_format($item->quantity, 2) }} {{ $item->unit }}</td>
+                                    <td class="text-center">{{ (float)$item->quantity }} {{ $item->unit }}</td>
                                     <td class="text-center font-weight-bold {{ (float) $item->qty_received >= (float) $item->quantity ? 'text-success' : 'text-info' }}">
-                                        {{ number_format($item->qty_received, 2) }} {{ $item->unit }}
+                                        {{ (float)$item->qty_received }} {{ $item->unit }}
                                     </td>
                                     <td class="text-center">
                                         @if((float) $item->qty_received >= (float) $item->quantity)
@@ -201,8 +206,8 @@
                                             <span class="badge badge-secondary">PENDING</span>
                                         @endif
                                     </td>
-                                    <td class="text-right">{{ number_format($item->unit_price, 2) }}</td>
-                                    <td class="text-right">{{ number_format($item->total_price, 2) }}</td>
+                                    <td class="text-right">{{ number_format($item->unit_price, 0) }}</td>
+                                    <td class="text-right">{{ number_format($item->total_price, 0) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -210,10 +215,10 @@
                             <tr class="font-weight-bold bg-light">
                                 @if($supplierOrder->order_type === 'lpo')
                                     <td colspan="4" class="text-right">TOTAL BUDGET BALANCE:</td>
-                                    <td colspan="3" class="text-success text-right h5">{{ number_format($supplierOrder->remaining_balance, 2) }} TZS</td>
+                                    <td colspan="3" class="text-success text-right h5">{{ number_format($supplierOrder->remaining_balance, 0) }} TZS</td>
                                 @else
                                     <td colspan="6" class="text-right">GRAND TOTAL:</td>
-                                    <td class="text-primary text-right">{{ number_format($supplierOrder->total_amount, 2) }} TZS</td>
+                                    <td class="text-primary text-right">{{ number_format($supplierOrder->total_amount, 0) }} TZS</td>
                                 @endif
                             </tr>
                         </tfoot>
@@ -236,7 +241,7 @@
                     <div class="modal-body">
                         <div class="alert alert-info py-2">
                             <strong>Balance to Settle:</strong>
-                            {{ number_format($supplierOrder->total_amount - $supplierOrder->amount_paid, 2) }} TZS
+                            {{ number_format($supplierOrder->total_amount - $supplierOrder->amount_paid, 0) }} TZS
                         </div>
                         <div class="form-group">
                             <label>Payment Amount (TZS)</label>
