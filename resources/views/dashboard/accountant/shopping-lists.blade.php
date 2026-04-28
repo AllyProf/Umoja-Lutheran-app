@@ -54,7 +54,7 @@
                             <thead class="thead-light">
                                 <tr>
                                     <th>#</th>
-                                    <th>List Name</th>
+                                    <th>Purchaser Name</th>
                                     <th>Estimated Cost</th>
                                     @if($tab !== 'pending')
                                         <th>Approved Budget</th>
@@ -84,11 +84,16 @@
                                         <td>
                                             @php
                                                 $badgeClass = 'secondary';
-                                                if($list->status === 'pending') $badgeClass = 'warning';
-                                                elseif($list->status === 'accountant_checked') $badgeClass = 'primary';
-                                                elseif($list->status === 'approved') $badgeClass = 'info';
-                                                elseif($list->status === 'ready_for_purchase') $badgeClass = 'warning';
-                                                elseif($list->status === 'completed') $badgeClass = 'success';
+                                                if ($list->status === 'pending')
+                                                    $badgeClass = 'warning';
+                                                elseif ($list->status === 'accountant_checked')
+                                                    $badgeClass = 'primary';
+                                                elseif ($list->status === 'approved')
+                                                    $badgeClass = 'info';
+                                                elseif ($list->status === 'ready_for_purchase')
+                                                    $badgeClass = 'warning';
+                                                elseif ($list->status === 'completed')
+                                                    $badgeClass = 'success';
                                             @endphp
                                             <span class="badge badge-{{ $badgeClass }}">
                                                 {{ strtoupper(str_replace('_', ' ', $list->status)) }}

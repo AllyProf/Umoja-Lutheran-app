@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Receiving Report - {{ $shoppingList->name }} - Umoja Lutheran Hostel</title>
+    <title>Receiving Report - Purchaser: {{ $shoppingList->name }} - Umoja Lutheran Hostel</title>
     <style>
         @media print {
             @page { margin: 0 !important; size: A4; }

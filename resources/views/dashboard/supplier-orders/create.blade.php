@@ -20,20 +20,6 @@
                 <div class="tile-body">
                     <form action="{{ route('supplier-orders.store') }}" method="POST">
                         @csrf
-                        <div class="form-group border-bottom pb-3 mb-3">
-                            <label class="control-label text-primary font-weight-bold">Link to LPO Budget (Optional)</label>
-                            <select name="lpo_id" class="form-control border-primary">
-                                <option value="">-- No Budget Link (Standalone Order) --</option>
-                                @foreach($lpos as $lpo)
-                                    <option value="{{ $lpo->id }}">
-                                        LPO #{{ $lpo->id }} ({{ $lpo->start_date->format('d M') }} -
-                                        {{ $lpo->end_date->format('d M') }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            <small class="form-text text-muted">Linking an LPO will deduct items from that specific
-                                budget.</small>
-                        </div>
 
                         <div class="form-group">
                             <label class="control-label">Supplier</label>

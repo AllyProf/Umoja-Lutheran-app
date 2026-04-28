@@ -188,7 +188,7 @@
     <div class="app-title">
         <div>
             <h1><i class="fa fa-pencil-square-o"></i> Finalize Purchases</h1>
-            <p>Record actual costs and quantities for <strong>{{ $shoppingList->name }}</strong></p>
+            <p>Record actual costs and quantities for Purchaser: <strong>{{ $shoppingList->name }}</strong></p>
         </div>
     </div>
 
@@ -329,7 +329,7 @@
                 $('tr.item-row').each(function () {
                     const row = $(this);
                     const isFound = row.find('.is-found-checkbox').prop('checked');
-                    
+
                     if (!isFound) {
                         missingCount++;
                         row.addClass('is-missing');
@@ -352,7 +352,7 @@
             $(document).on('input change', '.unit-price, .total-cost, .purchased-quantity, .is-found-checkbox', function () {
                 const row = $(this).closest('.item-row');
                 const qty = parseFloat(row.find('.purchased-quantity').val()) || 0;
-                
+
                 if ($(this).hasClass('unit-price')) {
                     const unitPrice = parseFloat($(this).val()) || 0;
                     if (qty > 0) row.find('.total-cost').val(Math.round(qty * unitPrice));
@@ -363,7 +363,7 @@
                     const unitPrice = parseFloat(row.find('.unit-price').val()) || 0;
                     if (qty > 0) row.find('.total-cost').val(Math.round(qty * unitPrice));
                 }
-                
+
                 calculateTotals();
             });
 
@@ -394,15 +394,15 @@
                                 'X-CSRF-TOKEN': $('input[name="_token"]').val()
                             }
                         })
-                        .then(response => {
-                            if (!response.ok) {
-                                return response.json().then(json => { throw new Error(json.message || 'Server error'); });
-                            }
-                            return response.json();
-                        })
-                        .catch(error => {
-                            Swal.showValidationMessage(`Request failed: ${error.message || error}`);
-                        });
+                            .then(response => {
+                                if (!response.ok) {
+                                    return response.json().then(json => { throw new Error(json.message || 'Server error'); });
+                                }
+                                return response.json();
+                            })
+                            .catch(error => {
+                                Swal.showValidationMessage(`Request failed: ${error.message || error}`);
+                            });
                     },
                     allowOutsideClick: () => !Swal.isLoading()
                 }).then((result) => {

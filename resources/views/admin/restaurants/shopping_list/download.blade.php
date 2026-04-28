@@ -297,7 +297,7 @@
         </div>
 
 
-        <div class="receipt-title">{{ $shoppingList->name }}</div>
+        <div class="receipt-title">Purchaser: {{ $shoppingList->name }}</div>
 
         <!-- Print Button -->
         <div class="print-button">
@@ -329,7 +329,7 @@
                 </thead>
                 <tbody>
                     @php 
-                                                                        $grandTotal = 0;
+                                                                                                $grandTotal = 0;
                         $actualTotal = 0;
 
                         // Consolidate identical items to save paper, but PRESERVE variants
@@ -394,54 +394,57 @@
                         });
                     @endphp
 
-                                   
-                    @foreach($sortedCategories as $categoryKey)
-                        @php $items = $itemsByCategory[$categoryKey]; @endphp
-                            <tr style="background-co lor: #94000010;">
-                                <td colspan="{{ $shoppingList->status === 'completed' ? '7' : '6' }}" style="font-weight: bold; color: #940000; py-1;">
-                                    {{ $items->first()['category_name'] }}
-                                </td>
-                            </tr>
-                             @foreach($items as $item)
-                                <tr cla ss="{{ ($shoppingList->status === 'completed' && !$item['is_found']) ? 'missing-row' : '' }}">
-                                    <td class="checkbox-cell">
-                                        @if($item['is_found'])
-                                            <span class="checkmark">✓</span>
-                                        @else
-                                            <span class="missi ng-mark">✕</span>
-                                        @endif
-                                    </td>
-                                     <td>
-                                    <strong>{{ $item['product_name'] }}</strong>
-                                    @if(isset($item['ingredient_name']) && $item['ingredient_name'])
 
-                                         <div style="font-size: 8px; color: #28a745; font-weight: bold;">Ingredient: {{ $item['ingredient_name'] }}</div>
-                                    @endif
-                                    <small class="text-muted">({{ implode(',', $item['departments']) }})</small>
-                                </td>
-                                    <td>{{ $item['category_name'] }}</td>
-                                    <td>
-                                        {{ number_format($item['quantity'], 0) }}
-                                        @if($item['received_quantity_kg'] > 0)
-                                            <div style="font-size: 8px; color: #940000; margin-top: 2px;">
-                                                <strong>{{ number_format($item['received_quantity_kg'], 2) }} KG</strong>
-                                            </div>
-                                        @endif
-                                    </td>
-                                    <td>{{ $item['unit'] == 'bottles' ? 'PIC' : $item['unit'] }}</td>
-                                    @if($shoppingList->status === 'completed')
-                                        <td style="text-align: right;">{{ number_format($item['estimated_price'], 0) }}</td>
-                                        <td style="text-align: right; font-weight: bold;">{{ number_format($item['purchased_cost'], 0) }}</td>
-                                    @else
-                                        <td style="text-align: right;">{{ number_format($item['estimated_price'], 0) }}</td>
-                                    @endif
-                                </tr>
-                                @php 
-                                                                                $grandTotal += $item['estimated_price'];
-                                    $actualTotal += $item['purchased_cost'];
-                                @endphp
-                            @endforeach
-                    @endforeach
+                                              
+
+                                       @foreach($sortedCategories as $categoryKey)
+                                        @php $items = $itemsByCategory[$categoryKey]; @endphp
+                                        <tr style="background-co lor: #94000010;">
+                                                <td colspan="{{ $shoppingList->status === 'completed' ? '7' : '6' }}" style="font-weight: bold; color: #940000; py-1;">
+                                                    {{ $items->first()['category_name'] }}
+                                                </td>
+                                             </tr>
+                                             @foreach($items as $item)
+                                                <tr cla ss="{{ ($shoppingList->status === 'completed' && !$item['is_found']) ? 'missing-row' : '' }}">
+                                                     <td class="checkbox-cell">
+                                                        @if($item['is_found'])
+                                                            <span class="checkmark">✓</span>
+                                                        @else
+                                                            <span class="missi ng-mark">✕</span>
+                                                        @endif
+                                                    </td>
+                                                     <td>
+                                                     <strong>{{ $item['product_name'] }}</strong>
+                                                    @if(isset($item['ingredient_name']) && $item['ingredient_name'])
+
+
+                                                          <div style="font-size: 8px; color: #28a745; font-weight: bold;">Ingredient: {{ $item['ingredient_name'] }}</div>
+                                                    @endif
+                                                    <small class="text-muted">({{ implode(',', $item['departments']) }})</small>
+                                                </td>
+                                                    <td>{{ $item['category_name'] }}</td>
+                                                    <td>
+                                                        {{ number_format($item['quantity'], 0) }}
+                                                        @if($item['received_quantity_kg'] > 0)
+                                                            <div style="font-size: 8px; color: #940000; margin-top: 2px;">
+                                                                <strong>{{ number_format($item['received_quantity_kg'], 2) }} KG</strong>
+                                                            </div>
+                                                        @endif
+                                                    </td>
+                                                    <td>{{ $item['unit'] == 'bottles' ? 'PIC' : $item['unit'] }}</td>
+                                                    @if($shoppingList->status === 'completed')
+                                                        <td style="text-align: right;">{{ number_format($item['estimated_price'], 0) }}</td>
+                                                        <td style="text-align: right; font-weight: bold;">{{ number_format($item['purchased_cost'], 0) }}</td>
+                                                    @else
+                                                        <td style="text-align: right;">{{ number_format($item['estimated_price'], 0) }}</td>
+                                                    @endif
+                                                </tr>
+                                                @php 
+                                                                                                                            $grandTotal += $item['estimated_price'];
+                                                    $actualTotal += $item['purchased_cost'];
+                                                @endphp
+                                            @endforeach
+                                    @endforeach
                 </tbody>
                 <tfoot>
                     <tr style="background-color: #f8f9fa; font-weight: bold;">

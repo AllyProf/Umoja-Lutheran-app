@@ -34,16 +34,13 @@ class SupplierOrderController extends Controller
     public function create()
     {
         $suppliers = Supplier::where('is_active', true)->get();
-        // Get active LPOs that are verified and not yet fully received/closed
-        $lpos = \App\Models\LocalPurchaseOrder::whereIn('status', ['verified_by_manager', 'closed'])->latest()->get();
-        return view('dashboard.supplier-orders.create', compact('suppliers', 'lpos'));
+        return view('dashboard.supplier-orders.create', compact('suppliers'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'supplier_id' => 'required|exists:suppliers,id',
-            'lpo_id' => 'nullable|exists:local_purchase_orders,id',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'notes' => 'nullable|string',
@@ -59,7 +56,6 @@ class SupplierOrderController extends Controller
 
         $order = SupplierWeeklyOrder::create([
             'supplier_id' => $request->supplier_id,
-            'lpo_id' => $request->lpo_id,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
             'notes' => $request->notes,

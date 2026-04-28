@@ -33,7 +33,7 @@
                         <table class="table table-hover table-bordered" id="shoppingTable">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
+                                    <th>Purchaser Name</th>
                                     <th>Market</th>
                                     <th>Date</th>
                                     <th>Items</th>
