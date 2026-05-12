@@ -2427,54 +2427,28 @@ class ReceptionController extends Controller
     }
 
     /**
-     * Show shift handovers (closures from Counter/Chef)
+     * View daily revenue handovers status
      */
-    public function shiftHandovers()
+    public function revenueHandovers()
     {
-        $role = $this->getRole();
-        $handovers = ShiftClosure::with(['staff', 'receiver'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        // Get summary of daily revenue from Day Services
+        $dayServices = \App\Models\DayService::select(
+            'service_date',
+            \Illuminate\Support\Facades\DB::raw('COUNT(id) as total_services'),
+            \Illuminate\Support\Facades\DB::raw('SUM(amount_paid) as total_revenue'),
+            \Illuminate\Support\Facades\DB::raw('MAX(cashier_collected_at) as collected_at'),
+            \Illuminate\Support\Facades\DB::raw('MAX(accountant_verified_at) as verified_at')
+        )
+            ->where('payment_status', 'paid')
+            ->groupBy('service_date')
+            ->orderByDesc('service_date')
+            ->paginate(15);
 
-        return view('dashboard.reception-shift-handovers', [
-            'handovers' => $handovers,
-            'role' => $role,
-            'userName' => auth()->user()->name ?? 'Staff',
-            'userRole' => $role === 'manager' ? 'Manager' : 'Reception',
-        ]);
-    }
-
-    /**
-     * Acknowledge/Receive a shift handover
-     */
-    public function acknowledgeShiftClosure(Request $request, ShiftClosure $shiftClosure)
-    {
-        $shiftClosure->update([
-            'status' => 'acknowledged',
-            'receiver_id' => Auth::guard('staff')->id(),
-            'notes' => $shiftClosure->notes . "\n[Received by Reception at " . now() . "]"
-        ]);
-
-        return redirect()->back()->with('success', 'Shift handover acknowledged successfully.');
-    }
-
-    /**
-     * View individual sales for a specific shift closure
-     */
-    public function viewShiftSales(ShiftClosure $shiftClosure)
-    {
-        $role = $this->getRole();
-        $sales = ServiceRequest::with(['service', 'booking.room'])
-            ->where('shift_closure_id', $shiftClosure->id)
-            ->orderBy('completed_at', 'desc')
-            ->get();
-
-        return view('dashboard.reception-shift-sales', [
-            'shiftClosure' => $shiftClosure,
-            'sales' => $sales,
-            'role' => $role,
-            'userName' => auth()->user()->name ?? 'Staff',
-            'userRole' => $role === 'manager' ? 'Manager' : 'Reception',
+        return view('dashboard.reception.revenue-handovers', [
+            'dayServices' => $dayServices,
+            'role' => 'reception',
+            'userName' => \Illuminate\Support\Facades\Auth::guard('staff')->user()->name ?? 'Receptionist',
+            'userRole' => 'Receptionist'
         ]);
     }
 }

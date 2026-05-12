@@ -49,7 +49,7 @@
   <li class="nav-item">
     <a class="nav-link {{ str_contains($activePage, 'bar-keeper/reports') ? 'active' : '' }}" 
        href="{{ route('bar-keeper.reports') }}">
-      <i class="fa fa-glass"></i> Bar & Drinks Reports
+      <i class="fa fa-glass"></i> Drinks & Beverages Reports
     </a>
   </li>
 
@@ -204,7 +204,7 @@
       <li class="nav-item">
         <a class="nav-link {{ str_contains($activePage, 'admin/reports/other/bar-sales-analysis') ? 'active' : '' }}" 
            href="{{ route('admin.reports.other.bar-sales-analysis') }}">
-          <i class="fa fa-glass"></i> Bar Sales Analysis
+          <i class="fa fa-glass"></i> Drinks Sales Analysis
         </a>
       </li>
       <li class="nav-item">

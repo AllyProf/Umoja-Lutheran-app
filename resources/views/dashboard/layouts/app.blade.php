@@ -721,6 +721,8 @@
                     $displayRole = 'storekeeper';
                   } elseif ($normalizedRole === 'accountant' || strtolower($rawRole) === 'accountant') {
                     $displayRole = 'accountant';
+                  } elseif ($normalizedRole === 'cashier' || strtolower($rawRole) === 'cashier') {
+                    $displayRole = 'cashier';
                   }
                 } elseif ($currentAuthUser instanceof \App\Models\Guest) {
                   $displayRole = 'customer';
@@ -736,6 +738,8 @@
                 echo 'Head Chef';
               } elseif ($displayRole === 'super_admin') {
                 echo 'Super Admin';
+              } elseif ($displayRole === 'cashier') {
+                echo 'Cashier';
               } else {
                 echo ucfirst($displayRole ?: 'Manager');
               }
@@ -776,6 +780,8 @@
                 $sessionRole = 'storekeeper';
               } elseif ($normalizedRole === 'accountant' || $rawRole === 'accountant') {
                 $sessionRole = 'accountant';
+              } elseif ($normalizedRole === 'cashier' || $rawRole === 'cashier') {
+                $sessionRole = 'cashier';
               }
             } elseif ($currentAuthUser instanceof \App\Models\Guest) {
               $sessionRole = 'customer';
@@ -816,6 +822,9 @@
           } elseif ($sidebarUserRole === 'accountant') {
             $sidebarRole = 'accountant';
             $sidebarFile = 'dashboard.partials.sidebar-accountant';
+          } elseif ($sidebarUserRole === 'cashier') {
+            $sidebarRole = 'cashier';
+            $sidebarFile = 'dashboard.partials.sidebar-cashier';
           } elseif ($sidebarUserRole === 'customer') {
             $sidebarRole = 'customer';
             $sidebarFile = 'dashboard.partials.sidebar-customer';

@@ -167,6 +167,15 @@ class Staff extends Authenticatable
     }
 
     /**
+     * Check if staff is cashier
+     */
+    public function isCashier(): bool
+    {
+        $normalizedRole = strtolower(trim($this->role ?? ''));
+        return $normalizedRole === 'cashier';
+    }
+
+    /**
      * Get department name based on role
      * Maps roles to departments: housekeeper -> Housekeeping, reception -> Reception, 
      * bar_keeper -> Bar, head_chef -> Food
@@ -195,6 +204,7 @@ class Staff extends Authenticatable
             'super admin' => 'Management',
             'storekeeper' => 'Store',
             'accountant' => 'Finance',
+            'cashier' => 'Finance',
         ];
 
         // Check exact match first

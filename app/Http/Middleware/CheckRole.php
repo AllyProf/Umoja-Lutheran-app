@@ -51,6 +51,8 @@ class CheckRole
                 $userRole = 'storekeeper';
             } elseif ($normalizedRole === 'accountant' || $rawRoleLower === 'accountant') {
                 $userRole = 'accountant';
+            } elseif ($normalizedRole === 'cashier' || $rawRoleLower === 'cashier') {
+                $userRole = 'cashier';
             }
         } elseif ($user instanceof \App\Models\Guest) {
             $userRole = 'customer'; // Guests are mapped to 'customer' role
@@ -87,16 +89,15 @@ class CheckRole
             }
 
             // Log for debugging
-            \Log::warning('CheckRole middleware blocked access - insufficient permissions', [
+            \Log::channel('daily')->warning('CheckRole middleware blocked access - insufficient permissions', [
                 'user_id' => $user->id ?? null,
-                'user_type' => get_class($user),
-                'raw_role' => $user instanceof \App\Models\Staff ? $user->role : null,
+                'user_role_field' => $user instanceof \App\Models\Staff ? $user->role : null,
                 'normalized_user_role' => $userRole,
                 'required_roles' => $normalizedRoles,
                 'route' => $routeName,
                 'url' => $request->url(),
-                'has_route_permission' => ($routeName && $user instanceof \App\Models\Staff) ? $user->hasPermission($routeName) : false,
             ]);
+
             abort(403, 'Access denied. You do not have permission to access this page.');
         }
 

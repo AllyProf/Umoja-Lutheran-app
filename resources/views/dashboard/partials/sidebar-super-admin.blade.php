@@ -75,6 +75,8 @@
         href="{{ route('admin.recipes.index') }}"><i class="icon fa fa-book"></i> Menu Recipes</a></li>
     <li><a class="treeview-item {{ str_contains($activePage, 'restaurant/food/orders') ? 'active' : '' }}"
         href="{{ route('admin.restaurants.kitchen.orders') }}"><i class="icon fa fa-bell"></i> Live Orders</a></li>
+    <li><a class="treeview-item {{ str_contains($activePage, 'bar-keeper/order-summary') ? 'active' : '' }}"
+        href="{{ route('bar-keeper.order-summary') }}"><i class="icon fa fa-bar-chart"></i> Order Summary</a></li>
   </ul>
 </li>
 

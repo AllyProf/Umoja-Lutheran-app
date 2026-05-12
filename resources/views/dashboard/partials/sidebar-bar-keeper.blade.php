@@ -42,6 +42,14 @@
     </a>
 </li>
 
+<li>
+    <a class="app-menu__item {{ str_contains($activePage, 'order-summary') ? 'active' : '' }}"
+        href="{{ route('bar-keeper.order-summary') }}">
+        <i class="app-menu__icon fa fa-bar-chart"></i>
+        <span class="app-menu__label">Order Summary</span>
+    </a>
+</li>
+
 {{-- 3. STOCK MANAGEMENT --}}
 <li class="treeview-item-header"
     style="padding: 10px 20px; color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-top: 10px;">

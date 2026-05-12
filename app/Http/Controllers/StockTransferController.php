@@ -18,6 +18,9 @@ class StockTransferController extends Controller
     {
         $user = Auth::guard('staff')->user();
         $role = strtolower($user->role ?? 'manager');
+        if ($role === 'manager' || $role === 'super_admin') {
+            $role = 'admin';
+        }
 
         $query = StockTransfer::with(['product', 'productVariant', 'transferredBy', 'receivedBy']);
 
@@ -68,6 +71,9 @@ class StockTransferController extends Controller
     {
         $user = Auth::guard('staff')->user();
         $role = strtolower($user->role ?? 'manager');
+        if ($role === 'manager' || $role === 'super_admin') {
+            $role = 'admin';
+        }
 
         $type = $request->query('type', 'drink');
 

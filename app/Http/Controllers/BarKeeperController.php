@@ -55,7 +55,7 @@ class BarKeeperController extends Controller
             ->orderBy('requested_at', 'desc')
             ->get();
 
-        // Get today's completed/paid sales for verification
+        // Get today's completed/paid sales for verification (Only self-approved)
         $completedSales = \App\Models\ServiceRequest::with(['booking.room', 'service'])
             ->where(function ($q) use ($barCategories) {
                 $q->whereHas('service', function ($query) use ($barCategories) {
@@ -64,6 +64,7 @@ class BarKeeperController extends Controller
             })
             ->where('status', 'completed')
             ->where('payment_status', 'paid')
+            ->where('approved_by', $user->id)
             ->whereDate('completed_at', now()->toDateString())
             ->orderBy('completed_at', 'desc')
             ->limit(50)
@@ -868,6 +869,95 @@ class BarKeeperController extends Controller
     }
 
     /**
+     * Order Summary – sold items per counter (self for bar_keeper, all for manager)
+     */
+    public function orderSummary(Request $request)
+    {
+        $user = Auth::guard('staff')->user();
+        $isManager = in_array(strtolower($user->role ?? ''), ['manager', 'super_admin']);
+
+        $barCategories = ['drinks', 'non_alcoholic_beverage', 'water', 'juices', 'energy_drinks', 'bar',
+            'beverage', 'soda', 'beverages', 'hot_beverages', 'soft_drinks', 'beers', 'wines', 'spirits',
+            'cocktails', 'liquor', 'food', 'restaurant', 'traditional', 'bites', 'snacks', 'chai', 'fruit_salad'];
+
+        // Date range filter (default = today)
+        $date     = $request->filled('date') ? \Carbon\Carbon::parse($request->date) : now();
+        $dateType = $request->input('date_type', 'daily');
+
+        if ($dateType === 'weekly') {
+            $startDate = $date->copy()->startOfWeek();
+            $endDate   = $date->copy()->endOfWeek();
+        } elseif ($dateType === 'monthly') {
+            $startDate = $date->copy()->startOfMonth();
+            $endDate   = $date->copy()->endOfMonth();
+        } else {
+            $startDate = $date->copy()->startOfDay();
+            $endDate   = $date->copy()->endOfDay();
+        }
+
+        // Base query builder (closure so we can reuse)
+        $baseQuery = function () use ($barCategories) {
+            return \App\Models\ServiceRequest::with(['service', 'booking.room', 'approvedBy', 'cancelledBy'])
+                ->where(function ($q) use ($barCategories) {
+                    $q->whereHas('service', fn($sq) => $sq->whereIn('category', $barCategories))
+                      ->orWhereIn('service_id', [3, 4]);
+                });
+        };
+
+        // ── Sold orders (completed + paid or pending payment after serve) ──
+        $soldQuery = $baseQuery()
+            ->whereIn('status', ['completed'])
+            ->whereBetween('completed_at', [$startDate, $endDate]);
+
+        if (!$isManager) {
+            $soldQuery->where('approved_by', $user->id);
+        }
+
+        $soldOrders = $soldQuery->orderBy('completed_at', 'desc')->get();
+
+        // ── Cancelled orders ──
+        $cancelledQuery = $baseQuery()
+            ->where('status', 'cancelled')
+            ->whereBetween('cancelled_at', [$startDate, $endDate]);
+
+        if (!$isManager) {
+            $cancelledQuery->where('cancelled_by', $user->id);
+        }
+
+        $cancelledOrders = $cancelledQuery->orderBy('cancelled_at', 'desc')->get();
+
+        // ── Group sold orders by counter (approved_by) ──
+        $byCounter = $soldOrders->groupBy(function ($o) {
+            return $o->approved_by ?? 0;
+        })->map(function ($group) {
+            $first = $group->first();
+            return [
+                'counter_name'  => $first->approvedBy->name ?? 'System / Walk-in',
+                'total_orders'  => $group->count(),
+                'total_revenue' => $group->sum('total_price_tsh'),
+                'paid_revenue'  => $group->where('payment_status', 'paid')->sum('total_price_tsh'),
+                'pending_revenue' => $group->where('payment_status', 'pending')->sum('total_price_tsh'),
+                'orders'        => $group,
+            ];
+        });
+
+        // ── Summary stats ──
+        $summary = [
+            'total_sold'      => $soldOrders->count(),
+            'total_revenue'   => $soldOrders->sum('total_price_tsh'),
+            'paid_revenue'    => $soldOrders->where('payment_status', 'paid')->sum('total_price_tsh'),
+            'pending_revenue' => $soldOrders->where('payment_status', 'pending')->sum('total_price_tsh'),
+            'total_cancelled' => $cancelledOrders->count(),
+        ];
+
+        return view('dashboard.bar-keeper-order-summary', compact(
+            'byCounter', 'cancelledOrders', 'summary',
+            'isManager', 'startDate', 'endDate', 'date', 'dateType'
+        ));
+    }
+
+
+    /**
      * Dedicated Stock Transfers Page
      */
     public function transfers(Request $request)
@@ -1409,9 +1499,7 @@ class BarKeeperController extends Controller
 
         $totalAmount = $items->sum('total_price_tsh');
         $walkInName = $serviceRequest->walk_in_name ?? 'General Walk-in';
-        $guestName = str_contains(strtolower($walkInName), 'walk-in') ? $walkInName : $walkInName; // Keep as is for guest name display
-        // Actually, just keep it clean
-        $guestName = $walkInName;
+        $guestName = str_ireplace('Walk-in ', '', $walkInName);
 
         return view('dashboard.print-walk-in-docket', compact('items', 'totalAmount', 'guestName', 'serviceRequest'));
     }
@@ -1462,6 +1550,11 @@ class BarKeeperController extends Controller
 
         // Determine Guest Name
         $guestName = $first->is_walk_in ? ($first->walk_in_name ?? 'General Guest') : ($first->booking->guest_name ?? 'Hotel Guest');
+        
+        // Clean up guest name for walk-ins (remove "Walk-in " prefix)
+        if ($first->is_walk_in) {
+            $guestName = str_ireplace('Walk-in ', '', $guestName);
+        }
 
         // Determine Requested By (Waiter or Bar)
         $requestedBy = 'Bar Keeper';
@@ -1578,7 +1671,7 @@ class BarKeeperController extends Controller
             'total_other_tzs' => $totalOther,
             'amount_submitted_tzs' => $amountSubmitted,
             'difference_tzs' => $difference,
-            'status' => 'pending_reception',
+            'status' => 'pending_cashier',
             'notes' => $request->notes
         ]);
 
@@ -1587,7 +1680,7 @@ class BarKeeperController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Shift imefungwa vizuri. Tafadhali kabidhi hela Reception.',
+            'message' => 'Shift imefungwa vizuri. Tafadhali kabidhi hela kwa Cashier.',
             'closure' => $activeShift
         ]);
     }

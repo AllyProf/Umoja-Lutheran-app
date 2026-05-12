@@ -114,9 +114,9 @@
         <li><a class="treeview-item" href="{{ route('accountant.payments', ['tab' => 'verified']) }}">
                 <i class="icon fa fa-check-square"></i> Verified Shopping Lists
             </a></li>
-        <li><a class="treeview-item {{ str_contains($activePage, 'day-services/revenue') || str_contains($activePage, 'day-services/verify-day') ? 'active' : '' }}"
-                href="{{ route('accountant.day-services.revenue') }}">
-                <i class="icon fa fa-car"></i> Day Services Revenue
+        <li><a class="treeview-item {{ str_contains($activePage, 'cashier-collections') ? 'active' : '' }}"
+                href="{{ route('accountant.cashier-collections') }}">
+                <i class="icon fa fa-bank"></i> Cashier Collections
             </a></li>
     </ul>
 </li>

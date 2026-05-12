@@ -19,7 +19,7 @@
     <i class="treeview-indicator fa fa-angle-right"></i>
   </a>
   <ul class="treeview-menu">
-     <li><a class="treeview-item {{ str_contains($activePage, 'bar-keeper/reports') ? 'active' : '' }}" href="{{ route('bar-keeper.reports') }}"><i class="icon fa fa-glass"></i> Bar Report</a></li>
+     <li><a class="treeview-item {{ str_contains($activePage, 'bar-keeper/reports') ? 'active' : '' }}" href="{{ route('bar-keeper.reports') }}"><i class="icon fa fa-glass"></i> Drinks Report</a></li>
      <li><a class="treeview-item {{ str_contains($activePage, 'chef-master/reports') ? 'active' : '' }}" href="{{ route('chef-master.reports') }}"><i class="icon fa fa-cutlery"></i> Kitchen Report</a></li>
      <li><a class="treeview-item {{ str_contains($activePage, 'housekeeper/reports') ? 'active' : '' }}" href="{{ route('housekeeper.reports') }}"><i class="icon fa fa-bed"></i> Housekeeping Report</a></li>
   </ul>

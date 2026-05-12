@@ -268,6 +268,8 @@ class PurchaseRequestController extends Controller
             $routePrefix = 'chef-master';
         } elseif (in_array($normalizedRole, ['storekeeper', 'store_keeper'])) {
             $routePrefix = 'store-keeper';
+        } elseif (in_array($normalizedRole, ['manager', 'superadmin'])) {
+            $routePrefix = 'admin';
         }
 
         return view('dashboard.purchase-request-emergency', compact('routePrefix'));
@@ -367,6 +369,8 @@ class PurchaseRequestController extends Controller
             $routePrefix = 'bar-keeper';
         } elseif (in_array($normalizedRole, ['headchef', 'head_chef', 'head chef', 'chef'])) {
             $routePrefix = 'chef-master';
+        } elseif (in_array($normalizedRole, ['manager', 'superadmin'])) {
+            $routePrefix = 'admin';
         }
 
         return view('dashboard.purchase-requests-my', compact('requests', 'itemsToReceive', 'routePrefix'));
@@ -405,6 +409,8 @@ class PurchaseRequestController extends Controller
             $routePrefix = 'bar-keeper';
         } elseif (in_array($normalizedRole, ['headchef', 'head_chef', 'head chef', 'chef'])) {
             $routePrefix = 'chef-master';
+        } elseif (in_array($normalizedRole, ['manager', 'superadmin'])) {
+            $routePrefix = 'admin';
         }
 
         return view('dashboard.purchase-requests-history', compact('requests', 'receivedItems', 'routePrefix'));
@@ -1061,6 +1067,8 @@ class PurchaseRequestController extends Controller
                 ->get();
         } elseif (in_array($normalizedRole, ['headchef', 'head_chef', 'head chef', 'chef'])) {
             $routePrefix = 'chef-master';
+        } elseif (in_array($normalizedRole, ['manager', 'superadmin'])) {
+            $routePrefix = 'admin';
         }
 
         return view('dashboard.purchase-request-templates', compact('templates', 'routePrefix', 'products'));

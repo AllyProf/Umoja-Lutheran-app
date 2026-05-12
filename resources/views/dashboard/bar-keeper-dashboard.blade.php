@@ -134,8 +134,15 @@
       <div class="tile">
         <div class="tile-title-w-btn">
           <h3 class="title">Pending Guest Orders</h3>
-          <button class="btn btn-primary {{ !$activeShift ? 'disabled' : '' }}" {{ !$activeShift ? 'disabled' : '' }}
-            onclick="openWalkInModal()"><i class="fa fa-plus"></i> New Walk-in Sale</button>
+          <div class="btn-group">
+            @if(in_array(strtolower(auth()->guard('staff')->user()->role ?? ''), ['manager', 'super_admin']))
+              <a href="{{ route('bar-keeper.order-summary') }}" class="btn btn-info mr-2">
+                <i class="fa fa-bar-chart"></i> View Order Summary
+              </a>
+            @endif
+            <button class="btn btn-primary {{ !$activeShift ? 'disabled' : '' }}" {{ !$activeShift ? 'disabled' : '' }}
+              onclick="openWalkInModal()"><i class="fa fa-plus"></i> New Walk-in Sale</button>
+          </div>
         </div>
 
         @if($pendingOrders->count() > 0)
@@ -558,7 +565,7 @@
               class="btn btn-info btn-block p-4 shadow-sm h-100 d-flex flex-column align-items-center justify-content-center {{ !$activeShift ? 'disabled' : '' }}"
               {{ !$activeShift ? 'onclick="return false;"' : '' }}>
               <i class="fa fa-cubes fa-2x mb-2"></i>
-              <span>Bar Inventory</span>
+              <span>Inventory</span>
             </a>
           </div>
           <div class="col-md-3 mb-3">
@@ -776,15 +783,11 @@
                   <span class="font-weight-bold text-primary h5 mb-0" id="posTotalAmount">0 TZS</span>
                 </div>
 
-                {{-- Print Kitchen Docket Button --}}
-                <button class="btn btn-warning btn-block mb-2 shadow-sm py-2" onclick="printKitchenDocket()"
-                  id="btnPrintDocket" disabled>
-                  <i class="fa fa-print mr-1"></i> <strong>PRINT KITCHEN DOCKET</strong>
-                </button>
+
 
                 <button class="btn btn-success btn-lg btn-block shadow-sm py-3" onclick="processWalkInCheckout()"
                   id="btnConfirmSale" disabled>
-                  <i class="fa fa-check-circle mr-1"></i> <strong>RECORD WALK-IN ORDER</strong>
+                  <i class="fa fa-print mr-1"></i> <strong>PLACE ORDER & PRINT DOCKET</strong>
                 </button>
               </div>
             </div>
@@ -1054,10 +1057,10 @@
       // If it's for a ceremony, update title/label
       if (dayServiceId) {
         document.getElementById('posModalTitle').innerText = 'Record Usage: ' + residentName;
-        document.getElementById('btnConfirmSale').innerHTML = '<i class="fa fa-check-circle mr-1"></i> <strong>RECORD CEREMONY USAGE</strong>';
+        document.getElementById('btnConfirmSale').innerHTML = '<i class="fa fa-print mr-1"></i> <strong>PLACE ORDER & PRINT DOCKET</strong>';
       } else {
         document.getElementById('posModalTitle').innerText = 'New Walk-in Order';
-        document.getElementById('btnConfirmSale').innerHTML = '<i class="fa fa-check-circle mr-1"></i> <strong>RECORD WALK-IN ORDER</strong>';
+        document.getElementById('btnConfirmSale').innerHTML = '<i class="fa fa-print mr-1"></i> <strong>PLACE ORDER & PRINT DOCKET</strong>';
       }
 
       renderPosCart();
@@ -1152,13 +1155,11 @@
       const list = document.getElementById('posCartList');
       const totalEl = document.getElementById('posTotalAmount');
       const btn = document.getElementById('btnConfirmSale');
-      const docketBtn = document.getElementById('btnPrintDocket');
 
       if (posCart.length === 0) {
         list.innerHTML = `<div class="text-center text-muted mt-5"><i class="fa fa-shopping-basket fa-3x mb-2"></i><p>Cart is empty</p></div>`;
         totalEl.innerText = '0 TZS';
         btn.disabled = true;
-        if (docketBtn) docketBtn.disabled = true;
         return;
       }
 
@@ -1195,7 +1196,6 @@
       list.innerHTML = html;
       totalEl.innerText = `${total.toLocaleString()} TZS`;
       btn.disabled = false;
-      if (docketBtn) docketBtn.disabled = false;
     }
 
     function printKitchenDocket() {
@@ -1209,29 +1209,26 @@
       const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       const dateStr = now.toLocaleDateString('en-GB');
 
-      let rows = '';
-      posCart.forEach(item => {
-        rows += `<tr>
-                  <td style="padding:10px 0; font-size:26px; font-weight:900; width:50px; border-bottom:2px solid #000;">${item.qty}x</td>
-                  <td style="padding:10px 0; font-size:26px; font-weight:900; border-bottom:2px solid #000;">${item.name}</td>
-                </tr>`;
-      });
+
 
       const docketHtml = `<!DOCTYPE html>
                     <html><head>
                     <meta charset="UTF-8"><title>Kitchen Docket</title>
                     <style>
                       * { margin:0; padding:0; box-sizing:border-box; color:#000 !important; }
-                      body { font-family:'Courier New',monospace; width:80mm; padding:5px; color:#000; background:#fff; font-weight:900 !important; }
+                      body { font-family:'Courier New',monospace; width:100%; max-width: 75mm; padding:2mm; color:#000; background:#fff; font-weight:900 !important; overflow-x: hidden; }
                       .center { text-align:center; }
                       .divider { border-top:4px dashed #000; margin:10px 0; }
-                      .hotel { font-size:18px; font-weight:900; border: 2px solid #000; padding: 2px; }
-                      .title { font-size:24px; font-weight:900; margin:8px 0; letter-spacing:2px; border: 3px solid #000; }
-                      .info { font-size:16px; margin:5px 0; font-weight:900; }
-                      table { width:100%; border-collapse:collapse; margin-top:10px; }
-                      td { vertical-align:top; border-bottom: 2px solid #000; }
-                      .footer { font-size:16px; margin-top:15px; font-weight:900; text-transform: uppercase; }
-                      @media print { body { margin:0; padding:5mm; } }
+                      .hotel { font-size:16px; font-weight:900; border: 2px solid #000; padding: 2px; }
+                      .title { font-size:20px; font-weight:900; margin:8px 0; letter-spacing:1px; border: 3px solid #000; }
+                      .info { font-size:14px; margin:5px 0; font-weight:900; }
+                      table { width:100%; border-collapse:collapse; margin-top:10px; table-layout: fixed; }
+                      td { vertical-align:top; border-bottom: 2px solid #000; word-wrap: break-word; }
+                      .footer { font-size:14px; margin-top:15px; font-weight:900; text-transform: uppercase; }
+                      @media print { 
+                        body { margin:0; padding:2mm; width: 100%; }
+                        @page { margin: 0; }
+                      }
                     </style>
                     </head>
                     <body>
@@ -1243,7 +1240,16 @@
                       <div class="info">Guest : <strong>${guestName}</strong></div>
                       <div class="info">Time  : ${timeStr} &nbsp;&nbsp; Date: ${dateStr}</div>
                       <div class="divider"></div>
-                      <table><tbody>${rows}</tbody></table>
+                      <table>
+                        <tbody>
+                          ${posCart.map(item => `
+                            <tr>
+                              <td style="padding:8px 0; font-size:22px; font-weight:900; width:45px;">${item.qty}x</td>
+                              <td style="padding:8px 0; font-size:22px; font-weight:900;">${item.name}</td>
+                            </tr>
+                          `).join('')}
+                        </tbody>
+                      </table>
                       <div class="divider"></div>
                       <div class="center footer">-- Tafadhali andaa haraka --</div>
                     </body></html>`;
@@ -1325,6 +1331,9 @@
       });
 
       if (!confirm.isConfirmed) return;
+
+      // Print docket automatically
+      printKitchenDocket();
 
       $('#walkInModal').modal('hide');
       Swal.fire({

@@ -18,6 +18,9 @@ class StockReceiptController extends Controller
     {
         $user = Auth::guard('staff')->user();
         $role = strtolower($user->role ?? 'manager');
+        if ($role === 'manager' || $role === 'super_admin') {
+            $role = 'admin';
+        }
 
         $query = StockReceipt::with(['product', 'productVariant', 'supplier', 'receivedBy']);
 
@@ -69,6 +72,9 @@ class StockReceiptController extends Controller
     {
         $user = Auth::guard('staff')->user();
         $role = strtolower($user->role ?? 'manager');
+        if ($role === 'manager' || $role === 'super_admin') {
+            $role = 'admin';
+        }
         $type = $request->type;
 
         $query = Product::where('is_active', true);

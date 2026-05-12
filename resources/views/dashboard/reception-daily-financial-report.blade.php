@@ -163,7 +163,7 @@
 
             <!-- Section 2: Service Requests -->
             <div class="mt-4">
-                <h5>2. Extra Services (Restaurant / Bar / Walk-in)</h5>
+                <h5>2. Extra Services (Restaurant / Drinks / Walk-in)</h5>
                 <table class="table table-sm table-bordered">
                     <thead class="thead-light">
                         <tr>

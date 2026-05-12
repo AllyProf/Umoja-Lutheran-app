@@ -99,51 +99,30 @@
         style="padding: 10px 20px; color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-top: 10px;">
         Kitchen & Restaurant</li>
     <li
-        class="treeview {{ (str_contains($activePage, 'restaurant/food') || str_contains($activePage, 'recipes') || str_contains($activePage, 'shopping-list') || str_contains($activePage, 'restaurant-reports')) ? 'is-expanded' : '' }}">
+        class="treeview {{ (str_contains($activePage, 'restaurant') || str_contains($activePage, 'recipes') || str_contains($activePage, 'bar-keeper') || str_contains($activePage, 'products')) ? 'is-expanded' : '' }}">
         <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-cutlery"></i><span
-                class="app-menu__label">Food Operations</span><i class="treeview-indicator fa fa-angle-right"></i></a>
+                class="app-menu__label">Kitchen & Restaurant</span><i class="treeview-indicator fa fa-angle-right"></i></a>
         <ul class="treeview-menu">
             <li><a class="treeview-item" href="{{ route('admin.recipes.index') }}"><i class="icon fa fa-book"></i> Menu
                     Recipes</a></li>
             <li><a class="treeview-item" href="{{ route('chef-master.inventory') }}"><i class="icon fa fa-cubes"></i>
                     Kitchen Inventory</a></li>
-            <li><a class="treeview-item" href="{{ route('admin.restaurants.kitchen.orders') }}"><i
-                        class="icon fa fa-bell"></i> Live Orders</a></li>
-            <li class="treeview-divider"></li>
-            <li><a class="treeview-item" href="{{ route('admin.restaurants.shopping-list.index') }}"><i
-                        class="icon fa fa-shopping-basket"></i> Shopping Lists</a></li>
-            <li class="treeview-divider"></li>
-            <li><a class="treeview-item" href="{{ route('admin.restaurants.reports') }}"><i
-                        class="icon fa fa-bar-chart"></i> Restaurant Sales</a></li>
-        </ul>
-    </li>
-
-    {{-- 3. BAR & DRINKS --}}
-    <li class="treeview-item-header"
-        style="padding: 10px 20px; color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-top: 10px;">
-        Bar Operations</li>
-    <li
-        class="treeview {{ (str_contains($activePage, 'restaurants/products') && request('type') == 'drink') || str_contains($activePage, 'bar-keeper') ? 'is-expanded' : '' }}">
-        <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-glass"></i><span
-                class="app-menu__label">Bar & Drinks</span><i class="treeview-indicator fa fa-angle-right"></i></a>
-        <ul class="treeview-menu">
-            <li><a class="treeview-item" href="{{ route('bar-keeper.stock.index') }}"><i class="icon fa fa-cubes"></i> Bar
-                    Stock</a></li>
+            <li><a class="treeview-item" href="{{ route('bar-keeper.stock.index') }}"><i class="icon fa fa-cubes"></i>
+                    Inventory</a></li>
             <li><a class="treeview-item" href="{{ route('admin.products.index', ['type' => 'drink']) }}"><i
                         class="icon fa fa-list-alt"></i> Product Registry</a></li>
             <li class="treeview-divider"></li>
-            <li class="treeview {{ str_contains($activePage, 'stock-requests') ? 'is-expanded' : '' }}">
-                <a class="treeview-item" href="#" data-toggle="treeview"><i class="icon fa fa-paper-plane"></i> Stock
-                    Requests <i class="treeview-indicator fa fa-angle-right"></i></a>
-                <ul class="treeview-menu">
-                    <li><a class="treeview-item" href="{{ route('stock-requests.index', ['type' => 'drink']) }}"><i
-                                class="fa fa-glass"></i> Counter Requests</a></li>
-                    <li><a class="treeview-item" href="{{ route('stock-requests.index', ['type' => 'food']) }}"><i
-                                class="fa fa-cutlery"></i> Chef Request</a></li>
-                    <li><a class="treeview-item" href="{{ route('stock-requests.index', ['type' => 'housekeeping']) }}"><i
-                                class="fa fa-bed"></i> Housekeeping</a></li>
-                </ul>
-            </li>
+            <li><a class="treeview-item" href="{{ route('admin.restaurants.kitchen.orders') }}"><i
+                        class="icon fa fa-bell"></i> Live Orders</a></li>
+            <li><a class="treeview-item {{ str_contains($activePage, 'bar-keeper/order-summary') ? 'active' : '' }}"
+                   href="{{ route('bar-keeper.order-summary') }}">
+                   <i class="icon fa fa-bar-chart"></i> Order Summary
+               </a></li>
+            <li class="treeview-divider"></li>
+            <li><a class="treeview-item" href="{{ route('admin.restaurants.shopping-list.index') }}"><i
+                        class="icon fa fa-shopping-basket"></i> Shopping Lists</a></li>
+            <li><a class="treeview-item" href="{{ route('admin.restaurants.reports') }}"><i
+                        class="icon fa fa-bar-chart"></i> Restaurant Sales</a></li>
         </ul>
     </li>
 
@@ -242,7 +221,9 @@
         <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-clipboard"></i><span
                 class="app-menu__label">Daily Stock Sheets</span><i class="treeview-indicator fa fa-angle-right"></i></a>
         <ul class="treeview-menu">
-            <li><a class="treeview-item" href="{{ route('bar-keeper.reports') }}"><i class="icon fa fa-glass"></i> Bar
+            <li><a class="treeview-item" href="{{ route('bar-keeper.order-summary') }}"><i class="icon fa fa-bar-chart"></i>
+                    Order Summary</a></li>
+            <li><a class="treeview-item" href="{{ route('bar-keeper.reports') }}"><i class="icon fa fa-glass"></i> Drinks
                     Report</a></li>
             <li><a class="treeview-item" href="{{ route('chef-master.reports') }}"><i class="icon fa fa-cutlery"></i>
                     Kitchen Report</a></li>
@@ -259,28 +240,8 @@
             <li><a class="treeview-item" href="{{ route('admin.low-stock') }}"><i
                         class="icon fa fa-exclamation-triangle"></i>
                     Low Stock Alerts</a></li>
-            <li><a class="treeview-item" href="{{ route('admin.housekeeping-inventory') }}"><i class="icon fa fa-bed"></i>
-                    Housekeeping Stock</a></li>
             <li><a class="treeview-item" href="{{ route('admin.suppliers.index') }}"><i class="icon fa fa-truck"></i>
                     Suppliers Directory</a></li>
-            <li class="treeview-divider"></li>
-
-            <li class="treeview {{ str_contains($activePage, 'stock-receipts') ? 'is-expanded' : '' }}">
-                <a class="treeview-item" href="#" data-toggle="treeview"><i class="icon fa fa-inbox"></i> Record Receipts <i
-                        class="treeview-indicator fa fa-angle-right"></i></a>
-                <ul class="treeview-menu">
-                    <li><a class="treeview-item" href="{{ route('admin.stock-receipts.create', ['type' => 'drink']) }}"><i
-                                class="fa fa-glass"></i> Beverage</a></li>
-                    <li><a class="treeview-item" href="{{ route('admin.stock-receipts.create', ['type' => 'food']) }}"><i
-                                class="fa fa-cutlery"></i> Kitchen</a></li>
-                    <li><a class="treeview-item"
-                            href="{{ route('admin.stock-receipts.create', ['type' => 'housekeeping']) }}"><i
-                                class="fa fa-bed"></i> Housekeeping</a></li>
-                </ul>
-            </li>
-            <li><a class="treeview-item" href="{{ route('admin.purchase-reports.index') }}"><i
-                        class="icon fa fa-file-text"></i> Purchase Analysis</a></li>
-            <li class="treeview-divider"></li>
             <li><a class="treeview-item" href="{{ route('admin.restaurants.shopping-list.transfers') }}"><i
                         class="icon fa fa-exchange"></i> Stock Transfers</a></li>
         </ul>

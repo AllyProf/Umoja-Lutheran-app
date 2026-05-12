@@ -493,6 +493,10 @@ class DayServiceController extends Controller
             $query->where('payment_status', $request->payment_status);
         }
 
+        if ($request->filled('date')) {
+            $query->where('service_date', $request->date);
+        }
+
         if ($request->filled('date_from')) {
             $query->where('service_date', '>=', $request->date_from);
         }

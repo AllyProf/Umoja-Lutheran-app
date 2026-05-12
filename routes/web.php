@@ -127,7 +127,7 @@ Route::prefix('manager')->group(function () {
     });
 
     // Shared management routes (accessible by manager and reception)
-    Route::middleware(['check.auth', 'role:manager,reception,super_admin,accountant,storekeeper'])->group(function () {
+    Route::middleware(['check.auth', 'role:manager,reception,super_admin,accountant,storekeeper,cashier'])->group(function () {
         // Payments (Common access)
         Route::get('/payments', [\App\Http\Controllers\AdminController::class, 'payments'])->name('admin.payments');
         Route::get('/payments/reports', [\App\Http\Controllers\AdminController::class, 'paymentReports'])->name('admin.payments.reports');
@@ -222,7 +222,7 @@ Route::prefix('manager')->group(function () {
     }); // end of shared manager/reception middleware group
 
     // Shared management routes (accessible by manager and reception) - continued
-    Route::middleware(['check.auth', 'role:manager,reception,super_admin,accountant,storekeeper'])->group(function () {
+    Route::middleware(['check.auth', 'role:manager,reception,super_admin,accountant,storekeeper,cashier'])->group(function () {
         // Room Issues management
         Route::get('/room-issues', [\App\Http\Controllers\HousekeeperController::class, 'roomIssues'])->name('admin.rooms.issues');
         Route::post('/room-issues/{issue}/update-status', [\App\Http\Controllers\HousekeeperController::class, 'updateIssueStatus'])->name('admin.rooms.issues.update-status');
@@ -339,7 +339,7 @@ Route::prefix('manager')->group(function () {
     });
 
     // Mirror Bookings and common operations for Reception and Manager
-    Route::middleware(['check.auth', 'role:manager,reception,super_admin,accountant,storekeeper'])->group(function () {
+    Route::middleware(['check.auth', 'role:manager,reception,super_admin,accountant,storekeeper,cashier'])->group(function () {
         // Search routes for returning guests and companies
         Route::get('/bookings/search/guests', [BookingController::class, 'searchGuests'])->name('admin.bookings.search.guests');
         Route::get('/bookings/search/companies', [BookingController::class, 'searchCompanies'])->name('admin.bookings.search.companies');
@@ -552,7 +552,7 @@ Route::prefix('reception')->group(function () {
 
     // Protected routes (require authentication)
     // Use 'check.auth' instead of 'auth' to support custom guards (staff/guest)
-    Route::middleware(['check.auth', 'role:reception,manager,accountant'])->group(function () {
+    Route::middleware(['check.auth', 'role:reception,manager,accountant,cashier'])->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\ServiceRequestController::class, 'receptionDashboard'])->name('reception.dashboard');
 
         Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'show'])->name('reception.profile');
@@ -578,6 +578,7 @@ Route::prefix('reception')->group(function () {
         Route::get('/payments', [\App\Http\Controllers\ReceptionController::class, 'payments'])->name('reception.payments');
         Route::get('/reports', [\App\Http\Controllers\ReceptionController::class, 'reports'])->name('reception.reports');
         Route::get('/reports/financial', [\App\Http\Controllers\ReceptionController::class, 'dailyFinancialReport'])->name('reception.reports.financial');
+        Route::get('/revenue-handovers', [\App\Http\Controllers\ReceptionController::class, 'revenueHandovers'])->name('reception.revenue-handovers');
 
         // Reception Booking Operations
         Route::get('/bookings/manual/create', [\App\Http\Controllers\BookingController::class, 'createManual'])->name('reception.bookings.manual.create');
@@ -649,10 +650,6 @@ Route::prefix('reception')->group(function () {
         Route::post('/bookings/checkout-company-group/{company}', [\App\Http\Controllers\ReceptionController::class, 'checkoutCompanyGroup'])->name('reception.bookings.checkout-company-group');
         Route::post('/bookings/checkout-company-payment/{company}', [\App\Http\Controllers\ReceptionController::class, 'processCompanyPayment'])->name('reception.bookings.checkout-company-payment');
 
-        // Shift Handovers
-        Route::get('/shift-handovers', [\App\Http\Controllers\ReceptionController::class, 'shiftHandovers'])->name('reception.shift-handovers');
-        Route::get('/shift-handovers/{shiftClosure}/sales', [\App\Http\Controllers\ReceptionController::class, 'viewShiftSales'])->name('reception.shift-handovers.sales');
-        Route::post('/shift-handovers/{shiftClosure}/acknowledge', [\App\Http\Controllers\ReceptionController::class, 'acknowledgeShiftClosure'])->name('reception.shift-handovers.acknowledge');
     });
 
     // Checkout Bill (Reception Operations)
@@ -775,6 +772,7 @@ Route::prefix('bar-keeper')->group(function () {
         Route::post('/orders/{serviceRequest}/cancel', [\App\Http\Controllers\BarKeeperController::class, 'cancelOrder'])->name('bar-keeper.orders.cancel');
         Route::get('/orders/{serviceRequest}/print-docket', [\App\Http\Controllers\BarKeeperController::class, 'printDocket'])->name('bar-keeper.orders.print-docket');
         Route::get('/orders/print-group', [\App\Http\Controllers\BarKeeperController::class, 'printGroupDocket'])->name('bar-keeper.orders.print-group');
+        Route::get('/order-summary', [\App\Http\Controllers\BarKeeperController::class, 'orderSummary'])->name('bar-keeper.order-summary');
 
         // Reports
         Route::get('/reports', [\App\Http\Controllers\BarKeeperController::class, 'reports'])->name('bar-keeper.reports');
@@ -1013,8 +1011,34 @@ Route::middleware(['auth:staff', 'role:accountant,manager,super_admin'])->prefix
 
     // Reports
     Route::get('/reports', [\App\Http\Controllers\AccountantController::class, 'reports'])->name('accountant.reports');
+    
+    // Cashier Collections Verification
+    Route::get('/cashier-collections', [\App\Http\Controllers\AccountantController::class, 'cashierCollections'])->name('accountant.cashier-collections');
+    Route::post('/cashier-collections/shift/{shiftClosure}/acknowledge', [\App\Http\Controllers\AccountantController::class, 'acknowledgeCashierShift'])->name('accountant.cashier.shift.acknowledge');
+    Route::post('/cashier-collections/day-revenue/verify', [\App\Http\Controllers\AccountantController::class, 'verifyCashierDayRevenue'])->name('accountant.cashier.day_revenue.verify');
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('accountant.logout');
+});
+
+// Cashier Role Routes
+Route::middleware(['auth:staff', 'role:cashier,manager,super_admin'])->prefix('cashier')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\CashierController::class, 'dashboard'])->name('cashier.dashboard');
+    Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'show'])->name('cashier.profile');
+
+    // Shift Handovers (from Counter/Restaurant)
+    Route::get('/shift-handovers', [\App\Http\Controllers\CashierController::class, 'shiftHandovers'])->name('cashier.shift-handovers');
+    Route::get('/shift-handovers/{shiftClosure}/sales', [\App\Http\Controllers\CashierController::class, 'viewShiftSales'])->name('cashier.shift-handovers.sales');
+    Route::post('/shift-handovers/{shiftClosure}/acknowledge', [\App\Http\Controllers\CashierController::class, 'acknowledgeShiftClosure'])->name('cashier.shift-handovers.acknowledge');
+
+    // Reception Revenue Collections
+    Route::get('/reception/collections', [\App\Http\Controllers\CashierController::class, 'receptionCollections'])->name('cashier.reception.collections');
+    Route::post('/reception/verify-day', [\App\Http\Controllers\CashierController::class, 'verifyReceptionRevenue'])->name('cashier.reception.verify-day');
+
+    // Accountant Handovers
+    Route::get('/accountant/handovers', [\App\Http\Controllers\CashierController::class, 'accountantHandovers'])->name('cashier.accountant.handovers');
+    Route::post('/shift-handovers/{shiftClosure}/submit-to-accountant', [\App\Http\Controllers\CashierController::class, 'submitShiftToAccountant'])->name('cashier.shift.submit_accountant');
+
+    Route::post('/logout', [AuthController::class, 'logout'])->name('cashier.logout');
 });
 
 /**

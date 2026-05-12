@@ -13,6 +13,8 @@
       $routePrefix = 'bar-keeper';
     } elseif (str_contains($currentRouteName, 'chef-master.')) {
       $routePrefix = 'chef-master';
+    } elseif (str_contains($currentRouteName, 'admin.')) {
+      $routePrefix = 'admin';
     }
 
     // Determine dashboard route

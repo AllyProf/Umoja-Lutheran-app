@@ -49,6 +49,8 @@ class EmergencyAuthController extends Controller
                 return redirect()->route('storekeeper.dashboard');
             } elseif ($userRole === 'accountant') {
                 return redirect()->route('accountant.dashboard');
+            } elseif ($userRole === 'cashier') {
+                return redirect()->route('cashier.dashboard');
             } elseif ($userRole === 'guest') {
                 return redirect()->route('customer.dashboard');
             }
@@ -221,6 +223,7 @@ class EmergencyAuthController extends Controller
                 route('customer.dashboard'),
                 route('storekeeper.dashboard'),
                 route('accountant.dashboard'),
+                route('cashier.dashboard'),
             ];
 
             // Debug: Log the user role for troubleshooting
@@ -238,7 +241,8 @@ class EmergencyAuthController extends Controller
                     str_contains($intendedUrl, '/reception/') ||
                     str_contains($intendedUrl, '/chef-master/') ||
                     str_contains($intendedUrl, '/customer/') ||
-                    str_contains($intendedUrl, '/accountant/');
+                    str_contains($intendedUrl, '/accountant/') ||
+                    str_contains($intendedUrl, '/cashier/');
 
                 if (
                     !$isValidPath || str_contains($intendedUrl, '/notifications/') ||
@@ -304,6 +308,11 @@ class EmergencyAuthController extends Controller
                 $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
                     ? $intendedUrl
                     : route('accountant.dashboard');
+                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
+            } elseif ($userRole === 'cashier') {
+                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
+                    ? $intendedUrl
+                    : route('cashier.dashboard');
                 return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
             } elseif ($userRole === 'guest') {
                 $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
@@ -574,6 +583,8 @@ class EmergencyAuthController extends Controller
                 return redirect()->route('storekeeper.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
             } elseif ($userRole === 'accountant') {
                 return redirect()->route('accountant.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
+            } elseif ($userRole === 'cashier') {
+                return redirect()->route('cashier.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
             } else {
                 return redirect()->route('customer.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
             }
@@ -754,6 +765,7 @@ class EmergencyAuthController extends Controller
                 route('customer.dashboard'),
                 route('storekeeper.dashboard'),
                 route('accountant.dashboard'),
+                route('cashier.dashboard'),
             ];
 
             if ($intendedUrl && !in_array($intendedUrl, $validDashboardRoutes)) {
@@ -763,7 +775,8 @@ class EmergencyAuthController extends Controller
                     str_contains($intendedUrl, '/bar-keeper/') ||
                     str_contains($intendedUrl, '/chef-master/') ||
                     str_contains($intendedUrl, '/customer/') ||
-                    str_contains($intendedUrl, '/accountant/');
+                    str_contains($intendedUrl, '/accountant/') ||
+                    str_contains($intendedUrl, '/cashier/');
 
                 if (
                     !$isValidPath || str_contains($intendedUrl, '/notifications/') ||

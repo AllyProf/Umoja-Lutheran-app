@@ -25,6 +25,7 @@ class ServiceRequest extends Model
         'cancelled_by',
         'cancelled_at',
         'approved_by',
+        'shift_closure_id',
         'is_walk_in',
         'walk_in_name',
         'payment_status',
@@ -86,5 +87,13 @@ class ServiceRequest extends Model
     public function shiftClosure(): BelongsTo
     {
         return $this->belongsTo(ShiftClosure::class, 'shift_closure_id');
+    }
+
+    /**
+     * Get the staff member who cancelled this request.
+     */
+    public function cancelledBy(): BelongsTo
+    {
+        return $this->belongsTo(Staff::class, 'cancelled_by');
     }
 }

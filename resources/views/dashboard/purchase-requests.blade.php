@@ -301,11 +301,11 @@
           @if(isset($groupedRequests) && $groupedRequests->count() > 0)
             @php
               // Define department order and colors
-              $departmentOrder = ['Housekeeping', 'Reception', 'Bar', 'Food'];
+              $departmentOrder = ['Housekeeping', 'Reception', 'Drinks', 'Food'];
               $departmentColors = [
                 'Housekeeping' => '#e07632',
                 'Reception' => '#17a2b8',
-                'Bar' => '#28a745',
+                'Drinks' => '#28a745',
                 'Food' => '#ffc107'
               ];
             @endphp

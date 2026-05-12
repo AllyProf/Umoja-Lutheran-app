@@ -111,6 +111,8 @@
                     <option value="housekeeper" {{ request('role') == 'housekeeper' ? 'selected' : '' }}>Housekeeper</option>
                     <option value="bar_keeper" {{ request('role') == 'bar_keeper' ? 'selected' : '' }}>Counter</option>
                     <option value="head_chef" {{ request('role') == 'head_chef' ? 'selected' : '' }}>Head Chef</option>
+                    <option value="accountant" {{ request('role') == 'accountant' ? 'selected' : '' }}>Accountant</option>
+                    <option value="cashier" {{ request('role') == 'cashier' ? 'selected' : '' }}>Cashier</option>
                   </select>
                 </div>
               </div>
@@ -237,6 +239,10 @@
                         @elseif($user->role == 'housekeeper' || $userRoleNormalized === 'housekeeper')
                           <span class="badge badge-info" style="background-color: #20c997;"><i class="fa fa-bed"></i>
                             Housekeeper</span>
+                        @elseif($user->role == 'accountant' || $userRoleNormalized === 'accountant')
+                          <span class="badge badge-primary"><i class="fa fa-money"></i> Accountant</span>
+                        @elseif($user->role == 'cashier' || $userRoleNormalized === 'cashier')
+                          <span class="badge badge-success"><i class="fa fa-bank"></i> Cashier</span>
                         @else
                           <span class="badge badge-secondary"><i class="fa fa-user"></i> {{ $user->role ?? 'Employee' }}</span>
                         @endif

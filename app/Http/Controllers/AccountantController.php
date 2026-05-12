@@ -27,6 +27,11 @@ class AccountantController extends Controller
             'total_day_services_revenue' => \App\Models\DayService::where('payment_status', 'paid')
                 ->whereDate('service_date', now()->toDateString())
                 ->sum('amount_paid'),
+            'pending_cashier_shifts' => \App\Models\ShiftClosure::where('status', 'pending_accountant')->count(),
+            'pending_cashier_revenue' => \App\Models\DayService::where('payment_status', 'paid')
+                ->whereNotNull('cashier_collected_at')
+                ->whereNull('accountant_verified_at')
+                ->count(),
         ];
 
         // Shopping lists awaiting accountant approval
@@ -443,5 +448,80 @@ class AccountantController extends Controller
             }
             return back()->with('error', 'Error updating purchase: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * View all collections from Cashier awaiting Accountant verification
+     */
+    public function cashierCollections(Request $request)
+    {
+        $tab = $request->get('tab', 'pending');
+
+        $shifts = \App\Models\ShiftClosure::with(['staff', 'receiver'])
+            ->where('status', $tab === 'pending' ? 'pending_accountant' : 'finalized')
+            ->orderByDesc('updated_at')
+            ->paginate(15, ['*'], 'shifts_page');
+
+        $dayServices = \App\Models\DayService::select(
+            'service_date',
+            DB::raw('COUNT(id) as total_services'),
+            DB::raw('SUM(amount_paid) as total_revenue'),
+            DB::raw('MAX(accountant_verified_at) as verified_at'),
+            DB::raw('MAX(cashier_collected_at) as collected_at')
+        )
+            ->where('payment_status', 'paid')
+            ->whereNotNull('cashier_collected_at')
+            ->when($tab === 'pending', function($q) {
+                return $q->whereNull('accountant_verified_at');
+            })
+            ->when($tab === 'verified', function($q) {
+                return $q->whereNotNull('accountant_verified_at');
+            })
+            ->groupBy('service_date')
+            ->orderByDesc('service_date')
+            ->paginate(15, ['*'], 'days_page');
+
+        return view('dashboard.accountant.cashier-collections', compact('shifts', 'dayServices', 'tab'));
+    }
+
+    /**
+     * Acknowledge and finalize cash received from Cashier
+     */
+    public function acknowledgeCashierShift(\App\Models\ShiftClosure $shiftClosure)
+    {
+        $shiftClosure->update([
+            'status' => 'finalized',
+            'receiver_id' => Auth::guard('staff')->id(),
+            'notes' => $shiftClosure->notes . "\n[Finalized and Received by Accountant at " . now() . "]"
+        ]);
+
+        return back()->with('success', 'Cashier shift funds successfully received and finalized.');
+    }
+
+    /**
+     * Final verify and collect day revenue from Cashier
+     */
+    public function verifyCashierDayRevenue(Request $request)
+    {
+        $request->validate([
+            'service_date' => 'required|date',
+        ]);
+
+        $date = $request->service_date;
+
+        $affectedRows = \App\Models\DayService::where('service_date', $date)
+            ->where('payment_status', 'paid')
+            ->whereNotNull('cashier_collected_at')
+            ->whereNull('accountant_verified_at')
+            ->update([
+                'accountant_verified_at' => now(),
+                'accountant_id' => Auth::guard('staff')->id(),
+            ]);
+
+        if ($affectedRows > 0) {
+            return back()->with('success', "Revenue for " . \Carbon\Carbon::parse($date)->format('M d, Y') . " officially verified and received from Cashier.");
+        }
+
+        return back()->with('info', "No unverified cashier collections found for " . \Carbon\Carbon::parse($date)->format('M d, Y') . ".");
     }
 }

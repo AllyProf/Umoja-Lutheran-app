@@ -172,10 +172,7 @@
                 <span><strong>Guest:</strong></span>
                 <span>{{ $guestName }}</span>
             </div>
-            <div class="info-row">
-                <span><strong>Location:</strong></span>
-                <span>{{ $destination }}</span>
-            </div>
+
             <div class="info-row">
                 <span><strong>Served By:</strong></span>
                 <span>{{ $requestedBy }}</span>

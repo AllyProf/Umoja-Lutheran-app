@@ -317,7 +317,7 @@
     <!-- Category Navbar -->
     <div class="cat-nav">
         <div class="cat-item active" onclick="setMasterTab('food', this)">🍳 Kitchen</div>
-        <div class="cat-item" onclick="setMasterTab('drinks', this)">🍷 Bar & Cellar</div>
+        <div class="cat-item" onclick="setMasterTab('drinks', this)">🍷 Drinks & Cellar</div>
     </div>
 
     <!-- Drink Sub-cats (Visible only when drinks active) -->
