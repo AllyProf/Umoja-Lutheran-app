@@ -12,13 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('day_services', function (Blueprint $table) {
-            $table->unsignedBigInteger('shift_closure_id')->nullable()->after('cashier_id');
-            $table->foreign('shift_closure_id')->references('id')->on('shift_closures')->onDelete('set null');
+            if (!Schema::hasColumn('day_services', 'shift_closure_id')) {
+                // Determine placement
+                $after = Schema::hasColumn('day_services', 'cashier_id') ? 'cashier_id' : 'id';
+                $table->unsignedBigInteger('shift_closure_id')->nullable()->after($after);
+                $table->foreign('shift_closure_id')->references('id')->on('shift_closures')->onDelete('set null');
+            }
         });
 
         Schema::table('bookings', function (Blueprint $table) {
-            $table->unsignedBigInteger('shift_closure_id')->nullable()->after('cashier_id');
-            $table->foreign('shift_closure_id')->references('id')->on('shift_closures')->onDelete('set null');
+            if (!Schema::hasColumn('bookings', 'shift_closure_id')) {
+                // Determine placement
+                $after = Schema::hasColumn('bookings', 'cashier_id') ? 'cashier_id' : 'id';
+                $table->unsignedBigInteger('shift_closure_id')->nullable()->after($after);
+                $table->foreign('shift_closure_id')->references('id')->on('shift_closures')->onDelete('set null');
+            }
         });
     }
 
