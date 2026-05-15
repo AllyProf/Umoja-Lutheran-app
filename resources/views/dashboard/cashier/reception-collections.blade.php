@@ -26,21 +26,19 @@
     <div class="col-md-4">
         <div class="widget-small primary coloured-icon"><i class="icon fa fa-money fa-3x"></i>
             <div class="info">
-                <h4>Uncollected Cash (Day Svcs)</h4>
+                <h4>Pending Day Services</h4>
                 <p><b>TZS {{ number_format($stats['total_unverified_cash']) }}</b></p>
             </div>
         </div>
     </div>
-    @if($roomRevenue && $roomRevenue->count > 0)
     <div class="col-md-4">
         <div class="widget-small danger coloured-icon"><i class="icon fa fa-bed fa-3x"></i>
             <div class="info">
-                <h4>Uncollected Room Revenue</h4>
-                <p><b>TZS {{ number_format($roomRevenue->revenue) }}</b> ({{ $roomRevenue->count }} bookings)</p>
+                <h4>Pending Room Bookings</h4>
+                <p><b>TZS {{ number_format($stats['total_unverified_rooms']) }}</b></p>
             </div>
         </div>
     </div>
-    @endif
 </div>
 
 {{-- Revenue Breakdown by Category --}}
@@ -185,25 +183,43 @@
                 <table class="table table-hover table-bordered">
                     <thead class="thead-light">
                         <tr>
-                            <th>Service Date</th>
-                            <th>Total Services</th>
-                            <th>Total Paid Revenue</th>
-                            <th>Verification Status</th>
+                            <th>Date</th>
+                            <th>Day Services</th>
+                            <th>Room Bookings</th>
+                            <th>Total Revenue</th>
+                            <th>Status</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($dailyRevenues as $revenue)
                         <tr>
-                            <td>{{ \Carbon\Carbon::parse($revenue->service_date)->format('D, d M Y') }}</td>
-                            <td>{{ $revenue->total_services }}</td>
-                            <td class="font-weight-bold">TZS {{ number_format($revenue->total_revenue) }}</td>
+                            <td>{{ \Carbon\Carbon::parse($revenue->date)->format('D, d M Y') }}</td>
                             <td>
-                                @if($revenue->uncollected_count > 0)
+                                @if($revenue->ds_count > 0)
+                                    TZS {{ number_format($revenue->ds_revenue) }} <br>
+                                    <small class="text-muted">({{ $revenue->ds_count }} svcs)</small>
+                                @else
+                                    <span class="text-muted">0</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($revenue->bk_count > 0)
+                                    TZS {{ number_format($revenue->bk_revenue) }} <br>
+                                    <small class="text-muted">({{ $revenue->bk_count }} rooms)</small>
+                                @else
+                                    <span class="text-muted">0</span>
+                                @endif
+                            </td>
+                            <td class="font-weight-bold text-primary" style="font-size:1.1em;">
+                                TZS {{ number_format($revenue->total_revenue) }}
+                            </td>
+                            <td>
+                                @if($revenue->total_uncollected > 0)
                                     <span class="badge badge-warning">
-                                        {{ $revenue->uncollected_count }} pending services
+                                        {{ $revenue->total_uncollected }} pending items
                                     </span>
-                                @elseif($revenue->unverified_count > 0)
+                                @elseif($revenue->total_unverified > 0)
                                     <span class="badge badge-info">
                                         <i class="fa fa-clock-o"></i> Collected - Pending Accountant
                                     </span>
@@ -214,24 +230,24 @@
                                 @endif
                             </td>
                             <td>
-                                @if($revenue->uncollected_count > 0)
+                                @if($revenue->total_uncollected > 0)
                                     <form id="verify-form-{{ $loop->index }}" action="{{ route('cashier.reception.verify-day') }}" method="POST" style="display:inline;">
                                         @csrf
-                                        <input type="hidden" name="service_date" value="{{ $revenue->service_date }}">
+                                        <input type="hidden" name="service_date" value="{{ $revenue->date }}">
                                         <button type="button" class="btn btn-sm btn-primary" 
-                                                onclick="confirmVerification('{{ $revenue->service_date }}', '{{ number_format($revenue->total_revenue) }}', 'verify-form-{{ $loop->index }}')">
+                                                onclick="confirmVerification('{{ $revenue->date }}', '{{ number_format($revenue->total_revenue) }}', 'verify-form-{{ $loop->index }}')">
                                             Collect & Verify
                                         </button>
                                     </form>
                                 @endif
-                                <a href="{{ route('reception.day-services.index', ['date' => $revenue->service_date]) }}" class="btn btn-sm btn-info">
-                                    View Details
+                                <a href="{{ route('reception.day-services.index', ['date' => $revenue->date]) }}" class="btn btn-sm btn-outline-info">
+                                    <i class="fa fa-eye"></i> Details
                                 </a>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="text-center">No revenue records found for this category.</td>
+                            <td colspan="6" class="text-center">No revenue records found for this category.</td>
                         </tr>
                         @endforelse
                     </tbody>

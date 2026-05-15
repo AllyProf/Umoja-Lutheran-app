@@ -32,77 +32,138 @@
     <div class="col-md-6 col-lg-3">
         <div class="widget-small warning coloured-icon"><i class="icon fa fa-clock-o fa-3x"></i>
             <div class="info">
-                <h4>Pending Handovers</h4>
+                <h4>Restaurant Pending</h4>
                 <p><b>{{ $stats['pending_restaurant_handovers'] }}</b></p>
             </div>
         </div>
     </div>
     <div class="col-md-6 col-lg-3">
-        <div class="widget-small danger coloured-icon"><i class="icon fa fa-exclamation-triangle fa-3x"></i>
+        <div class="widget-small danger coloured-icon"><i class="icon fa fa-clock-o fa-3x"></i>
             <div class="info">
-                <h4>Unverified Revenue</h4>
-                <p><b>{{ $stats['pending_reception_collections'] }}</b></p>
+                <h4>Reception Pending</h4>
+                <p><b>{{ $stats['pending_reception_handovers'] }}</b></p>
             </div>
         </div>
     </div>
 </div>
 
 <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-6">
         <div class="tile">
-            <h3 class="tile-title">Recent Restaurant Handovers</h3>
+            <h3 class="tile-title text-primary"><i class="fa fa-cutlery"></i> Recent Restaurant Handovers</h3>
             <div class="table-responsive">
-                <table class="table table-hover table-bordered">
-                    <thead class="thead-light">
+                <table class="table table-hover table-sm">
+                    <thead>
                         <tr>
                             <th>Counter Staff</th>
-                            <th>Closed At</th>
-                            <th>Submitted Amount</th>
+                            <th>Time</th>
+                            <th>Amount</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($recentHandovers as $handover)
+                        @forelse($recentRestaurantHandovers as $handover)
                         <tr>
                             <td>{{ $handover->staff->name }}</td>
-                            <td>{{ $handover->closed_at->format('d M Y, H:i') }}</td>
-                            <td>TZS {{ number_format($handover->amount_submitted_tzs) }}</td>
+                            <td>{{ $handover->closed_at->format('d M, H:i') }}</td>
+                            <td>{{ number_format($handover->amount_submitted_tzs) }}</td>
                             <td>
                                 @if($handover->status === 'pending_cashier')
-                                    <span class="badge badge-warning">Pending Collection</span>
+                                    <span class="badge badge-warning">Pending</span>
                                 @elseif($handover->status === 'received')
                                     <span class="badge badge-success">Received</span>
-                                @else
-                                    <span class="badge badge-secondary">{{ ucfirst($handover->status) }}</span>
                                 @endif
                             </td>
                             <td>
                                 @if($handover->status === 'pending_cashier')
                                 <form action="{{ route('cashier.shift-handovers.acknowledge', $handover->id) }}" method="POST" style="display:inline;">
                                     @csrf
-                                    <button type="submit" class="btn btn-sm btn-primary" onclick="return confirm('Confirm cash collection for this shift?')">
-                                        <i class="fa fa-check"></i> Collect
+                                    <button type="submit" class="btn btn-xs btn-primary p-1" title="Collect Cash">
+                                        <i class="fa fa-check"></i>
                                     </button>
                                 </form>
                                 @endif
-                                <a href="{{ route('cashier.shift-handovers.sales', $handover->id) }}" class="btn btn-sm btn-info">
-                                    <i class="fa fa-eye"></i> View Sales
+                                <a href="{{ route('cashier.shift-handovers.sales', $handover->id) }}" class="btn btn-xs btn-info p-1" title="View Sales">
+                                    <i class="fa fa-eye"></i>
                                 </a>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="text-center">No recent handovers found.</td>
+                            <td colspan="5" class="text-center text-muted">No recent restaurant handovers.</td>
                         </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-            <div class="mt-3">
-                <a href="{{ route('cashier.shift-handovers') }}" class="btn btn-primary btn-block">View All Handovers</a>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="tile">
+            <h3 class="tile-title text-info"><i class="fa fa-concierge-bell"></i> Recent Reception Handovers</h3>
+            <div class="table-responsive">
+                <table class="table table-hover table-sm">
+                    <thead>
+                        <tr>
+                            <th>Receptionist</th>
+                            <th>Time</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($recentReceptionHandovers as $handover)
+                        <tr>
+                            <td>{{ $handover->staff->name }}</td>
+                            <td>{{ $handover->closed_at->format('d M, H:i') }}</td>
+                            <td>{{ number_format($handover->amount_submitted_tzs) }}</td>
+                            <td>
+                                @if($handover->status === 'pending_cashier')
+                                    <span class="badge badge-warning">Pending</span>
+                                @elseif($handover->status === 'received')
+                                    <span class="badge badge-success">Received</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($handover->status === 'pending_cashier')
+                                <form action="{{ route('cashier.shift-handovers.acknowledge', $handover->id) }}" method="POST" style="display:inline;">
+                                    @csrf
+                                    <button type="submit" class="btn btn-xs btn-primary p-1" title="Collect Cash">
+                                        <i class="fa fa-check"></i>
+                                    </button>
+                                </form>
+                                @endif
+                                <a href="{{ route('cashier.shift-handovers.sales', $handover->id) }}" class="btn btn-xs btn-info p-1" title="View Sales">
+                                    <i class="fa fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No recent reception handovers.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <a href="{{ route('cashier.shift-handovers', ['type' => 'restaurant']) }}" class="btn btn-outline-primary btn-block btn-sm">View All Restaurant Handovers</a>
+    </div>
+    <div class="col-md-6">
+        <a href="{{ route('cashier.shift-handovers', ['type' => 'reception']) }}" class="btn btn-outline-info btn-block btn-sm">View All Reception Handovers</a>
+    </div>
+</div>
+<div class="row mt-3">
+    <div class="col-md-12">
+        <a href="{{ route('cashier.reception.collections') }}" class="btn btn-primary btn-block">View Daily Reception Collections (Day Services)</a>
     </div>
 </div>
 @endsection

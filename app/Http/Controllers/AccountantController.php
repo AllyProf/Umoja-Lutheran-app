@@ -462,24 +462,67 @@ class AccountantController extends Controller
             ->orderByDesc('updated_at')
             ->paginate(15, ['*'], 'shifts_page');
 
-        $dayServices = \App\Models\DayService::select(
-            'service_date',
-            DB::raw('COUNT(id) as total_services'),
-            DB::raw('SUM(amount_paid) as total_revenue'),
-            DB::raw('MAX(accountant_verified_at) as verified_at'),
-            DB::raw('MAX(cashier_collected_at) as collected_at')
+        // 1. Day Service Revenue by Date
+        $dsQuery = \App\Models\DayService::select(
+            'service_date as date',
+            DB::raw('COUNT(id) as ds_count'),
+            DB::raw('SUM(amount_paid) as ds_revenue')
         )
-            ->where('payment_status', 'paid')
-            ->whereNotNull('cashier_collected_at')
-            ->when($tab === 'pending', function($q) {
-                return $q->whereNull('accountant_verified_at');
-            })
-            ->when($tab === 'verified', function($q) {
-                return $q->whereNotNull('accountant_verified_at');
-            })
-            ->groupBy('service_date')
-            ->orderByDesc('service_date')
-            ->paginate(15, ['*'], 'days_page');
+        ->where('payment_status', 'paid')
+        ->whereNotNull('cashier_collected_at');
+
+        if ($tab === 'pending') {
+            $dsQuery->whereNull('accountant_verified_at');
+        } else {
+            $dsQuery->whereNotNull('accountant_verified_at');
+        }
+
+        $dsDaily = $dsQuery->groupBy('service_date')->get()->keyBy('date');
+
+        // 2. Booking Revenue by Date
+        $bkQuery = \App\Models\Booking::select(
+            DB::raw('DATE(paid_at) as date'),
+            DB::raw('COUNT(id) as bk_count'),
+            DB::raw('SUM(amount_paid) as bk_revenue')
+        )
+        ->where('payment_status', 'paid')
+        ->whereNotNull('cashier_collected_at');
+
+        if ($tab === 'pending') {
+            $bkQuery->whereNull('accountant_verified_at');
+        } else {
+            $bkQuery->whereNotNull('accountant_verified_at');
+        }
+
+        $bkDaily = $bkQuery->groupBy(DB::raw('DATE(paid_at)'))->get()->keyBy('date');
+
+        // 3. Merge All Dates
+        $allDates = $dsDaily->keys()->merge($bkDaily->keys())->unique()->sortDesc();
+
+        $mergedDaily = $allDates->map(function($date) use ($dsDaily, $bkDaily) {
+            $ds = $dsDaily->get($date);
+            $bk = $bkDaily->get($date);
+
+            return (object) [
+                'date' => $date,
+                'ds_count' => $ds->ds_count ?? 0,
+                'ds_revenue' => $ds->ds_revenue ?? 0,
+                'bk_count' => $bk->bk_count ?? 0,
+                'bk_revenue' => $bk->bk_revenue ?? 0,
+                'total_revenue' => ($ds->ds_revenue ?? 0) + ($bk->bk_revenue ?? 0),
+            ];
+        });
+
+        // 4. Pagination
+        $perPage = 15;
+        $page = $request->get('days_page', 1);
+        $dayServices = new \Illuminate\Pagination\LengthAwarePaginator(
+            $mergedDaily->forPage($page, $perPage),
+            $mergedDaily->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query(), 'pageName' => 'days_page']
+        );
 
         return view('dashboard.accountant.cashier-collections', compact('shifts', 'dayServices', 'tab'));
     }
@@ -508,18 +551,33 @@ class AccountantController extends Controller
         ]);
 
         $date = $request->service_date;
+        $staffId = Auth::guard('staff')->id();
 
-        $affectedRows = \App\Models\DayService::where('service_date', $date)
+        // 1. Verify Day Services
+        $dsAffected = \App\Models\DayService::where('service_date', $date)
             ->where('payment_status', 'paid')
             ->whereNotNull('cashier_collected_at')
             ->whereNull('accountant_verified_at')
             ->update([
                 'accountant_verified_at' => now(),
-                'accountant_id' => Auth::guard('staff')->id(),
+                'accountant_id' => $staffId,
             ]);
 
-        if ($affectedRows > 0) {
-            return back()->with('success', "Revenue for " . \Carbon\Carbon::parse($date)->format('M d, Y') . " officially verified and received from Cashier.");
+        // 2. Verify Bookings
+        $bkAffected = \App\Models\Booking::whereDate('paid_at', $date)
+            ->where('payment_status', 'paid')
+            ->whereNotNull('cashier_collected_at')
+            ->whereNull('accountant_verified_at')
+            ->update([
+                'accountant_verified_at' => now(),
+                'accountant_id' => $staffId,
+            ]);
+
+        if ($dsAffected > 0 || $bkAffected > 0) {
+            $msg = "Revenue for " . \Carbon\Carbon::parse($date)->format('M d, Y') . " officially verified.";
+            if ($dsAffected > 0) $msg .= " ($dsAffected Day Services)";
+            if ($bkAffected > 0) $msg .= " ($bkAffected Bookings)";
+            return back()->with('success', $msg . " Received from Cashier.");
         }
 
         return back()->with('info', "No unverified cashier collections found for " . \Carbon\Carbon::parse($date)->format('M d, Y') . ".");

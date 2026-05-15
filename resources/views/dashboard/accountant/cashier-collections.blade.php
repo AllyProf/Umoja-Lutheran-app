@@ -80,15 +80,15 @@
 
                         <hr class="my-4">
 
-                        <h4 class="mb-3">Reception (Day Services) Revenue</h4>
+                        <h4 class="mb-3"><i class="fa fa-concierge-bell"></i> Reception Revenue (Rooms & Services)</h4>
                         <div class="table-responsive">
                             <table class="table table-hover table-bordered">
-                                <thead>
+                                <thead class="thead-light">
                                     <tr>
-                                        <th>Service Date</th>
-                                        <th>Total Services</th>
-                                        <th>Total Revenue (TZS)</th>
-                                        <th>Cashier Collection</th>
+                                        <th>Date</th>
+                                        <th>Day Services</th>
+                                        <th>Room Bookings</th>
+                                        <th>Total Revenue</th>
                                         <th>Status</th>
                                         <th>Action</th>
                                     </tr>
@@ -96,44 +96,53 @@
                                 <tbody>
                                     @forelse($dayServices as $day)
                                     <tr>
-                                        <td>{{ \Carbon\Carbon::parse($day->service_date)->format('M d, Y') }}</td>
-                                        <td>{{ $day->total_services }}</td>
-                                        <td><strong>{{ number_format($day->total_revenue) }}</strong></td>
-                                        <td>{{ $day->collected_at ? \Carbon\Carbon::parse($day->collected_at)->format('M d, H:i') : 'N/A' }}</td>
+                                        <td>{{ \Carbon\Carbon::parse($day->date)->format('D, d M Y') }}</td>
                                         <td>
-                                            @if(!$day->verified_at)
-                                                <span class="badge badge-warning">Pending Verification</span>
+                                            @if($day->ds_count > 0)
+                                                TZS {{ number_format($day->ds_revenue) }} <br>
+                                                <small class="text-muted">({{ $day->ds_count }} items)</small>
+                                            @else
+                                                <span class="text-muted">0</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if($day->bk_count > 0)
+                                                TZS {{ number_format($day->bk_revenue) }} <br>
+                                                <small class="text-muted">({{ $day->bk_count }} bookings)</small>
+                                            @else
+                                                <span class="text-muted">0</span>
+                                            @endif
+                                        </td>
+                                        <td class="font-weight-bold text-primary">
+                                            TZS {{ number_format($day->total_revenue) }}
+                                        </td>
+                                        <td>
+                                            @if($tab === 'pending')
+                                                <span class="badge badge-warning">Pending Accountant</span>
                                             @else
                                                 <span class="badge badge-success">Verified</span>
                                             @endif
                                         </td>
                                         <td>
-                                            @if(!$day->verified_at)
                                             <div class="btn-group">
-                                                <form id="day-verify-form-{{ $loop->index }}" action="{{ route('accountant.cashier.day_revenue.verify') }}" method="POST">
+                                                @if($tab === 'pending')
+                                                <form id="day-verify-form-{{ $loop->index }}" action="{{ route('accountant.cashier.day_revenue.verify') }}" method="POST" style="display:inline;">
                                                     @csrf
-                                                    <input type="hidden" name="service_date" value="{{ $day->service_date }}">
-                                                    <button type="button" class="btn btn-primary btn-sm" onclick="confirmDayVerification('{{ $day->service_date }}', '{{ number_format($day->total_revenue) }}', 'day-verify-form-{{ $loop->index }}')">
-                                                        <i class="fa fa-check-square-o"></i> Final Verify
+                                                    <input type="hidden" name="service_date" value="{{ $day->date }}">
+                                                    <button type="button" class="btn btn-primary btn-sm" onclick="confirmDayVerification('{{ $day->date }}', '{{ number_format($day->total_revenue) }}', 'day-verify-form-{{ $loop->index }}')">
+                                                        <i class="fa fa-check"></i> Verify
                                                     </button>
                                                 </form>
-                                                <a href="{{ route('reception.day-services.index', ['date' => $day->service_date]) }}" class="btn btn-info btn-sm">
+                                                @endif
+                                                <a href="{{ route('reception.day-services.index', ['date' => $day->date]) }}" class="btn btn-info btn-sm">
                                                     <i class="fa fa-eye"></i> Details
                                                 </a>
                                             </div>
-                                            @else
-                                                <div class="btn-group">
-                                                    <span class="text-success mr-2"><i class="fa fa-check-circle"></i> Verified</span>
-                                                    <a href="{{ route('reception.day-services.index', ['date' => $day->service_date]) }}" class="btn btn-info btn-sm">
-                                                        <i class="fa fa-eye"></i> Details
-                                                    </a>
-                                                </div>
-                                            @endif
                                         </td>
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td colspan="6" class="text-center">No day services revenue records found.</td>
+                                        <td colspan="6" class="text-center py-4 text-muted">No reception revenue records found.</td>
                                     </tr>
                                     @endforelse
                                 </tbody>

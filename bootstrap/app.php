@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'check.auth' => \App\Http\Middleware\CheckAuth::class,
             'permission' => \App\Http\Middleware\CheckPermission::class,
             'role' => \App\Http\Middleware\CheckRole::class,
+            'active.shift' => \App\Http\Middleware\CheckActiveShift::class,
         ]);
 
         // Trust all proxies for correct HTTPS/Session handling behind cPanel/proxy

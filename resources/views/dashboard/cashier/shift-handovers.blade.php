@@ -3,13 +3,13 @@
 @section('content')
 <div class="app-title">
     <div>
-        <h1><i class="fa fa-money"></i> Counter Handovers</h1>
-        <p>Manage cash submissions from Restaurant & Bar staff</p>
+        <h1><i class="fa fa-money"></i> {{ $type === 'reception' ? 'Reception Handovers' : 'Counter Handovers' }}</h1>
+        <p>Manage cash submissions from {{ $type === 'reception' ? 'Receptionists' : 'Restaurant & Bar staff' }}</p>
     </div>
     <ul class="app-breadcrumb breadcrumb">
         <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
         <li class="breadcrumb-item"><a href="{{ route('cashier.dashboard') }}">Dashboard</a></li>
-        <li class="breadcrumb-item">Handovers</li>
+        <li class="breadcrumb-item">{{ $type === 'reception' ? 'Reception' : 'Counter' }} Handovers</li>
     </ul>
 </div>
 
@@ -21,7 +21,7 @@
                 <table class="table table-hover table-bordered">
                     <thead class="thead-light">
                         <tr>
-                            <th>Staff Name</th>
+                            <th>{{ $type === 'reception' ? 'Receptionist' : 'Counter Staff' }}</th>
                             <th>Shift Opened</th>
                             <th>Shift Closed</th>
                             <th>Sales (Cash)</th>

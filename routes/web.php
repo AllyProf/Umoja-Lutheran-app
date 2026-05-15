@@ -340,23 +340,25 @@ Route::prefix('manager')->group(function () {
 
     // Mirror Bookings and common operations for Reception and Manager
     Route::middleware(['check.auth', 'role:manager,reception,super_admin,accountant,storekeeper,cashier'])->group(function () {
-        // Search routes for returning guests and companies
-        Route::get('/bookings/search/guests', [BookingController::class, 'searchGuests'])->name('admin.bookings.search.guests');
-        Route::get('/bookings/search/companies', [BookingController::class, 'searchCompanies'])->name('admin.bookings.search.companies');
+        // Shared management routes (Require Active Shift for Reception)
+        Route::middleware(['active.shift'])->group(function () {
+            Route::get('/bookings/search/guests', [BookingController::class, 'searchGuests'])->name('admin.bookings.search.guests');
+            Route::get('/bookings/search/companies', [BookingController::class, 'searchCompanies'])->name('admin.bookings.search.companies');
 
-        Route::get('/bookings/manual/create', [BookingController::class, 'createManual'])->name('admin.bookings.manual.create');
-        Route::post('/bookings/manual/store', [BookingController::class, 'storeManual'])->name('admin.bookings.manual.store');
-        Route::get('/bookings/corporate/create', [BookingController::class, 'createCorporate'])->name('admin.bookings.corporate.create');
-        Route::post('/bookings/corporate/store', [BookingController::class, 'storeCorporate'])->name('admin.bookings.corporate.store');
-        Route::get('/bookings/corporate/available-rooms', [BookingController::class, 'getCorporateAvailableRooms'])->name('admin.bookings.corporate.available-rooms');
-        Route::get('/bookings/company/{company}', [BookingController::class, 'getCompanyBookings'])->name('admin.bookings.company');
-        Route::get('/bookings/available-rooms', [BookingController::class, 'getAvailableRooms'])->name('admin.bookings.available-rooms');
-        Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('admin.bookings.show');
-        Route::put('/bookings/{booking}/status', [BookingController::class, 'updateStatus'])->name('admin.bookings.update-status');
-        Route::put('/bookings/{booking}/notes', [BookingController::class, 'updateNotes'])->name('admin.bookings.update-notes');
-        Route::post('/bookings/{booking}/extension', [BookingController::class, 'handleExtension'])->name('admin.bookings.extension');
-        Route::put('/bookings/{booking}/modify-dates', [BookingController::class, 'modifyBookingDates'])->name('admin.bookings.modify-dates');
-        Route::delete('/bookings/{booking}', [BookingController::class, 'destroy'])->name('admin.bookings.destroy');
+            Route::get('/bookings/manual/create', [BookingController::class, 'createManual'])->name('admin.bookings.manual.create');
+            Route::post('/bookings/manual/store', [BookingController::class, 'storeManual'])->name('admin.bookings.manual.store');
+            Route::get('/bookings/corporate/create', [BookingController::class, 'createCorporate'])->name('admin.bookings.corporate.create');
+            Route::post('/bookings/corporate/store', [BookingController::class, 'storeCorporate'])->name('admin.bookings.corporate.store');
+            Route::get('/bookings/corporate/available-rooms', [BookingController::class, 'getCorporateAvailableRooms'])->name('admin.bookings.corporate.available-rooms');
+            Route::get('/bookings/company/{company}', [BookingController::class, 'getCompanyBookings'])->name('admin.bookings.company');
+            Route::get('/bookings/available-rooms', [BookingController::class, 'getAvailableRooms'])->name('admin.bookings.available-rooms');
+            Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('admin.bookings.show');
+            Route::put('/bookings/{booking}/status', [BookingController::class, 'updateStatus'])->name('admin.bookings.update-status');
+            Route::put('/bookings/{booking}/notes', [BookingController::class, 'updateNotes'])->name('admin.bookings.update-notes');
+            Route::post('/bookings/{booking}/extension', [BookingController::class, 'handleExtension'])->name('admin.bookings.extension');
+            Route::put('/bookings/{booking}/modify-dates', [BookingController::class, 'modifyBookingDates'])->name('admin.bookings.modify-dates');
+            Route::delete('/bookings/{booking}', [BookingController::class, 'destroy'])->name('admin.bookings.destroy');
+        });
 
         Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'show'])->name('admin.profile');
         Route::post('/profile/update', [\App\Http\Controllers\ProfileController::class, 'updateProfile'])->name('admin.profile.update');
@@ -583,36 +585,47 @@ Route::prefix('reception')->group(function () {
         Route::post('/shift/close', [\App\Http\Controllers\ReceptionController::class, 'closeShift'])->name('reception.shift.close');
         Route::get('/revenue-handovers', [\App\Http\Controllers\ReceptionController::class, 'revenueHandovers'])->name('reception.revenue-handovers');
 
-        // Reception Booking Operations
-        Route::get('/bookings/manual/create', [\App\Http\Controllers\BookingController::class, 'createManual'])->name('reception.bookings.manual.create');
-        Route::post('/bookings/manual/store', [\App\Http\Controllers\BookingController::class, 'storeManual'])->name('reception.bookings.manual.store');
-        Route::get('/bookings/available-rooms', [\App\Http\Controllers\BookingController::class, 'getAvailableRooms'])->name('reception.bookings.available-rooms');
-        Route::get('/bookings/{booking}', [\App\Http\Controllers\BookingController::class, 'show'])->name('reception.bookings.show');
-        Route::put('/bookings/{booking}/check-in', [\App\Http\Controllers\BookingController::class, 'updateCheckInStatus'])->name('reception.bookings.update-checkin');
-        Route::put('/bookings/{booking}/status', [\App\Http\Controllers\BookingController::class, 'updateStatus'])->name('reception.bookings.update-status');
-        Route::get('/bookings/{booking}/checkout-bill', [\App\Http\Controllers\ServiceRequestController::class, 'generateCheckoutBill'])->name('reception.bookings.checkout-bill');
-        Route::post('/bookings/{booking}/extension', [\App\Http\Controllers\BookingController::class, 'handleExtension'])->name('reception.bookings.extension');
-        Route::put('/bookings/{booking}/modify-dates', [\App\Http\Controllers\BookingController::class, 'modifyBookingDates'])->name('reception.bookings.modify-dates');
+        // Reception Booking Operations (Require Active Shift)
+        Route::middleware(['active.shift'])->group(function () {
+            Route::get('/bookings/manual/create', [\App\Http\Controllers\BookingController::class, 'createManual'])->name('reception.bookings.manual.create');
+            Route::post('/bookings/manual/store', [\App\Http\Controllers\BookingController::class, 'storeManual'])->name('reception.bookings.manual.store');
+            Route::get('/bookings/available-rooms', [\App\Http\Controllers\BookingController::class, 'getAvailableRooms'])->name('reception.bookings.available-rooms');
+            Route::get('/bookings/{booking}', [\App\Http\Controllers\BookingController::class, 'show'])->name('reception.bookings.show');
+            Route::put('/bookings/{booking}/check-in', [\App\Http\Controllers\BookingController::class, 'updateCheckInStatus'])->name('reception.bookings.update-checkin');
+            Route::put('/bookings/{booking}/status', [\App\Http\Controllers\BookingController::class, 'updateStatus'])->name('reception.bookings.update-status');
+            Route::get('/bookings/{booking}/checkout-bill', [\App\Http\Controllers\ServiceRequestController::class, 'generateCheckoutBill'])->name('reception.bookings.checkout-bill');
+            Route::post('/bookings/{booking}/extension', [\App\Http\Controllers\BookingController::class, 'handleExtension'])->name('reception.bookings.extension');
+            Route::put('/bookings/{booking}/modify-dates', [\App\Http\Controllers\BookingController::class, 'modifyBookingDates'])->name('reception.bookings.modify-dates');
 
-        // Day Services Routes
-        Route::get('/day-services', [\App\Http\Controllers\DayServiceController::class, 'index'])->name('reception.day-services.index');
-        Route::get('/day-services/swimming', [\App\Http\Controllers\DayServiceController::class, 'swimmingService'])->name('reception.day-services.swimming');
-        Route::get('/day-services/ceremony', [\App\Http\Controllers\DayServiceController::class, 'ceremonyService'])->name('reception.day-services.ceremony');
-        Route::get('/day-services/parking', [\App\Http\Controllers\DayServiceController::class, 'parkingService'])->name('reception.day-services.parking');
-        Route::get('/day-services/garden', [\App\Http\Controllers\DayServiceController::class, 'gardenService'])->name('reception.day-services.garden');
-        Route::get('/day-services/conference', [\App\Http\Controllers\DayServiceController::class, 'conferenceRoomService'])->name('reception.day-services.conference');
-        Route::get('/day-services/projector', [\App\Http\Controllers\DayServiceController::class, 'projectorService'])->name('reception.day-services.projector');
-        Route::get('/day-services/music', [\App\Http\Controllers\DayServiceController::class, 'musicService'])->name('reception.day-services.music');
-        Route::get('/day-services/pending', [\App\Http\Controllers\DayServiceController::class, 'pending'])->name('reception.day-services.pending');
-        Route::get('/day-services/reports', [\App\Http\Controllers\DayServiceController::class, 'reports'])->name('reception.day-services.reports');
-        Route::get('/day-services/reports/download', [\App\Http\Controllers\DayServiceController::class, 'downloadReport'])->name('reception.day-services.reports.download');
-        Route::post('/day-services', [\App\Http\Controllers\DayServiceController::class, 'store'])->name('reception.day-services.store');
-        Route::get('/day-services/{dayService}', [\App\Http\Controllers\DayServiceController::class, 'show'])->name('reception.day-services.show');
-        Route::post('/day-services/{dayService}/payment', [\App\Http\Controllers\DayServiceController::class, 'processPayment'])->name('reception.day-services.payment');
-        Route::get('/day-services/{dayService}/receipt', [\App\Http\Controllers\DayServiceController::class, 'downloadReceipt'])->name('reception.day-services.receipt');
-        Route::get('/day-services/{dayService}/docket', [\App\Http\Controllers\DayServiceController::class, 'docket'])->name('reception.day-services.docket');
-        Route::post('/day-services/{dayService}/add-items', [\App\Http\Controllers\DayServiceController::class, 'addItems'])->name('reception.day-services.add-items');
-        Route::put('/day-services/{dayService}/update-items', [\App\Http\Controllers\DayServiceController::class, 'updateItems'])->name('reception.day-services.update-items');
+            // Day Services Routes
+            Route::get('/day-services', [\App\Http\Controllers\DayServiceController::class, 'index'])->name('reception.day-services.index');
+            Route::get('/day-services/swimming', [\App\Http\Controllers\DayServiceController::class, 'swimmingService'])->name('reception.day-services.swimming');
+            Route::get('/day-services/ceremony', [\App\Http\Controllers\DayServiceController::class, 'ceremonyService'])->name('reception.day-services.ceremony');
+            Route::get('/day-services/parking', [\App\Http\Controllers\DayServiceController::class, 'parkingService'])->name('reception.day-services.parking');
+            Route::get('/day-services/garden', [\App\Http\Controllers\DayServiceController::class, 'gardenService'])->name('reception.day-services.garden');
+            Route::get('/day-services/conference', [\App\Http\Controllers\DayServiceController::class, 'conferenceRoomService'])->name('reception.day-services.conference');
+            Route::get('/day-services/projector', [\App\Http\Controllers\DayServiceController::class, 'projectorService'])->name('reception.day-services.projector');
+            Route::get('/day-services/music', [\App\Http\Controllers\DayServiceController::class, 'musicService'])->name('reception.day-services.music');
+            Route::get('/day-services/pending', [\App\Http\Controllers\DayServiceController::class, 'pending'])->name('reception.day-services.pending');
+            Route::get('/day-services/reports', [\App\Http\Controllers\DayServiceController::class, 'reports'])->name('reception.day-services.reports');
+            Route::get('/day-services/reports/download', [\App\Http\Controllers\DayServiceController::class, 'downloadReport'])->name('reception.day-services.reports.download');
+            Route::post('/day-services', [\App\Http\Controllers\DayServiceController::class, 'store'])->name('reception.day-services.store');
+            Route::get('/day-services/{dayService}', [\App\Http\Controllers\DayServiceController::class, 'show'])->name('reception.day-services.show');
+            Route::post('/day-services/{dayService}/payment', [\App\Http\Controllers\DayServiceController::class, 'processPayment'])->name('reception.day-services.payment');
+            Route::get('/day-services/{dayService}/receipt', [\App\Http\Controllers\DayServiceController::class, 'downloadReceipt'])->name('reception.day-services.receipt');
+            Route::get('/day-services/{dayService}/docket', [\App\Http\Controllers\DayServiceController::class, 'docket'])->name('reception.day-services.docket');
+            Route::post('/day-services/{dayService}/add-items', [\App\Http\Controllers\DayServiceController::class, 'addItems'])->name('reception.day-services.add-items');
+            Route::put('/day-services/{dayService}/update-items', [\App\Http\Controllers\DayServiceController::class, 'updateItems'])->name('reception.day-services.update-items');
+
+            // Checkout Payment
+            Route::get('/checkout-payment/{booking}', [\App\Http\Controllers\ReceptionController::class, 'checkoutPayment'])->name('reception.checkout-payment');
+            Route::post('/checkout-payment/{booking}/process', [\App\Http\Controllers\ReceptionController::class, 'processCheckoutPayment'])->name('reception.checkout-payment.process');
+            Route::post('/checkout-payment/{booking}/cash', [\App\Http\Controllers\ReceptionController::class, 'processCashPayment'])->name('reception.checkout-payment.cash');
+
+            // Corporate Group Checkout
+            Route::post('/bookings/checkout-company-group/{company}', [\App\Http\Controllers\ReceptionController::class, 'checkoutCompanyGroup'])->name('reception.bookings.checkout-company-group');
+            Route::post('/bookings/checkout-company-payment/{company}', [\App\Http\Controllers\ReceptionController::class, 'processCompanyPayment'])->name('reception.bookings.checkout-company-payment');
+        });
 
         // Service Catalog Routes (View only for reception)
         Route::get('/service-catalog', [\App\Http\Controllers\ServiceCatalogController::class, 'index'])->name('reception.service-catalog.index');
@@ -644,20 +657,9 @@ Route::prefix('reception')->group(function () {
         Route::put('/purchase-requests/templates/{id}', [\App\Http\Controllers\PurchaseRequestController::class, 'updateTemplate'])->name('reception.purchase-requests.templates.update');
         Route::delete('/purchase-requests/templates/{id}', [\App\Http\Controllers\PurchaseRequestController::class, 'deleteTemplate'])->name('reception.purchase-requests.templates.delete');
 
-        // Checkout Payment
-        Route::get('/checkout-payment/{booking}', [\App\Http\Controllers\ReceptionController::class, 'checkoutPayment'])->name('reception.checkout-payment');
-        Route::post('/checkout-payment/{booking}/process', [\App\Http\Controllers\ReceptionController::class, 'processCheckoutPayment'])->name('reception.checkout-payment.process');
-        Route::post('/checkout-payment/{booking}/cash', [\App\Http\Controllers\ReceptionController::class, 'processCashPayment'])->name('reception.checkout-payment.cash');
-
-        // Corporate Group Checkout
-        Route::post('/bookings/checkout-company-group/{company}', [\App\Http\Controllers\ReceptionController::class, 'checkoutCompanyGroup'])->name('reception.bookings.checkout-company-group');
-        Route::post('/bookings/checkout-company-payment/{company}', [\App\Http\Controllers\ReceptionController::class, 'processCompanyPayment'])->name('reception.bookings.checkout-company-payment');
-
+        // Additional Bills
+        Route::get('/companies/{company}/group-bill', [\App\Http\Controllers\ReceptionController::class, 'companyGroupBill'])->name('reception.companies.group-bill');
     });
-
-    // Checkout Bill (Reception Operations)
-    Route::get('/bookings/{booking}/checkout-bill', [\App\Http\Controllers\ServiceRequestController::class, 'generateCheckoutBill'])->name('reception.bookings.checkout-bill');
-    Route::get('/companies/{company}/group-bill', [\App\Http\Controllers\ReceptionController::class, 'companyGroupBill'])->name('reception.companies.group-bill');
 });
 
 // Housekeeper Routes
@@ -752,46 +754,46 @@ Route::prefix('bar-keeper')->group(function () {
         Route::post('/open-shift', [\App\Http\Controllers\BarKeeperController::class, 'openShift'])->name('bar-keeper.open-shift');
         Route::post('/close-shift', [\App\Http\Controllers\BarKeeperController::class, 'closeShift'])->name('bar-keeper.close-shift');
 
-        // Complete a Guest Order (Service Request)
-        Route::put('/orders/{serviceRequest}/complete', [\App\Http\Controllers\BarKeeperController::class, 'completeOrder'])->name('bar-keeper.orders.complete');
+        // Bar Keeper Actions (Require Active Shift)
+        Route::middleware(['active.shift'])->group(function () {
+            // Complete a Guest Order (Service Request)
+            Route::put('/orders/{serviceRequest}/complete', [\App\Http\Controllers\BarKeeperController::class, 'completeOrder'])->name('bar-keeper.orders.complete');
 
-        Route::post('/logout', [AuthController::class, 'logout'])->name('bar-keeper.logout');
+            // Stock Transfers
+            Route::get('/transfers', [\App\Http\Controllers\BarKeeperController::class, 'transfers'])->name('bar-keeper.transfers.index');
+            Route::put('/transfers/{stockTransfer}/receive', [\App\Http\Controllers\BarKeeperController::class, 'receiveTransfer'])->name('bar-keeper.transfers.receive');
 
-        // Stock Transfers
-        Route::get('/transfers', [\App\Http\Controllers\BarKeeperController::class, 'transfers'])->name('bar-keeper.transfers.index');
-        Route::put('/transfers/{stockTransfer}/receive', [\App\Http\Controllers\BarKeeperController::class, 'receiveTransfer'])->name('bar-keeper.transfers.receive');
+            // Stock Overview
+            Route::get('/my-stock', [\App\Http\Controllers\BarKeeperController::class, 'stock'])->name('bar-keeper.stock.index');
+            Route::post('/stock/update-minimum/{variant}', [\App\Http\Controllers\BarKeeperController::class, 'updateMinimumStock'])->name('bar-keeper.stock.update-minimum');
+            Route::post('/stock/update-prices/{variant}', [\App\Http\Controllers\BarKeeperController::class, 'updatePrices'])->name('bar-keeper.stock.update-prices');
+            Route::post('/stock/toggle-visibility/{variant}', [\App\Http\Controllers\BarKeeperController::class, 'toggleBarVisibility'])->name('bar-keeper.stock.toggle-visibility');
+            Route::get('/stock/{variant}/usage-track', [\App\Http\Controllers\BarKeeperController::class, 'getBarItemUsageTrack'])->name('bar-keeper.stock.usage-track');
 
-        // Stock Overview
-        Route::get('/my-stock', [\App\Http\Controllers\BarKeeperController::class, 'stock'])->name('bar-keeper.stock.index');
-        Route::post('/stock/update-minimum/{variant}', [\App\Http\Controllers\BarKeeperController::class, 'updateMinimumStock'])->name('bar-keeper.stock.update-minimum');
-        Route::post('/stock/update-prices/{variant}', [\App\Http\Controllers\BarKeeperController::class, 'updatePrices'])->name('bar-keeper.stock.update-prices');
-        Route::post('/stock/toggle-visibility/{variant}', [\App\Http\Controllers\BarKeeperController::class, 'toggleBarVisibility'])->name('bar-keeper.stock.toggle-visibility');
-        Route::get('/stock/{variant}/usage-track', [\App\Http\Controllers\BarKeeperController::class, 'getBarItemUsageTrack'])->name('bar-keeper.stock.usage-track');
+            // Guest Orders
+            Route::get('/orders', [\App\Http\Controllers\BarKeeperController::class, 'completedOrders'])->name('bar-keeper.orders.index');
+            Route::post('/orders/{serviceRequest}/serve', [\App\Http\Controllers\BarKeeperController::class, 'serveOrder'])->name('bar-keeper.orders.serve');
+            Route::post('/orders/{serviceRequest}/cancel', [\App\Http\Controllers\BarKeeperController::class, 'cancelOrder'])->name('bar-keeper.orders.cancel');
+            Route::get('/orders/{serviceRequest}/print-docket', [\App\Http\Controllers\BarKeeperController::class, 'printDocket'])->name('bar-keeper.orders.print-docket');
+            Route::get('/orders/print-group', [\App\Http\Controllers\BarKeeperController::class, 'printGroupDocket'])->name('bar-keeper.orders.print-group');
+            Route::get('/order-summary', [\App\Http\Controllers\BarKeeperController::class, 'orderSummary'])->name('bar-keeper.order-summary');
 
-        // Guest Orders
-        Route::get('/orders', [\App\Http\Controllers\BarKeeperController::class, 'completedOrders'])->name('bar-keeper.orders.index');
-        Route::post('/orders/{serviceRequest}/complete', [\App\Http\Controllers\BarKeeperController::class, 'completeOrder'])->name('bar-keeper.orders.complete');
-        Route::post('/orders/{serviceRequest}/serve', [\App\Http\Controllers\BarKeeperController::class, 'serveOrder'])->name('bar-keeper.orders.serve');
-        Route::post('/orders/{serviceRequest}/cancel', [\App\Http\Controllers\BarKeeperController::class, 'cancelOrder'])->name('bar-keeper.orders.cancel');
-        Route::get('/orders/{serviceRequest}/print-docket', [\App\Http\Controllers\BarKeeperController::class, 'printDocket'])->name('bar-keeper.orders.print-docket');
-        Route::get('/orders/print-group', [\App\Http\Controllers\BarKeeperController::class, 'printGroupDocket'])->name('bar-keeper.orders.print-group');
-        Route::get('/order-summary', [\App\Http\Controllers\BarKeeperController::class, 'orderSummary'])->name('bar-keeper.order-summary');
+            // Reports
+            Route::get('/reports', [\App\Http\Controllers\BarKeeperController::class, 'reports'])->name('bar-keeper.reports');
 
-        // Reports
-        Route::get('/reports', [\App\Http\Controllers\BarKeeperController::class, 'reports'])->name('bar-keeper.reports');
+            // Product Management (Read Only for Bar Keeper)
+            Route::get('/products', [\App\Http\Controllers\ProductController::class, 'index'])->name('bar-keeper.products.index');
+            Route::get('/products/{product}', [\App\Http\Controllers\ProductController::class, 'show'])->name('bar-keeper.products.show');
 
-        // Product Management (Read Only for Bar Keeper)
-        Route::get('/products', [\App\Http\Controllers\ProductController::class, 'index'])->name('bar-keeper.products.index');
-        Route::get('/products/{product}', [\App\Http\Controllers\ProductController::class, 'show'])->name('bar-keeper.products.show');
+            Route::get('/recorded-items', [\App\Http\Controllers\BarKeeperController::class, 'recordedItems'])->name('bar-keeper.recorded-items');
 
-        Route::get('/recorded-items', [\App\Http\Controllers\BarKeeperController::class, 'recordedItems'])->name('bar-keeper.recorded-items');
-
-        // Purchase Request Routes
-        Route::get('/purchase-requests/create', [\App\Http\Controllers\PurchaseRequestController::class, 'create'])->name('bar-keeper.purchase-requests.create');
-        Route::post('/purchase-requests', [\App\Http\Controllers\PurchaseRequestController::class, 'store'])->name('bar-keeper.purchase-requests.store');
-        Route::get('/purchase-requests/my-requests', [\App\Http\Controllers\PurchaseRequestController::class, 'myRequests'])->name('bar-keeper.purchase-requests.my');
-        Route::get('/purchase-requests/history', [\App\Http\Controllers\PurchaseRequestController::class, 'history'])->name('bar-keeper.purchase-requests.history');
-        Route::post('/purchase-requests/receive-items', [\App\Http\Controllers\PurchaseRequestController::class, 'receiveItems'])->name('bar-keeper.purchase-requests.receive');
+            // Purchase Request Routes
+            Route::get('/purchase-requests/create', [\App\Http\Controllers\PurchaseRequestController::class, 'create'])->name('bar-keeper.purchase-requests.create');
+            Route::post('/purchase-requests', [\App\Http\Controllers\PurchaseRequestController::class, 'store'])->name('bar-keeper.purchase-requests.store');
+            Route::get('/purchase-requests/my-requests', [\App\Http\Controllers\PurchaseRequestController::class, 'myRequests'])->name('bar-keeper.purchase-requests.my');
+            Route::get('/purchase-requests/history', [\App\Http\Controllers\PurchaseRequestController::class, 'history'])->name('bar-keeper.purchase-requests.history');
+            Route::post('/purchase-requests/receive-items', [\App\Http\Controllers\PurchaseRequestController::class, 'receiveItems'])->name('bar-keeper.purchase-requests.receive');
+        });
 
         // Purchase Request Templates Routes
         Route::get('/purchase-requests/templates', [\App\Http\Controllers\PurchaseRequestController::class, 'templates'])->name('bar-keeper.purchase-requests.templates');

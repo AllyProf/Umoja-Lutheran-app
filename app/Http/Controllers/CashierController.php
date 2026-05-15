@@ -24,26 +24,55 @@ class CashierController extends Controller
         $stats = [
             'today_restaurant_collected' => ShiftClosure::whereDate('closed_at', $today)
                 ->where('status', 'received')
+                ->whereHas('staff', function($q) {
+                    $q->where('role', 'LIKE', '%bar%')->orWhere('role', 'LIKE', '%counter%');
+                })
                 ->sum('amount_submitted_tzs'),
-            'today_reception_collected' => DayService::whereDate('paid_at', $today)
-                ->whereNotNull('accountant_verified_at') // Repurposing this as collection marker
-                ->sum('amount_paid'),
-            'pending_restaurant_handovers' => ShiftClosure::where('status', 'pending_cashier')->count(),
-            'pending_reception_collections' => DayService::where('payment_status', 'paid')
+            'today_reception_collected' => ShiftClosure::whereDate('closed_at', $today)
+                ->where('status', 'received')
+                ->whereHas('staff', function($q) {
+                    $q->where('role', 'reception');
+                })
+                ->sum('amount_submitted_tzs'),
+            'pending_restaurant_handovers' => ShiftClosure::where('status', 'pending_cashier')
+                ->whereHas('staff', function($q) {
+                    $q->where('role', 'LIKE', '%bar%')->orWhere('role', 'LIKE', '%counter%');
+                })
+                ->count(),
+            'pending_reception_handovers' => ShiftClosure::where('status', 'pending_cashier')
+                ->whereHas('staff', function($q) {
+                    $q->where('role', 'reception');
+                })
+                ->count(),
+            'unverified_revenue' => DayService::where('payment_status', 'paid')
                 ->whereNull('accountant_verified_at')
                 ->count(),
         ];
 
-        // Recent collections
-        $recentHandovers = ShiftClosure::with('staff')
+        // Recent Restaurant Handovers
+        $recentRestaurantHandovers = ShiftClosure::with('staff')
             ->whereIn('status', ['pending_cashier', 'received'])
+            ->whereHas('staff', function($q) {
+                $q->where('role', 'LIKE', '%bar%')->orWhere('role', 'LIKE', '%counter%');
+            })
+            ->orderByDesc('closed_at')
+            ->limit(5)
+            ->get();
+
+        // Recent Reception Handovers
+        $recentReceptionHandovers = ShiftClosure::with('staff')
+            ->whereIn('status', ['pending_cashier', 'received'])
+            ->whereHas('staff', function($q) {
+                $q->where('role', 'reception');
+            })
             ->orderByDesc('closed_at')
             ->limit(5)
             ->get();
 
         return view('dashboard.cashier.dashboard', [
             'stats' => $stats,
-            'recentHandovers' => $recentHandovers,
+            'recentRestaurantHandovers' => $recentRestaurantHandovers,
+            'recentReceptionHandovers' => $recentReceptionHandovers,
             'role' => 'cashier',
             'userName' => Auth::guard('staff')->user()->name ?? 'Cashier',
             'userRole' => 'Cashier',
@@ -53,22 +82,44 @@ class CashierController extends Controller
     /**
      * View pending shift handovers from restaurant/counter
      */
-    public function shiftHandovers()
+    public function shiftHandovers(Request $request)
     {
-        $handovers = ShiftClosure::with(['staff', 'receiver'])
-            ->where('status', 'pending_cashier')
-            ->orderByDesc('closed_at')
-            ->paginate(15);
+        $type = $request->get('type', 'restaurant');
+        
+        $query = ShiftClosure::with(['staff', 'receiver'])
+            ->where('status', 'pending_cashier');
+            
+        if ($type === 'reception') {
+            $query->whereHas('staff', function($q) {
+                $q->where('role', 'reception');
+            });
+        } else {
+            $query->whereHas('staff', function($q) {
+                $q->where('role', 'LIKE', '%bar%')->orWhere('role', 'LIKE', '%counter%');
+            });
+        }
+        
+        $handovers = $query->orderByDesc('closed_at')->paginate(15);
 
-        $history = ShiftClosure::with(['staff', 'receiver'])
-            ->where('status', 'received')
-            ->orderByDesc('closed_at')
-            ->limit(10)
-            ->get();
+        $historyQuery = ShiftClosure::with(['staff', 'receiver'])
+            ->where('status', 'received');
+            
+        if ($type === 'reception') {
+            $historyQuery->whereHas('staff', function($q) {
+                $q->where('role', 'reception');
+            });
+        } else {
+            $historyQuery->whereHas('staff', function($q) {
+                $q->where('role', 'LIKE', '%bar%')->orWhere('role', 'LIKE', '%counter%');
+            });
+        }
+        
+        $history = $historyQuery->orderByDesc('closed_at')->limit(10)->get();
 
         return view('dashboard.cashier.shift-handovers', [
             'handovers' => $handovers,
             'history' => $history,
+            'type' => $type,
             'role' => 'cashier',
             'userName' => Auth::guard('staff')->user()->name ?? 'Cashier',
             'userRole' => 'Cashier',
@@ -148,46 +199,83 @@ class CashierController extends Controller
         $dateFrom  = $request->get('date_from');
         $dateTo    = $request->get('date_to');
 
-        // Build the base query: Group by date for Day Services
-        $query = DayService::select(
-            'service_date',
-            DB::raw('COUNT(id) as total_services'),
-            DB::raw('SUM(CASE WHEN payment_status = "paid" THEN amount_paid ELSE 0 END) as total_revenue'),
-            DB::raw('MAX(accountant_verified_at) as verified_at'),
-            DB::raw('MAX(cashier_collected_at) as collected_at'),
-            DB::raw('SUM(CASE WHEN payment_status = "paid" AND cashier_collected_at IS NULL THEN 1 ELSE 0 END) as uncollected_count'),
-            DB::raw('SUM(CASE WHEN payment_status = "paid" AND accountant_verified_at IS NULL THEN 1 ELSE 0 END) as unverified_count')
+        // 1. Fetch Day Service Revenues by Date
+        $dsQuery = DayService::select(
+            'service_date as date',
+            DB::raw('COUNT(id) as ds_count'),
+            DB::raw('SUM(CASE WHEN payment_status = "paid" THEN amount_paid ELSE 0 END) as ds_revenue'),
+            DB::raw('SUM(CASE WHEN payment_status = "paid" AND cashier_collected_at IS NULL THEN 1 ELSE 0 END) as ds_uncollected'),
+            DB::raw('SUM(CASE WHEN payment_status = "paid" AND accountant_verified_at IS NULL THEN 1 ELSE 0 END) as ds_unverified')
         )
-            ->groupBy('service_date')
-            ->orderByDesc('service_date');
+        ->where('payment_status', 'paid');
 
-        // Apply date range filter
-        if ($dateFrom) {
-            $query->where('service_date', '>=', $dateFrom);
-        }
-        if ($dateTo) {
-            $query->where('service_date', '<=', $dateTo);
-        }
+        if ($dateFrom) { $dsQuery->where('service_date', '>=', $dateFrom); }
+        if ($dateTo)   { $dsQuery->where('service_date', '<=', $dateTo); }
 
+        $dsDaily = $dsQuery->groupBy('service_date')->get()->keyBy('date');
+
+        // 2. Fetch Booking Revenues by Date
+        $bkQuery = Booking::select(
+            DB::raw('DATE(paid_at) as date'),
+            DB::raw('COUNT(id) as bk_count'),
+            DB::raw('SUM(amount_paid) as bk_revenue'),
+            DB::raw('SUM(CASE WHEN cashier_collected_at IS NULL THEN 1 ELSE 0 END) as bk_uncollected'),
+            DB::raw('SUM(CASE WHEN accountant_verified_at IS NULL THEN 1 ELSE 0 END) as bk_unverified')
+        )
+        ->where('payment_status', 'paid')
+        ->whereNotNull('paid_at');
+
+        if ($dateFrom) { $bkQuery->whereDate('paid_at', '>=', $dateFrom); }
+        if ($dateTo)   { $bkQuery->whereDate('paid_at', '<=', $dateTo); }
+
+        $bkDaily = $bkQuery->groupBy(DB::raw('DATE(paid_at)'))->get()->keyBy('date');
+
+        // 3. Merge All Dates
+        $allDates = $dsDaily->keys()->merge($bkDaily->keys())->unique()->sortDesc();
+
+        $mergedDaily = $allDates->map(function($date) use ($dsDaily, $bkDaily) {
+            $ds = $dsDaily->get($date);
+            $bk = $bkDaily->get($date);
+
+            return (object) [
+                'date' => $date,
+                'ds_count' => $ds->ds_count ?? 0,
+                'ds_revenue' => $ds->ds_revenue ?? 0,
+                'ds_uncollected' => $ds->ds_uncollected ?? 0,
+                'ds_unverified' => $ds->ds_unverified ?? 0,
+                'bk_count' => $bk->bk_count ?? 0,
+                'bk_revenue' => $bk->bk_revenue ?? 0,
+                'bk_uncollected' => $bk->bk_uncollected ?? 0,
+                'bk_unverified' => $bk->bk_unverified ?? 0,
+                'total_revenue' => ($ds->ds_revenue ?? 0) + ($bk->bk_revenue ?? 0),
+                'total_uncollected' => ($ds->ds_uncollected ?? 0) + ($bk->bk_uncollected ?? 0),
+                'total_unverified' => ($ds->ds_unverified ?? 0) + ($bk->bk_unverified ?? 0),
+            ];
+        });
+
+        // 4. Filter by Tab
         if ($tab === 'unverified') {
-            $query->havingRaw('uncollected_count > 0');
+            $mergedDaily = $mergedDaily->filter(fn($item) => $item->total_uncollected > 0);
         } elseif ($tab === 'verified') {
-            $query->havingRaw('uncollected_count = 0')->havingRaw('total_revenue > 0');
+            $mergedDaily = $mergedDaily->filter(fn($item) => $item->total_uncollected == 0 && $item->total_revenue > 0);
         }
 
-        $dailyRevenues = $query->paginate(15)->appends($request->only(['tab', 'date_from', 'date_to']));
+        // 5. Pagination (Manual)
+        $perPage = 15;
+        $page = $request->get('page', 1);
+        $dailyRevenues = new \Illuminate\Pagination\LengthAwarePaginator(
+            $mergedDaily->forPage($page, $perPage),
+            $mergedDaily->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
 
         // Stats — always global (no date filter) so top widgets show full picture
         $stats = [
-            'unverified_days' => DayService::select('service_date')
-                ->where('payment_status', 'paid')
-                ->whereNull('cashier_collected_at')
-                ->groupBy('service_date')
-                ->get()
-                ->count(),
-            'total_unverified_cash' => DayService::where('payment_status', 'paid')
-                ->whereNull('cashier_collected_at')
-                ->sum('amount_paid'),
+            'unverified_days' => $mergedDaily->filter(fn($item) => $item->total_uncollected > 0)->count(),
+            'total_unverified_cash' => DayService::where('payment_status', 'paid')->whereNull('cashier_collected_at')->sum('amount_paid'),
+            'total_unverified_rooms' => Booking::where('payment_status', 'paid')->whereNull('cashier_collected_at')->sum('amount_paid'),
         ];
 
         // Revenue breakdown by service type — filtered by date range
@@ -252,44 +340,145 @@ class CashierController extends Controller
         ]);
 
         $date = $request->service_date;
+        $staffId = Auth::guard('staff')->id();
 
-        $affectedRows = DayService::where('service_date', $date)
+        // 1. Update Day Services
+        $dsAffected = DayService::where('service_date', $date)
             ->where('payment_status', 'paid')
             ->whereNull('cashier_collected_at')
             ->update([
                 'cashier_collected_at' => now(),
-                'cashier_id' => Auth::guard('staff')->id(),
+                'cashier_id' => $staffId,
             ]);
 
-        if ($affectedRows > 0) {
-            return back()->with('success', "Revenue for " . Carbon::parse($date)->format('M d, Y') . " collected from Reception. It is now ready for Accountant verification.");
+        // 2. Update Bookings (using paid_at date)
+        $bkAffected = Booking::whereDate('paid_at', $date)
+            ->where('payment_status', 'paid')
+            ->whereNull('cashier_collected_at')
+            ->update([
+                'cashier_collected_at' => now(),
+                'cashier_id' => $staffId,
+            ]);
+
+        if ($dsAffected > 0 || $bkAffected > 0) {
+            $msg = "Revenue for " . Carbon::parse($date)->format('M d, Y') . " collected from Reception.";
+            if ($dsAffected > 0) $msg .= " ($dsAffected Day Services)";
+            if ($bkAffected > 0) $msg .= " ($bkAffected Room Bookings)";
+            return back()->with('success', $msg . " It is now ready for Accountant verification.");
         }
 
-        return back()->with('info', "No uncollected paid services found for " . Carbon::parse($date)->format('M d, Y') . ".");
+        return back()->with('info', "No uncollected paid revenue found for " . Carbon::parse($date)->format('M d, Y') . ".");
     }
 
     /**
      * View summary of funds ready for Accountant
      */
-    public function accountantHandovers()
+    public function accountantHandovers(Request $request)
     {
-        $shifts = ShiftClosure::with('staff')
-            ->where('status', 'received')
-            ->get();
+        $tab = $request->get('tab', 'pending');
 
-        $dayServices = DayService::select(
-            'service_date',
-            DB::raw('SUM(amount_paid) as total_revenue')
-        )
+        if ($tab === 'history') {
+            // 1. History: Restaurant/Counter Shifts (submitted and verified by accountant)
+            $shifts = ShiftClosure::with('staff')
+                ->where('status', 'verified')
+                ->whereHas('staff', function($q) {
+                    $q->where('role', 'LIKE', '%bar%')->orWhere('role', 'LIKE', '%counter%');
+                })
+                ->orderByDesc('updated_at')
+                ->limit(20)
+                ->get();
+
+            // 2. History: Reception Revenue (verified by accountant)
+            $dsQuery = DayService::select(
+                'service_date as date',
+                DB::raw('SUM(amount_paid) as ds_revenue')
+            )
+            ->where('payment_status', 'paid')
+            ->whereNotNull('accountant_verified_at')
+            ->groupBy('service_date');
+
+            $bkQuery = Booking::select(
+                DB::raw('DATE(paid_at) as date'),
+                DB::raw('SUM(amount_paid) as bk_revenue')
+            )
+            ->where('payment_status', 'paid')
+            ->whereNotNull('accountant_verified_at')
+            ->groupBy(DB::raw('DATE(paid_at)'));
+
+            $dsResults = $dsQuery->get()->keyBy('date');
+            $bkResults = $bkQuery->get()->keyBy('date');
+            
+            $allDates = $dsResults->keys()->merge($bkResults->keys())->unique()->sortDesc();
+
+            $receptionRevenue = $allDates->map(function($date) use ($dsResults, $bkResults) {
+                return (object) [
+                    'date' => $date,
+                    'ds_revenue' => $dsResults->get($date)->ds_revenue ?? 0,
+                    'bk_revenue' => $bkResults->get($date)->bk_revenue ?? 0,
+                    'total_revenue' => ($dsResults->get($date)->ds_revenue ?? 0) + ($bkResults->get($date)->bk_revenue ?? 0),
+                ];
+            });
+        } else {
+            // 1. Pending: Restaurant/Counter Shifts (collected but not submitted to accountant)
+            $shifts = ShiftClosure::with('staff')
+                ->where('status', 'received')
+                ->whereHas('staff', function($q) {
+                    $q->where('role', 'LIKE', '%bar%')->orWhere('role', 'LIKE', '%counter%');
+                })
+                ->orderByDesc('updated_at')
+                ->get();
+
+            // 2. Pending: Reception Revenue (Day Services + Bookings) collected but not verified by accountant
+            $dsQuery = DayService::select(
+                'service_date as date',
+                DB::raw('SUM(amount_paid) as ds_revenue')
+            )
             ->where('payment_status', 'paid')
             ->whereNotNull('cashier_collected_at')
             ->whereNull('accountant_verified_at')
-            ->groupBy('service_date')
-            ->get();
+            ->groupBy('service_date');
+
+            $bkQuery = Booking::select(
+                DB::raw('DATE(paid_at) as date'),
+                DB::raw('SUM(amount_paid) as bk_revenue')
+            )
+            ->where('payment_status', 'paid')
+            ->whereNotNull('cashier_collected_at')
+            ->whereNull('accountant_verified_at')
+            ->groupBy(DB::raw('DATE(paid_at)'));
+
+            $dsResults = $dsQuery->get()->keyBy('date');
+            $bkResults = $bkQuery->get()->keyBy('date');
+            
+            $allDates = $dsResults->keys()->merge($bkResults->keys())->unique()->sortDesc();
+
+            $receptionRevenue = $allDates->map(function($date) use ($dsResults, $bkResults) {
+                return (object) [
+                    'date' => $date,
+                    'ds_revenue' => $dsResults->get($date)->ds_revenue ?? 0,
+                    'bk_revenue' => $bkResults->get($date)->bk_revenue ?? 0,
+                    'total_revenue' => ($dsResults->get($date)->ds_revenue ?? 0) + ($bkResults->get($date)->bk_revenue ?? 0),
+                ];
+            });
+        }
+
+        // Stats for Widgets (Always show pending for quick oversight)
+        $pendingShifts = ShiftClosure::where('status', 'received')->sum('amount_submitted_tzs');
+        $dsPending = DayService::where('payment_status', 'paid')->whereNotNull('cashier_collected_at')->whereNull('accountant_verified_at')->sum('amount_paid');
+        $bkPending = Booking::where('payment_status', 'paid')->whereNotNull('cashier_collected_at')->whereNull('accountant_verified_at')->sum('amount_paid');
+
+        $stats = [
+            'total_shifts_cash' => $pendingShifts,
+            'total_reception_cash' => $dsPending + $bkPending,
+            'pending_shifts_count' => ShiftClosure::where('status', 'received')->count(),
+            'pending_reception_days' => $receptionRevenue->count(), // This count might vary if tab is history, but widgets should focus on pending
+        ];
 
         return view('dashboard.cashier.accountant-handovers', [
             'shifts' => $shifts,
-            'dayServices' => $dayServices,
+            'receptionRevenue' => $receptionRevenue,
+            'stats' => $stats,
+            'tab' => $tab,
             'role' => 'cashier',
             'userName' => Auth::guard('staff')->user()->name ?? 'Cashier',
             'userRole' => 'Cashier',

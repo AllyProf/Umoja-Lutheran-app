@@ -18,21 +18,13 @@
   Collections & Finance</li>
 
 <li
-  class="treeview {{ str_contains($activePage, 'cashier/shift-handovers') ? 'is-expanded' : '' }}">
+  class="treeview {{ str_contains($activePage, 'cashier/shift-handovers') || str_contains($activePage, 'cashier/reception/collections') || str_contains($activePage, 'cashier/accountant') ? 'is-expanded' : '' }}">
   <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-money"></i><span
-      class="app-menu__label">Counter Handovers</span><i class="treeview-indicator fa fa-angle-right"></i></a>
+      class="app-menu__label">Handovers</span><i class="treeview-indicator fa fa-angle-right"></i></a>
   <ul class="treeview-menu">
-    <li><a class="treeview-item" href="{{ route('cashier.shift-handovers') }}"><i class="icon fa fa-list"></i> Pending Handovers</a></li>
-  </ul>
-</li>
-
-<li
-  class="treeview {{ str_contains($activePage, 'cashier/reception/collections') ? 'is-expanded' : '' }}">
-  <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-bank"></i><span
-      class="app-menu__label">Reception Collections</span><i class="treeview-indicator fa fa-angle-right"></i></a>
-  <ul class="treeview-menu">
-    <li><a class="treeview-item" href="{{ route('cashier.reception.collections') }}"><i class="icon fa fa-history"></i> Revenue Verification</a></li>
-    <li><a class="treeview-item" href="{{ route('cashier.accountant.handovers') }}"><i class="icon fa fa-send"></i> Submit to Accountant</a></li>
+    <li><a class="treeview-item {{ str_contains($activePage, 'cashier/shift-handovers') ? 'active' : '' }}" href="{{ route('cashier.shift-handovers') }}"><i class="icon fa fa-coffee"></i> Counter Handover</a></li>
+    <li><a class="treeview-item {{ str_contains($activePage, 'cashier/reception/collections') ? 'active' : '' }}" href="{{ route('cashier.reception.collections') }}"><i class="icon fa fa-bed"></i> Reception Handover</a></li>
+    <li><a class="treeview-item {{ str_contains($activePage, 'cashier/accountant') ? 'active' : '' }}" href="{{ route('cashier.accountant.handovers') }}"><i class="icon fa fa-send"></i> Submit to Accountant</a></li>
   </ul>
 </li>
 
