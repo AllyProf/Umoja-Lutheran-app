@@ -58,4 +58,20 @@ class ShiftClosure extends Model
     {
         return $this->hasMany(ServiceRequest::class, 'shift_closure_id');
     }
+
+    /**
+     * Get the day services associated with this shift closure.
+     */
+    public function dayServices(): HasMany
+    {
+        return $this->hasMany(DayService::class, 'shift_closure_id');
+    }
+
+    /**
+     * Get the bookings associated with this shift closure.
+     */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class, 'shift_closure_id');
+    }
 }

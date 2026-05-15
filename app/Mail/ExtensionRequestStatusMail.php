@@ -25,12 +25,12 @@ class ExtensionRequestStatusMail extends Mailable
     public function envelope(): Envelope
     {
         $subjects = [
-            'approved' => 'Extension Request Approved - PrimeLand Hotel',
-            'rejected' => 'Extension Request Rejected - PrimeLand Hotel',
+            'approved' => 'Extension Request Approved - Umoja Lutheran Hostel',
+            'rejected' => 'Extension Request Rejected - Umoja Lutheran Hostel',
         ];
 
         return new Envelope(
-            subject: $subjects[$this->status] ?? 'Extension Request Update - PrimeLand Hotel',
+            subject: $subjects[$this->status] ?? 'Extension Request Update - Umoja Lutheran Hostel',
         );
     }
 

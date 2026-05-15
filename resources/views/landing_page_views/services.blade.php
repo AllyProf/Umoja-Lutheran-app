@@ -427,7 +427,7 @@
                             <div class="service_content" style="padding: 30px; flex-grow: 1; display: flex; flex-direction: column;">
                                 <h3 style="color: #e77a3a; font-size: 22px; font-weight: 700; margin-bottom: 15px; min-height: 54px;">Swimming Pool</h3>
                                 <p style="color: #666; line-height: 1.8; margin-bottom: 20px; flex-grow: 1; min-height: 90px;">Take a refreshing dip in our clean, well-maintained swimming pool. Perfect for relaxation and exercise throughout your stay.</p>
-                                <a href="https://www.instagram.com/primeland_hotel?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" class="service_link" style="color: #e77a3a; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; margin-top: auto;">
+                                <a href="https://www.instagram.com/Umoja_Lutheran_Hostel?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" class="service_link" style="color: #e77a3a; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; margin-top: auto;">
                                     View Gallery <i class="fa fa-arrow-right" style="margin-left: 8px;"></i>
                                 </a>
                             </div>

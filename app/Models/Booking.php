@@ -59,6 +59,7 @@ class Booking extends Model
         'total_service_charges_tsh',
         'total_bill_tsh',
         'extension_requested_to',
+        'shift_closure_id',
         'extension_status',
         'extension_requested_at',
         'extension_approved_at',

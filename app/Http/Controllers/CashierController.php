@@ -111,16 +111,31 @@ class CashierController extends Controller
      */
     public function viewShiftSales(ShiftClosure $shiftClosure)
     {
-        $sales = ServiceRequest::with(['booking.room', 'service'])
-            ->where('shift_closure_id', $shiftClosure->id)
-            ->get();
+        $staff = $shiftClosure->staff;
+        
+        $sales       = collect();
+        $dayServices = collect();
+        $bookings    = collect();
+
+        if ($staff->role === 'reception' || $staff->role === 'manager') {
+            // For reception, get day services and bookings
+            $dayServices = DayService::where('shift_closure_id', $shiftClosure->id)->get();
+            $bookings    = Booking::with('room')->where('shift_closure_id', $shiftClosure->id)->get();
+        } else {
+            // For counter (bar/restaurant), get service requests
+            $sales = ServiceRequest::with(['booking.room', 'service'])
+                ->where('shift_closure_id', $shiftClosure->id)
+                ->get();
+        }
 
         return view('dashboard.cashier.shift-sales', [
             'shiftClosure' => $shiftClosure,
-            'sales' => $sales,
-            'role' => 'cashier',
-            'userName' => Auth::guard('staff')->user()->name ?? 'Cashier',
-            'userRole' => 'Cashier',
+            'sales'        => $sales,
+            'dayServices'  => $dayServices,
+            'bookings'     => $bookings,
+            'role'         => 'cashier',
+            'userName'     => Auth::guard('staff')->user()->name ?? 'Cashier',
+            'userRole'     => 'Cashier',
         ]);
     }
 
@@ -129,7 +144,9 @@ class CashierController extends Controller
      */
     public function receptionCollections(Request $request)
     {
-        $tab = $request->get('tab', 'unverified');
+        $tab       = $request->get('tab', 'unverified');
+        $dateFrom  = $request->get('date_from');
+        $dateTo    = $request->get('date_to');
 
         // Build the base query: Group by date for Day Services
         $query = DayService::select(
@@ -144,16 +161,23 @@ class CashierController extends Controller
             ->groupBy('service_date')
             ->orderByDesc('service_date');
 
+        // Apply date range filter
+        if ($dateFrom) {
+            $query->where('service_date', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $query->where('service_date', '<=', $dateTo);
+        }
+
         if ($tab === 'unverified') {
-            // From cashier perspective, unverified means not yet collected by cashier
             $query->havingRaw('uncollected_count > 0');
         } elseif ($tab === 'verified') {
-            // Show services already collected by cashier
             $query->havingRaw('uncollected_count = 0')->havingRaw('total_revenue > 0');
         }
 
-        $dailyRevenues = $query->paginate(15);
+        $dailyRevenues = $query->paginate(15)->appends($request->only(['tab', 'date_from', 'date_to']));
 
+        // Stats — always global (no date filter) so top widgets show full picture
         $stats = [
             'unverified_days' => DayService::select('service_date')
                 ->where('payment_status', 'paid')
@@ -166,13 +190,55 @@ class CashierController extends Controller
                 ->sum('amount_paid'),
         ];
 
+        // Revenue breakdown by service type — filtered by date range
+        $breakdownQuery = DayService::select(
+                'service_type',
+                DB::raw('COUNT(id) as count'),
+                DB::raw('SUM(amount_paid) as revenue')
+            )
+            ->where('payment_status', 'paid')
+            ->whereNull('cashier_collected_at');
+
+        if ($dateFrom) { $breakdownQuery->where('service_date', '>=', $dateFrom); }
+        if ($dateTo)   { $breakdownQuery->where('service_date', '<=', $dateTo); }
+
+        $serviceBreakdown = $breakdownQuery->groupBy('service_type')->get()
+            ->mapWithKeys(function ($item) {
+                $label = match (true) {
+                    str_contains($item->service_type, 'swimming')   => 'Swimming',
+                    str_contains($item->service_type, 'parking')    => 'Parking',
+                    str_contains($item->service_type, 'garden')     => 'Garden',
+                    str_contains($item->service_type, 'conference') => 'Conference Room',
+                    str_contains($item->service_type, 'ceremony') ||
+                    str_contains($item->service_type, 'ceremory')   => 'Ceremony / Events',
+                    str_contains($item->service_type, 'projector')  => 'Projector',
+                    str_contains($item->service_type, 'music')      => 'Music / Sound',
+                    default => ucfirst(str_replace('_', ' ', $item->service_type)),
+                };
+                return [$label => ['count' => $item->count, 'revenue' => $item->revenue]];
+            });
+
+        // Room booking revenue — filtered by paid_at date range
+        $roomQuery = Booking::where('payment_status', 'paid')
+            ->whereNull('cashier_collected_at')
+            ->whereNotNull('amount_paid');
+
+        if ($dateFrom) { $roomQuery->whereDate('paid_at', '>=', $dateFrom); }
+        if ($dateTo)   { $roomQuery->whereDate('paid_at', '<=', $dateTo); }
+
+        $roomRevenue = $roomQuery->selectRaw('COUNT(id) as count, SUM(amount_paid) as revenue')->first();
+
         return view('dashboard.cashier.reception-collections', [
-            'dailyRevenues' => $dailyRevenues,
-            'tab' => $tab,
-            'stats' => $stats,
-            'role' => 'cashier',
-            'userName' => Auth::guard('staff')->user()->name ?? 'Cashier',
-            'userRole' => 'Cashier',
+            'dailyRevenues'    => $dailyRevenues,
+            'tab'              => $tab,
+            'stats'            => $stats,
+            'serviceBreakdown' => $serviceBreakdown,
+            'roomRevenue'      => $roomRevenue,
+            'dateFrom'         => $dateFrom,
+            'dateTo'           => $dateTo,
+            'role'             => 'cashier',
+            'userName'         => Auth::guard('staff')->user()->name ?? 'Cashier',
+            'userRole'         => 'Cashier',
         ]);
     }
 

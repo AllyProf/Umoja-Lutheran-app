@@ -2466,7 +2466,7 @@
                         </video>
                     </div>
                     <div style="text-align: center; margin-top: 20px;">
-                        <a href="https://www.instagram.com/primeland_hotel?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
+                        <a href="https://www.instagram.com/Umoja_Lutheran_Hostel?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
                             target="_blank" class="btn theme_btn button_hover">Explore More</a>
                     </div>
                 </div>
@@ -3037,7 +3037,7 @@
             </div>
         </div>
         <div class="container" style="padding-top: 30px; padding-bottom: 40px; text-align: center;">
-            <a href="https://www.instagram.com/primeland_hotel?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
+            <a href="https://www.instagram.com/Umoja_Lutheran_Hostel?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
                 target="_blank" class="btn theme_btn button_hover" style="display: inline-block;">
                 View Full Gallery
                 <i class="fa fa-arrow-right" style="margin-left: 8px;"></i>

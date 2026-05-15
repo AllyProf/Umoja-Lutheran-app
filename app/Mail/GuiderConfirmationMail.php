@@ -41,7 +41,7 @@ class GuiderConfirmationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Corporate Booking Confirmation - PrimeLand Hotel',
+            subject: 'Corporate Booking Confirmation - Umoja Lutheran Hostel',
         );
     }
 

@@ -29,7 +29,7 @@ class FeedbackRequestMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'We'd Love Your Feedback - PrimeLand Hotel',
+            subject: 'We'd Love Your Feedback - Umoja Lutheran Hostel',
         );
     }
 

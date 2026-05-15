@@ -29,7 +29,7 @@ class LowStockNotificationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Low Stock Alert: ' . $this->item->name . ' - PrimeLand Hotel',
+            subject: 'Low Stock Alert: ' . $this->item->name . ' - Umoja Lutheran Hostel',
         );
     }
 

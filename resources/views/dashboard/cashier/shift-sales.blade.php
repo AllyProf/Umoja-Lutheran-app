@@ -65,42 +65,118 @@
 
     <div class="col-md-8">
         <div class="tile">
-            <h3 class="tile-title">Itemized Sales</h3>
-            <div class="table-responsive">
-                <table class="table table-hover table-sm">
-                    <thead>
-                        <tr>
-                            <th>Time</th>
-                            <th>Item</th>
-                            <th>Qty</th>
-                            <th>Total Price</th>
-                            <th>Method</th>
-                            <th>Ref</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($sales as $sale)
-                        <tr>
-                            <td>{{ \Carbon\Carbon::parse($sale->completed_at)->format('H:i') }}</td>
-                            <td>
-                                {{ $sale->service->service_name ?? 'N/A' }}
-                                @if($sale->booking)
-                                    <br><small class="text-muted">Room: {{ $sale->booking->room->room_number }} ({{ $sale->booking->guest_name }})</small>
-                                @endif
-                            </td>
-                            <td>{{ $sale->quantity }}</td>
-                            <td>TZS {{ number_format($sale->total_price_tsh) }}</td>
-                            <td>
-                                <span class="badge badge-pill {{ $sale->payment_method === 'cash' ? 'badge-success' : 'badge-info' }}">
-                                    {{ ucfirst($sale->payment_method) }}
-                                </span>
-                            </td>
-                            <td><small>{{ $sale->payment_reference ?? '-' }}</small></td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+            @if($shiftClosure->staff->role === 'reception' || $shiftClosure->staff->role === 'manager')
+                <h3 class="tile-title">Reception Revenue Breakdown</h3>
+                
+                @if($bookings->count() > 0)
+                <h5>Room Bookings</h5>
+                <div class="table-responsive mb-4">
+                    <table class="table table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <th>Guest</th>
+                                <th>Room</th>
+                                <th>Paid At</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($bookings as $booking)
+                            <tr>
+                                <td>{{ $booking->guest_name }}</td>
+                                <td>{{ $booking->room->room_number ?? 'N/A' }}</td>
+                                <td>{{ $booking->paid_at ? \Carbon\Carbon::parse($booking->paid_at)->format('H:i') : '-' }}</td>
+                                <td>TZS {{ number_format($booking->amount_paid) }}</td>
+                                <td><span class="badge badge-secondary">{{ ucfirst($booking->payment_method) }}</span></td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @endif
+
+                @if($dayServices->count() > 0)
+                <h5>Day Services (Parking, Garden, etc.)</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <th>Service Type</th>
+                                <th>Guest</th>
+                                <th>Time</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($dayServices as $service)
+                            <tr>
+                                <td>
+                                    @php
+                                        $label = match (true) {
+                                            str_contains($service->service_type, 'swimming')   => 'Swimming',
+                                            str_contains($service->service_type, 'parking')    => 'Parking',
+                                            str_contains($service->service_type, 'garden')     => 'Garden',
+                                            str_contains($service->service_type, 'conference') => 'Conference Room',
+                                            default => ucfirst(str_replace('_', ' ', $service->service_type)),
+                                        };
+                                    @endphp
+                                    {{ $label }}
+                                </td>
+                                <td>{{ $service->guest_name }}</td>
+                                <td>{{ $service->paid_at ? \Carbon\Carbon::parse($service->paid_at)->format('H:i') : '-' }}</td>
+                                <td>TZS {{ number_format($service->amount_paid) }}</td>
+                                <td><span class="badge badge-secondary">{{ ucfirst($service->payment_method) }}</span></td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @endif
+                
+                @if($bookings->count() == 0 && $dayServices->count() == 0)
+                    <p class="text-center text-muted">No itemized sales found for this reception shift.</p>
+                @endif
+
+            @else
+                <h3 class="tile-title">Itemized Sales (Counter)</h3>
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Item</th>
+                                <th>Qty</th>
+                                <th>Total Price</th>
+                                <th>Method</th>
+                                <th>Ref</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($sales as $sale)
+                            <tr>
+                                <td>{{ \Carbon\Carbon::parse($sale->completed_at)->format('H:i') }}</td>
+                                <td>
+                                    {{ $sale->service->service_name ?? 'N/A' }}
+                                    @if($sale->booking)
+                                        <br><small class="text-muted">Room: {{ $sale->booking->room->room_number }} ({{ $sale->booking->guest_name }})</small>
+                                    @endif
+                                </td>
+                                <td>{{ $sale->quantity }}</td>
+                                <td>TZS {{ number_format($sale->total_price_tsh) }}</td>
+                                <td>
+                                    <span class="badge badge-pill {{ $sale->payment_method === 'cash' ? 'badge-success' : 'badge-info' }}">
+                                        {{ ucfirst($sale->payment_method) }}
+                                    </span>
+                                </td>
+                                <td><small>{{ $sale->payment_reference ?? '-' }}</small></td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
         </div>
     </div>
 </div>

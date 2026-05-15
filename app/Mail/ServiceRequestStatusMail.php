@@ -25,13 +25,13 @@ class ServiceRequestStatusMail extends Mailable
     public function envelope(): Envelope
     {
         $subjects = [
-            'approved' => 'Service Request Approved - PrimeLand Hotel',
-            'completed' => 'Service Request Completed - PrimeLand Hotel',
-            'cancelled' => 'Service Request Cancelled - PrimeLand Hotel',
+            'approved' => 'Service Request Approved - Umoja Lutheran Hostel',
+            'completed' => 'Service Request Completed - Umoja Lutheran Hostel',
+            'cancelled' => 'Service Request Cancelled - Umoja Lutheran Hostel',
         ];
 
         return new Envelope(
-            subject: $subjects[$this->status] ?? 'Service Request Update - PrimeLand Hotel',
+            subject: $subjects[$this->status] ?? 'Service Request Update - Umoja Lutheran Hostel',
         );
     }
 

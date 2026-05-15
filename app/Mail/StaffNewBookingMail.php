@@ -23,7 +23,7 @@ class StaffNewBookingMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'New Booking - ' . $this->booking->guest_name . ' - ' . $this->booking->booking_reference . ' - PrimeLand Hotel',
+            subject: 'New Booking - ' . $this->booking->guest_name . ' - ' . $this->booking->booking_reference . ' - Umoja Lutheran Hostel',
         );
     }
 

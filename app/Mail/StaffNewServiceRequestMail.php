@@ -23,7 +23,7 @@ class StaffNewServiceRequestMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'New Service Request - ' . $this->serviceRequest->service->name . ' - PrimeLand Hotel',
+            subject: 'New Service Request - ' . $this->serviceRequest->service->name . ' - Umoja Lutheran Hostel',
         );
     }
 

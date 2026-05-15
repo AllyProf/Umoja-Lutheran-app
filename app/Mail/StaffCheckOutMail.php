@@ -23,7 +23,7 @@ class StaffCheckOutMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Guest Checked Out - ' . $this->booking->guest_name . ' - Room ' . $this->booking->room->room_number . ' - PrimeLand Hotel',
+            subject: 'Guest Checked Out - ' . $this->booking->guest_name . ' - Room ' . $this->booking->room->room_number . ' - Umoja Lutheran Hostel',
         );
     }
 

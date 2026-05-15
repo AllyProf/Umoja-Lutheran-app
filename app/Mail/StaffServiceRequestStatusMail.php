@@ -25,13 +25,13 @@ class StaffServiceRequestStatusMail extends Mailable
     public function envelope(): Envelope
     {
         $subjects = [
-            'approved' => 'Service Request Approved - ' . $this->serviceRequest->service->name . ' - PrimeLand Hotel',
-            'completed' => 'Service Request Completed - ' . $this->serviceRequest->service->name . ' - PrimeLand Hotel',
-            'cancelled' => 'Service Request Cancelled - ' . $this->serviceRequest->service->name . ' - PrimeLand Hotel',
+            'approved' => 'Service Request Approved - ' . $this->serviceRequest->service->name . ' - Umoja Lutheran Hostel',
+            'completed' => 'Service Request Completed - ' . $this->serviceRequest->service->name . ' - Umoja Lutheran Hostel',
+            'cancelled' => 'Service Request Cancelled - ' . $this->serviceRequest->service->name . ' - Umoja Lutheran Hostel',
         ];
 
         return new Envelope(
-            subject: $subjects[$this->status] ?? 'Service Request Status Update - PrimeLand Hotel',
+            subject: $subjects[$this->status] ?? 'Service Request Status Update - Umoja Lutheran Hostel',
         );
     }
 

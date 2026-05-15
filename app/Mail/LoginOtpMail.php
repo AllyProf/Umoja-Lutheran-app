@@ -33,7 +33,7 @@ class LoginOtpMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Login Verification Code - PrimeLand Hotel',
+            subject: 'Your Login Verification Code - Umoja Lutheran Hostel',
         );
     }
 

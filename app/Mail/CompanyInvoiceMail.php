@@ -46,7 +46,7 @@ class CompanyInvoiceMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Corporate Booking Invoice - PrimeLand Hotel',
+            subject: 'Corporate Booking Invoice - Umoja Lutheran Hostel',
         );
     }
 

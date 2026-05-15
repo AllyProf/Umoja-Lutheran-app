@@ -33,7 +33,7 @@ class StaffWelcomeMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Welcome to PrimeLand Hotel - Staff Account Created',
+            subject: 'Welcome to Umoja Lutheran Hostel - Staff Account Created',
         );
     }
 

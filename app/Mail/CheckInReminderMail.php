@@ -25,8 +25,8 @@ class CheckInReminderMail extends Mailable
     public function envelope(): Envelope
     {
         $subject = $this->daysUntil == 0 
-            ? 'Check-In Today - PrimeLand Hotel' 
-            : "Check-In Reminder - {$this->daysUntil} Day(s) Remaining - PrimeLand Hotel";
+            ? 'Check-In Today - Umoja Lutheran Hostel' 
+            : "Check-In Reminder - {$this->daysUntil} Day(s) Remaining - Umoja Lutheran Hostel";
 
         return new Envelope(
             subject: $subject,

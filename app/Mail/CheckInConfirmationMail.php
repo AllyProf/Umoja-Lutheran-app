@@ -33,7 +33,7 @@ class CheckInConfirmationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Check-In Confirmation - PrimeLand Hotel',
+            subject: 'Check-In Confirmation - Umoja Lutheran Hostel',
         );
     }
 

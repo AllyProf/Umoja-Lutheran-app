@@ -30,7 +30,7 @@ class SwimmingServiceConfirmationMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Swimming Service Confirmation - PrimeLand Hotel',
+            subject: 'Swimming Service Confirmation - Umoja Lutheran Hostel',
         );
     }
 

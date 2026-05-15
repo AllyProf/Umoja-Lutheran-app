@@ -23,7 +23,7 @@ class ServiceRequestSubmittedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Service Request Submitted - PrimeLand Hotel',
+            subject: 'Service Request Submitted - Umoja Lutheran Hostel',
         );
     }
 

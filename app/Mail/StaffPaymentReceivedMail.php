@@ -27,7 +27,7 @@ class StaffPaymentReceivedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Payment Received - ' . number_format($this->amountPaid, 2) . ' TZS - ' . $this->booking->booking_reference . ' - PrimeLand Hotel',
+            subject: 'Payment Received - ' . number_format($this->amountPaid, 2) . ' TZS - ' . $this->booking->booking_reference . ' - Umoja Lutheran Hostel',
         );
     }
 

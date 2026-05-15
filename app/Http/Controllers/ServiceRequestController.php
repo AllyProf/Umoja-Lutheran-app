@@ -335,6 +335,16 @@ class ServiceRequestController extends Controller
                 }
             }
 
+            // Link to active shift if paid immediately
+            $activeShiftId = null;
+            if ($isWalkIn && ($paymentTiming === 'immediate' || $dayServiceId) && Auth::guard('staff')->check()) {
+                $staffId = Auth::guard('staff')->id();
+                $activeShift = \App\Models\ShiftClosure::where('staff_id', $staffId)
+                    ->where('status', 'active')
+                    ->first();
+                $activeShiftId = $activeShift?->id;
+            }
+
             $serviceRequest = ServiceRequest::create([
                 'booking_id' => $isWalkIn ? null : $booking->id,
                 'service_id' => $service ? $service->id : null,
@@ -356,6 +366,7 @@ class ServiceRequestController extends Controller
                 'approved_at' => $isWalkIn ? now() : null,
                 'approved_by' => $isWalkIn ? Auth::guard('staff')->id() : null,
                 'completed_at' => ($isWalkIn && ($paymentTiming === 'immediate' || $dayServiceId)) ? now() : null,
+                'shift_closure_id' => $activeShiftId,
             ]);
 
             // Create notification for service request
@@ -473,31 +484,34 @@ class ServiceRequestController extends Controller
             });
             $totalRevenueTZS = $totalBookingRevenueTZS + $totalServiceRevenueTZS + $totalDayServiceRevenueTZS;
 
-            // Calculate today's revenue (using paid_at if available)
-            $todayBookingRevenueTZS = Booking::whereIn('payment_status', ['paid', 'partial'])
-                ->whereNotNull('amount_paid')
-                ->where('amount_paid', '>', 0)
-                ->where(function ($q) use ($today) {
-                    $q->whereDate('paid_at', $today)
-                        ->orWhere(function ($subQ) use ($today) {
-                            $subQ->whereNull('paid_at')
-                                ->whereDate('created_at', $today);
-                        });
-                })
-                ->get()
-                ->sum(function ($booking) use ($exchangeRate) {
-                    return ($booking->amount_paid ?? 0) * ($booking->locked_exchange_rate ?? $exchangeRate);
-                });
-            $todayServiceRevenueTZS = ServiceRequest::where('status', 'completed')
-                ->whereDate('completed_at', $today)
-                ->sum('total_price_tsh');
-            $todayDayServiceRevenueTZS = \App\Models\DayService::where('payment_status', 'paid')
-                ->whereDate('paid_at', $today)
-                ->get()->sum(function ($s) use ($exchangeRate) {
-                    $amount = $s->amount_paid ?? $s->amount ?? 0;
-                    return $s->guest_type === 'tanzanian' ? $amount : ($amount * ($s->exchange_rate ?? $exchangeRate));
-                });
-            $todayRevenueTZS = $todayBookingRevenueTZS + $todayServiceRevenueTZS + $todayDayServiceRevenueTZS;
+            $staffId = Auth::guard('staff')->id();
+            $activeShift = ShiftClosure::where('staff_id', $staffId)
+                ->where('status', 'active')
+                ->first();
+
+            // Today's revenue is SHIFT-based: starts at 0 when shift opens,
+            // and only shows revenue collected during the active shift.
+            $todayRevenueTZS = 0;
+            if ($activeShift) {
+                $shiftBookingRev = Booking::where('shift_closure_id', $activeShift->id)
+                    ->whereIn('payment_status', ['paid', 'partial'])
+                    ->get()
+                    ->sum(fn($b) => ($b->amount_paid ?? 0) * ($b->locked_exchange_rate ?? $exchangeRate));
+
+                $shiftServiceRev = ServiceRequest::where('shift_closure_id', $activeShift->id)
+                    ->where('status', 'completed')
+                    ->sum('total_price_tsh');
+
+                $shiftDayServiceRev = \App\Models\DayService::where('shift_closure_id', $activeShift->id)
+                    ->where('payment_status', 'paid')
+                    ->get()
+                    ->sum(function ($s) use ($exchangeRate) {
+                        $amount = $s->amount_paid ?? $s->amount ?? 0;
+                        return $s->guest_type === 'tanzanian' ? $amount : ($amount * ($s->exchange_rate ?? $exchangeRate));
+                    });
+
+                $todayRevenueTZS = $shiftBookingRev + $shiftServiceRev + $shiftDayServiceRev;
+            }
 
             // Statistics
             $stats = [
@@ -578,6 +592,11 @@ class ServiceRequestController extends Controller
                 'Cancelled' => Booking::where('status', 'cancelled')->count(),
             ];
 
+            $staffId = Auth::guard('staff')->id();
+            $activeShift = ShiftClosure::where('staff_id', $staffId)
+                ->where('status', 'active')
+                ->first();
+
             $role = $this->getRole();
             return view('dashboard.reception-dashboard', [
                 'role' => $role,
@@ -591,6 +610,7 @@ class ServiceRequestController extends Controller
                 'revenueData' => $revenueData,
                 'bookingStatusData' => $bookingStatusData,
                 'exchangeRate' => $exchangeRate,
+                'activeShift' => $activeShift,
             ]);
 
         } catch (\Exception $e) {
@@ -858,6 +878,15 @@ class ServiceRequestController extends Controller
             }
         }
 
+        $activeShiftId = null;
+        if (Auth::guard('staff')->check()) {
+            $staffId = Auth::guard('staff')->id();
+            $activeShift = \App\Models\ShiftClosure::where('staff_id', $staffId)
+                ->where('status', 'active')
+                ->first();
+            $activeShiftId = $activeShift?->id;
+        }
+
         // Apply settlement to all identified items
         foreach ($itemsToSettle as $item) {
             $item->update([
@@ -866,6 +895,7 @@ class ServiceRequestController extends Controller
                 'payment_reference' => $request->payment_reference,
                 'status' => 'completed',
                 'completed_at' => now(),
+                'shift_closure_id' => $activeShiftId ?? $item->shift_closure_id,
             ]);
         }
 

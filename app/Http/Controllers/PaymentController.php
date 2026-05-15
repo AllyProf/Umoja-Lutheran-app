@@ -165,7 +165,7 @@ class PaymentController extends Controller
                 ],
             ],
             'application_context' => [
-                'brand_name' => 'PrimeLand Hotel',
+                'brand_name' => 'Umoja Lutheran Hostel',
                 'landing_page' => 'BILLING', // CRITICAL: Shows billing page for guest checkout
                 'user_action' => 'PAY_NOW',
                 'return_url' => url('/payment/success?booking_id=' . $booking->id . '&ref=' . $booking->booking_reference),

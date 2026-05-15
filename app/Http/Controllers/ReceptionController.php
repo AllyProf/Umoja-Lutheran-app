@@ -1446,6 +1446,16 @@ class ReceptionController extends Controller
             $isFullyPaid = true;
         }
 
+        // Link booking payment to the receptionist's active shift
+        $activeShiftId = null;
+        $currentStaff = Auth::guard('staff')->user();
+        if ($currentStaff) {
+            $activeShift = \App\Models\ShiftClosure::where('staff_id', $currentStaff->id)
+                ->where('status', 'active')
+                ->first();
+            $activeShiftId = $activeShift?->id;
+        }
+
         $booking->update([
             'payment_status' => $finalPaymentStatus,
             'payment_method' => $request->payment_method,
@@ -1454,6 +1464,7 @@ class ReceptionController extends Controller
             'amount_paid' => $newAmountPaidUsd,
             'paid_at' => $booking->paid_at ?? now(),
             'total_service_charges_tsh' => $totalServiceChargesTsh,
+            'shift_closure_id' => $activeShiftId,
         ]);
 
         // Send SMS notification to Guest (Receipt Confirmation)
@@ -2427,30 +2438,163 @@ class ReceptionController extends Controller
     }
 
     /**
-     * View daily revenue handovers status
+     * Show shift management page for Receptionist
+     */
+    public function shiftManagement()
+    {
+        $staffId = Auth::guard('staff')->id();
+        $activeShift = ShiftClosure::where('staff_id', $staffId)
+            ->where('status', 'active')
+            ->first();
+
+        if (!$activeShift) {
+            $unclosedDayServices = collect();
+            $unclosedBookings = collect();
+            $unclosedServices = collect();
+        } else {
+            // 1. Day Services
+            $unclosedDayServices = DayService::where('shift_closure_id', $activeShift->id)
+                ->where('payment_status', 'paid')
+                ->get();
+
+            // 2. Bookings
+            $unclosedBookings = Booking::where('shift_closure_id', $activeShift->id)
+                ->whereIn('payment_status', ['paid', 'partial'])
+                ->get();
+                
+            // 3. Service Requests (POS / Walk-in)
+            $unclosedServices = ServiceRequest::where('shift_closure_id', $activeShift->id)
+                ->where('status', 'completed')
+                ->get();
+        }
+
+        $summary = [
+            'day_services_count' => $unclosedDayServices->count(),
+            'day_services_total' => $unclosedDayServices->sum('amount_paid'),
+            'bookings_count' => $unclosedBookings->count(),
+            'bookings_total' => $unclosedBookings->sum('amount_paid'),
+            'services_count' => $unclosedServices->count(),
+            'services_total' => $unclosedServices->sum('total_price_tsh'),
+            'total_cash' => $unclosedDayServices->where('payment_method', 'cash')->sum('amount_paid') + 
+                            $unclosedBookings->where('payment_method', 'cash')->sum('amount_paid') +
+                            $unclosedServices->where('payment_method', 'cash')->sum('total_price_tsh'),
+            'total_mpesa' => $unclosedDayServices->where('payment_method', 'mpesa')->sum('amount_paid') + 
+                             $unclosedBookings->where('payment_method', 'mpesa')->sum('amount_paid') +
+                             $unclosedServices->where('payment_method', 'mpesa')->sum('total_price_tsh'),
+            'total_other' => $unclosedDayServices->whereNotIn('payment_method', ['cash', 'mpesa'])->sum('amount_paid') + 
+                             $unclosedBookings->whereNotIn('payment_method', ['cash', 'mpesa'])->sum('amount_paid') +
+                             $unclosedServices->whereNotIn('payment_method', ['cash', 'mpesa'])->sum('total_price_tsh'),
+        ];
+
+        return view('dashboard.reception.shift-management', [
+            'activeShift' => $activeShift,
+            'summary' => $summary,
+            'role' => 'reception',
+            'userName' => Auth::guard('staff')->user()->name ?? 'Receptionist',
+            'userRole' => 'Receptionist'
+        ]);
+    }
+
+    /**
+     * Open a new shift for the receptionist
+     */
+    public function openShift(Request $request)
+    {
+        $staffId = Auth::guard('staff')->id();
+
+        $activeShift = ShiftClosure::where('staff_id', $staffId)
+            ->where('status', 'active')
+            ->first();
+
+        if ($activeShift) {
+            return back()->with('error', 'Ulishafungua shift tayari.');
+        }
+
+        ShiftClosure::create([
+            'staff_id' => $staffId,
+            'opened_at' => now(),
+            'status' => 'active'
+        ]);
+
+        return back()->with('success', 'Shift imefunguliwa vizuri! Kazi njema.');
+    }
+
+    /**
+     * Close shift and submit handover to Cashier
+     */
+    public function closeShift(Request $request)
+    {
+        $request->validate([
+            'amount_submitted' => 'required|numeric|min:0',
+            'notes' => 'nullable|string'
+        ]);
+
+        $staffId = Auth::guard('staff')->id();
+        $activeShift = ShiftClosure::where('staff_id', $staffId)
+            ->where('status', 'active')
+            ->first();
+
+        if (!$activeShift) {
+            return back()->with('error', 'Huna shift iliyofunguliwa.');
+        }
+
+        // Get all unclosed paid sales for this receptionist
+        $unclosedDayServices = DayService::where('shift_closure_id', $activeShift->id)
+            ->where('payment_status', 'paid')
+            ->get();
+
+        $unclosedBookings = Booking::where('shift_closure_id', $activeShift->id)
+            ->whereIn('payment_status', ['paid', 'partial'])
+            ->get();
+            
+        $unclosedServices = ServiceRequest::where('shift_closure_id', $activeShift->id)
+            ->where('status', 'completed')
+            ->get();
+
+        $totalCash = $unclosedDayServices->where('payment_method', 'cash')->sum('amount_paid') + 
+                    $unclosedBookings->where('payment_method', 'cash')->sum('amount_paid') +
+                    $unclosedServices->where('payment_method', 'cash')->sum('total_price_tsh');
+        
+        $totalMpesa = $unclosedDayServices->where('payment_method', 'mpesa')->sum('amount_paid') + 
+                     $unclosedBookings->where('payment_method', 'mpesa')->sum('amount_paid') +
+                     $unclosedServices->where('payment_method', 'mpesa')->sum('total_price_tsh');
+        
+        $totalOther = ($unclosedDayServices->sum('amount_paid') + $unclosedBookings->sum('amount_paid') + $unclosedServices->sum('total_price_tsh')) - ($totalCash + $totalMpesa);
+
+        $amountSubmitted = (float) $request->amount_submitted;
+        $difference = $amountSubmitted - $totalCash;
+
+        $activeShift->update([
+            'closed_at' => now(),
+            'total_cash_tzs' => $totalCash,
+            'total_mpesa_tzs' => $totalMpesa,
+            'total_other_tzs' => $totalOther,
+            'amount_submitted_tzs' => $amountSubmitted,
+            'difference_tzs' => $difference,
+            'status' => 'pending_cashier',
+            'notes' => $request->notes
+        ]);
+
+        // No need to update the records, they are already linked to this shift_closure_id!
+
+        return back()->with('success', 'Shift imefungwa vizuri. Tafadhali kabidhi hela kwa Cashier.');
+    }
+
+    /**
+     * View history of shift closures (legacy handovers)
      */
     public function revenueHandovers()
     {
-        // Get summary of daily revenue from Day Services
-        $dayServices = \App\Models\DayService::select(
-            'service_date',
-            \Illuminate\Support\Facades\DB::raw('COUNT(id) as total_services'),
-            \Illuminate\Support\Facades\DB::raw('SUM(amount_paid) as total_revenue'),
-            \Illuminate\Support\Facades\DB::raw('MAX(cashier_collected_at) as collected_at'),
-            \Illuminate\Support\Facades\DB::raw('MAX(accountant_verified_at) as verified_at')
-        )
-            ->where('payment_status', 'paid')
-            ->groupBy('service_date')
-            ->orderByDesc('service_date')
+        $staffId = Auth::guard('staff')->id();
+        $history = ShiftClosure::where('staff_id', $staffId)
+            ->orderByDesc('closed_at')
             ->paginate(15);
 
         return view('dashboard.reception.revenue-handovers', [
-            'dayServices' => $dayServices,
+            'history' => $history,
             'role' => 'reception',
-            'userName' => \Illuminate\Support\Facades\Auth::guard('staff')->user()->name ?? 'Receptionist',
+            'userName' => Auth::guard('staff')->user()->name ?? 'Receptionist',
             'userRole' => 'Receptionist'
         ]);
     }
 }
-
-

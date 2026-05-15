@@ -34,7 +34,7 @@ class PasswordResetMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Password Reset - PrimeLand Hotel',
+            subject: 'Password Reset - Umoja Lutheran Hostel',
         );
     }
 

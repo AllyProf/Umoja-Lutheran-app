@@ -578,6 +578,9 @@ Route::prefix('reception')->group(function () {
         Route::get('/payments', [\App\Http\Controllers\ReceptionController::class, 'payments'])->name('reception.payments');
         Route::get('/reports', [\App\Http\Controllers\ReceptionController::class, 'reports'])->name('reception.reports');
         Route::get('/reports/financial', [\App\Http\Controllers\ReceptionController::class, 'dailyFinancialReport'])->name('reception.reports.financial');
+        Route::get('/shift-management', [\App\Http\Controllers\ReceptionController::class, 'shiftManagement'])->name('reception.shift-management');
+        Route::post('/shift/open', [\App\Http\Controllers\ReceptionController::class, 'openShift'])->name('reception.shift.open');
+        Route::post('/shift/close', [\App\Http\Controllers\ReceptionController::class, 'closeShift'])->name('reception.shift.close');
         Route::get('/revenue-handovers', [\App\Http\Controllers\ReceptionController::class, 'revenueHandovers'])->name('reception.revenue-handovers');
 
         // Reception Booking Operations

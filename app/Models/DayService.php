@@ -43,6 +43,7 @@ class DayService extends Model
         'discount_value',
         'discount_amount',
         'discount_reason',
+        'shift_closure_id',
     ];
 
     protected $casts = [

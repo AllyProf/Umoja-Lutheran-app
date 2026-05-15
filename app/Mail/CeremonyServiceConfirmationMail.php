@@ -30,7 +30,7 @@ class CeremonyServiceConfirmationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Ceremony Service Confirmation - PrimeLand Hotel',
+            subject: 'Ceremony Service Confirmation - Umoja Lutheran Hostel',
         );
     }
 

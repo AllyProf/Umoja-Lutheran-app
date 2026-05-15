@@ -38,7 +38,7 @@ class BookingConfirmationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Booking Confirmation - PrimeLand Hotel',
+            subject: 'Booking Confirmation - Umoja Lutheran Hostel',
         );
     }
 

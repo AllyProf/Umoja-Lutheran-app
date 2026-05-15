@@ -33,15 +33,15 @@ class ExpirationWarningMail extends Mailable
      */
     public function envelope(): Envelope
     {
-        $subject = 'Payment Reminder - PrimeLand Hotel';
+        $subject = 'Payment Reminder - Umoja Lutheran Hostel';
         
         if ($this->warningType === 'final') {
-            $subject = 'URGENT: Your Booking Expires in 15 Minutes - PrimeLand Hotel';
+            $subject = 'URGENT: Your Booking Expires in 15 Minutes - Umoja Lutheran Hostel';
         } elseif ($this->warningType === 'hour') {
-            $subject = 'URGENT: Your Booking Expires in 1 Hour - PrimeLand Hotel';
+            $subject = 'URGENT: Your Booking Expires in 1 Hour - Umoja Lutheran Hostel';
         } elseif ($this->reminderType) {
             $timeText = $this->reminderType === '1h' ? '1 Hour' : ($this->reminderType === '12h' ? '12 Hours' : '24 Hours');
-            $subject = "Payment Reminder: {$timeText} Until Booking Expires - PrimeLand Hotel";
+            $subject = "Payment Reminder: {$timeText} Until Booking Expires - Umoja Lutheran Hostel";
         }
 
         return new Envelope(

@@ -23,10 +23,10 @@ class StaffNewIssueReportMail extends Mailable
     public function envelope(): Envelope
     {
         $priority = ucfirst($this->issueReport->priority);
-        $subject = "New Issue Report - {$priority} Priority - {$this->issueReport->subject} - PrimeLand Hotel";
+        $subject = "New Issue Report - {$priority} Priority - {$this->issueReport->subject} - Umoja Lutheran Hostel";
         
         if ($this->issueReport->priority === 'urgent') {
-            $subject = "URGENT: New Issue Report - {$this->issueReport->subject} - PrimeLand Hotel";
+            $subject = "URGENT: New Issue Report - {$this->issueReport->subject} - Umoja Lutheran Hostel";
         }
 
         return new Envelope(

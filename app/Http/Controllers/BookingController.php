@@ -1853,7 +1853,7 @@ class BookingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Check-in successful! Welcome to PrimeLand Hotel.',
+            'message' => 'Check-in successful! Welcome to Umoja Lutheran Hostel.',
             'booking' => $booking->fresh()->load('room'),
         ]);
     }
@@ -4173,6 +4173,15 @@ class BookingController extends Controller
             $paymentStatus = $paymentPercentage >= 100 ? 'paid' : ($paymentPercentage > 0 ? 'partial' : 'pending');
         }
 
+        $activeShiftId = null;
+        if (Auth::guard('staff')->check()) {
+            $staffId = Auth::guard('staff')->id();
+            $activeShift = \App\Models\ShiftClosure::where('staff_id', $staffId)
+                ->where('status', 'active')
+                ->first();
+            $activeShiftId = $activeShift?->id;
+        }
+
         // Create the booking
         $booking = Booking::create([
             'room_id' => $room->id,
@@ -4203,6 +4212,7 @@ class BookingController extends Controller
             'guest_id' => $guestId,
             'payment_deadline' => $paymentDeadline,
             'locked_exchange_rate' => $lockedExchangeRate,
+            'shift_closure_id' => $activeShiftId,
         ]);
 
         // Send booking confirmation email

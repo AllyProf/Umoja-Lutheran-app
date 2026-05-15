@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DayService;
+use App\Models\ShiftClosure;
 use App\Models\Staff;
 use App\Services\CurrencyExchangeService;
 use Illuminate\Http\Request;
@@ -359,6 +360,14 @@ class DayServiceController extends Controller
             }
         }
 
+        $activeShiftId = null;
+        if ($validated['payment_status'] === 'paid') {
+            $activeShift = \App\Models\ShiftClosure::where('staff_id', $staff->id)
+                ->where('status', 'active')
+                ->first();
+            $activeShiftId = $activeShift?->id;
+        }
+
         // Prepare data
         $serviceData = [
             'service_reference' => $serviceReference,
@@ -397,6 +406,7 @@ class DayServiceController extends Controller
             'discount_reason' => $validated['discount_reason'] ?? null,
             'registered_by' => $staff->id,
             'paid_at' => $validated['payment_status'] === 'paid' ? now() : null,
+            'shift_closure_id' => $activeShiftId,
         ];
 
         $dayService = DayService::create($serviceData);
@@ -681,16 +691,26 @@ class DayServiceController extends Controller
             $exchangeRate = $currencyService->getUsdToTshRate();
         }
 
+        // Link to active shift if receptionist has one open
+        $activeShiftId = null;
+        if (Auth::guard('staff')->check()) {
+            $shift = ShiftClosure::where('staff_id', Auth::guard('staff')->id())
+                ->where('status', 'active')
+                ->first();
+            $activeShiftId = $shift?->id;
+        }
+
         $dayService->update([
             'items_ordered' => $validated['items_ordered'] ?? $dayService->items_ordered,
-            'amount' => $validated['amount'],
+            'amount'        => $validated['amount'],
             'payment_status' => 'paid',
             'payment_method' => $validated['payment_method'],
             'payment_provider' => $validated['payment_provider'] ?? null,
             'payment_reference' => $validated['payment_reference'] ?? null,
-            'amount_paid' => $validated['amount_paid'],
+            'amount_paid'   => $validated['amount_paid'],
             'exchange_rate' => $exchangeRate,
-            'paid_at' => now(),
+            'paid_at'       => now(),
+            'shift_closure_id' => $activeShiftId,
         ]);
 
         $receiptUrl = route('admin.day-services.receipt', $dayService);

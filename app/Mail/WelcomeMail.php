@@ -31,7 +31,7 @@ class WelcomeMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Welcome to PrimeLand Hotel',
+            subject: 'Welcome to Umoja Lutheran Hostel',
         );
     }
 

@@ -33,7 +33,7 @@ class StaffTransferNotificationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Items Transferred to ' . $this->department . ' Department - PrimeLand Hotel',
+            subject: 'Items Transferred to ' . $this->department . ' Department - Umoja Lutheran Hostel',
         );
     }
 

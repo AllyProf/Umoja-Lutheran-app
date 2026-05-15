@@ -30,7 +30,7 @@ class PaymentConfirmationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Payment Confirmed - PrimeLand Hotel',
+            subject: 'Payment Confirmed - Umoja Lutheran Hostel',
         );
     }
 

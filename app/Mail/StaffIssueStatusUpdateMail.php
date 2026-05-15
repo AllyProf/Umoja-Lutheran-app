@@ -27,13 +27,13 @@ class StaffIssueStatusUpdateMail extends Mailable
     public function envelope(): Envelope
     {
         $subjects = [
-            'pending' => 'Issue Report Status Update - ' . $this->issueReport->subject . ' - PrimeLand Hotel',
-            'in_progress' => 'Issue Report In Progress - ' . $this->issueReport->subject . ' - PrimeLand Hotel',
-            'resolved' => 'Issue Report Resolved - ' . $this->issueReport->subject . ' - PrimeLand Hotel',
+            'pending' => 'Issue Report Status Update - ' . $this->issueReport->subject . ' - Umoja Lutheran Hostel',
+            'in_progress' => 'Issue Report In Progress - ' . $this->issueReport->subject . ' - Umoja Lutheran Hostel',
+            'resolved' => 'Issue Report Resolved - ' . $this->issueReport->subject . ' - Umoja Lutheran Hostel',
         ];
 
         return new Envelope(
-            subject: $subjects[$this->status] ?? 'Issue Report Status Update - PrimeLand Hotel',
+            subject: $subjects[$this->status] ?? 'Issue Report Status Update - Umoja Lutheran Hostel',
         );
     }
 

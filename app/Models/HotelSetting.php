@@ -46,7 +46,7 @@ class HotelSetting extends Model
      */
     public static function getWifiNetworkName()
     {
-        return self::getValue('wifi_network_name', 'PrimeLand_Hotel');
+        return self::getValue('wifi_network_name', 'Umoja_Lutheran_Hostel');
     }
 }
 

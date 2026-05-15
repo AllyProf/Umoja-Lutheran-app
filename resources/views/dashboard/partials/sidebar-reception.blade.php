@@ -135,8 +135,10 @@
 <li><a class="app-menu__item {{ str_contains($activePage, 'reception/payments') ? 'active' : '' }}"
     href="{{ route('reception.payments') }}"><i class="app-menu__icon fa fa-money"></i><span class="app-menu__label">All
       Payments</span></a></li>
+<li><a class="app-menu__item {{ str_contains($activePage, 'reception/shift-management') ? 'active' : '' }}"
+    href="{{ route('reception.shift-management') }}"><i class="app-menu__icon fa fa-clock-o"></i><span class="app-menu__label">Shift Management</span></a></li>
 <li><a class="app-menu__item {{ str_contains($activePage, 'reception/revenue-handovers') ? 'active' : '' }}"
-    href="{{ route('reception.revenue-handovers') }}"><i class="app-menu__icon fa fa-handshake-o"></i><span class="app-menu__label">Revenue Handovers</span></a></li>
+    href="{{ route('reception.revenue-handovers') }}"><i class="app-menu__icon fa fa-history"></i><span class="app-menu__label">Handovers History</span></a></li>
 
 <li class="treeview {{ str_contains($activePage, 'reception/reports') ? 'is-expanded' : '' }}">
   <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-file-text"></i><span

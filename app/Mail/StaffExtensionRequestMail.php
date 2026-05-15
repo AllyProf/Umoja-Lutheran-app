@@ -26,17 +26,17 @@ class StaffExtensionRequestMail extends Mailable
     {
         if ($this->status === 'submitted') {
             return new Envelope(
-                subject: 'New Extension Request - ' . $this->booking->guest_name . ' - ' . $this->booking->booking_reference . ' - PrimeLand Hotel',
+                subject: 'New Extension Request - ' . $this->booking->guest_name . ' - ' . $this->booking->booking_reference . ' - Umoja Lutheran Hostel',
             );
         }
 
         $subjects = [
-            'approved' => 'Extension Request Approved - ' . $this->booking->booking_reference . ' - PrimeLand Hotel',
-            'rejected' => 'Extension Request Rejected - ' . $this->booking->booking_reference . ' - PrimeLand Hotel',
+            'approved' => 'Extension Request Approved - ' . $this->booking->booking_reference . ' - Umoja Lutheran Hostel',
+            'rejected' => 'Extension Request Rejected - ' . $this->booking->booking_reference . ' - Umoja Lutheran Hostel',
         ];
 
         return new Envelope(
-            subject: $subjects[$this->status] ?? 'Extension Request Update - PrimeLand Hotel',
+            subject: $subjects[$this->status] ?? 'Extension Request Update - Umoja Lutheran Hostel',
         );
     }
 
