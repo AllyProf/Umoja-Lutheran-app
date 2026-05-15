@@ -93,6 +93,51 @@
         </form>
       </div>
     </div>
+    <div class="tile">
+      <h3 class="tile-title">Backup & Storage</h3>
+      <div class="tile-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h4>Google Drive Backup</h4>
+            <p>Automatically backup your database to Google Drive. The system uses a refresh token to maintain access.</p>
+            
+            <div class="alert alert-info">
+              <i class="fa fa-info-circle"></i> 
+              <strong>Status:</strong> 
+              @if(config('filesystems.disks.google.refreshToken'))
+                <span class="text-success">Configured</span>
+              @else
+                <span class="text-danger">Not Configured</span>
+              @endif
+            </div>
+
+            <a href="{{ route('admin.google.auth') }}" class="btn btn-warning">
+              <i class="fa fa-google"></i> Connect / Re-authenticate Google Drive
+            </a>
+            
+            <p class="mt-3 small text-muted">
+              Note: This will redirect you to Google to authorize the application. 
+              Ensure you have configured the Client ID and Secret in your environment settings.
+            </p>
+          </div>
+          
+          <div class="col-md-6">
+            <h4>Backup Schedule</h4>
+            <ul class="list-group">
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Database Backup
+                <span class="badge badge-primary badge-pill">Daily at 03:00 AM</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                Backup Cleanup
+                <span class="badge badge-secondary badge-pill">Daily at 04:00 AM</span>
+              </li>
+            </ul>
+            <p class="mt-2 small text-muted">Backups are stored in the configured Google Drive folder.</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 @endsection

@@ -7,6 +7,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\StoreAnnouncementController;
 use App\Http\Controllers\EmergencyAuthController;
+use App\Http\Controllers\GoogleAuthController;
 
 // Default landing page redirects to login
 // Default landing page shows login directly
@@ -515,6 +516,10 @@ Route::prefix('super-admin')->group(function () {
         // System Settings
         Route::get('/system-settings', [\App\Http\Controllers\SuperAdminController::class, 'systemSettings'])->name('super_admin.system-settings');
         Route::post('/system-settings', [\App\Http\Controllers\SuperAdminController::class, 'updateSystemSettings'])->name('super_admin.system-settings.update');
+
+        // Google Auth for Backups
+        Route::get('/google/auth', [GoogleAuthController::class, 'redirectToGoogle'])->name('admin.google.auth');
+        Route::get('/google/callback', [GoogleAuthController::class, 'handleGoogleCallback'])->name('admin.google.callback');
 
 
         // Failed Login Attempts
