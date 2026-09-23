@@ -15,9 +15,9 @@ Thank you for staying with us at Umoja Lutheran Hostel! We hope you enjoyed your
 
 ## Payment Summary
 
-**Total Bill:** ${{ number_format($totalBillUsd ?? $booking->total_price, 2) }} ({{ number_format($totalBillTsh ?? 0, 2) }} TZS)
+**Total Bill:** TSh {{ number_format($booking->total_price, 0) }}
 
-**Amount Paid:** ${{ number_format($booking->amount_paid ?? $booking->total_price, 2) }} ({{ number_format($amountPaidTsh ?? 0, 2) }} TZS)
+**Amount Paid:** TSh {{ number_format($booking->amount_paid ?? $booking->total_price, 0) }}
 
 **Payment Status:** {{ ucfirst($booking->payment_status ?? 'paid') }}
 

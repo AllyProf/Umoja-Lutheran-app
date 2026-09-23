@@ -17,36 +17,19 @@
 <form id="pricingSettingsForm" method="POST" action="{{ route('admin.settings.pricing.update') }}">
   @csrf
 
-  <!-- Exchange Rate -->
+  <!-- Currency Notice -->
   <div class="row mb-3">
     <div class="col-md-12">
       <div class="tile">
-        <h3 class="tile-title"><i class="fa fa-exchange"></i> Exchange Rate</h3>
+        <h3 class="tile-title"><i class="fa fa-money"></i> Currency</h3>
         <div class="tile-body">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="exchange_rate_usd_to_tzs">Exchange Rate (1 USD = X TZS)</label>
-                <input type="number" class="form-control" id="exchange_rate_usd_to_tzs" 
-                       name="exchange_rate_usd_to_tzs" 
-                       value="{{ \App\Models\HotelSetting::getValue('exchange_rate_usd_to_tzs', '2455') }}" 
-                       step="0.01" min="0">
-                <small class="form-text text-muted">Fallback rate used only if API fails. System prioritizes live API rates from Frankfurter.app</small>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <div class="form-check mt-4">
-                  <input class="form-check-input" type="checkbox" id="auto_update_exchange_rate" 
-                         name="auto_update_exchange_rate" value="1"
-                         {{ \App\Models\HotelSetting::getValue('auto_update_exchange_rate') == '1' ? 'checked' : '' }}>
-                  <label class="form-check-label" for="auto_update_exchange_rate">
-                    Enable auto-update exchange rate
-                  </label>
-                  <small class="form-text text-muted d-block">Automatically fetch latest exchange rates (requires API integration)</small>
-                </div>
-              </div>
-            </div>
+          <div class="alert alert-info mb-0">
+            <i class="fa fa-info-circle"></i>
+            System currency is <strong>TSh (Tanzanian Shilling)</strong> only. All prices and payments use TSh.
+          </div>
+          <div style="display:none;">
+            <input type="hidden" name="exchange_rate_usd_to_tzs" value="1">
+            <input type="hidden" name="auto_update_exchange_rate" value="0">
           </div>
         </div>
       </div>

@@ -412,7 +412,7 @@
                             Total Amount Due
                         @endif
                     </div>
-                    <div class="payment-amount">${{ number_format($booking->total_price, 2) }}</div>
+                    <div class="payment-amount">TSh {{ number_format($booking->total_price, 0) }}</div>
                     <div class="payment-status" style="color: {{ $booking->payment_status == 'paid' ? '#28a745' : '#ffc107' }};">
                         @if($booking->payment_status == 'paid')
                             <i class="fas fa-check-circle"></i>

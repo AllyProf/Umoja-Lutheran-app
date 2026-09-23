@@ -98,14 +98,13 @@ class AdminController extends Controller
             $thisMonth = Carbon::now()->startOfMonth();
             $lastMonth = Carbon::now()->subMonth()->startOfMonth();
 
-            // Get exchange rate for currency conversion
-            $exchangeRate = 2500; // Default fallback rate
+            // System currency is TSh only (rate always 1)
+            $exchangeRate = 1;
             try {
                 $currencyService = new CurrencyExchangeService();
-                $exchangeRate = $currencyService->getUsdToTshRate();
+                $exchangeRate = $currencyService->getUsdToTshRate() ?: 1;
             } catch (\Exception $e) {
-                \Log::warning('Failed to get exchange rate, using default', ['error' => $e->getMessage()]);
-                // Use default rate if service fails
+                \Log::warning('Failed to get exchange rate, using TSh-only default', ['error' => $e->getMessage()]);
             }
 
             // Calculate total revenue (bookings + service requests)
@@ -343,7 +342,7 @@ class AdminController extends Controller
                 'userRole' => 'Manager',
                 'stats' => [],
                 'recentBookings' => collect(),
-                'exchangeRate' => 2500,
+                'exchangeRate' => 1,
                 'pendingExtensions' => collect(),
                 'revenueData' => [],
                 'bookingStatusData' => [],

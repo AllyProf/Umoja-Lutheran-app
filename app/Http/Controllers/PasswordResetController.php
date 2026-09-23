@@ -108,7 +108,7 @@ class PasswordResetController extends Controller
             if ($user->phone) {
                 $smsService = app(SmsService::class);
                 $message = "Hello {$user->name}, your password for " . config('app.name') . " has been reset. Your new password is: {$newPassword}";
-                $smsResult = $smsService->sendSms($user->phone, $message);
+                $smsResult = $smsService->sendSms($user->phone, $message, 'sms_password_reset');
                 
                 if (!$smsResult['success']) {
                     Log::error('Password reset SMS failed', ['error' => $smsResult['error'] ?? 'Unknown error']);

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -8,6 +8,20 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <!-- Apply saved theme before paint to avoid flash -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('umoja-theme');
+          if (saved !== 'dark' && saved !== 'light') {
+            saved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', saved);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
     <!-- Main CSS-->
     <link rel="stylesheet" type="text/css" href="{{ asset('dashboard_assets/css/main.css') }}">
     <!-- Font-icon css-->
@@ -19,25 +33,66 @@
         font-display: swap;
       }
 
-      :root {
+      :root,
+      html[data-theme="light"] {
         --primary-color: #940000;
         --secondary-color: #000000;
         --text-white: #ffffff;
+        --bg-body: #e5e5e5;
+        --bg-content: #e5e5e5;
+        --bg-card: #ffffff;
+        --bg-card-alt: #f8f9fa;
+        --text-main: #333333;
+        --text-muted: #6c757d;
+        --border-color: #dee2e6;
+        --table-stripe: #f9f9f9;
+        --input-bg: #ffffff;
+        --input-border: #ced4da;
+        --dropdown-bg: #ffffff;
+        --sidebar-bg: #000000;
+        --header-bg: #940000;
+      }
+
+      html[data-theme="dark"] {
+        --primary-color: #c62828;
+        --secondary-color: #0d1117;
+        --text-white: #ffffff;
+        --bg-body: #0d1117;
+        --bg-content: #0d1117;
+        --bg-card: #161b22;
+        --bg-card-alt: #1c2128;
+        --text-main: #e6edf3;
+        --text-muted: #9da7b3;
+        --border-color: #30363d;
+        --table-stripe: #1c2128;
+        --input-bg: #0d1117;
+        --input-border: #30363d;
+        --dropdown-bg: #161b22;
+        --sidebar-bg: #010409;
+        --header-bg: #7a0000;
       }
 
       body {
         font-family: 'Century Gothic', 'Segoe UI', Tahoma, sans-serif !important;
+        background-color: var(--bg-body) !important;
+        color: var(--text-main);
+        transition: background-color 0.25s ease, color 0.25s ease;
       }
-      
+
       .app-header {
-        background-color: var(--primary-color) !important;
+        background-color: var(--header-bg) !important;
       }
-      
+
       .app-header__logo {
         background-color: #ffffff !important;
-        color: var(--primary-color) !important;
+        color: #940000 !important;
         font-weight: 700 !important;
         transition: all 0.3s ease;
+      }
+
+      html[data-theme="dark"] .app-header__logo {
+        background-color: #161b22 !important;
+        color: #ff6b6b !important;
       }
 
       .app-header__logo:hover {
@@ -45,15 +100,440 @@
         color: #7b0000 !important;
         text-decoration: none !important;
       }
-      
-      .app-sidebar {
-        background-color: var(--secondary-color) !important;
+
+      html[data-theme="dark"] .app-header__logo:hover {
+        background-color: #1c2128 !important;
+        color: #ff8a8a !important;
       }
-      
+
+      .app-sidebar {
+        background-color: var(--sidebar-bg) !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      html {
+        scrollbar-gutter: stable;
+      }
+
+      .app-sidebar .app-menu,
+      .app-sidebar .treeview-menu {
+        overflow-x: hidden;
+        max-width: 100%;
+      }
+
+      .app-sidebar .app-menu__label,
+      .app-sidebar .treeview-item {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
+
+      @media (min-width: 768px) {
+        .app-content {
+          margin-left: 230px !important;
+        }
+        .app.sidenav-toggled .app-content,
+        .sidebar-mini.sidenav-toggled .app-content {
+          margin-left: 50px !important;
+        }
+        .sidebar-mini.sidenav-toggled .app-sidebar {
+          width: 50px !important;
+        }
+        .app:not(.sidenav-toggled) .app-sidebar {
+          width: 230px !important;
+        }
+
+        .app.sidenav-toggled .treeview-item-header,
+        .sidebar-mini.sidenav-toggled .treeview-item-header,
+        .app.sidenav-toggled .treeview-header,
+        .sidebar-mini.sidenav-toggled .treeview-header {
+          display: none !important;
+        }
+      }
+
       .app-sidebar__user {
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       }
-      
+
+      .app-content {
+        background-color: var(--bg-content) !important;
+        color: var(--text-main);
+      }
+
+      .app-title {
+        background-color: var(--bg-card) !important;
+        color: var(--text-main) !important;
+        border-bottom: 1px solid var(--border-color);
+        box-shadow: none !important;
+      }
+
+      .app-title h1,
+      .app-title h1 i {
+        color: var(--text-main) !important;
+      }
+
+      .app-title p,
+      .text-muted {
+        color: var(--text-muted) !important;
+      }
+
+      .app-breadcrumb.breadcrumb {
+        background: transparent !important;
+      }
+
+      .app-breadcrumb .breadcrumb-item,
+      .app-breadcrumb .breadcrumb-item a,
+      .app-breadcrumb .breadcrumb-item i {
+        color: var(--text-muted) !important;
+      }
+
+      .app-breadcrumb .breadcrumb-item a:hover {
+        color: var(--primary-color) !important;
+      }
+
+      .app-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
+        color: var(--text-muted) !important;
+      }
+
+      .tile,
+      .card,
+      .widget-small,
+      .material-card {
+        background-color: var(--bg-card) !important;
+        color: var(--text-main) !important;
+        border-color: var(--border-color) !important;
+      }
+
+      .tile-title,
+      .card-title,
+      .tile h3,
+      .tile h4,
+      .card h3,
+      .card h4 {
+        color: var(--text-main) !important;
+      }
+
+      .table {
+        color: var(--text-main) !important;
+      }
+
+      .table thead th,
+      .table > thead > tr > th {
+        background-color: var(--bg-card-alt) !important;
+        color: var(--text-main) !important;
+        border-color: var(--border-color) !important;
+      }
+
+      .table td,
+      .table th,
+      .table-bordered,
+      .table-bordered td,
+      .table-bordered th {
+        border-color: var(--border-color) !important;
+      }
+
+      .table-striped tbody tr:nth-of-type(odd),
+      .table-striped > tbody > tr:nth-of-type(odd) {
+        background-color: var(--table-stripe) !important;
+      }
+
+      .table-hover tbody tr:hover {
+        background-color: var(--bg-card-alt) !important;
+        color: var(--text-main) !important;
+      }
+
+      .form-control,
+      .custom-select,
+      select.form-control,
+      textarea.form-control,
+      input.form-control {
+        background-color: var(--input-bg) !important;
+        color: var(--text-main) !important;
+        border-color: var(--input-border) !important;
+      }
+
+      .form-control:focus {
+        background-color: var(--input-bg) !important;
+        color: var(--text-main) !important;
+        border-color: var(--primary-color) !important;
+      }
+
+      .form-control::placeholder {
+        color: var(--text-muted) !important;
+      }
+
+      .dropdown-menu,
+      .app-notification,
+      .settings-menu {
+        background-color: var(--dropdown-bg) !important;
+        color: var(--text-main) !important;
+        border-color: var(--border-color) !important;
+      }
+
+      .dropdown-item {
+        color: var(--text-main) !important;
+      }
+
+      .dropdown-item:hover,
+      .dropdown-item:focus {
+        background-color: var(--bg-card-alt) !important;
+        color: var(--text-main) !important;
+      }
+
+      .modal-content {
+        background-color: var(--bg-card) !important;
+        color: var(--text-main) !important;
+        border-color: var(--border-color) !important;
+      }
+
+      .modal-header,
+      .modal-footer {
+        border-color: var(--border-color) !important;
+      }
+
+      .list-group-item {
+        background-color: var(--bg-card) !important;
+        color: var(--text-main) !important;
+        border-color: var(--border-color) !important;
+      }
+
+      .breadcrumb {
+        background-color: transparent !important;
+      }
+
+      .app-breadcrumb a {
+        color: var(--primary-color) !important;
+      }
+
+      .alert {
+        border-color: var(--border-color);
+      }
+
+      html[data-theme="dark"] .alert-success {
+        background-color: #143d2a;
+        color: #b7f0cb;
+        border-color: #1f5c3d;
+      }
+
+      html[data-theme="dark"] .alert-warning {
+        background-color: #3d3214;
+        color: #ffe08a;
+        border-color: #5c4a1f;
+      }
+
+      html[data-theme="dark"] .alert-danger {
+        background-color: #3d1414;
+        color: #ffb3b3;
+        border-color: #5c1f1f;
+      }
+
+      html[data-theme="dark"] .alert-info {
+        background-color: #14303d;
+        color: #a8d8ff;
+        border-color: #1f455c;
+      }
+
+      /* Theme toggle button */
+      .theme-toggle-btn {
+        background: transparent;
+        border: none;
+        color: #fff;
+        width: 48px;
+        height: 50px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 0;
+        margin: 0;
+        line-height: 1;
+        vertical-align: middle;
+        transition: background-color 0.2s ease, color 0.2s ease;
+      }
+
+      .theme-toggle-btn:hover,
+      .theme-toggle-btn:focus {
+        background-color: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        outline: none;
+      }
+
+      .theme-toggle-btn .theme-icon-sun { display: none; }
+      .theme-toggle-btn .theme-icon-moon { display: inline-block; }
+
+      html[data-theme="dark"] .theme-toggle-btn .theme-icon-sun { display: inline-block; }
+      html[data-theme="dark"] .theme-toggle-btn .theme-icon-moon { display: none; }
+
+      .dropdown-menu .dropdown-item.active {
+        background-color: rgba(148, 0, 0, 0.12);
+        font-weight: 600;
+      }
+
+      /* ===== Header nav arrangement (search + icons) ===== */
+      .app-header {
+        align-items: stretch !important;
+        overflow: visible !important;
+      }
+
+      .app-nav {
+        display: flex !important;
+        align-items: center !important;
+        margin-left: auto !important;
+        margin-bottom: 0 !important;
+        padding: 0 !important;
+        height: 50px !important;
+        list-style: none !important;
+        overflow: visible !important;
+      }
+
+      .app-nav > li {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 50px !important;
+        margin: 0 !important;
+        float: none !important;
+        position: relative;
+      }
+
+      .app-nav > li.app-search {
+        flex: 0 1 220px;
+        max-width: 240px;
+        margin-right: 4px !important;
+        padding: 0 10px !important;
+        position: relative !important;
+      }
+
+      .app-nav .app-search__input {
+        height: 32px !important;
+        border-radius: 4px !important;
+        border: none !important;
+        width: 100% !important;
+        padding-right: 36px !important;
+      }
+
+      .app-nav .app-search__button {
+        position: absolute !important;
+        right: 14px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        height: 32px !important;
+        width: 32px !important;
+        border: none !important;
+        background: transparent !important;
+        color: #666 !important;
+        padding: 0 !important;
+      }
+
+      .app-nav__item,
+      .app-nav > li > .theme-toggle-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 50px !important;
+        min-width: 48px;
+        padding: 0 14px !important;
+        line-height: 1 !important;
+        color: #fff !important;
+        text-decoration: none !important;
+        position: relative;
+        box-sizing: border-box;
+      }
+
+      .app-nav__item:hover,
+      .app-nav__item:focus {
+        background-color: rgba(255, 255, 255, 0.12) !important;
+        color: #fff !important;
+      }
+
+      .app-nav .notification-badge,
+      .app-nav .badge-danger.notification-badge {
+        position: absolute !important;
+        top: 8px !important;
+        right: 6px !important;
+        transform: none !important;
+        background-color: #ff0000 !important;
+        color: #fff !important;
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        padding: 1px 5px !important;
+        border-radius: 10px !important;
+        min-width: 16px !important;
+        height: 16px !important;
+        line-height: 14px !important;
+        text-align: center !important;
+        border: 1px solid #fff !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        z-index: 2;
+      }
+
+      .app-nav .badge-warning {
+        position: absolute !important;
+        top: 8px !important;
+        right: 6px !important;
+        transform: none !important;
+        background-color: #ffc107 !important;
+        color: #212529 !important;
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        padding: 1px 5px !important;
+        border-radius: 10px !important;
+        min-width: 16px !important;
+        height: 16px !important;
+        line-height: 14px !important;
+        text-align: center !important;
+        border: 1px solid #fff !important;
+        z-index: 2;
+      }
+
+      @media (max-width: 767px) {
+        .app-nav > li.app-search {
+          display: none !important;
+        }
+        .app-nav__item,
+        .app-nav > li > .theme-toggle-btn {
+          min-width: 42px;
+          padding: 0 10px !important;
+        }
+      }
+
+      /* Extra dark-mode polish */
+      html[data-theme="dark"] .widget-small {
+        background-color: var(--bg-card) !important;
+        color: var(--text-main) !important;
+      }
+      html[data-theme="dark"] .widget-small .info h4,
+      html[data-theme="dark"] .widget-small .info p {
+        color: var(--text-main) !important;
+      }
+      html[data-theme="dark"] .pagination .page-link {
+        background-color: var(--bg-card) !important;
+        color: var(--text-main) !important;
+        border-color: var(--border-color) !important;
+      }
+      html[data-theme="dark"] .page-item.disabled .page-link {
+        background-color: var(--bg-card-alt) !important;
+        color: var(--text-muted) !important;
+      }
+      html[data-theme="dark"] .app-title h1 {
+        color: var(--text-main) !important;
+      }
+      html[data-theme="dark"] .app-title {
+        background-color: var(--bg-card) !important;
+      }
+      html[data-theme="dark"] .tile .title,
+      html[data-theme="dark"] .tile-title,
+      html[data-theme="dark"] label {
+        color: var(--text-main) !important;
+      }
+      html[data-theme="dark"] hr {
+        border-top-color: var(--border-color) !important;
+      }
+
       .app-menu__item.active, .app-menu__item:hover, .app-menu__item:focus {
         border-left-color: var(--primary-color) !important;
       }
@@ -65,11 +545,45 @@
       .btn-primary {
         background-color: var(--primary-color) !important;
         border-color: var(--primary-color) !important;
+        color: #fff !important;
       }
       
       .btn-primary:hover, .btn-primary:focus {
         background-color: #7b0000 !important;
         border-color: #7b0000 !important;
+        color: #fff !important;
+      }
+
+      .btn-info,
+      .btn-danger,
+      .btn-success,
+      .btn-secondary {
+        color: #fff !important;
+      }
+
+      .btn-info i,
+      .btn-danger i,
+      .btn-success i,
+      .btn-primary i,
+      .btn-secondary i {
+        color: #fff !important;
+      }
+
+      .role-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        flex-wrap: nowrap;
+      }
+
+      .role-actions .btn {
+        width: 32px;
+        height: 32px;
+        padding: 0 !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
       }
       
       .toggle-label:before {
@@ -429,7 +943,7 @@
     </style>
     @yield('styles')
   </head>
-  <body class="app sidebar-mini rtl">
+  <body class="app sidebar-mini">
     <!-- Loading overlay - must be first to prevent FOUC -->
     <div class="loading-container" id="loadingContainer">
         <div class="loading-logo">
@@ -513,23 +1027,23 @@
         Umoja Lutheran
       </a>
       <!-- Sidebar toggle button-->
-      <a class="app-sidebar__toggle" href="#" data-toggle="sidebar" aria-label="Hide Sidebar"></a>
+      <a class="app-sidebar__toggle" href="#" data-toggle="sidebar" aria-label="{{ __('Hide Sidebar') }}"></a>
       <!-- Navbar Right Menu-->
       <ul class="app-nav">
         <li class="app-search">
-          <input class="app-search__input" type="search" placeholder="Search">
+          <input class="app-search__input" type="search" placeholder="{{ __('Search') }}">
           <button class="app-search__button"><i class="fa fa-search"></i></button>
         </li>
         <!-- Low Stock Alert Menu -->
         @if(isset($lowStockHousekeepingCount) && $lowStockHousekeepingCount > 0)
         <li class="dropdown">
-          <a class="app-nav__item" href="#" data-toggle="dropdown" aria-label="Show low stock alerts" style="position: relative; display: inline-block; color: #ffc107;">
+          <a class="app-nav__item" href="#" data-toggle="dropdown" aria-label="{{ __('Show low stock alerts') }}" style="color: #ffc107;">
             <i class="fa fa-exclamation-triangle fa-lg"></i>
-            <span class="badge badge-warning" style="position: absolute; top: -5px; right: -8px; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; min-width: 18px; height: 18px; text-align: center; line-height: 14px; z-index: 1000; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">{{ $lowStockHousekeepingCount }}</span>
+            <span class="badge badge-warning">{{ $lowStockHousekeepingCount }}</span>
           </a>
           <ul class="app-notification dropdown-menu dropdown-menu-right">
             <li class="app-notification__title text-danger">
-              <i class="fa fa-warning"></i> Low Stock Alert ({{ $lowStockHousekeepingCount }} items)
+              <i class="fa fa-warning"></i> {{ __('Low Stock Alert') }} ({{ $lowStockHousekeepingCount }} {{ __('items') }})
             </li>
             <div class="app-notification__content">
               @foreach($lowStockHousekeepingItems as $item)
@@ -542,15 +1056,15 @@
                       </span>
                     </span>
                     <div>
-                      <p class="app-notification__message"><strong>{{ $item->name }}</strong> is low on stock!</p>
-                      <p class="app-notification__meta">Current: {{ $item->current_stock }} {{ $item->unit }} (Min: {{ $item->minimum_stock }})</p>
+                      <p class="app-notification__message"><strong>{{ $item->name }}</strong> {{ __('is low on stock!') }}</p>
+                      <p class="app-notification__meta">{{ __('Current') }}: {{ $item->current_stock }} {{ $item->unit }} ({{ __('Min') }}: {{ $item->minimum_stock }})</p>
                     </div>
                   </a>
                 </li>
               @endforeach
             </div>
             <li class="app-notification__footer">
-              <a href="{{ route('housekeeper.inventory') }}">Manage Inventory</a>
+              <a href="{{ route('housekeeper.inventory') }}">{{ __('Manage Inventory') }}</a>
             </li>
           </ul>
         </li>
@@ -558,18 +1072,18 @@
 
         <!--Notification Menu-->
         <li class="dropdown">
-          <a class="app-nav__item" href="#" data-toggle="dropdown" aria-label="Show notifications" style="position: relative; display: inline-block;">
+          <a class="app-nav__item" href="#" data-toggle="dropdown" aria-label="{{ __('Show notifications') }}">
             <i class="fa fa-bell-o fa-lg"></i>
             @if(isset($unreadNotificationCount) && $unreadNotificationCount > 0)
-              <span class="badge badge-danger notification-badge" style="position: absolute; top: -2px; right: -2px; background-color: #FF0000 !important; font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 50%; min-width: 18px; height: 18px; text-align: center; line-height: 14px; z-index: 1000; border: 1px solid #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">{{ $unreadNotificationCount > 99 ? '99+' : $unreadNotificationCount }}</span>
+              <span class="badge badge-danger notification-badge">{{ $unreadNotificationCount > 99 ? '99+' : $unreadNotificationCount }}</span>
             @endif
           </a>
           <ul class="app-notification dropdown-menu dropdown-menu-right" style="min-width: 350px; width: 350px;">
             <li class="app-notification__title">
               @if(isset($unreadNotificationCount) && $unreadNotificationCount > 0)
-                You have {{ $unreadNotificationCount }} new {{ $unreadNotificationCount === 1 ? 'notification' : 'notifications' }}.
+                {{ __('You have') }} {{ $unreadNotificationCount }} {{ __('new') }} {{ $unreadNotificationCount === 1 ? __('notification') : __('notifications') }}.
               @else
-                You have no new notifications.
+                {{ __('You have no new notifications.') }}
               @endif
             </li>
             <div class="app-notification__content">
@@ -594,10 +1108,17 @@
             </div>
             @if(isset($unreadNotificationCount) && $unreadNotificationCount > 0)
               <li class="app-notification__footer">
-                <a href="javascript:;" onclick="markAllNotificationsAsRead()">Mark all as read</a>
+                <a href="javascript:;" onclick="markAllNotificationsAsRead()">{{ __('Mark all as read') }}</a>
               </li>
             @endif
           </ul>
+        </li>
+        <!-- Theme toggle (Light / Dark) -->
+        <li>
+          <button type="button" class="theme-toggle-btn" id="themeToggleBtn" title="Toggle light/dark mode" aria-label="Toggle light/dark mode">
+            <i class="fa fa-moon-o theme-icon-moon" aria-hidden="true"></i>
+            <i class="fa fa-sun-o theme-icon-sun" aria-hidden="true"></i>
+          </button>
         </li>
         <!-- User Menu-->
         <li class="dropdown"><a class="app-nav__item" href="#" data-toggle="dropdown" aria-label="Open Profile Menu"><i class="fa fa-user fa-lg"></i></a>
@@ -835,15 +1356,14 @@
           }
         @endphp
         @php
-          // Check if we're on a reports page - if so, show reports sidebar instead
-          // Check for reports routes (manager/reports/*, day-services/reports, bar-keeper/reports, restaurant-reports)
-          // Exclude housekeeper/reports and reception/reports as they have their own sidebars
-          // ALSO EXCLUDE for Bar Keeper and Head Chef so they keep their specialized sidebars
-          $isReportsPage = ((str_contains($activePage, 'manager/reports') || str_contains($activePage, 'admin/reports')) || 
-                          str_contains($activePage, 'day-services/reports') ||
-                          str_contains($activePage, 'bar-keeper/reports') ||
-                          str_contains($activePage, 'restaurant-reports')) && 
-                          in_array($sidebarUserRole, ['manager', 'super_admin']);
+          // Only swap to the dedicated Reports sidebar on the Reports module pages.
+          // Do NOT treat operational pages like day-services/reports or bar-keeper/reports
+          // as reports pages — those should keep the normal manager sidebar.
+          $isReportsPage = (
+              str_contains($activePage, 'manager/reports') ||
+              str_contains($activePage, 'admin/reports') ||
+              str_contains($activePage, 'restaurant-reports')
+            ) && in_array($sidebarUserRole, ['manager', 'super_admin'], true);
         @endphp
         
         @if($isReportsPage)
@@ -869,29 +1389,77 @@
     <!-- Toast Notification Container -->
     <div id="toast-container"></div>
     
-    <!-- Store Announcements Marquee -->
+    <!-- System notice ticker -->
     @if(isset($activeStoreAnnouncements) && $activeStoreAnnouncements->isNotEmpty())
         @php
-            $isManagerAlert = $activeStoreAnnouncements->contains(function($a) {
-                return $a->creator && in_array(strtolower(trim($a->creator->role)), ['manager', 'super_admin', 'super admin', 'super_admin']);
-            });
+            $tickerSeconds = max(16, min(60, (int) ($activeStoreAnnouncements->sum(fn ($a) => strlen($a->message)) / 5)));
         @endphp
-        <div class="store-announcement-marquee" style="position: fixed; top: 50px; left: 0; width: 100%; background-color: #fff; border-bottom: 2px solid var(--primary-color); z-index: 999; height: 35px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-            <div style="background: var(--primary-color); color: #fff; padding: 0 15px; height: 100%; display: flex; align-items: center; font-weight: bold; white-space: nowrap; z-index: 1001;">
-                <i class="fa fa-bullhorn mr-2"></i> {{ $isManagerAlert ? 'ALERT' : 'STORE ALERT' }}:
+        <div class="notice-ticker" style="--ticker-seconds: {{ $tickerSeconds }}s;">
+            <div class="notice-ticker__label">
+                <i class="fa fa-bullhorn"></i> NOTICE
             </div>
-            <marquee behavior="scroll" direction="left" scrollamount="5" style="font-size: 16px; color: #333; font-weight: 600; padding: 5px 0;">
-                @foreach($activeStoreAnnouncements as $announcement)
-                    <span style="margin-right: 100px;">{{ $announcement->message }}</span>
-                @endforeach
-            </marquee>
+            <div class="notice-ticker__viewport">
+                <div class="notice-ticker__track">
+                    @foreach($activeStoreAnnouncements as $announcement)
+                        <span class="notice-ticker__item">{{ $announcement->message }}</span>
+                    @endforeach
+                </div>
+            </div>
         </div>
         <style>
-            .app-content { margin-top: 85px !important; }
-            .app-sidebar { margin-top: 35px !important; }
-            @media (max-width: 767px) {
-                .app-sidebar { margin-top: 35px !important; }
+            .notice-ticker {
+                position: fixed;
+                top: 50px;
+                left: 0;
+                width: 100%;
+                height: 36px;
+                z-index: 999;
+                display: flex;
+                align-items: stretch;
+                background: #fff8e8;
+                border-bottom: 2px solid var(--primary-color, #940000);
+                box-shadow: 0 2px 5px rgba(0,0,0,0.12);
             }
+            .notice-ticker__label {
+                background: var(--primary-color, #940000);
+                color: #fff;
+                padding: 0 14px;
+                display: flex;
+                align-items: center;
+                font-weight: 700;
+                letter-spacing: .04em;
+                white-space: nowrap;
+                z-index: 2;
+            }
+            .notice-ticker__label .fa { margin-right: 8px; }
+            .notice-ticker__viewport {
+                overflow: hidden;
+                flex: 1;
+                display: flex;
+                align-items: center;
+            }
+            .notice-ticker__track {
+                display: inline-block;
+                white-space: nowrap;
+                padding-left: 100%;
+                animation: notice-rtl var(--ticker-seconds, 22s) linear infinite;
+            }
+            .notice-ticker__viewport:hover .notice-ticker__track {
+                animation-play-state: paused;
+            }
+            .notice-ticker__item {
+                display: inline-block;
+                margin-right: 80px;
+                font-size: 15px;
+                font-weight: 600;
+                color: #3d2b00;
+            }
+            @keyframes notice-rtl {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(-100%); }
+            }
+            .app-content { margin-top: 86px !important; }
+            .app-sidebar { margin-top: 36px !important; }
         </style>
     @else
         <style>
@@ -1196,9 +1764,9 @@
         if (title) {
           const count = badge ? parseInt(badge.textContent.trim().replace('+', '')) : 0;
           if (count > 0) {
-            title.innerHTML = `You have ${count} new ${count === 1 ? 'notification' : 'notifications'}.`;
+            title.innerHTML = {{ json_encode(__('You have')) }} + ` ${count} ` + {{ json_encode(__('new')) }} + ` ${count === 1 ? {{ json_encode(__('notification')) }} : {{ json_encode(__('notifications')) }}}.`;
           } else {
-            title.innerHTML = 'You have no new notifications.';
+            title.innerHTML = {{ json_encode(__('You have no new notifications.')) }};
           }
         }
       }
@@ -1213,7 +1781,7 @@
           if (notificationLink) {
             const newBadge = document.createElement('span');
             newBadge.className = 'badge badge-danger notification-badge';
-            newBadge.style.cssText = 'position: absolute; top: -5px; right: -8px; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; min-width: 18px; height: 18px; text-align: center; line-height: 14px; z-index: 1000; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);';
+            newBadge.style.cssText = '';
             newBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
             notificationLink.appendChild(newBadge);
           }
@@ -1244,7 +1812,7 @@
           if (notificationLink) {
             const newBadge = document.createElement('span');
             newBadge.className = 'badge badge-danger notification-badge';
-            newBadge.style.cssText = 'position: absolute; top: -5px; right: -8px; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; min-width: 18px; height: 18px; text-align: center; line-height: 14px; z-index: 1000; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);';
+            newBadge.style.cssText = '';
             newBadge.textContent = count > 99 ? '99+' : count;
             notificationLink.appendChild(newBadge);
             updateNotificationTitle();
@@ -1454,7 +2022,7 @@
                   if (notificationLink) {
                     const newBadge = document.createElement('span');
                     newBadge.className = 'badge badge-danger notification-badge';
-                    newBadge.style.cssText = 'position: absolute; top: -5px; right: -8px; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; min-width: 18px; height: 18px; text-align: center; line-height: 14px; z-index: 1000; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);';
+                    newBadge.style.cssText = '';
                     newBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
                     notificationLink.appendChild(newBadge);
                   }
@@ -1476,6 +2044,30 @@
       }, 15000);
     </script>
     @yield('scripts')
+
+  <script>
+    (function () {
+      var btn = document.getElementById('themeToggleBtn');
+      if (!btn) return;
+
+      function currentTheme() {
+        return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      }
+
+      function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        try { localStorage.setItem('umoja-theme', theme); } catch (e) {}
+        btn.setAttribute('title', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+        btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+      }
+
+      applyTheme(currentTheme());
+
+      btn.addEventListener('click', function () {
+        applyTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+      });
+    })();
+  </script>
   
   <script>
     (function() {
@@ -1535,4 +2127,5 @@
   </script>
   </body>
 </html>
+
 

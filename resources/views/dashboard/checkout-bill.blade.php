@@ -130,7 +130,7 @@
           $originalCheckOut = $booking->original_check_out ? \Carbon\Carbon::parse($booking->original_check_out) : \Carbon\Carbon::parse($booking->check_out);
           $displayOriginalNights = $booking->check_in->diffInDays($originalCheckOut);
           $displayRoomPriceUsd = $booking->room ? ($booking->room->price_per_night * $displayOriginalNights) : 0;
-          $displayRoomPriceTsh = $displayRoomPriceUsd * $exchangeRate;
+          $displayRoomPriceTsh = $displayRoomPriceUsd;
           $displayExtensionUsd = 0;
           $displayExtensionTsh = 0;
           $displayExtensionNights = 0;
@@ -140,7 +140,7 @@
             $displayExtensionNights = $originalCheckOutDate->diffInDays($requestedCheckOut);
             if ($displayExtensionNights > 0 && $booking->room) {
               $displayExtensionUsd = $booking->room->price_per_night * $displayExtensionNights;
-              $displayExtensionTsh = $displayExtensionUsd * $exchangeRate;
+              $displayExtensionTsh = $displayExtensionUsd;
             }
           }
           // Get actual service charges from service requests (for display purposes)
@@ -157,7 +157,7 @@
                   <tr>
                     <td><strong>Room Charges ({{ $displayOriginalNights }} night(s)):</strong></td>
                     <td class="text-right">
-                      <strong>{{ number_format($displayRoomPriceTsh, 2) }} TZS</strong>
+                      <strong>{{ number_format($displayRoomPriceTsh, 0) }} TSh</strong>
                       <br><small class="text-success"><i class="fa fa-check-circle"></i> Paid by Company</small>
                     </td>
                   </tr>
@@ -165,7 +165,7 @@
                   <tr>
                     <td><strong>Extension Charges ({{ $displayExtensionNights }} night(s)):</strong></td>
                     <td class="text-right">
-                      <strong>{{ number_format($displayExtensionTsh, 2) }} TZS</strong>
+                      <strong>{{ number_format($displayExtensionTsh, 0) }} TSh</strong>
                       <br><small class="text-success"><i class="fa fa-check-circle"></i> Paid by Company</small>
                     </td>
                   </tr>
@@ -174,7 +174,7 @@
                   <tr>
                     <td><strong>Service Charges:</strong></td>
                     <td class="text-right">
-                      <strong>{{ number_format($displayTotalServiceTsh, 2) }} TZS</strong>
+                      <strong>{{ number_format($displayTotalServiceTsh, 0) }} TSh</strong>
                       <br><small class="text-success"><i class="fa fa-check-circle"></i> Paid by Company</small>
                     </td>
                   </tr>
@@ -182,7 +182,7 @@
                   <tr style="border-top: 2px solid #940000;">
                     <td><strong>Total Bill:</strong></td>
                     <td class="text-right">
-                      <strong>{{ number_format($displayTotalBillTsh, 2) }} TZS</strong>
+                      <strong>{{ number_format($displayTotalBillTsh, 0) }} TSh</strong>
                       <br><small class="text-success"><i class="fa fa-check-circle"></i> Paid by {{ $booking->company->name ?? 'Company' }}</small>
                     </td>
                   </tr>
@@ -198,7 +198,7 @@
           $originalCheckOut = $booking->original_check_out ? \Carbon\Carbon::parse($booking->original_check_out) : \Carbon\Carbon::parse($booking->check_out);
           $displayOriginalNights = $booking->check_in->diffInDays($originalCheckOut);
           $displayRoomPriceUsd = $booking->room ? ($booking->room->price_per_night * $displayOriginalNights) : 0;
-          $displayRoomPriceTsh = $displayRoomPriceUsd * $exchangeRate;
+          $displayRoomPriceTsh = $displayRoomPriceUsd;
           $displayExtensionUsd = 0;
           $displayExtensionTsh = 0;
           $displayExtensionNights = 0;
@@ -208,7 +208,7 @@
             $displayExtensionNights = $originalCheckOutDate->diffInDays($requestedCheckOut);
             if ($displayExtensionNights > 0 && $booking->room) {
               $displayExtensionUsd = $booking->room->price_per_night * $displayExtensionNights;
-              $displayExtensionTsh = $displayExtensionUsd * $exchangeRate;
+              $displayExtensionTsh = $displayExtensionUsd;
             }
           }
           // Get unpaid self-paid service charges (include room_charge if responsabilidad is guest)
@@ -230,7 +230,7 @@
                   <tr>
                     <td><strong>Room Charges ({{ $displayOriginalNights }} night(s)):</strong></td>
                     <td class="text-right">
-                      <strong>{{ number_format($displayRoomPriceTsh, 2) }} TZS</strong>
+                      <strong>{{ number_format($displayRoomPriceTsh, 0) }} TSh</strong>
                       <br><small class="text-success"><i class="fa fa-building"></i> Paid by {{ $booking->company->name ?? 'Company' }}</small>
                     </td>
                   </tr>
@@ -238,7 +238,7 @@
                   <tr>
                     <td><strong>Extension Charges ({{ $displayExtensionNights }} night(s)):</strong></td>
                     <td class="text-right">
-                      <strong>{{ number_format($displayExtensionTsh, 2) }} TZS</strong>
+                      <strong>{{ number_format($displayExtensionTsh, 0) }} TSh</strong>
                       <br><small class="text-success"><i class="fa fa-building"></i> Paid by {{ $booking->company->name ?? 'Company' }}</small>
                     </td>
                   </tr>
@@ -247,7 +247,7 @@
                   <tr>
                     <td><strong>Service Charges (Self-Paid):</strong></td>
                     <td class="text-right">
-                      <strong>{{ number_format($displayGuestServiceTsh, 2) }} TZS</strong>
+                      <strong>{{ number_format($displayGuestServiceTsh, 0) }} TSh</strong>
                       <br><small class="text-warning"><i class="fa fa-user"></i> Paid by Guest</small>
                     </td>
                   </tr>
@@ -255,20 +255,20 @@
                   <tr style="border-top: 2px solid #940000;">
                     <td><strong>Total Bill:</strong></td>
                     <td class="text-right">
-                      <strong>{{ number_format($displayTotalBillTsh, 2) }} TZS</strong>
+                      <strong>{{ number_format($displayTotalBillTsh, 0) }} TSh</strong>
                     </td>
                   </tr>
                   <tr style="border-top: 1px solid #ddd;">
                     <td><strong>Company Portion:</strong></td>
                     <td class="text-right">
-                      <strong style="color: #28a745;">{{ number_format($displayCompanyBillTsh, 2) }} TZS</strong>
+                      <strong style="color: #28a745;">{{ number_format($displayCompanyBillTsh, 0) }} TSh</strong>
                       <br><small class="text-success"><i class="fa fa-building"></i> Paid by {{ $booking->company->name ?? 'Company' }}</small>
                     </td>
                   </tr>
                   <tr>
                     <td><strong>Guest Portion:</strong></td>
                     <td class="text-right">
-                      <strong style="color: {{ $displayGuestServiceTsh > 0 ? '#940000' : '#28a745' }};">{{ number_format($displayGuestServiceTsh, 2) }} TZS</strong>
+                      <strong style="color: {{ $displayGuestServiceTsh > 0 ? '#940000' : '#28a745' }};">{{ number_format($displayGuestServiceTsh, 0) }} TSh</strong>
                       @if($displayGuestServiceTsh > 0)
                         <br><small class="text-warning"><i class="fa fa-user"></i> Self-Paid Services</small>
                       @else
@@ -327,7 +327,7 @@
                 <tr style="background-color: #f8f9fa;">
                   <th>Description</th>
                   <th>Nights</th>
-                  <th>Total (TZS)</th>
+                  <th>Total (TSh)</th>
                 </tr>
               </thead>
               <tbody>
@@ -339,13 +339,13 @@
                 <tr>
                   <td>Room Accommodation (Original Booking)</td>
                   <td>{{ $originalNights }}</td>
-                  <td><strong>{{ number_format($roomPriceTsh, 2) }} TZS</strong></td>
+                  <td><strong>{{ number_format($roomPriceTsh, 0) }} TSh</strong></td>
                 </tr>
                 @if($extensionCostUsd > 0 && $extensionNights > 0)
                 <tr style="background-color: #fff3cd;">
                   <td>Room Extension (Additional Nights)</td>
                   <td>{{ $extensionNights }}</td>
-                  <td><strong>{{ number_format($extensionCostTsh, 2) }} TZS</strong></td>
+                  <td><strong>{{ number_format($extensionCostTsh, 0) }} TSh</strong></td>
                 </tr>
                 @endif
               </tbody>
@@ -373,8 +373,8 @@
                   <th>Service</th>
                   <th>Category</th>
                    <th>Quantity</th>
-                  <th>Unit Price (TZS)</th>
-                  <th>Total (TZS)</th>
+                  <th>Unit Price (TSh)</th>
+                  <th>Total (TSh)</th>
                   <th>Payment</th>
                   <th>Status</th>
                 </tr>
@@ -422,7 +422,7 @@
               <tfoot>
                 <tr style="background-color: #f8f9fa;">
                    <td colspan="5" class="text-right"><strong>Total Service Charges:</strong></td>
-                  <td colspan="3"><strong>{{ number_format($displayServiceRequests->sum('total_price_tsh'), 2) }} TZS</strong></td>
+                  <td colspan="3"><strong>{{ number_format($displayServiceRequests->sum('total_price_tsh'), 0) }} TSh</strong></td>
                 </tr>
               </tfoot>
             </table>
@@ -463,7 +463,7 @@
                 <tr>
                   <td><strong>Room Charges (Original):</strong></td>
                   <td class="text-right">
-                    <strong>{{ number_format($roomPriceTsh ?? 0, 2) }} TZS</strong>
+                    <strong>{{ number_format($roomPriceTsh ?? 0, 0) }} TSh</strong>
                     @if($booking->payment_status === 'paid')
                       <br><small class="text-success"><i class="fa fa-check-circle"></i> Paid</small>
                     @endif
@@ -472,7 +472,7 @@
                 @if(($extensionCostTsh ?? 0) > 0)
                 <tr>
                   <td><strong>Extension Charges:</strong></td>
-                  <td class="text-right"><strong>{{ number_format($extensionCostTsh ?? 0, 2) }} TZS</strong></td>
+                  <td class="text-right"><strong>{{ number_format($extensionCostTsh ?? 0, 0) }} TSh</strong></td>
                 </tr>
                 @endif
                 @endif
@@ -480,7 +480,7 @@
                 <tr>
                   <td><strong>Service Charges (Self-Paid):</strong></td>
                   <td class="text-right">
-                    <strong>{{ number_format($totalServiceChargesTsh ?? 0, 2) }} TZS</strong>
+                    <strong>{{ number_format($totalServiceChargesTsh ?? 0, 0) }} TSh</strong>
                     @if($booking->company)
                       <br><small class="text-muted"><i class="fa fa-info-circle"></i> Room charges paid by {{ $booking->company->name }}</small>
                     @endif
@@ -490,20 +490,20 @@
                 @if(!$isCorporateSelfPaid && !($isStaffViewingCorporate ?? false))
                 <tr>
                   <td><strong>Service Charges:</strong></td>
-                  <td class="text-right"><strong>{{ number_format($totalServiceChargesTsh ?? 0, 2) }} TZS</strong></td>
+                  <td class="text-right"><strong>{{ number_format($totalServiceChargesTsh ?? 0, 0) }} TSh</strong></td>
                 </tr>
                 @endif
                 <tr style="border-top: 2px solid #940000;">
                   <td><strong>{{ $isCorporateSelfPaid ? 'Total Bill (Guest Portion):' : (($isStaffViewingCorporate ?? false) ? 'Total Bill (Guest Portion):' : 'Total Bill:') }}</strong></td>
                   <td class="text-right">
-                    <strong>{{ number_format($totalBillTsh ?? 0, 2) }} TZS</strong>
+                    <strong>{{ number_format($totalBillTsh ?? 0, 0) }} TSh</strong>
                   </td>
                 </tr>
                 @if(isset($amountPaidTsh) && $amountPaidTsh > 0)
                 <tr>
                   <td><strong>Amount Paid:</strong></td>
                   <td class="text-right">
-                    <strong style="color: #28a745;">{{ number_format($amountPaidTsh, 2) }} TZS</strong>
+                    <strong style="color: #28a745;">{{ number_format($amountPaidTsh, 0) }} TSh</strong>
                   </td>
                 </tr>
                 @endif
@@ -511,7 +511,7 @@
                 <tr style="border-top: 2px solid #940000; font-size: 18px;">
                   <td><strong>Outstanding Balance:</strong></td>
                   <td class="text-right">
-                    <strong style="color: #940000; font-size: 24px;">{{ number_format($outstandingBalanceTsh, 2) }} TZS</strong>
+                    <strong style="color: #940000; font-size: 24px;">{{ number_format($outstandingBalanceTsh, 0) }} TSh</strong>
                   </td>
                 </tr>
                 @elseif(isset($outstandingBalanceTsh) && $outstandingBalanceTsh <= 50)
@@ -545,10 +545,10 @@
                     <span class="badge badge-success" style="font-size: 14px;"><i class="fa fa-check-circle"></i> Fully Paid</span>
                   @elseif($selfPaidAmountPaid > 50)
                     <span class="badge badge-warning" style="font-size: 14px;"><i class="fa fa-adjust"></i> Partially Paid</span>
-                    <br><small class="text-muted">{{ number_format($amountPaidTsh, 2) }} TZS paid of {{ number_format($selfPaidTotal, 2) }} TZS total</small>
+                    <br><small class="text-muted">{{ number_format($amountPaidTsh, 0) }} TSh paid of {{ number_format($selfPaidTotal, 0) }} TSh total</small>
                   @else
                     <span class="badge badge-danger" style="font-size: 14px;"><i class="fa fa-clock-o"></i> Unpaid / Pending</span>
-                    <br><small class="text-muted">Total Outstanding: {{ number_format($selfPaidTotal, 2) }} TZS</small>
+                    <br><small class="text-muted">Total Outstanding: {{ number_format($selfPaidTotal, 0) }} TSh</small>
                   @endif
                 @elseif($isStaffViewingCorporate)
                   @if($booking->company)
@@ -573,11 +573,11 @@
                     @endif
                   @elseif($totalPaidTsh > 50)
                     <span class="badge badge-warning">Partially Paid</span>
-                    <br><small class="text-muted">{{ number_format($totalPaidTsh, 2) }} TZS paid of {{ number_format($totalExpectedTsh, 2) }} TZS total</small>
-                    <br><small class="text-danger"><strong>Outstanding: {{ number_format($totalOutstandingTsh, 2) }} TZS</strong></small>
+                    <br><small class="text-muted">{{ number_format($totalPaidTsh, 0) }} TSh paid of {{ number_format($totalExpectedTsh, 0) }} TSh total</small>
+                    <br><small class="text-danger"><strong>Outstanding: {{ number_format($totalOutstandingTsh, 0) }} TSh</strong></small>
                   @else
                     <span class="badge badge-warning">Pending Payment</span>
-                    <br><small class="text-muted">Total Due: {{ number_format($totalExpectedTsh, 2) }} TZS</small>
+                    <br><small class="text-muted">Total Due: {{ number_format($totalExpectedTsh, 0) }} TSh</small>
                   @endif
                 @endif
               </td>
@@ -604,13 +604,13 @@
                       <span class="badge badge-warning">Outstanding</span>
                       <br>
                       <small class="text-muted">
-                        {{ number_format($outstandingBalanceTsh ?? 0, 2) }} TZS remaining
+                        {{ number_format($outstandingBalanceTsh ?? 0, 0) }} TSh remaining
                       </small>
                     @else
                       <span class="badge badge-success">Paid</span>
                       <br>
                       <small class="text-muted">
-                        {{ number_format($totalServiceChargesTsh ?? 0, 2) }} TZS
+                        {{ number_format($totalServiceChargesTsh ?? 0, 0) }} TSh
                       </small>
                     @endif
                   @else

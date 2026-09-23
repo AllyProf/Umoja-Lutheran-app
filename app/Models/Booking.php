@@ -92,11 +92,18 @@ class Booking extends Model
         'airport_pickup_required' => 'boolean',
         'total_service_charges_tsh' => 'decimal:2',
         'total_bill_tsh' => 'decimal:2',
-        'locked_exchange_rate' => 'decimal:4',
         'cancellation_fee' => 'decimal:2',
         'cancellation_fee_percentage' => 'decimal:2',
         'payment_deadline' => 'datetime',
     ];
+
+    /**
+     * System is TSh-only — never multiply amounts by a stored FX rate.
+     */
+    public function getLockedExchangeRateAttribute($value): float
+    {
+        return 1.0;
+    }
 
     /**
      * Get the company that this booking belongs to.

@@ -25,7 +25,7 @@ Your check-in is in **{{ $daysUntil }} day(s)**. We're looking forward to your a
 
 **Room:** {{ $booking->room->room_number }} ({{ $booking->room->room_type }})
 
-**Total Amount:** ${{ number_format($booking->total_price, 2) }}
+**Total Amount:** TSh {{ number_format($booking->total_price, 0) }}
 
 <x-mail::button :url="route('check-in.index') . '?ref=' . $booking->booking_reference">
 Online Check-In Now

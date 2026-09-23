@@ -27,12 +27,12 @@ A new booking has been created and requires your attention.
 
 **Room:** {{ $booking->room->room_number }} ({{ $booking->room->room_type }})
 
-**Total Price:** ${{ number_format($booking->total_price, 2) }} USD
+**Total Price:** TSh {{ number_format($booking->total_price, 0) }}
 
 **Payment Status:** {{ ucfirst($booking->payment_status) }}
 
 @if($booking->amount_paid)
-**Amount Paid:** {{ number_format($booking->amount_paid, 2) }} TZS
+**Amount Paid:** TSh {{ number_format($booking->amount_paid, 0) }}
 @endif
 
 **Status:** {{ ucfirst($booking->status) }}

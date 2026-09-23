@@ -244,7 +244,7 @@ function viewPaymentDetails(bookingId, bookingRef) {
     if (data.success) {
       const booking = data.booking;
       const room = booking.room || {};
-      const exchangeRate = 2500; // Default exchange rate
+      const exchangeRate = 1; // TSh only
       const fallbackImage = '{{ asset("landing_page_assets/img/bg-img/1.jpg") }}';
       
       const detailsHtml = `

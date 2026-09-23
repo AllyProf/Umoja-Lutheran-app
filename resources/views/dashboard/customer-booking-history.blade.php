@@ -47,10 +47,7 @@
                 <td>{{ $booking->check_out->format('M d, Y') }}</td>
                 <td>{{ $booking->check_in->diffInDays($booking->check_out) }} nights</td>
                 <td>
-                  <div><strong>${{ number_format($booking->total_price, 2) }}</strong></div>
-                  <div style="color: #e07632; font-size: 11px;">
-                    <strong>≈ {{ number_format($booking->total_price * ($booking->locked_exchange_rate ?? $exchangeRate ?? 2500), 2) }} TZS</strong>
-                  </div>
+                  <div><strong>TSh {{ number_format($booking->total_price, 0) }}</strong></div>
                 </td>
                 <td>
                   @if($booking->payment_status === 'paid')
@@ -150,24 +147,13 @@ function viewBookingDetails(bookingId) {
         if (data.success) {
             const booking = data.booking;
             const room = booking.room || {};
-            // Use locked exchange rate from booking if available, otherwise use current rate
-            const exchangeRate = booking.locked_exchange_rate || {{ $exchangeRate ?? 2500 }};
             const fallbackImage = '{{ asset("landing_page_assets/img/bg-img/1.jpg") }}';
             
-            // Calculate totals using stored values if available
-            const roomPriceUsd = parseFloat(booking.total_price || 0);
-            const roomPriceTsh = roomPriceUsd * exchangeRate;
+            // Amounts are already in TSh — do not apply exchange rate
+            const roomPriceTsh = parseFloat(booking.total_price || 0);
             const serviceChargesTsh = parseFloat(booking.total_service_charges_tsh || 0);
-            const serviceChargesUsd = serviceChargesTsh / exchangeRate;
-            // Use total_bill_tsh if available, otherwise calculate
-            const totalBillTsh = booking.total_bill_tsh || (roomPriceTsh + serviceChargesTsh);
-            const totalBillUsd = totalBillTsh / exchangeRate;
-            // Amount paid - use the stored USD value and convert using the same exchange rate
-            const amountPaidUsd = parseFloat(booking.amount_paid || (booking.payment_status === 'paid' ? totalBillUsd : 0));
-            // Ensure Amount Paid TZS matches Total Bill TZS if fully paid
-            const amountPaidTsh = booking.payment_status === 'paid' && Math.abs(amountPaidUsd - totalBillUsd) < 0.01 
-                ? totalBillTsh 
-                : amountPaidUsd * exchangeRate;
+            const totalBillTsh = parseFloat(booking.total_bill_tsh || (roomPriceTsh + serviceChargesTsh));
+            const amountPaidTsh = parseFloat(booking.amount_paid || (booking.payment_status === 'paid' ? totalBillTsh : 0));
             
             const detailsHtml = `
                 <div class="booking-details-view">
@@ -243,20 +229,20 @@ function viewBookingDetails(bookingId) {
                             <table class="table table-sm table-bordered">
                                 <tr><td width="40%"><strong>Room Number:</strong></td><td><strong>${room.room_number || 'N/A'}</strong></td></tr>
                                 <tr><td><strong>Room Type:</strong></td><td>${room.room_type || 'N/A'}</td></tr>
-                                <tr><td><strong>Price per Night:</strong></td><td>$${parseFloat(room.price_per_night || 0).toFixed(2)} USD</td></tr>
+                                <tr><td><strong>Price per Night:</strong></td><td>TSh ${Math.round(parseFloat(room.price_per_night || 0)).toLocaleString()}</td></tr>
                             </table>
                         </div>
                         <div class="col-md-6">
-                            <h5 style="color: #e07632; border-bottom: 2px solid #e07632; padding-bottom: 5px; margin-bottom: 15px;"><i class="fa fa-dollar"></i> Payment Information</h5>
+                            <h5 style="color: #e07632; border-bottom: 2px solid #e07632; padding-bottom: 5px; margin-bottom: 15px;"><i class="fa fa-money"></i> Payment Information</h5>
                             <table class="table table-sm table-bordered">
-                                <tr><td width="40%"><strong>Room Price:</strong></td><td><strong>$${roomPriceUsd.toFixed(2)} USD</strong><br><small style="color: #666;">≈ ${roomPriceTsh.toLocaleString('en-US', {maximumFractionDigits: 2})} TZS</small></td></tr>
+                                <tr><td width="40%"><strong>Room Price:</strong></td><td><strong>TSh ${Math.round(roomPriceTsh).toLocaleString()}</strong></td></tr>
                                 ${serviceChargesTsh > 0 ? `
-                                <tr><td><strong>Service Charges:</strong></td><td><strong>${serviceChargesTsh.toLocaleString('en-US', {maximumFractionDigits: 2})} TZS</strong><br><small style="color: #666;">≈ $${serviceChargesUsd.toFixed(2)} USD</small></td></tr>
+                                <tr><td><strong>Service Charges:</strong></td><td><strong>TSh ${Math.round(serviceChargesTsh).toLocaleString()}</strong></td></tr>
                                 ` : ''}
-                                <tr style="border-top: 2px solid #e07632;"><td><strong>Total Bill:</strong></td><td><strong style="color: #e07632; font-size: 16px;">$${totalBillUsd.toFixed(2)} USD</strong><br><small style="color: #666;">≈ ${totalBillTsh.toLocaleString('en-US', {maximumFractionDigits: 2})} TZS</small></td></tr>
-                                <tr><td><strong>Amount Paid:</strong></td><td><strong style="color: #28a745;">$${amountPaidUsd.toFixed(2)} USD</strong><br><small style="color: #666;">≈ ${amountPaidTsh.toLocaleString('en-US', {maximumFractionDigits: 2})} TZS</small></td></tr>
-                                ${booking.payment_status === 'partial' && amountPaidUsd > 0 ? `
-                                <tr><td><strong>Remaining Amount:</strong></td><td><strong style="color: #dc3545;">$${(totalBillUsd - amountPaidUsd).toFixed(2)} USD</strong><br><small style="color: #666;">≈ ${(totalBillTsh - amountPaidTsh).toLocaleString('en-US', {maximumFractionDigits: 2})} TZS</small></td></tr>
+                                <tr style="border-top: 2px solid #e07632;"><td><strong>Total Bill:</strong></td><td><strong style="color: #e07632; font-size: 16px;">TSh ${Math.round(totalBillTsh).toLocaleString()}</strong></td></tr>
+                                <tr><td><strong>Amount Paid:</strong></td><td><strong style="color: #28a745;">TSh ${Math.round(amountPaidTsh).toLocaleString()}</strong></td></tr>
+                                ${booking.payment_status === 'partial' && amountPaidTsh > 0 ? `
+                                <tr><td><strong>Remaining Amount:</strong></td><td><strong style="color: #dc3545;">TSh ${Math.round(totalBillTsh - amountPaidTsh).toLocaleString()}</strong></td></tr>
                                 ` : ''}
                                 <tr><td><strong>Payment Method:</strong></td><td>${booking.payment_method ? booking.payment_method.charAt(0).toUpperCase() + booking.payment_method.slice(1) : 'N/A'}</td></tr>
                                 ${booking.paid_at ? `<tr><td><strong>Paid At:</strong></td><td>${new Date(booking.paid_at).toLocaleString()}</td></tr>` : ''}

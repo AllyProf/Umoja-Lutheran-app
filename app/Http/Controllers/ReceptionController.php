@@ -616,7 +616,7 @@ class ReceptionController extends Controller
                             $extensionCostUsd = $booking->room->price_per_night * $extensionNights;
                         }
                     }
-                    $extensionCostTsh = $extensionCostUsd * $bookingExchangeRate;
+                    $extensionCostTsh = $extensionCostUsd;
 
                     // Check payment responsibility - if self-paid, exclude service charges from company bill
                     $paymentResponsibility = $booking->payment_responsibility ?? 'company';
@@ -632,7 +632,7 @@ class ReceptionController extends Controller
 
                     // Company's total bill (room + company-responsible services + extensions)
                     // Note: extensionCostTsh is already included in booking->total_price
-                    $companyBillTsh = ($booking->total_price * $bookingExchangeRate) + $companyResponsibleServiceChargesTsh;
+                    $companyBillTsh = ($booking->total_price) + $companyResponsibleServiceChargesTsh;
 
                     // Identify what portion of amount_paid was for guest-paid services
                     // Logic: If payment_responsibility is 'self', only services paid via 'cash' (bar) or any method at reception 
@@ -650,7 +650,7 @@ class ReceptionController extends Controller
                     })->sum('total_price_tsh');
 
                     // Total amount recorded in the booking (includes room payments + guest service payments)
-                    $totalPaidTsh = ($booking->amount_paid ?? 0) * $bookingExchangeRate;
+                    $totalPaidTsh = ($booking->amount_paid ?? 0);
 
                     // Calculate what the Company/Room-Payer has contributed
                     if ($paymentResponsibility === 'self') {
@@ -669,7 +669,7 @@ class ReceptionController extends Controller
                         // If we treat amount_paid as the company's ledger, then anything in there is company money.
                         // But if guest pays at reception, it goes in there.
                         // Let's use a more defensive check:
-                        $roomPriceTsh = $booking->total_price * $bookingExchangeRate + $extensionCostTsh;
+                        $roomPriceTsh = $booking->total_price + $extensionCostTsh;
                         if ($totalPaidTsh > $roomPriceTsh) {
                             // If they've paid more than the room, the surplus is likely guest service payments
                             $companyPaidTsh = $roomPriceTsh;
@@ -695,7 +695,7 @@ class ReceptionController extends Controller
 
                     // Total bill for display (room + services)
                     // Note: total_price already includes extensions if they were approved
-                    $totalBillTsh = ($booking->total_price * $bookingExchangeRate) + $totalServiceChargesTsh;
+                    $totalBillTsh = ($booking->total_price) + $totalServiceChargesTsh;
                     $totalBillUsd = $totalBillTsh / $bookingExchangeRate;
 
                     // Treat very small amounts (less than $0.05 or 50 TZS) as fully paid (rounding differences)
@@ -809,14 +809,14 @@ class ReceptionController extends Controller
                         $extensionCostUsd = $booking->room->price_per_night * $extensionNights;
                     }
                 }
-                $extensionCostTsh = $extensionCostUsd * $bookingExchangeRate;
+                $extensionCostTsh = $extensionCostUsd;
 
                 // Total bill
                 // Note: extensionCostTsh is already included in booking->total_price
-                $totalBillTsh = ($booking->total_price * $bookingExchangeRate) + $totalServiceChargesTsh;
+                $totalBillTsh = ($booking->total_price) + $totalServiceChargesTsh;
 
                 // Amount paid (Booking deposit + any settled service payments)
-                $amountPaidTsh = ($booking->amount_paid ?? 0) * $bookingExchangeRate;
+                $amountPaidTsh = ($booking->amount_paid ?? 0);
 
                 // Add payments for completed/paid services to show correct outstanding balance
                 foreach ($serviceRequests as $sr) {
@@ -1270,7 +1270,7 @@ class ReceptionController extends Controller
 
             if ($extensionNights > 0 && $booking->room) {
                 $extensionCostUsd = $booking->room->price_per_night * $extensionNights;
-                $extensionCostTsh = $extensionCostUsd * $exchangeRate;
+                $extensionCostTsh = $extensionCostUsd;
             }
         }
 
@@ -1363,11 +1363,11 @@ class ReceptionController extends Controller
                 $extensionCostUsd = $booking->room->price_per_night * $extensionNights;
             }
         }
-        $extensionCostTsh = $extensionCostUsd * $exchangeRate;
+        $extensionCostTsh = $extensionCostUsd;
 
         // Calculate total bill for the whole booking (Room + Services)
         // Note: extensionCostTsh is already included in booking->total_price
-        $totalBookingBillTsh = ($booking->total_price * $exchangeRate) + $totalServiceChargesTsh;
+        $totalBookingBillTsh = ($booking->total_price) + $totalServiceChargesTsh;
 
         // Calculate outstanding balance for THIS SPECIFIC payment action
         if ($isCorporate) {
@@ -1375,8 +1375,8 @@ class ReceptionController extends Controller
                 // For a self-paying corporate guest, they only owe for services and extensions.
                 // Room is already "paid" or "promised" by company.
                 // Their "portion" of the paid amount is anything above the room price.
-                $roomPriceTsh = $booking->total_price * $exchangeRate;
-                $currentPaidTsh = ($booking->amount_paid ?? 0) * $exchangeRate;
+                $roomPriceTsh = $booking->total_price;
+                $currentPaidTsh = ($booking->amount_paid ?? 0);
 
                 // Debt = (Room + Services + Extensions) - CurrentPaid
                 // BUT we only want the guest to see their own debt.
@@ -1390,20 +1390,20 @@ class ReceptionController extends Controller
             }
         } else {
             // Individual booking - they owe everything
-            $amountPaidTsh = ($booking->amount_paid ?? 0) * $exchangeRate;
+            $amountPaidTsh = ($booking->amount_paid ?? 0);
             $outstandingBalanceTsh = max(0, $totalBookingBillTsh - $amountPaidTsh);
         }
 
         $outstandingBalanceUsd = $outstandingBalanceTsh / $exchangeRate;
         $paymentAmountUsd = (float) $request->amount;
-        $paymentAmountTsh = $paymentAmountUsd * $exchangeRate;
+        $paymentAmountTsh = $paymentAmountUsd;
 
         // Check if this payment covers the remainder of the guest's debt
         $isGuestPortionCleared = ($paymentAmountTsh >= $outstandingBalanceTsh - 50);
 
         // Update money
         $newAmountPaidUsd = ($booking->amount_paid ?? 0) + $paymentAmountUsd;
-        $newAmountPaidTsh = $newAmountPaidUsd * $exchangeRate;
+        $newAmountPaidTsh = $newAmountPaidUsd;
 
         // Calculate remaining balance after this payment
         $remainingBalanceTsh = max(0, $outstandingBalanceTsh - $paymentAmountTsh);
@@ -1472,7 +1472,7 @@ class ReceptionController extends Controller
             try {
                 $smsService = app(\App\Services\SmsService::class);
                 $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", we have received your payment of Tsh " . number_format($paymentAmountTsh, 0, '.', '') . "/= via " . strtoupper($request->payment_method) . ". Your current total paid is Tsh " . number_format($newAmountPaidTsh, 0, '.', '') . "/=. Thank you!";
-                $smsService->sendSms($booking->guest_phone, $smsMessage);
+                $smsService->sendSms($booking->guest_phone, $smsMessage, 'sms_payment_guest');
             } catch (\Exception $e) {
                 \Log::error("Failed to send payment receipt SMS to guest: " . $e->getMessage());
             }
@@ -1489,7 +1489,7 @@ class ReceptionController extends Controller
                     try {
                         $smsService = app(\App\Services\SmsService::class);
                         $smsMessage = "POS Payment: " . ($booking->guest_name ?? 'Guest') . " paid Tsh " . number_format($paymentAmountTsh, 0, '.', '') . "/= via " . strtoupper($request->payment_method) . " (Ref: {$booking->booking_reference})";
-                        $smsService->sendSms($staff->phone, $smsMessage);
+                        $smsService->sendSms($staff->phone, $smsMessage, 'sms_payment_staff');
                     } catch (\Exception $e) {
                         \Log::error("Failed to send POS payment SMS to manager: " . $e->getMessage());
                     }
@@ -1557,7 +1557,7 @@ class ReceptionController extends Controller
 
             if ($extensionNights > 0 && $booking->room) {
                 $extensionCostUsd = $booking->room->price_per_night * $extensionNights;
-                $extensionCostTsh = $extensionCostUsd * $exchangeRate;
+                $extensionCostTsh = $extensionCostUsd;
             }
         }
 
@@ -1625,7 +1625,7 @@ class ReceptionController extends Controller
                 try {
                     $smsService = app(\App\Services\SmsService::class);
                     $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", we have received your payment of Tsh " . number_format($totalAdditionalChargesTsh, 0, '.', '') . "/= via " . strtoupper($request->payment_method) . ". Your current total paid is Tsh " . number_format($booking->amount_paid * ($booking->locked_exchange_rate ?? $exchangeRate), 0, '.', '') . "/=. Thank you!";
-                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                    $smsService->sendSms($booking->guest_phone, $smsMessage, 'sms_payment_guest');
                 } catch (\Exception $e) {
                     \Log::error("Failed to send checkout payment SMS to guest: " . $e->getMessage());
                 }
@@ -2124,12 +2124,12 @@ class ReceptionController extends Controller
                     $extensionCostUsd = $booking->room->price_per_night * $extensionNights;
                 }
             }
-            $extensionCostTsh = $extensionCostUsd * $bookingExchangeRate;
+            $extensionCostTsh = $extensionCostUsd;
 
             // Company's total bill (only what company is responsible for)
             // Note: extensionCostTsh is already included in booking->total_price
-            $companyBillTsh = ($booking->total_price * $bookingExchangeRate) + $companyResponsibleServiceChargesTsh;
-            $amountPaidTsh = ($booking->amount_paid ?? 0) * $bookingExchangeRate;
+            $companyBillTsh = ($booking->total_price) + $companyResponsibleServiceChargesTsh;
+            $amountPaidTsh = ($booking->amount_paid ?? 0);
             $outstandingBalanceTsh = max(0, $companyBillTsh - $amountPaidTsh);
 
             // Treat very small amounts as fully paid
@@ -2226,13 +2226,13 @@ class ReceptionController extends Controller
                     $extensionCostUsd = $booking->room->price_per_night * $nights;
             }
 
-            $companyBillTsh = ($booking->total_price * $bookingExchangeRate) + $companyServiceChargesTsh;
-            $totalPaidTsh = ($booking->amount_paid ?? 0) * $bookingExchangeRate;
+            $companyBillTsh = ($booking->total_price) + $companyServiceChargesTsh;
+            $totalPaidTsh = ($booking->amount_paid ?? 0);
 
             // Calculate company's contribution using the same capping logic as in the view
             $companyPaidTsh = $totalPaidTsh;
             if ($paymentResponsibility === 'self') {
-                $roomPriceTsh = $booking->total_price * $bookingExchangeRate;
+                $roomPriceTsh = $booking->total_price;
                 if ($totalPaidTsh > $roomPriceTsh) {
                     // Cap the company's "paid" portion at the room price, 
                     // assuming surplus payments were for guest services
@@ -2283,14 +2283,14 @@ class ReceptionController extends Controller
 
             // Check if fully paid (including services if company-responsible)
             $totalServiceChargesTsh = $data['total_service_charges_tsh'];
-            $totalBillTsh = ($booking->total_price * $bookingExchangeRate) + ($data['responsibility'] === 'company' ? $totalServiceChargesTsh : 0);
+            $totalBillTsh = ($booking->total_price) + ($data['responsibility'] === 'company' ? $totalServiceChargesTsh : 0);
 
             // For 'self' responsibility, fully paid means room is paid
             if ($data['responsibility'] === 'self') {
-                $totalBillTsh = ($booking->total_price * $bookingExchangeRate);
+                $totalBillTsh = ($booking->total_price);
             }
 
-            $isFullyPaid = (($newAmountPaidUsd * $bookingExchangeRate) >= ($totalBillTsh - 50));
+            $isFullyPaid = (($newAmountPaidUsd) >= ($totalBillTsh - 50));
 
             $booking->update([
                 'payment_status' => $isFullyPaid ? 'paid' : 'partial',
@@ -2378,16 +2378,16 @@ class ReceptionController extends Controller
                         $extensionCostUsd = $booking->room->price_per_night * $extensionNights;
                     }
                 }
-                $extensionCostTsh = $extensionCostUsd * $bookingExchangeRate;
+                $extensionCostTsh = $extensionCostUsd;
 
                 // Total room bill (including extensions)
                 $roomBillUsd = $booking->total_price;
-                $roomBillTsh = $roomBillUsd * $bookingExchangeRate;
+                $roomBillTsh = $roomBillUsd;
 
                 // Company's bill for THIS booking
                 $companyBookingBillTsh = $roomBillTsh + $companyResponsibleServiceTsh;
 
-                $totalPaidTsh = ($booking->amount_paid ?? 0) * $bookingExchangeRate;
+                $totalPaidTsh = ($booking->amount_paid ?? 0);
 
                 $companyBookingPaidTsh = $totalPaidTsh;
                 if ($paymentResponsibility === 'self' && $totalPaidTsh > $roomBillTsh) {
@@ -2586,7 +2586,8 @@ class ReceptionController extends Controller
     public function revenueHandovers()
     {
         $staffId = Auth::guard('staff')->id();
-        $history = ShiftClosure::where('staff_id', $staffId)
+        $history = ShiftClosure::with('receiver')
+            ->where('staff_id', $staffId)
             ->orderByDesc('closed_at')
             ->paginate(15);
 

@@ -4481,18 +4481,7 @@
                 </div>
             </div>
 
-            <!-- Currency Tabs -->
-            <div class="row justify-content-end mb-3" id="currencyToggleContainer" style="display: none;">
-                <div class="col-12 col-md-4 col-lg-3">
-                    <div class="currency-tabs"
-                        style="display: flex; align-items: center; justify-content: flex-end; gap: 0; background: #f8f9fa; padding: 5px; border-radius: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                        <button class="currency-tab active" data-currency="USD"
-                            style="background: #e77a3a; color: white; border: none; padding: 8px 20px; border-radius: 20px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; flex: 1;">USD</button>
-                        <button class="currency-tab" data-currency="TZS"
-                            style="background: transparent; color: #363636; border: none; padding: 8px 20px; border-radius: 20px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; flex: 1;">TZS</button>
-                    </div>
-                </div>
-            </div>
+            <!-- Currency Tabs removed — TSh only -->
 
             <div id="alertContainer"></div>
 
@@ -4523,7 +4512,7 @@
             <!-- Booking Summary - Compact (Top) -->
             <div class="modal-booking-summary">
                 <div class="booking-summary-compact">
-                    <div class="summary-total" id="summaryTotal">$0.00</div>
+                    <div class="summary-total" id="summaryTotal">TSh 0</div>
                     <div class="summary-dates">
                         <strong id="summaryCheckIn">-</strong>
                         <span id="summaryNights">-</span>
@@ -4534,7 +4523,7 @@
                     style="display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
                     <div class="breakdown-item">
                         <span class="breakdown-label">Room rate per night:</span>
-                        <span class="breakdown-value" id="breakdownPricePerNight">$0.00</span>
+                        <span class="breakdown-value" id="breakdownPricePerNight">TSh 0</span>
                     </div>
                     <div class="breakdown-item">
                         <span class="breakdown-label">Number of nights:</span>
@@ -4542,15 +4531,15 @@
                     </div>
                     <div class="breakdown-item breakdown-subtotal">
                         <span class="breakdown-label">Subtotal:</span>
-                        <span class="breakdown-value" id="breakdownSubtotal">$0.00</span>
+                        <span class="breakdown-value" id="breakdownSubtotal">TSh 0</span>
                     </div>
                     <div class="breakdown-item" id="breakdownTaxes" style="display: none;">
                         <span class="breakdown-label">Taxes & fees:</span>
-                        <span class="breakdown-value" id="breakdownTaxesValue">$0.00</span>
+                        <span class="breakdown-value" id="breakdownTaxesValue">TSh 0</span>
                     </div>
                     <div class="breakdown-item breakdown-total">
                         <span class="breakdown-label">Total:</span>
-                        <span class="breakdown-value" id="breakdownTotal">$0.00</span>
+                        <span class="breakdown-value" id="breakdownTotal">TSh 0</span>
                     </div>
                 </div>
             </div>
@@ -5278,7 +5267,7 @@
 
                         if (data.success) {
                             // Store exchange rate globally
-                            window.exchangeRate = data.exchange_rate || 2500;
+                            window.exchangeRate = 1;
                             // Display rooms immediately - no delay
                             displayRooms(data.rooms, data.check_in, data.check_out, data.nights);
                         } else {
@@ -5333,9 +5322,9 @@
                     return;
                 }
 
-                // Show currency toggle container
+                // Currency toggle removed — TSh only
                 var currencyToggle = document.getElementById('currencyToggleContainer');
-                if (currencyToggle) currencyToggle.style.display = 'block';
+                if (currencyToggle) currencyToggle.style.display = 'none';
 
                 // Store room data for modal access - optimized loop
                 rooms.forEach(room => {
@@ -5558,24 +5547,20 @@
                     html += '<div class="col-12 col-sm-6 col-md-6 col-lg-4">';
                     html += '<div class="single-rooms-area wow fadeInUp" data-wow-delay="' + roomDelay + 'ms">';
                     html += thumbnailHtml;
-                    // Calculate prices in both currencies (only per night)
-                    const exchangeRate = window.exchangeRate || 2500;
-                    const pricePerNightTZS = totalNightlyRate * exchangeRate;
-
+                    // Prices are already TSh — display without exchange rate conversion
                     // Check for discount (per night only)
                     const originalPrice = parseFloat(room.original_price || room.price_per_night || 0);
                     const hasDiscount = originalPrice > pricePerNight && originalPrice > 0;
                     const discountPerNight = hasDiscount ? (originalPrice - pricePerNight) : 0;
-                    const discountPerNightTZS = discountPerNight * exchangeRate;
 
-                    // Display only per-night price
-                    html += '<p class="price-from" data-usd="' + totalNightlyRate + '" data-tzs="' + pricePerNightTZS + '">';
-                    html += '<span class="price-currency-symbol">$</span>';
-                    html += '<span class="price-amount">' + totalNightlyRate.toFixed(2) + '</span>';
+                    // Display only per-night price in TSh
+                    html += '<p class="price-from" data-tsh="' + totalNightlyRate + '">';
+                    html += '<span class="price-currency-symbol">TSh </span>';
+                    html += '<span class="price-amount">' + Math.round(totalNightlyRate).toLocaleString('en-US') + '</span>';
                     html += '<span class="room-price-per-night">/night</span>';
                     if (hasDiscount) {
-                        html += '<span class="discount-badge" data-usd="' + discountPerNight + '" data-tzs="' + discountPerNightTZS + '" style="display: block; margin-top: 5px; color: #28a745; font-size: 11px; font-weight: 600;">';
-                        html += '<i class="fa fa-tag"></i> Save $' + discountPerNight.toFixed(2) + '/night';
+                        html += '<span class="discount-badge" data-tsh="' + discountPerNight + '" style="display: block; margin-top: 5px; color: #28a745; font-size: 11px; font-weight: 600;">';
+                        html += '<i class="fa fa-tag"></i> Save TSh ' + Math.round(discountPerNight).toLocaleString('en-US') + '/night';
                         html += '</span>';
                     }
                     html += '</p>';
@@ -5616,12 +5601,6 @@
 
                 html += '</div>';
                 container.innerHTML = html;
-
-                // Show currency toggle
-                document.getElementById('currencyToggleContainer').style.display = 'flex';
-
-                // Initialize currency toggle
-                initializeCurrencyToggle();
 
                 // Initialize auto-slide for rooms with multiple images
                 rooms.forEach((room, roomIndex) => {
@@ -5842,75 +5821,13 @@
                 document.body.appendChild(modal);
             }
 
-            // Currency Tabs Functionality
-            let currentCurrency = 'USD';
-
+            // Currency toggle removed — TSh only
             function initializeCurrencyToggle() {
-                const currencyTabs = document.querySelectorAll('.currency-tab');
-                if (!currencyTabs || currencyTabs.length === 0) return;
-
-                currencyTabs.forEach(tab => {
-                    tab.addEventListener('click', function () {
-                        const selectedCurrency = this.getAttribute('data-currency');
-
-                        // Update active state
-                        currencyTabs.forEach(t => {
-                            t.classList.remove('active');
-                            if (t.getAttribute('data-currency') === selectedCurrency) {
-                                t.style.background = '#e77a3a';
-                                t.style.color = 'white';
-                            } else {
-                                t.style.background = 'transparent';
-                                t.style.color = '#363636';
-                            }
-                        });
-
-                        // Update current currency
-                        currentCurrency = selectedCurrency;
-                        updateAllPrices();
-                    });
-                });
+                // no-op: USD/TZS toggle removed
             }
 
             function updateAllPrices() {
-                const exchangeRate = window.exchangeRate || 2500;
-                const rooms = document.querySelectorAll('.single-rooms-area');
-
-                rooms.forEach(room => {
-                    // Update per-night price (main price display)
-                    const priceFrom = room.querySelector('.price-from');
-                    if (priceFrom) {
-                        const usdAmount = parseFloat(priceFrom.getAttribute('data-usd') || 0);
-                        const tzsAmount = parseFloat(priceFrom.getAttribute('data-tzs') || 0);
-                        const amount = currentCurrency === 'USD' ? usdAmount : tzsAmount;
-                        const symbol = currentCurrency === 'USD' ? '$' : '';
-                        const formatted = currentCurrency === 'USD'
-                            ? amount.toFixed(2)
-                            : Math.round(amount).toLocaleString('en-US');
-
-                        const symbolSpan = priceFrom.querySelector('.price-currency-symbol');
-                        const amountSpan = priceFrom.querySelector('.price-amount');
-                        if (symbolSpan) symbolSpan.textContent = symbol;
-                        if (amountSpan) amountSpan.textContent = formatted;
-                    }
-
-                    // Update discount badge
-                    const discountBadge = room.querySelector('.discount-badge');
-                    if (discountBadge) {
-                        const usdAmount = parseFloat(discountBadge.getAttribute('data-usd') || 0);
-                        const tzsAmount = parseFloat(discountBadge.getAttribute('data-tzs') || 0);
-                        const amount = currentCurrency === 'USD' ? usdAmount : tzsAmount;
-                        const symbol = currentCurrency === 'USD' ? '$' : '';
-                        const formatted = currentCurrency === 'USD'
-                            ? amount.toFixed(2)
-                            : Math.round(amount).toLocaleString('en-US');
-
-                        const discountAmount = discountBadge.querySelector('.discount-amount');
-                        if (discountAmount) {
-                            discountAmount.innerHTML = symbol + formatted;
-                        }
-                    }
-                });
+                // no-op: prices are always shown in TSh
             }
 
             function startRoomImageAutoSlide(roomId, imageCount) {
@@ -6286,18 +6203,15 @@
                     }
                 }
 
-                // Pricing
+                // Pricing — amounts already TSh
                 const pricingContainer = document.getElementById('roomDetailsPricing');
                 if (pricingContainer) {
                     const pricePerNight = parseFloat(room.price_per_night || 0);
-                    const exchangeRate = window.exchangeRate || 2500;
-                    const pricePerNightTZS = pricePerNight * exchangeRate;
                     const totalPrice = pricePerNight * nights;
-                    const totalPriceTZS = totalPrice * exchangeRate;
 
-                    pricingContainer.innerHTML = '<div style="display: flex; justify-content: space-between; margin-bottom: 10px;"><span><strong>Price per night:</strong></span><span style="font-size: 18px; font-weight: 700; color: #e77a3a;">$' + pricePerNight.toFixed(2) + ' / ≈ ' + pricePerNightTZS.toFixed(0) + ' TZS</span></div>';
+                    pricingContainer.innerHTML = '<div style="display: flex; justify-content: space-between; margin-bottom: 10px;"><span><strong>Price per night:</strong></span><span style="font-size: 18px; font-weight: 700; color: #e77a3a;">TSh ' + Math.round(pricePerNight).toLocaleString('en-US') + '</span></div>';
                     if (nights > 0) {
-                        pricingContainer.innerHTML += '<div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #ddd;"><span><strong>Total for ' + nights + ' night' + (nights > 1 ? 's' : '') + ':</strong></span><span style="font-size: 20px; font-weight: 700; color: #e77a3a;">$' + totalPrice.toFixed(2) + ' / ≈ ' + totalPriceTZS.toFixed(0) + ' TZS</span></div>';
+                        pricingContainer.innerHTML += '<div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #ddd;"><span><strong>Total for ' + nights + ' night' + (nights > 1 ? 's' : '') + ':</strong></span><span style="font-size: 20px; font-weight: 700; color: #e77a3a;">TSh ' + Math.round(totalPrice).toLocaleString('en-US') + '</span></div>';
                     }
                 }
 
@@ -6358,12 +6272,12 @@
                 const subtotal = nightlyRateWithExtras * nights;
                 const finalTotal = subtotal;
 
-                // Update compact total
-                document.getElementById('summaryTotal').textContent = '$' + finalTotal.toFixed(2);
+                // Update compact total (amounts already TSh)
+                document.getElementById('summaryTotal').textContent = 'TSh ' + Math.round(finalTotal).toLocaleString('en-US');
 
                 // Update detailed breakdown
                 const breakdown = document.getElementById('bookingSummaryBreakdown');
-                document.getElementById('breakdownPricePerNight').textContent = '$' + pricePerNight.toFixed(2);
+                document.getElementById('breakdownPricePerNight').textContent = 'TSh ' + Math.round(pricePerNight).toLocaleString('en-US');
 
                 // Show extra guest fee if applicable
                 const breakdownExtraFees = document.getElementById('breakdownExtraFees');
@@ -6374,22 +6288,22 @@
                         extraFeeRow.id = 'breakdownExtraFees';
                         extraFeeRow.innerHTML = `
                             <span class="breakdown-label">Extra guest fees (${extraGuests}):</span>
-                            <span class="breakdown-value">$${(extraGuests * extraGuestFee).toFixed(2)}</span>
+                            <span class="breakdown-value">TSh ${Math.round(extraGuests * extraGuestFee).toLocaleString('en-US')}</span>
                         `;
                         const subtotalRow = document.querySelector('.breakdown-subtotal');
                         subtotalRow.parentNode.insertBefore(extraFeeRow, subtotalRow);
                     } else {
                         breakdownExtraFees.style.display = 'flex';
                         breakdownExtraFees.querySelector('.breakdown-label').textContent = `Extra guest fees (${extraGuests}):`;
-                        breakdownExtraFees.querySelector('.breakdown-value').textContent = `$${(extraGuests * extraGuestFee).toFixed(2)}`;
+                        breakdownExtraFees.querySelector('.breakdown-value').textContent = `TSh ${Math.round(extraGuests * extraGuestFee).toLocaleString('en-US')}`;
                     }
                 } else if (breakdownExtraFees) {
                     breakdownExtraFees.style.display = 'none';
                 }
 
                 document.getElementById('breakdownNights').textContent = nights + (nights === 1 ? ' night' : ' nights');
-                document.getElementById('breakdownSubtotal').textContent = '$' + subtotal.toFixed(2);
-                document.getElementById('breakdownTotal').textContent = '$' + finalTotal.toFixed(2);
+                document.getElementById('breakdownSubtotal').textContent = 'TSh ' + Math.round(subtotal).toLocaleString('en-US');
+                document.getElementById('breakdownTotal').textContent = 'TSh ' + Math.round(finalTotal).toLocaleString('en-US');
 
                 // Show breakdown
                 breakdown.style.display = 'block';

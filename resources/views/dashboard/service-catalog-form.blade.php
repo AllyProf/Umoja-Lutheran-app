@@ -245,11 +245,11 @@
             </div>
             <div class="col-md-4">
               <div class="form-group">
-                <label for="night_price_international">Night Price (USD/Intl)</label>
+                <label for="night_price_international">Night Price – Foreign Guest (TSh)</label>
                 <input class="form-control" type="number" id="night_price_international" name="night_price_international" 
                        value="{{ $serviceCatalog->night_price_international ?? '' }}" 
                        step="0.01" min="0">
-                <small class="form-text text-muted">Price applied during night hours (International)</small>
+                <small class="form-text text-muted">Night price for foreign guests (TSh)</small>
               </div>
             </div>
           </div>

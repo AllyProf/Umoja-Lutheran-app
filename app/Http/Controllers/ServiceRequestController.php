@@ -417,7 +417,7 @@ class ServiceRequestController extends Controller
                             try {
                                 $smsService = app(\App\Services\SmsService::class);
                                 $smsMessage = "NEW SERVICE REQUEST: " . ($booking->guest_name ?? 'Guest') . " (Room " . ($booking->room->room_number ?? 'N/A') . ") requested " . ($itemName ?? 'a service') . ".";
-                                $smsService->sendSms($staff->phone, $smsMessage);
+                                $smsService->sendSms($staff->phone, $smsMessage, 'sms_service_request');
                             } catch (\Exception $e) {
                                 \Log::error("Failed to send service request SMS to staff: " . $e->getMessage());
                             }
@@ -460,13 +460,13 @@ class ServiceRequestController extends Controller
             $today = Carbon::today();
             $thisMonth = Carbon::now()->startOfMonth();
 
-            // Get exchange rate for currency conversion
-            $exchangeRate = 2500; // Default fallback rate
+            // System currency is TSh only (rate always 1)
+            $exchangeRate = 1;
             try {
                 $currencyService = new CurrencyExchangeService();
-                $exchangeRate = $currencyService->getUsdToTshRate();
+                $exchangeRate = $currencyService->getUsdToTshRate() ?: 1;
             } catch (\Exception $e) {
-                \Log::warning('Failed to get exchange rate, using default', ['error' => $e->getMessage()]);
+                \Log::warning('Failed to get exchange rate, using TSh-only default', ['error' => $e->getMessage()]);
             }
 
             // Calculate total revenue (bookings + service requests + day services)
@@ -790,7 +790,7 @@ class ServiceRequestController extends Controller
                         $statusText = strtoupper($request->status);
                         $itemName = $serviceRequest->service->name ?? ($serviceRequest->service_type === 'transportation' ? 'Transportation' : 'Service');
                         $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", your request for {$itemName} has been {$statusText}. Thank you!";
-                        $smsService->sendSms($booking->guest_phone, $smsMessage);
+                        $smsService->sendSms($booking->guest_phone, $smsMessage, 'sms_service_request');
                     } catch (\Exception $e) {
                         \Log::error("Failed to send service request status SMS: " . $e->getMessage());
                     }
@@ -1014,7 +1014,7 @@ class ServiceRequestController extends Controller
                 : \Carbon\Carbon::parse($booking->check_out);
             $displayOriginalNights = $booking->check_in->diffInDays($originalCheckOutDate);
             $displayBaseRoomPriceUsd = $booking->room ? ($booking->room->price_per_night * $displayOriginalNights) : 0;
-            $displayRoomPriceTsh = $displayBaseRoomPriceUsd * $exchangeRate;
+            $displayRoomPriceTsh = $displayBaseRoomPriceUsd;
 
             $displayExtensionCostUsd = 0;
             $displayExtensionCostTsh = 0;
@@ -1025,7 +1025,7 @@ class ServiceRequestController extends Controller
                 $displayExtensionNights = $originalCheckOut->diffInDays($requestedCheckOut);
                 if ($displayExtensionNights > 0 && $booking->room) {
                     $displayExtensionCostUsd = $booking->room->price_per_night * $displayExtensionNights;
-                    $displayExtensionCostTsh = $displayExtensionCostUsd * $exchangeRate;
+                    $displayExtensionCostTsh = $displayExtensionCostUsd;
                 }
             }
 
@@ -1134,8 +1134,8 @@ class ServiceRequestController extends Controller
                 $baseRoomPriceUsd = $booking->total_price;
             }
 
-            $extensionCostTsh = $extensionCostUsd * $exchangeRate;
-            $roomPriceTsh = $baseRoomPriceUsd * $exchangeRate;
+            $extensionCostTsh = $extensionCostUsd;
+            $roomPriceTsh = $baseRoomPriceUsd;
 
             // Calculate original nights (excluding extension) for display
             $originalCheckOutDate = $booking->original_check_out
@@ -1145,12 +1145,12 @@ class ServiceRequestController extends Controller
 
             $totalServiceChargesTsh = $serviceRequests->sum('total_price_tsh');
 
-            // Calculate total bill (room + extension + services)
+            // Calculate total bill (room + extension + services) — amounts already in TSh
             $totalBillTsh = $roomPriceTsh + $extensionCostTsh + $totalServiceChargesTsh;
 
             // Calculate amount paid (Booking deposit/payment + any settled service payments)
             $amountPaidUsd = $booking->amount_paid ?? 0;
-            $amountPaidTsh = $amountPaidUsd * $exchangeRate;
+            $amountPaidTsh = $amountPaidUsd;
 
             // Add payments for completed/paid services
             foreach ($serviceRequests as $sr) {
@@ -1158,9 +1158,6 @@ class ServiceRequestController extends Controller
                     $amountPaidTsh += $sr->total_price_tsh;
                 }
             }
-
-            // Update USD for display consistency
-            $amountPaidUsd = $amountPaidTsh / $exchangeRate;
 
             // Calculate outstanding balance
             $outstandingBalanceTsh = max(0, $totalBillTsh - $amountPaidTsh);

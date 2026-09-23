@@ -104,7 +104,7 @@
                 <th>Room Type</th>
                 <th>Total Rooms</th>
                 <th>Avg Occupancy</th>
-                <th>Revenue (TZS)</th>
+                <th>Revenue (TSh)</th>
               </tr>
             </thead>
             <tbody>
@@ -124,7 +124,7 @@
                     </div>
                   </div>
                 </td>
-                <td><strong>{{ number_format($type['revenue_usd'] * $exchangeRate, 0) }}</strong></td>
+                <td><strong>{{ number_format($type['revenue_tzs'] ?? $type['revenue_usd'] ?? 0, 0) }}</strong></td>
               </tr>
               @empty
               <tr>
@@ -153,7 +153,7 @@
                 <th>Room Number</th>
                 <th>Room Type</th>
                 <th>Number of Bookings</th>
-                <th>Revenue (TZS)</th>
+                <th>Revenue (TSh)</th>
               </tr>
             </thead>
             <tbody>
@@ -174,7 +174,7 @@
                 <td><strong>{{ $roomData['room']->room_number ?? 'N/A' }}</strong></td>
                 <td>{{ ucfirst($roomData['room']->room_type ?? 'N/A') }}</td>
                 <td>{{ $roomData['booking_count'] }}</td>
-                <td><strong>{{ number_format($roomData['revenue_tzs'], 0) }}</strong></td>
+                <td><strong>{{ number_format($roomData['revenue_tzs'] ?? $roomData['revenue_usd'] ?? 0, 0) }}</strong></td>
               </tr>
               @endif
               @empty

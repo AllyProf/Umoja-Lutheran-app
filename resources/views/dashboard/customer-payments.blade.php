@@ -20,7 +20,7 @@
       <i class="icon fa fa-money fa-2x"></i>
       <div class="info">
         <h4>Total Paid</h4>
-        <p><b>{{ number_format(($totalPaid ?? 0) * ($exchangeRate ?? 2500), 2) }} TZS</b></p>
+        <p><b>TSh {{ number_format($totalPaid ?? 0, 0) }}</b></p>
       </div>
     </div>
   </div>
@@ -89,9 +89,8 @@
                 <small class="text-muted">Amount Paid</small><br>
                 @php
                   $displayAmount = $booking->amount_paid ?? $booking->total_price ?? 0;
-                  $displayExchangeRate = $booking->locked_exchange_rate ?? $exchangeRate ?? 2500;
                 @endphp
-                <strong style="color: #e07632;">{{ number_format($displayAmount * $displayExchangeRate, 2) }} TZS</strong>
+                <strong style="color: #e07632;">TSh {{ number_format($displayAmount, 0) }}</strong>
                 @if($booking->is_service_payment_only ?? false)
                   <br><small class="text-muted" style="font-size: 10px;">(Services only)</small>
                 @elseif($booking->is_corporate_booking ?? false)
@@ -147,8 +146,8 @@
                   $originalNights = $booking->check_in->diffInDays(\Carbon\Carbon::parse($booking->original_check_out));
                 @endphp
                 <small class="text-info">
-                  <i class="fa fa-calendar-plus-o"></i> +{{ number_format($extensionCost * $displayExchangeRate, 2) }} TZS (extension)<br>
-                  <span class="text-muted">Original: {{ $originalNights }} nights, {{ number_format($originalPrice * $displayExchangeRate, 2) }} TZS</span>
+                  <i class="fa fa-calendar-plus-o"></i> +TSh {{ number_format($extensionCost, 0) }} (extension)<br>
+                  <span class="text-muted">Original: {{ $originalNights }} nights, TSh {{ number_format($originalPrice, 0) }}</span>
                 </small>
               </div>
             </div>
@@ -162,8 +161,8 @@
                   $originalNights = $booking->check_in->diffInDays(\Carbon\Carbon::parse($booking->original_check_out));
                 @endphp
                 <small class="text-warning">
-                  <i class="fa fa-calendar-minus-o"></i> -{{ number_format($decreaseRefund * $displayExchangeRate, 2) }} TZS (decrease)<br>
-                  <span class="text-muted">Original: {{ $originalNights }} nights, {{ number_format($originalPrice * $displayExchangeRate, 2) }} TZS</span>
+                  <i class="fa fa-calendar-minus-o"></i> -TSh {{ number_format($decreaseRefund, 0) }} (decrease)<br>
+                  <span class="text-muted">Original: {{ $originalNights }} nights, TSh {{ number_format($originalPrice, 0) }}</span>
                 </small>
               </div>
             </div>
@@ -314,9 +313,8 @@
                 <td>
                   @php
                     $displayAmount = $booking->amount_paid ?? $booking->total_price ?? 0;
-                    $displayExchangeRate = $booking->locked_exchange_rate ?? $exchangeRate ?? 2500;
                   @endphp
-                  <div><strong>{{ number_format($displayAmount * $displayExchangeRate, 2) }} TZS</strong></div>
+                  <div><strong>TSh {{ number_format($displayAmount, 0) }}</strong></div>
                   @if($booking->is_service_payment_only ?? false)
                     <br><small class="text-muted" style="font-size: 10px;">(Services only)</small>
                   @elseif($booking->is_corporate_booking ?? false)
@@ -328,18 +326,18 @@
                       $originalPrice = $booking->total_price - $extensionCost;
                     @endphp
                     <br><small class="text-info" style="display: block; margin-top: 5px;">
-                      <i class="fa fa-calendar-plus-o"></i> +{{ number_format($extensionCost * $displayExchangeRate, 2) }} TZS (extension)
+                      <i class="fa fa-calendar-plus-o"></i> +TSh {{ number_format($extensionCost, 0) }} (extension)
                     </small>
-                    <br><small class="text-muted">Original: {{ number_format($originalPrice * $displayExchangeRate, 2) }} TZS</small>
+                    <br><small class="text-muted">Original: TSh {{ number_format($originalPrice, 0) }}</small>
                   @elseif($isDecreased && $booking->room && $decreasedNights > 0 && !($booking->is_corporate_booking ?? false))
                     @php
                       $decreaseRefund = $booking->room->price_per_night * $decreasedNights;
                       $originalPrice = $booking->total_price + $decreaseRefund;
                     @endphp
                     <br><small class="text-warning" style="display: block; margin-top: 5px;">
-                      <i class="fa fa-calendar-minus-o"></i> -{{ number_format($decreaseRefund * $displayExchangeRate, 2) }} TZS (decrease)
+                      <i class="fa fa-calendar-minus-o"></i> -TSh {{ number_format($decreaseRefund, 0) }} (decrease)
                     </small>
-                    <br><small class="text-muted">Original: {{ number_format($originalPrice * $displayExchangeRate, 2) }} TZS</small>
+                    <br><small class="text-muted">Original: TSh {{ number_format($originalPrice, 0) }}</small>
                   @endif
                 </td>
                 <td>
@@ -540,7 +538,6 @@ function viewBookingDetails(bookingId) {
         if (data.success) {
             const booking = data.booking;
             const room = booking.room || {};
-            const exchangeRate = booking.locked_exchange_rate || {{ $exchangeRate ?? 2500 }};
             const fallbackImage = '{{ asset("landing_page_assets/img/bg-img/1.jpg") }}';
             
             // Corporate Logic
@@ -662,7 +659,7 @@ function viewBookingDetails(bookingId) {
                                    </div>
                                    <div class="d-flex justify-content-between small text-muted border-top pt-2">
                                       <span>Price per Night:</span>
-                                      <span class="font-weight-bold">${(parseFloat(room.price_per_night || 0) * exchangeRate).toLocaleString()} TZS</span>
+                                      <span class="font-weight-bold">TSh ${Math.round(parseFloat(room.price_per_night || 0)).toLocaleString()}</span>
                                    </div>
                                 </div>
                             </div>
@@ -690,19 +687,19 @@ function viewBookingDetails(bookingId) {
 
                                    <div class="d-flex justify-content-between mb-2">
                                       <span class="text-muted">Total Price:</span>
-                                      <span class="font-weight-bold h5 mb-0" style="color: #e07632;">${(parseFloat(booking.total_price || 0) * exchangeRate).toLocaleString()} TZS</span>
+                                      <span class="font-weight-bold h5 mb-0" style="color: #e07632;">TSh ${Math.round(parseFloat(booking.total_price || 0)).toLocaleString()}</span>
                                    </div>
 
                                    <div class="d-flex justify-content-between mb-2 small">
                                       <span class="text-muted">Amount Paid:</span>
-                                      <span class="text-success font-weight-bold">-${(parseFloat(booking.amount_paid || 0) * exchangeRate).toLocaleString()} TZS</span>
+                                      <span class="text-success font-weight-bold">-TSh ${Math.round(parseFloat(booking.amount_paid || 0)).toLocaleString()}</span>
                                    </div>
                                    
                                    ${booking.payment_status === 'partial' ? `
                                    <hr class="my-2">
                                    <div class="d-flex justify-content-between align-items-end">
                                       <span class="font-weight-bold">Remaining:</span>
-                                      <span class="h6 mb-0 text-danger">${(parseFloat((booking.total_price || 0) - (booking.amount_paid || 0)) * exchangeRate).toLocaleString()} TZS</span>
+                                      <span class="h6 mb-0 text-danger">TSh ${Math.round(parseFloat((booking.total_price || 0) - (booking.amount_paid || 0))).toLocaleString()}</span>
                                    </div>
                                    
                                    ${!companyPays ? `

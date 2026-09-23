@@ -160,7 +160,7 @@
 <li>
     <a class="app-menu__item {{ str_contains($activePage, 'reception/reports/financial') ? 'active' : '' }}"
         href="{{ route('reception.reports.financial') }}">
-        <i class="app-menu__icon fa fa-money-bill"></i>
+        <i class="app-menu__icon fa fa-money"></i>
         <span class="app-menu__label">Reception Revenue Report</span>
     </a>
 </li>

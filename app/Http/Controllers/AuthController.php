@@ -944,7 +944,7 @@ class AuthController extends Controller
             if ($user->phone) {
                 $smsService = app(SmsService::class);
                 $message = "Your " . config('app.name') . " verification code is: " . $loginOtp->otp;
-                $smsResult = $smsService->sendSms($user->phone, $message);
+                $smsResult = $smsService->sendSms($user->phone, $message, 'sms_otp');
 
                 if (!$smsResult['success']) {
                     \Log::error('SMS Resend failed', ['error' => $smsResult['error'] ?? 'Unknown error']);
@@ -1025,7 +1025,7 @@ class AuthController extends Controller
             // Send SMS
             $smsService = app(SmsService::class);
             $message = "Your " . config('app.name') . " verification code is: " . $loginOtp->otp;
-            $smsResult = $smsService->sendSms($user->phone, $message);
+            $smsResult = $smsService->sendSms($user->phone, $message, 'sms_otp');
 
             if (!$smsResult['success']) {
                 \Log::error('Login OTP SMS failed', ['error' => $smsResult['error'] ?? 'Unknown error']);

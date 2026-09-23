@@ -3,13 +3,13 @@
 @section('content')
 <div class="app-title">
   <div>
-    <h1><i class="fa fa-key"></i> Roles Management</h1>
-    <p>Manage system roles and permissions</p>
+    <h1><i class="fa fa-key"></i> {{ __('Roles Management') }}</h1>
+    <p>{{ __('Manage system roles and permissions') }}</p>
   </div>
   <ul class="app-breadcrumb breadcrumb">
     <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
-    <li class="breadcrumb-item"><a href="{{ route('super_admin.dashboard') }}">Dashboard</a></li>
-    <li class="breadcrumb-item"><a href="#">Roles</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('super_admin.dashboard') }}">{{ __('Dashboard') }}</a></li>
+    <li class="breadcrumb-item"><a href="#">{{ __('Roles') }}</a></li>
   </ul>
 </div>
 
@@ -17,9 +17,9 @@
   <div class="col-md-12">
     <div class="tile">
       <div class="tile-title-w-btn">
-        <h3 class="title"><i class="fa fa-key"></i> System Roles</h3>
+        <h3 class="title"><i class="fa fa-key"></i> {{ __('System Roles') }}</h3>
         <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createRoleModal">
-          <i class="fa fa-plus"></i> Create New Role
+          <i class="fa fa-plus"></i> {{ __('Create New Role') }}
         </button>
       </div>
       <div class="tile-body">
@@ -27,13 +27,13 @@
           <table class="table table-hover table-bordered">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Display Name</th>
-                <th>Description</th>
-                <th>Type</th>
-                <th>Permissions</th>
-                <th>Users</th>
-                <th>Actions</th>
+                <th>{{ __('Name') }}</th>
+                <th>{{ __('Display Name') }}</th>
+                <th>{{ __('Description') }}</th>
+                <th>{{ __('Type') }}</th>
+                <th>{{ __('Permissions') }}</th>
+                <th>{{ __('Users') }}</th>
+                <th>{{ __('Actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -44,45 +44,41 @@
                 <td>{{ $roleItem->description }}</td>
                 <td>
                   @if($roleItem->is_system)
-                    <span class="badge badge-danger">System</span>
+                    <span class="badge badge-danger">{{ __('System') }}</span>
                   @else
-                    <span class="badge badge-info">Custom</span>
+                    <span class="badge badge-info">{{ __('Custom') }}</span>
                   @endif
                 </td>
                 <td>
-                  <span class="badge badge-primary">{{ $roleItem->permission_count ?? 0 }} Permissions</span>
+                  <span class="badge badge-primary">{{ $roleItem->permission_count ?? 0 }} {{ __('Permissions') }}</span>
                 </td>
                 <td>
-                  <span class="badge badge-success">{{ $roleItem->user_count ?? 0 }} Users</span>
+                  <span class="badge badge-success">{{ $roleItem->user_count ?? 0 }} {{ __('Users') }}</span>
                   @if(($roleItem->staff_count ?? 0) > 0 || ($roleItem->guest_count ?? 0) > 0)
-                    <br><small class="text-muted">{{ $roleItem->staff_count ?? 0 }} Staff, {{ $roleItem->guest_count ?? 0 }} Guests</small>
+                    <br><small class="text-muted">{{ $roleItem->staff_count ?? 0 }} {{ __('Staff') }}, {{ $roleItem->guest_count ?? 0 }} {{ __('Guests') }}</small>
                   @endif
                 </td>
                 <td>
-                  <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-sm btn-info" 
-                            data-toggle="modal" 
-                            data-target="#assignPermissionsModal{{ $roleItem->id }}" 
-                            title="Assign Permissions">
+                  <div class="role-actions">
+                    <button type="button" class="btn btn-sm btn-info"
+                            data-toggle="modal"
+                            data-target="#assignPermissionsModal{{ $roleItem->id }}"
+                            title="{{ __('Assign Permissions') }}">
                       <i class="fa fa-shield"></i>
                     </button>
                     @if(!$roleItem->is_system)
-                    <button type="button" class="btn btn-sm btn-primary" 
-                            data-toggle="modal" 
-                            data-target="#editRoleModal{{ $roleItem->id }}" 
-                            title="Edit">
+                    <button type="button" class="btn btn-sm btn-primary"
+                            data-toggle="modal"
+                            data-target="#editRoleModal{{ $roleItem->id }}"
+                            title="{{ __('Edit') }}">
                       <i class="fa fa-edit"></i>
                     </button>
-                    <form action="{{ route('super_admin.roles.delete', $roleItem) }}" 
-                          method="POST" 
-                          style="display: inline-block;"
-                          onsubmit="event.preventDefault(); confirmAction('Are you sure? This will remove the role from all users.', 'Delete Role', 'Yes, delete!', 'Cancel').then((result) => { if (result.isConfirmed) { this.submit(); } });">
-                      @csrf
-                      @method('DELETE')
-                      <button type="submit" class="btn btn-sm btn-danger" title="Delete">
-                        <i class="fa fa-trash"></i>
-                      </button>
-                    </form>
+                    <button type="button"
+                            class="btn btn-sm btn-danger js-delete-role"
+                            title="{{ __('Delete') }}"
+                            data-action="{{ route('super_admin.roles.delete', $roleItem) }}">
+                      <i class="fa fa-trash"></i>
+                    </button>
                     @endif
                   </div>
                 </td>
@@ -95,34 +91,27 @@
                     <form action="{{ route('super_admin.roles.assign-permissions', $roleItem) }}" method="POST">
                       @csrf
                       <div class="modal-header">
-                        <h5 class="modal-title">Assign Permissions to {{ $roleItem->display_name }}</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <h5 class="modal-title">{{ __('Assign Permissions to') }} {{ $roleItem->display_name }}</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="{{ __('Close') }}">
                           <span aria-hidden="true">&times;</span>
                         </button>
                       </div>
                       <div class="modal-body">
                         <div class="alert alert-info">
-                          <i class="fa fa-info-circle"></i> <strong>How Permissions Control Sidebar Menu Visibility:</strong>
+                          <i class="fa fa-info-circle"></i> <strong>{{ __('How Permissions Control Sidebar Menu Visibility:') }}</strong>
                           <ul class="mb-0 mt-2" style="padding-left: 20px;">
-                            <li><strong>✅ CHECKED permission</strong> = Menu item <strong>WILL APPEAR</strong> in the sidebar for users with this role</li>
-                            <li><strong>❌ UNCHECKED permission</strong> = Menu item <strong>WILL NOT APPEAR</strong> in the sidebar (hidden from users with this role)</li>
-                            <li><strong>Super Admin</strong> always sees all menu items regardless of role permissions</li>
-                            <li><strong>Changes take effect immediately</strong> - After saving, users with this role will see/hide menu items on their next page load</li>
-                          </ul>
-                          <p class="mb-0 mt-2"><strong>Examples:</strong></p>
-                          <ul class="mb-0 mt-2" style="padding-left: 20px;">
-                            <li>Check <strong>"view_users"</strong> → "Users Management" menu appears</li>
-                            <li>Check <strong>"manage_rooms"</strong> → "Rooms" menu appears</li>
-                            <li>Check <strong>"view_bookings"</strong> → "All Bookings" submenu appears</li>
-                            <li>Uncheck any permission → That menu item disappears from sidebar</li>
+                            <li><strong>{{ __('CHECKED permission') }}</strong> = {{ __('Menu item WILL APPEAR in the sidebar for users with this role') }}</li>
+                            <li><strong>{{ __('UNCHECKED permission') }}</strong> = {{ __('Menu item WILL NOT APPEAR in the sidebar (hidden from users with this role)') }}</li>
+                            <li><strong>{{ __('Super Admin') }}</strong> {{ __('always sees all menu items regardless of role permissions') }}</li>
+                            <li><strong>{{ __('Changes take effect immediately') }}</strong> - {{ __('After saving, users with this role will see/hide menu items on their next page load') }}</li>
                           </ul>
                         </div>
                         <div class="mb-3">
                           <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleAllPermissions({{ $roleItem->id }}, true)">
-                            <i class="fa fa-check-square"></i> Check All
+                            <i class="fa fa-check-square"></i> {{ __('Check All') }}
                           </button>
                           <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAllPermissions({{ $roleItem->id }}, false)">
-                            <i class="fa fa-square"></i> Uncheck All
+                            <i class="fa fa-square"></i> {{ __('Uncheck All') }}
                           </button>
                         </div>
                         @php
@@ -137,7 +126,7 @@
                               continue;
                             }
                           @endphp
-                          <h6 class="mt-3 mb-2"><strong>{{ $group ?: 'General' }}</strong></h6>
+                          <h6 class="mt-3 mb-2"><strong>{{ $group ? __($group) : __('General') }}</strong></h6>
                           @foreach($permissions as $permission)
                           @php
                             // Skip blog permissions
@@ -175,7 +164,7 @@
                               'view_reports' => '→ "General Reports" submenu',
                               'view_daily_reports' => '→ "Daily Reports" submenu',
                               'view_feedback' => '→ "Feedback & Analytics" menu (parent)',
-                              'manage_exchange_rates' => '→ "Exchange Rates" submenu',
+                              'manage_exchange_rates' => '→ (unused — currency is TSh only)',
                               'manage_settings' => '→ "Settings" menu (parent)',
                               'manage_wifi_settings' => '→ "WiFi Settings" submenu',
                               'manage_hotel_settings' => '→ "Hotel Settings" submenu',
@@ -219,14 +208,14 @@
                           @endforeach
                         @else
                           <div class="alert alert-warning">
-                            <i class="fa fa-exclamation-triangle"></i> No permissions found. Please create permissions first.
+                            <i class="fa fa-exclamation-triangle"></i> {{ __('No permissions found. Please create permissions first.') }}
                           </div>
                         @endif
                       </div>
                       <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __('Cancel') }}</button>
                         <button type="submit" class="btn btn-primary">
-                          <i class="fa fa-save"></i> Save Permissions
+                          <i class="fa fa-save"></i> {{ __('Save Permissions') }}
                         </button>
                       </div>
                     </form>
@@ -243,31 +232,31 @@
                       @csrf
                       @method('PUT')
                       <div class="modal-header">
-                        <h5 class="modal-title">Edit Role: {{ $roleItem->name }}</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <h5 class="modal-title">{{ __('Edit Role') }}: {{ $roleItem->name }}</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="{{ __('Close') }}">
                           <span aria-hidden="true">&times;</span>
                         </button>
                       </div>
                       <div class="modal-body">
                         <div class="form-group">
-                          <label>Role Name</label>
+                          <label>{{ __('Role Name') }}</label>
                           <input type="text" class="form-control" value="{{ $roleItem->name }}" disabled>
-                          <small class="form-text text-muted">Role name cannot be changed</small>
+                          <small class="form-text text-muted">{{ __('Role name cannot be changed') }}</small>
                         </div>
                         <div class="form-group">
-                          <label for="display_name{{ $roleItem->id }}">Display Name</label>
-                          <input type="text" name="display_name" id="display_name{{ $roleItem->id }}" 
+                          <label for="display_name{{ $roleItem->id }}">{{ __('Display Name') }}</label>
+                          <input type="text" name="display_name" id="display_name{{ $roleItem->id }}"
                                  class="form-control" value="{{ $roleItem->display_name }}" required>
                         </div>
                         <div class="form-group">
-                          <label for="description{{ $roleItem->id }}">Description</label>
-                          <textarea name="description" id="description{{ $roleItem->id }}" 
+                          <label for="description{{ $roleItem->id }}">{{ __('Description') }}</label>
+                          <textarea name="description" id="description{{ $roleItem->id }}"
                                     class="form-control" rows="3">{{ $roleItem->description }}</textarea>
                         </div>
                       </div>
                       <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Update Role</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __('Cancel') }}</button>
+                        <button type="submit" class="btn btn-primary">{{ __('Update Role') }}</button>
                       </div>
                     </form>
                   </div>
@@ -276,7 +265,7 @@
               @endif
               @empty
               <tr>
-                <td colspan="7" class="text-center">No roles found</td>
+                <td colspan="7" class="text-center">{{ __('No roles found') }}</td>
               </tr>
               @endforelse
             </tbody>
@@ -294,39 +283,63 @@
       <form action="{{ route('super_admin.roles.store') }}" method="POST">
         @csrf
         <div class="modal-header">
-          <h5 class="modal-title">Create New Role</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <h5 class="modal-title">{{ __('Create New Role') }}</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="{{ __('Close') }}">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label for="name">Role Name <span class="text-danger">*</span></label>
-            <input type="text" name="name" id="name" class="form-control" required 
-                   pattern="[a-z_]+" title="Lowercase letters and underscores only">
-            <small class="form-text text-muted">Use lowercase letters and underscores (e.g., content_manager)</small>
+            <label for="name">{{ __('Role Name') }} <span class="text-danger">*</span></label>
+            <input type="text" name="name" id="name" class="form-control" required
+                   pattern="[a-z_]+" title="{{ __('Lowercase letters and underscores only') }}">
+            <small class="form-text text-muted">{{ __('Use lowercase letters and underscores (e.g., content_manager)') }}</small>
           </div>
           <div class="form-group">
-            <label for="display_name">Display Name <span class="text-danger">*</span></label>
+            <label for="display_name">{{ __('Display Name') }} <span class="text-danger">*</span></label>
             <input type="text" name="display_name" id="display_name" class="form-control" required>
           </div>
           <div class="form-group">
-            <label for="description">Description</label>
+            <label for="description">{{ __('Description') }}</label>
             <textarea name="description" id="description" class="form-control" rows="3"></textarea>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Create Role</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __('Cancel') }}</button>
+          <button type="submit" class="btn btn-primary">{{ __('Create Role') }}</button>
         </div>
       </form>
     </div>
   </div>
 </div>
+<!-- Hidden form used by delete action buttons -->
+<form id="delete-role-form" method="POST" style="display: none;">
+  @csrf
+  @method('DELETE')
+</form>
 @endsection
 
 @section('scripts')
 <script>
+document.querySelectorAll('.js-delete-role').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var action = btn.getAttribute('data-action');
+    if (!action) return;
+
+    confirmAction(
+      @json(__('Are you sure? This will remove the role from all users.')),
+      @json(__('Delete Role')),
+      @json(__('Yes, delete!')),
+      @json(__('Cancel'))
+    ).then(function (result) {
+      if (!result.isConfirmed) return;
+      var form = document.getElementById('delete-role-form');
+      form.setAttribute('action', action);
+      form.submit();
+    });
+  });
+});
+
 function updatePermissionStatus(roleId, permissionId, isChecked) {
   // Visual feedback - update the label styling
   const label = document.querySelector(`label[for="perm${roleId}_${permissionId}"]`);

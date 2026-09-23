@@ -23,7 +23,7 @@ Unfortunately, your extension request has been **rejected**.
     $additionalCost = $booking->room->price_per_night * $additionalNights;
 @endphp
 
-**Additional Cost:** ${{ number_format($additionalCost, 2) }} ({{ number_format($additionalCost * 2500, 2) }} TZS)
+**Additional Cost:** TSh {{ number_format($additionalCost, 0) }}
 
 **Approved At:** {{ $booking->extension_approved_at ? \Carbon\Carbon::parse($booking->extension_approved_at)->format('F d, Y \a\t g:i A') : 'N/A' }}
 

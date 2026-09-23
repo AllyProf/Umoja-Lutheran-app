@@ -94,22 +94,17 @@
                                     <label for="amount">Amount <span class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <div class="input-group-prepend">
-                                            <span class="input-group-text" id="currency_symbol">TZS</span>
+                                            <span class="input-group-text" id="currency_symbol">TSh</span>
                                         </div>
                                         <input class="form-control" type="number" step="0.01" id="amount" name="amount"
-                                            value="{{ number_format($gardenService->price_tanzanian, 2, '.', '') }}" min="0"
+                                            value="{{ number_format($gardenService->price_tanzanian, 0, '.', '') }}" min="0"
                                             required>
                                     </div>
                                     <small class="form-text text-info">
                                         <i class="fa fa-info-circle"></i> Recommended:
                                         <span
-                                            id="recommended_amount_tzs">{{ number_format($gardenService->price_tanzanian, 2) }}
-                                            TZS</span>
-                                        @if($gardenService->price_international)
-                                            / <span
-                                                id="recommended_amount_usd">${{ number_format($gardenService->price_international, 2) }}
-                                                USD</span>
-                                        @endif
+                                            id="recommended_amount_tzs">{{ number_format($gardenService->price_tanzanian, 0) }}
+                                            TSh</span>
                                     </small>
                                 </div>
                             </div>
@@ -132,10 +127,10 @@
                             <label for="amount_paid">Amount Paid <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <div class="input-group-prepend">
-                                    <span class="input-group-text" id="paid_currency_symbol">TZS</span>
+                                    <span class="input-group-text" id="paid_currency_symbol">TSh</span>
                                 </div>
                                 <input class="form-control" type="number" step="0.01" id="amount_paid" name="amount_paid"
-                                    value="{{ number_format($gardenService->price_tanzanian, 2, '.', '') }}" min="0"
+                                    value="{{ number_format($gardenService->price_tanzanian, 0, '.', '') }}" min="0"
                                     required>
                             </div>
                         </div>

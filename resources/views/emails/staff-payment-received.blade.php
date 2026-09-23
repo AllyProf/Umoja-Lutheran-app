@@ -5,7 +5,7 @@ A payment has been received for a booking.
 
 ## Payment Details
 
-**Amount Paid:** {{ number_format($amountPaid, 2) }} TZS
+**Amount Paid:** TSh {{ number_format($amountPaid, 0) }}
 
 **Payment Method:** {{ ucfirst(str_replace('_', ' ', $paymentMethod ?? 'paypal')) }}
 
@@ -21,14 +21,14 @@ A payment has been received for a booking.
 
 **Room:** {{ $booking->room->room_number }} ({{ $booking->room->room_type }})
 
-**Total Booking Price:** ${{ number_format($booking->total_price, 2) }} USD
+**Total Booking Price:** TSh {{ number_format($booking->total_price, 0) }}
 
 **Payment Status:** {{ ucfirst($booking->payment_status) }}
 
-**Total Amount Paid:** {{ number_format($booking->amount_paid ?? 0, 2) }} TZS
+**Total Amount Paid:** TSh {{ number_format($booking->amount_paid ?? 0, 0) }}
 
 @if($booking->payment_status === 'partial')
-**Outstanding Balance:** {{ number_format(($booking->total_price * ($booking->locked_exchange_rate ?? 2300)) - ($booking->amount_paid ?? 0), 2) }} TZS
+**Outstanding Balance:** TSh {{ number_format(($booking->total_price) - ($booking->amount_paid ?? 0), 0) }}
 @endif
 
 <x-mail::button :url="route('admin.bookings.show', $booking)">

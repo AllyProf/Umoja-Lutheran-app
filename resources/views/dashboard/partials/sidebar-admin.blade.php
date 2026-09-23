@@ -155,24 +155,24 @@
         </ul>
     </li>
 
-    <li class="treeview {{ str_contains($activePage, 'admin/day-services') ? 'is-expanded' : '' }}">
+    <li class="treeview">
         <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-coffee"></i><span
                 class="app-menu__label">Day Services</span><i class="treeview-indicator fa fa-angle-right"></i></a>
         <ul class="treeview-menu">
-            <li><a class="treeview-item" href="{{ route('admin.day-services.index') }}"><i class="icon fa fa-list-alt"></i>
+            <li><a class="treeview-item {{ request()->routeIs('admin.day-services.index') ? 'active' : '' }}" href="{{ route('admin.day-services.index') }}"><i class="icon fa fa-list-alt"></i>
                     All Services</a></li>
-            <li><a class="treeview-item" href="{{ route('admin.day-services.parking') }}"><i class="icon fa fa-car"></i>
+            <li><a class="treeview-item {{ str_contains($activePage, 'day-services/parking') ? 'active' : '' }}" href="{{ route('admin.day-services.parking') }}"><i class="icon fa fa-car"></i>
                     Parking</a></li>
-            <li><a class="treeview-item" href="{{ route('admin.day-services.garden') }}"><i class="icon fa fa-leaf"></i>
+            <li><a class="treeview-item {{ str_contains($activePage, 'day-services/garden') ? 'active' : '' }}" href="{{ route('admin.day-services.garden') }}"><i class="icon fa fa-leaf"></i>
                     Garden</a></li>
-            <li><a class="treeview-item" href="{{ route('admin.day-services.conference') }}"><i
+            <li><a class="treeview-item {{ str_contains($activePage, 'day-services/conference') ? 'active' : '' }}" href="{{ route('admin.day-services.conference') }}"><i
                         class="icon fa fa-briefcase"></i> Conference Room</a></li>
-            <li><a class="treeview-item" href="{{ route('admin.day-services.projector') }}"><i
+            <li><a class="treeview-item {{ str_contains($activePage, 'day-services/projector') ? 'active' : '' }}" href="{{ route('admin.day-services.projector') }}"><i
                         class="icon fa fa-video-camera"></i> Projector</a></li>
-            <li><a class="treeview-item" href="{{ route('admin.day-services.music') }}"><i class="icon fa fa-music"></i>
+            <li><a class="treeview-item {{ str_contains($activePage, 'day-services/music') ? 'active' : '' }}" href="{{ route('admin.day-services.music') }}"><i class="icon fa fa-music"></i>
                     Music / Sound System</a></li>
             <li class="treeview-divider"></li>
-            <li><a class="treeview-item" href="{{ route('admin.day-services.reports') }}"><i
+            <li><a class="treeview-item {{ str_contains($activePage, 'day-services/reports') ? 'active' : '' }}" href="{{ route('admin.day-services.reports') }}"><i
                         class="icon fa fa-file-pdf-o"></i> Service Reports</a></li>
         </ul>
     </li>
@@ -187,11 +187,16 @@
                 Issues</span>@if(isset($sidebarBadges['room_issues']) && $sidebarBadges['room_issues'] > 0)<span
                 class="badge badge-danger badge-pill ml-2">{{ $sidebarBadges['room_issues'] }}</span>@endif</a></li>
 
-    <li><a class="app-menu__item {{ str_contains($activePage, 'admin/issues') ? 'active' : '' }}"
+    <li><a class="app-menu__item {{ str_contains($activePage, 'admin/issues') || str_contains($activePage, 'manager/issues') ? 'active' : '' }}"
             href="{{ route('admin.issues.index') }}"><i class="app-menu__icon fa fa-exclamation-triangle"></i><span
                 class="app-menu__label">Guest Issue
                 Reports</span>@if(isset($sidebarBadges['issues']) && $sidebarBadges['issues'] > 0)<span
                 class="badge badge-warning badge-pill ml-2">{{ $sidebarBadges['issues'] }}</span>@endif</a></li>
+
+    <li><a class="app-menu__item {{ str_contains($activePage, 'service-requests') ? 'active' : '' }}"
+            href="{{ route('admin.service-requests') }}"><i class="app-menu__icon fa fa-bell"></i><span
+                class="app-menu__label">Service Requests</span>@if(isset($sidebarBadges['service_requests']) && $sidebarBadges['service_requests'] > 0)<span
+                class="badge badge-info badge-pill ml-2">{{ $sidebarBadges['service_requests'] }}</span>@endif</a></li>
 
     <li class="treeview {{ str_contains($activePage, 'admin/rooms') ? 'is-expanded' : '' }}">
         <a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon fa fa-bed"></i><span
@@ -290,7 +295,7 @@
             href="{{ route('admin.reports.index') }}"><i class="app-menu__icon fa fa-bar-chart"></i><span
                 class="app-menu__label">Reports Dashboard</span></a></li>
     <li><a class="app-menu__item {{ str_contains($activePage, 'reception/reports/financial') ? 'active' : '' }}"
-            href="{{ route('reception.reports.financial') }}"><i class="app-menu__icon fa fa-money-bill"></i><span
+            href="{{ route('reception.reports.financial') }}"><i class="app-menu__icon fa fa-money"></i><span
                 class="app-menu__label">Reception Financial Report</span></a></li>
     <li><a class="app-menu__item {{ str_contains($activePage, 'admin/payments') ? 'active' : '' }}"
             href="{{ route('admin.payments') }}"><i class="app-menu__icon fa fa-money"></i><span class="app-menu__label">All

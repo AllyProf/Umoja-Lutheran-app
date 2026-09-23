@@ -41,7 +41,7 @@
               @php
                 $originalCheckOut = $booking->original_check_out ? \Carbon\Carbon::parse($booking->original_check_out) : $booking->check_out;
                 $extensionNights = 0;
-                $extensionCostUsd = 0;
+                $extensionCostTsh = 0;
                 // Calculate extension nights from original check-out to current check-out (if approved) or requested check-out
                 if ($booking->extension_status === 'approved' && $booking->check_out) {
                   $extensionNights = $originalCheckOut->diffInDays($booking->check_out);
@@ -50,10 +50,8 @@
                   $extensionNights = $originalCheckOut->diffInDays($requestedCheckOut);
                 }
                 if ($booking->room && $extensionNights > 0) {
-                  $extensionCostUsd = $booking->room->price_per_night * $extensionNights;
+                  $extensionCostTsh = ($booking->room->price_per_night ?? 0) * $extensionNights;
                 }
-                $bookingExchangeRate = $booking->locked_exchange_rate ?? $exchangeRate;
-                $extensionCostTsh = $extensionCostUsd * $bookingExchangeRate;
               @endphp
               <tr>
                 <td><strong>{{ $booking->booking_reference }}</strong></td>
@@ -93,16 +91,10 @@
                   @endif
                 </td>
                 <td>
-                  @if($extensionCostUsd > 0 && $booking->extension_status === 'approved')
-                    <div><strong>${{ number_format($extensionCostUsd, 2) }}</strong></div>
-                    <div style="color: #e07632; font-size: 11px;">
-                      <strong>≈ {{ number_format($extensionCostTsh, 2) }} TZS</strong>
-                    </div>
-                  @elseif($extensionCostUsd > 0)
-                    <div><strong style="color: #666;">${{ number_format($extensionCostUsd, 2) }}</strong></div>
-                    <div style="color: #666; font-size: 11px;">
-                      <strong>≈ {{ number_format($extensionCostTsh, 2) }} TZS</strong>
-                    </div>
+                  @if($extensionCostTsh > 0 && $booking->extension_status === 'approved')
+                    <div><strong>TSh {{ number_format($extensionCostTsh, 0) }}</strong></div>
+                  @elseif($extensionCostTsh > 0)
+                    <div><strong style="color: #666;">TSh {{ number_format($extensionCostTsh, 0) }}</strong></div>
                     <small class="text-muted">(Estimated)</small>
                   @else
                     <span class="text-muted">-</span>
@@ -215,17 +207,13 @@
                               <td>{{ $booking->extension_reason }}</td>
                             </tr>
                             @endif
-                            @if($extensionCostUsd > 0)
+                            @if($extensionCostTsh > 0)
                             <tr style="border-top: 1px solid #ddd;">
                               <td><strong>Extension Cost:</strong></td>
                               <td>
                                 <strong style="color: #e07632; font-size: 16px;">
-                                  ${{ number_format($extensionCostUsd, 2) }}
+                                  TSh {{ number_format($extensionCostTsh, 0) }}
                                 </strong>
-                                <br>
-                                <small class="text-muted">
-                                  ≈ {{ number_format($extensionCostTsh, 2) }} TZS
-                                </small>
                                 @if($booking->extension_status === 'pending')
                                   <br><small class="text-muted">(Estimated - subject to approval)</small>
                                 @endif
@@ -253,7 +241,7 @@
                           </table>
                         </div>
                       </div>
-                      @if($booking->extension_status === 'approved' && $extensionCostUsd > 0)
+                      @if($booking->extension_status === 'approved' && $extensionCostTsh > 0)
                       <div class="alert alert-info mt-3" style="background-color: #e7f3ff; border-left: 4px solid #2196F3;">
                         <i class="fa fa-info-circle"></i> <strong>Payment Information:</strong> 
                         The extension cost will be added to your final bill. You can pay it at checkout or via PayPal.

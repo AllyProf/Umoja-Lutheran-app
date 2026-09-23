@@ -259,7 +259,7 @@ class IssueReportController extends Controller
                     if ($staff->phone && in_array($issue->priority, ['high', 'urgent'])) {
                         try {
                             $smsMessage = "Issue Update: {$issue->subject} (Room: " . ($issue->room?->room_number ?? 'N/A') . ") is now " . strtoupper($newStatus);
-                            $smsService->sendSms($staff->phone, $smsMessage);
+                            $smsService->sendSms($staff->phone, $smsMessage, 'sms_issues_housekeeping');
                         } catch (\Exception $e) {
                             Log::error("Failed to send issue status update SMS to manager: " . $e->getMessage());
                         }
@@ -276,7 +276,7 @@ class IssueReportController extends Controller
                     if ($reporter && $reporter->phone) {
                         $smsService = app(SmsService::class);
                         $smsMessage = "Hello " . ($reporter->name ?? 'Guest') . ", your reported issue '{$issue->subject}' has been RESOLVED. Thank you for your patience!";
-                        $smsService->sendSms($reporter->phone, $smsMessage);
+                        $smsService->sendSms($reporter->phone, $smsMessage, 'sms_issues_housekeeping');
                     }
                 } catch (\Exception $e) {
                     Log::error("Failed to send resolution SMS to reporter: " . $e->getMessage());
@@ -565,7 +565,7 @@ class IssueReportController extends Controller
                     if ($staff->phone && in_array($validated['priority'], ['high', 'urgent'])) {
                         try {
                             $smsMessage = "URGENT ISSUE: " . ($user->name ?? 'Guest') . " reported: {$validated['subject']}. Priority: " . strtoupper($validated['priority']);
-                            $smsService->sendSms($staff->phone, $smsMessage);
+                            $smsService->sendSms($staff->phone, $smsMessage, 'sms_issues_housekeeping');
                         } catch (\Exception $e) {
                             Log::error("Failed to send issue report SMS to manager: " . $e->getMessage());
                         }
@@ -586,7 +586,7 @@ class IssueReportController extends Controller
                         try {
                             $smsService = app(SmsService::class);
                             $smsMessage = "New Issue Report: " . ($user->name ?? 'Guest') . " - {$validated['subject']} (Room: " . ($room?->room_number ?? 'N/A') . ")";
-                            $smsService->sendSms($staff->phone, $smsMessage);
+                            $smsService->sendSms($staff->phone, $smsMessage, 'sms_issues_housekeeping');
                         } catch (\Exception $e) {
                             Log::error("Failed to send issue report SMS to reception: " . $e->getMessage());
                         }

@@ -13,6 +13,7 @@ use App\Models\Booking;
 use App\Models\Room;
 use App\Models\FailedLoginAttempt;
 use App\Models\HotelSetting;
+use App\Models\SmsLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -259,6 +260,8 @@ class SuperAdminController extends Controller
                 ->count(),
         ];
 
+        $smsStats = SmsLog::usageStats();
+
         return view('dashboard.super-admin.dashboard', [
             'role' => 'super_admin',
             'userName' => $user->name ?? 'Super Admin',
@@ -274,6 +277,7 @@ class SuperAdminController extends Controller
             'usersWithLastLogin' => $usersWithLastLogin,
             'technicalIssues' => $technicalIssues,
             'loginStats' => $loginStats,
+            'smsStats' => $smsStats,
         ]);
     }
 
@@ -457,7 +461,7 @@ class SuperAdminController extends Controller
             try {
                 $roleName = ucwords(str_replace('_', ' ', $user->role));
                 $smsMessage = "Hello {$user->name}, your Umoja Lutheran account has been created as {$roleName}. Username: {$user->email}, Password: {$defaultPassword}. Change your password upon login.";
-                $smsResult = $smsService->sendSms($user->phone, $smsMessage);
+                $smsResult = $smsService->sendSms($user->phone, $smsMessage, 'sms_user_welcome');
 
                 if ($smsResult['success']) {
                     Log::info('Staff welcome SMS sent', [
@@ -838,7 +842,7 @@ class SuperAdminController extends Controller
         if ($originalUserData['type'] === 'staff' && !empty($userForLogging->phone)) {
             try {
                 $smsMessage = "Your Umoja Lutheran password has been reset by Admin. New Password: {$newPassword}. Please login and change it.";
-                $smsService->sendSms($userForLogging->phone, $smsMessage);
+                $smsService->sendSms($userForLogging->phone, $smsMessage, 'sms_password_reset');
                 Log::info('Password reset SMS sent', ['user_id' => $userForLogging->id, 'phone' => $userForLogging->phone]);
             } catch (\Exception $e) {
                 Log::error('Failed to send password reset SMS', ['user_id' => $userForLogging->id, 'error' => $e->getMessage()]);
@@ -1202,6 +1206,85 @@ class SuperAdminController extends Controller
         }
 
         return redirect()->route('super_admin.roles')->with('success', $message);
+    }
+
+    /**
+     * Display SMS usage (day / week / month) for Super Admin
+     */
+    public function smsUsage(Request $request)
+    {
+        $query = SmsLog::query();
+
+        if ($request->filled('status')) {
+            if ($request->status === 'success') {
+                $query->where('success', true);
+            } elseif ($request->status === 'failed') {
+                $query->where('success', false);
+            }
+        }
+
+        if ($request->filled('phone')) {
+            $query->where('phone', 'like', '%' . preg_replace('/[^0-9]/', '', $request->phone) . '%');
+        }
+
+        if ($request->filled('context')) {
+            $query->where('context', $request->context);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $logs = $query->orderBy('created_at', 'desc')->paginate(25)->withQueryString();
+        $usageStats = SmsLog::usageStats();
+        $dailyBreakdown = SmsLog::dailyBreakdown(14);
+        $contexts = SmsLog::whereNotNull('context')->distinct()->orderBy('context')->pluck('context');
+
+        return view('dashboard.super-admin.sms-usage', [
+            'role' => 'super_admin',
+            'userName' => (auth()->guard('staff')->user() ?? auth()->guard('guest')->user())->name ?? 'Super Admin',
+            'userRole' => 'Super Administrator',
+            'logs' => $logs,
+            'usageStats' => $usageStats,
+            'dailyBreakdown' => $dailyBreakdown,
+            'contexts' => $contexts,
+            'filters' => $request->only(['status', 'phone', 'context', 'date_from', 'date_to']),
+            'smsFeatureGroups' => SmsService::featuresByGroup(),
+            'smsFeatureStates' => SmsService::featureStates(),
+        ]);
+    }
+
+    /**
+     * Save SMS feature on/off toggles
+     */
+    public function updateSmsSettings(Request $request)
+    {
+        $featureKeys = array_keys(SmsService::FEATURES);
+        $enabled = $request->input('sms_features', []);
+
+        if (!is_array($enabled)) {
+            $enabled = [];
+        }
+
+        foreach ($featureKeys as $key) {
+            HotelSetting::setValue($key, in_array($key, $enabled, true) ? '1' : '0');
+        }
+
+        ActivityLog::create([
+            'user_id' => auth()->guard('staff')->id() ?? auth()->id(),
+            'action' => 'updated',
+            'model_type' => HotelSetting::class,
+            'description' => 'Updated SMS notification toggles',
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return redirect()
+            ->route('super_admin.sms-usage')
+            ->with('success', 'SMS notification settings saved successfully.');
     }
 
     /**

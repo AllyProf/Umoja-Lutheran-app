@@ -292,14 +292,14 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Event::listen(\Spatie\Backup\Events\BackupWasSuccessful::class, function () {
             $phone = config('filesystems.disks.google.notification_phone');
             if ($phone) {
-                app(\App\Services\SmsService::class)->sendSms($phone, 'Umoja Lutheran: Database backup was successful and uploaded to Google Drive.');
+                app(\App\Services\SmsService::class)->sendSms($phone, 'Umoja Lutheran: Database backup was successful and uploaded to Google Drive.', 'sms_backup_alerts');
             }
         });
 
         \Illuminate\Support\Facades\Event::listen(\Spatie\Backup\Events\BackupHasFailed::class, function () {
             $phone = config('filesystems.disks.google.notification_phone');
             if ($phone) {
-                app(\App\Services\SmsService::class)->sendSms($phone, 'Umoja Lutheran ALERT: Database backup FAILED. Please check the logs.');
+                app(\App\Services\SmsService::class)->sendSms($phone, 'Umoja Lutheran ALERT: Database backup FAILED. Please check the logs.', 'sms_backup_alerts');
             }
         });
     }

@@ -341,17 +341,7 @@
                             <tr>
                                 <td>{{ $packageItemLabels[$itemKey] ?? ucfirst(str_replace('_', ' ', $itemKey)) }}</td>
                                 <td style="text-align: right;">
-                                    @if($dayService->guest_type === 'tanzanian')
-                                        {{ number_format($itemPrice, 2) }} TZS
-                                    @else
-                                        ${{ number_format($itemPrice, 2) }}
-                                        @php
-                                            $rate = $dayService->exchange_rate ?? $exchangeRate ?? null;
-                                        @endphp
-                                        @if($rate)
-                                            <br><small>(≈ {{ number_format($itemPrice * $rate, 2) }} TZS)</small>
-                                        @endif
-                                    @endif
+                                    TSh {{ number_format($itemPrice, 0) }}
                                 </td>
                             </tr>
                         @endif
@@ -366,17 +356,7 @@
                             @endif
                         </td>
                         <td style="text-align: right;">
-                            @if($dayService->guest_type === 'tanzanian')
-                                {{ number_format($dayService->amount, 2) }} TZS
-                            @else
-                                ${{ number_format($dayService->amount, 2) }}
-                                @php
-                                    $rate = $dayService->exchange_rate ?? $exchangeRate ?? null;
-                                @endphp
-                                @if($rate)
-                                    <br><small>(≈ {{ number_format($dayService->amount * $rate, 2) }} TZS)</small>
-                                @endif
-                            @endif
+                            TSh {{ number_format($dayService->amount, 0) }}
                         </td>
                     </tr>
                 @endif
@@ -422,24 +402,24 @@
                                 @endif
                             </td>
                             <td>{{ $item->quantity }}</td>
-                            <td style="text-align: right;">{{ number_format($item->unit_price_tsh, 2) }} TZS</td>
-                            <td style="text-align: right;">{{ number_format($item->total_price_tsh, 2) }} TZS</td>
+                            <td style="text-align: right;">{{ number_format($item->unit_price_tsh, 0) }} TSh</td>
+                            <td style="text-align: right;">{{ number_format($item->total_price_tsh, 0) }} TSh</td>
                         </tr>
                     @endforeach
                     <tr style="background-color: #f8f9fa; font-weight: bold;">
                         <td colspan="3" style="text-align: right;">Total Consumption:</td>
-                        <td style="text-align: right;">{{ number_format($totalConsumption, 2) }} TZS</td>
+                        <td style="text-align: right;">{{ number_format($totalConsumption, 0) }} TSh</td>
                     </tr>
                     @if($paidConsumption > 0)
                         <tr style="color: #388e3c;">
                             <td colspan="3" style="text-align: right;">Amount Paid:</td>
-                            <td style="text-align: right;">{{ number_format($paidConsumption, 2) }} TZS</td>
+                            <td style="text-align: right;">{{ number_format($paidConsumption, 0) }} TSh</td>
                         </tr>
                     @endif
                     @if($unpaidConsumption > 0)
                         <tr style="color: #d32f2f; font-weight: bold;">
                             <td colspan="3" style="text-align: right;">AMOUNT UNPAID:</td>
-                            <td style="text-align: right;">{{ number_format($unpaidConsumption, 2) }} TZS</td>
+                            <td style="text-align: right;">{{ number_format($unpaidConsumption, 0) }} TSh</td>
                         </tr>
                     @endif
                 </tbody>
@@ -451,22 +431,14 @@
                 <div class="total-row">
                     <span>Subtotal:</span>
                     <span>
-                        @if($dayService->guest_type === 'tanzanian')
-                            {{ number_format($dayService->amount + $dayService->discount_amount, 2) }} TZS
-                        @else
-                            ${{ number_format($dayService->amount + $dayService->discount_amount, 2) }}
-                        @endif
+                        TSh {{ number_format($dayService->amount + $dayService->discount_amount, 0) }}
                     </span>
                 </div>
                 <div class="total-row" style="color: #d32f2f;">
                     <span>Discount
                         @if($dayService->discount_type === 'percentage')({{ $dayService->discount_value }}%)@endif:</span>
                     <span>
-                        @if($dayService->guest_type === 'tanzanian')
-                            -{{ number_format($dayService->discount_amount, 2) }} TZS
-                        @else
-                            -${{ number_format($dayService->discount_amount, 2) }}
-                        @endif
+                        -TSh {{ number_format($dayService->discount_amount, 0) }}
                     </span>
                 </div>
                 @if($dayService->discount_reason)
@@ -480,17 +452,7 @@
             <div class="total-row total">
                 <span>Total Amount:</span>
                 <span>
-                    @if($dayService->guest_type === 'tanzanian')
-                        {{ number_format($dayService->amount, 2) }} TZS
-                    @else
-                        ${{ number_format($dayService->amount, 2) }}
-                        @php
-                            $rate = $dayService->exchange_rate ?? $exchangeRate ?? null;
-                        @endphp
-                        @if($rate)
-                            <br><small>(≈ {{ number_format($dayService->amount * $rate, 2) }} TZS)</small>
-                        @endif
-                    @endif
+                    TSh {{ number_format($dayService->amount, 0) }}
                 </span>
             </div>
             <div class="total-row">
@@ -516,17 +478,7 @@
             <div class="total-row">
                 <span>Amount Paid:</span>
                 <span>
-                    @if($dayService->guest_type === 'tanzanian')
-                        {{ number_format($dayService->amount_paid, 2) }} TZS
-                    @else
-                        ${{ number_format($dayService->amount_paid, 2) }}
-                        @php
-                            $rate = $dayService->exchange_rate ?? $exchangeRate ?? null;
-                        @endphp
-                        @if($rate)
-                            <br><small>(≈ {{ number_format($dayService->amount_paid * $rate, 2) }} TZS)</small>
-                        @endif
-                    @endif
+                    TSh {{ number_format($dayService->amount_paid, 0) }}
                 </span>
             </div>
             @php
@@ -536,34 +488,14 @@
                 <div class="total-row" style="color: #d32f2f; font-weight: bold;">
                     <span>Remaining Amount:</span>
                     <span>
-                        @if($dayService->guest_type === 'tanzanian')
-                            {{ number_format($remainingAmount, 2) }} TZS
-                        @else
-                            ${{ number_format($remainingAmount, 2) }}
-                            @php
-                                $rate = $dayService->exchange_rate ?? $exchangeRate ?? null;
-                            @endphp
-                            @if($rate)
-                                <br><small>(≈ {{ number_format($remainingAmount * $rate, 2) }} TZS)</small>
-                            @endif
-                        @endif
+                        TSh {{ number_format($remainingAmount, 0) }}
                     </span>
                 </div>
             @elseif($remainingAmount < 0)
                 <div class="total-row" style="color: #388e3c; font-weight: bold;">
                     <span>Overpaid:</span>
                     <span>
-                        @if($dayService->guest_type === 'tanzanian')
-                            {{ number_format(abs($remainingAmount), 2) }} TZS
-                        @else
-                            ${{ number_format(abs($remainingAmount), 2) }}
-                            @php
-                                $rate = $dayService->exchange_rate ?? $exchangeRate ?? null;
-                            @endphp
-                            @if($rate)
-                                <br><small>(≈ {{ number_format(abs($remainingAmount) * $rate, 2) }} TZS)</small>
-                            @endif
-                        @endif
+                        TSh {{ number_format(abs($remainingAmount), 0) }}
                     </span>
                 </div>
             @endif

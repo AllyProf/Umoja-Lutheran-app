@@ -3,12 +3,12 @@
 @section('content')
 <div class="app-title">
   <div>
-    <h1><i class="fa fa-shield"></i> Super Administrator Dashboard</h1>
-    <p>System Control & Management</p>
+    <h1><i class="fa fa-shield"></i> {{ __('Super Administrator Dashboard') }}</h1>
+    <p>{{ __('System Control & Management') }}</p>
   </div>
   <ul class="app-breadcrumb breadcrumb">
     <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
-    <li class="breadcrumb-item"><a href="#">Super Admin Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="#">{{ __('Super Admin Dashboard') }}</a></li>
   </ul>
 </div>
 
@@ -18,7 +18,7 @@
     <div class="widget-small primary coloured-icon">
       <i class="icon fa fa-users fa-3x"></i>
       <div class="info">
-        <h4>Total Users</h4>
+        <h4>{{ __('Total Users') }}</h4>
         <p><b>{{ $stats['total_users'] ?? 0 }}</b></p>
       </div>
     </div>
@@ -27,7 +27,7 @@
     <div class="widget-small info coloured-icon">
       <i class="icon fa fa-user-secret fa-3x"></i>
       <div class="info">
-        <h4>Super Admins</h4>
+        <h4>{{ __('Super Admins') }}</h4>
         <p><b>{{ $stats['super_admins'] ?? 0 }}</b></p>
       </div>
     </div>
@@ -36,7 +36,7 @@
     <div class="widget-small warning coloured-icon">
       <i class="icon fa fa-user-tie fa-3x"></i>
       <div class="info">
-        <h4>Managers</h4>
+        <h4>{{ __('Managers') }}</h4>
         <p><b>{{ $stats['managers'] ?? 0 }}</b></p>
       </div>
     </div>
@@ -45,7 +45,7 @@
     <div class="widget-small danger coloured-icon">
       <i class="icon fa fa-key fa-3x"></i>
       <div class="info">
-        <h4>Roles</h4>
+        <h4>{{ __('Roles') }}</h4>
         <p><b>{{ $stats['total_roles'] ?? 0 }}</b></p>
       </div>
     </div>
@@ -56,26 +56,26 @@
   <!-- Recent Activity Logs -->
   <div class="col-md-6">
     <div class="tile">
-      <h3 class="tile-title">Recent Activity Logs</h3>
+      <h3 class="tile-title">{{ __('Recent Activity Logs') }}</h3>
       <div class="table-responsive">
         <table class="table table-hover">
           <thead>
             <tr>
-              <th>User</th>
-              <th>Action</th>
-              <th>Time</th>
+              <th>{{ __('User') }}</th>
+              <th>{{ __('Action') }}</th>
+              <th>{{ __('Time') }}</th>
             </tr>
           </thead>
           <tbody>
             @forelse($recentActivities ?? [] as $activity)
             <tr>
-              <td>{{ $activity->user->name ?? 'System' }}</td>
+              <td>{{ $activity->user->name ?? __('System') }}</td>
               <td><span class="badge badge-info">{{ ucfirst($activity->action) }}</span></td>
               <td>{{ $activity->created_at->diffForHumans() }}</td>
             </tr>
             @empty
             <tr>
-              <td colspan="3" class="text-center">No recent activities</td>
+              <td colspan="3" class="text-center">{{ __('No recent activities') }}</td>
             </tr>
             @endforelse
           </tbody>
@@ -85,12 +85,12 @@
         <div class="d-flex justify-content-between align-items-center flex-wrap">
           <div class="mb-2 mb-md-0">
             @if($recentActivities->hasPages())
-            <nav aria-label="Page navigation">
+            <nav aria-label="{{ __('Page navigation') }}">
               <ul class="pagination pagination-sm">
                 @if($recentActivities->onFirstPage())
-                  <li class="page-item disabled"><span class="page-link"><i class="fa fa-angle-left"></i> Prev</span></li>
+                  <li class="page-item disabled"><span class="page-link"><i class="fa fa-angle-left"></i> {{ __('Prev') }}</span></li>
                 @else
-                  <li class="page-item"><a class="page-link" href="{{ $recentActivities->previousPageUrl() }}"><i class="fa fa-angle-left"></i> Prev</a></li>
+                  <li class="page-item"><a class="page-link" href="{{ $recentActivities->previousPageUrl() }}"><i class="fa fa-angle-left"></i> {{ __('Prev') }}</a></li>
                 @endif
                 @php
                   $currentPage = $recentActivities->currentPage();
@@ -116,16 +116,16 @@
                   <li class="page-item"><a class="page-link" href="{{ $recentActivities->url($lastPage) }}">{{ $lastPage }}</a></li>
                 @endif
                 @if($recentActivities->hasMorePages())
-                  <li class="page-item"><a class="page-link" href="{{ $recentActivities->nextPageUrl() }}">Next <i class="fa fa-angle-right"></i></a></li>
+                  <li class="page-item"><a class="page-link" href="{{ $recentActivities->nextPageUrl() }}">{{ __('Next') }} <i class="fa fa-angle-right"></i></a></li>
                 @else
-                  <li class="page-item disabled"><span class="page-link">Next <i class="fa fa-angle-right"></i></span></li>
+                  <li class="page-item disabled"><span class="page-link">{{ __('Next') }} <i class="fa fa-angle-right"></i></span></li>
                 @endif
               </ul>
             </nav>
             @endif
           </div>
           <div>
-            <a href="{{ route('super_admin.activity-logs') }}" class="btn btn-primary">View All Logs</a>
+            <a href="{{ route('super_admin.activity-logs') }}" class="btn btn-primary">{{ __('View All Logs') }}</a>
           </div>
         </div>
       </div>
@@ -135,12 +135,12 @@
   <!-- System Logs Summary -->
   <div class="col-md-6">
     <div class="tile">
-      <h3 class="tile-title">System Logs (Today)</h3>
+      <h3 class="tile-title">{{ __('System Logs (Today)') }}</h3>
       <div class="row">
         <div class="col-4 text-center">
           <div class="widget-small danger">
             <div class="info">
-              <h4>Errors</h4>
+              <h4>{{ __('Errors') }}</h4>
               <p><b>{{ $systemLogsSummary['error'] ?? 0 }}</b></p>
             </div>
           </div>
@@ -148,7 +148,7 @@
         <div class="col-4 text-center">
           <div class="widget-small warning">
             <div class="info">
-              <h4>Warnings</h4>
+              <h4>{{ __('Warnings') }}</h4>
               <p><b>{{ $systemLogsSummary['warning'] ?? 0 }}</b></p>
             </div>
           </div>
@@ -156,14 +156,14 @@
         <div class="col-4 text-center">
           <div class="widget-small info">
             <div class="info">
-              <h4>Info</h4>
+              <h4>{{ __('Info') }}</h4>
               <p><b>{{ $systemLogsSummary['info'] ?? 0 }}</b></p>
             </div>
           </div>
         </div>
       </div>
       <div class="tile-footer mt-3">
-        <a href="{{ route('super_admin.system-logs') }}" class="btn btn-primary">View System Logs</a>
+        <a href="{{ route('super_admin.system-logs') }}" class="btn btn-primary">{{ __('View System Logs') }}</a>
       </div>
     </div>
   </div>
@@ -173,20 +173,20 @@
 <div class="row mb-3">
   <div class="col-md-12">
     <div class="tile">
-      <h3 class="tile-title"><i class="fa fa-user-circle"></i> Currently Active Users ({{ $loggedInUsers->total() ?? 0 }})</h3>
+      <h3 class="tile-title"><i class="fa fa-user-circle"></i> {{ __('Currently Active Users') }} ({{ $loggedInUsers->total() ?? 0 }})</h3>
       <div class="tile-body">
         <div class="table-responsive">
           <table class="table table-hover table-bordered">
             <thead>
               <tr>
-                <th>User</th>
-                <th>Role</th>
-                <th>Email</th>
-                <th>IP Address</th>
-                <th>User Agent</th>
-                <th>Last Activity</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>{{ __('User') }}</th>
+                <th>{{ __('Role') }}</th>
+                <th>{{ __('Email') }}</th>
+                <th>{{ __('IP Address') }}</th>
+                <th>{{ __('User Agent') }}</th>
+                <th>{{ __('Last Activity') }}</th>
+                <th>{{ __('Status') }}</th>
+                <th>{{ __('Actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -195,30 +195,30 @@
                 <td><strong>{{ $session['user']->name }}</strong></td>
                 <td>
                   @if($session['user']->role == 'super_admin')
-                    <span class="badge badge-danger">Super Admin</span>
+                    <span class="badge badge-danger">{{ __('Super Admin') }}</span>
                   @elseif($session['user']->role == 'manager')
-                    <span class="badge badge-warning">Manager</span>
+                    <span class="badge badge-warning">{{ __('Manager') }}</span>
                   @elseif($session['user']->role == 'reception')
-                    <span class="badge badge-info">Reception</span>
+                    <span class="badge badge-info">{{ __('Reception') }}</span>
                   @else
-                    <span class="badge badge-success">Customer</span>
+                    <span class="badge badge-success">{{ __('Customer') }}</span>
                   @endif
                 </td>
                 <td>{{ $session['user']->email }}</td>
-                <td><code>{{ $session['ip_address'] ?? 'N/A' }}</code></td>
-                <td><small>{{ Str::limit($session['user_agent'] ?? 'N/A', 50) }}</small></td>
+                <td><code>{{ $session['ip_address'] ?? __('N/A') }}</code></td>
+                <td><small>{{ Str::limit($session['user_agent'] ?? __('N/A'), 50) }}</small></td>
                 <td>{{ $session['last_activity']->diffForHumans() }}</td>
-                <td><span class="badge badge-success">Active</span></td>
+                <td><span class="badge badge-success">{{ __('Active') }}</span></td>
                 <td>
                   <button type="button" class="btn btn-sm btn-info" 
                           onclick="showActiveUserDetails({{ $session['user']->id }}, '{{ $session['user']->name }}', '{{ $session['user']->email }}', '{{ $session['user']->role ?? 'guest' }}', '{{ $session['ip_address'] ?? '' }}', '{{ addslashes($session['user_agent'] ?? '') }}', '{{ $session['last_activity']->format('Y-m-d H:i:s') }}', '{{ $session['session_id'] ?? '' }}')">
-                    <i class="fa fa-eye"></i> Details
+                    <i class="fa fa-eye"></i> {{ __('Details') }}
                   </button>
                 </td>
               </tr>
               @empty
               <tr>
-                <td colspan="8" class="text-center">No active users at the moment</td>
+                <td colspan="8" class="text-center">{{ __('No active users at the moment') }}</td>
               </tr>
               @endforelse
             </tbody>
@@ -226,12 +226,12 @@
         </div>
         @if($loggedInUsers->hasPages())
         <div class="tile-footer">
-          <nav aria-label="Page navigation">
+          <nav aria-label="{{ __('Page navigation') }}">
             <ul class="pagination pagination-sm justify-content-center">
               @if($loggedInUsers->onFirstPage())
-                <li class="page-item disabled"><span class="page-link"><i class="fa fa-angle-left"></i> Prev</span></li>
+                <li class="page-item disabled"><span class="page-link"><i class="fa fa-angle-left"></i> {{ __('Prev') }}</span></li>
               @else
-                <li class="page-item"><a class="page-link" href="{{ $loggedInUsers->previousPageUrl() }}"><i class="fa fa-angle-left"></i> Prev</a></li>
+                <li class="page-item"><a class="page-link" href="{{ $loggedInUsers->previousPageUrl() }}"><i class="fa fa-angle-left"></i> {{ __('Prev') }}</a></li>
               @endif
               @php
                 $currentPage = $loggedInUsers->currentPage();
@@ -257,9 +257,9 @@
                 <li class="page-item"><a class="page-link" href="{{ $loggedInUsers->url($lastPage) }}">{{ $lastPage }}</a></li>
               @endif
               @if($loggedInUsers->hasMorePages())
-                <li class="page-item"><a class="page-link" href="{{ $loggedInUsers->nextPageUrl() }}">Next <i class="fa fa-angle-right"></i></a></li>
+                <li class="page-item"><a class="page-link" href="{{ $loggedInUsers->nextPageUrl() }}">{{ __('Next') }} <i class="fa fa-angle-right"></i></a></li>
               @else
-                <li class="page-item disabled"><span class="page-link">Next <i class="fa fa-angle-right"></i></span></li>
+                <li class="page-item disabled"><span class="page-link">{{ __('Next') }} <i class="fa fa-angle-right"></i></span></li>
               @endif
             </ul>
           </nav>
@@ -272,58 +272,87 @@
 
 <!-- Login Statistics & Recent Login/Logout -->
 <div class="row mb-3">
-  <div class="col-md-4">
+  <div class="col-md-3">
     <div class="tile">
-      <h3 class="tile-title"><i class="fa fa-sign-in"></i> Login Statistics</h3>
+      <h3 class="tile-title"><i class="fa fa-sign-in"></i> {{ __('Login Statistics') }}</h3>
       <div class="tile-body">
         <div class="widget-small primary">
           <div class="info">
-            <h4>Today</h4>
-            <p><b>{{ $loginStats['today'] ?? 0 }}</b> logins</p>
+            <h4>{{ __('Today') }}</h4>
+            <p><b>{{ $loginStats['today'] ?? 0 }}</b> {{ __('logins') }}</p>
           </div>
         </div>
         <div class="widget-small info mt-2">
           <div class="info">
-            <h4>This Week</h4>
-            <p><b>{{ $loginStats['this_week'] ?? 0 }}</b> logins</p>
+            <h4>{{ __('This Week') }}</h4>
+            <p><b>{{ $loginStats['this_week'] ?? 0 }}</b> {{ __('logins') }}</p>
           </div>
         </div>
         <div class="widget-small warning mt-2">
           <div class="info">
-            <h4>This Month</h4>
-            <p><b>{{ $loginStats['this_month'] ?? 0 }}</b> logins</p>
+            <h4>{{ __('This Month') }}</h4>
+            <p><b>{{ $loginStats['this_month'] ?? 0 }}</b> {{ __('logins') }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-3">
+    <div class="tile">
+      <h3 class="tile-title">
+        <i class="fa fa-mobile"></i> {{ __('SMS Usage') }}
+        <a href="{{ route('super_admin.sms-usage') }}" class="btn btn-sm btn-primary float-right">{{ __('View All') }}</a>
+      </h3>
+      <div class="tile-body">
+        <div class="widget-small primary">
+          <div class="info">
+            <h4>{{ __('Today') }}</h4>
+            <p><b>{{ $smsStats['today'] ?? 0 }}</b> SMS</p>
+          </div>
+        </div>
+        <div class="widget-small info mt-2">
+          <div class="info">
+            <h4>{{ __('This Week') }}</h4>
+            <p><b>{{ $smsStats['this_week'] ?? 0 }}</b> SMS</p>
+          </div>
+        </div>
+        <div class="widget-small warning mt-2">
+          <div class="info">
+            <h4>{{ __('This Month') }}</h4>
+            <p><b>{{ $smsStats['this_month'] ?? 0 }}</b> SMS</p>
           </div>
         </div>
       </div>
     </div>
   </div>
   
-  <div class="col-md-8">
+  <div class="col-md-6">
     <div class="tile">
-      <h3 class="tile-title"><i class="fa fa-history"></i> Recent Login/Logout Activity</h3>
+      <h3 class="tile-title"><i class="fa fa-history"></i> {{ __('Recent Login/Logout Activity') }}</h3>
       <div class="tile-body">
         <div class="table-responsive">
           <table class="table table-hover table-bordered">
             <thead>
               <tr>
-                <th>User</th>
-                <th>Action</th>
-                <th>IP Address</th>
-                <th>Time</th>
+                <th>{{ __('User') }}</th>
+                <th>{{ __('Action') }}</th>
+                <th>{{ __('IP Address') }}</th>
+                <th>{{ __('Time') }}</th>
               </tr>
             </thead>
             <tbody>
               @forelse($loginLogoutActivities ?? [] as $activity)
               <tr>
                 <td>
-                  <strong>{{ $activity->user->name ?? 'System' }}</strong><br>
+                  <strong>{{ $activity->user->name ?? __('System') }}</strong><br>
                   <small class="text-muted">{{ $activity->user->email ?? '' }}</small>
                 </td>
                 <td>
                   @if($activity->action == 'logged_in')
-                    <span class="badge badge-success"><i class="fa fa-sign-in"></i> Logged In</span>
+                    <span class="badge badge-success"><i class="fa fa-sign-in"></i> {{ __('Logged In') }}</span>
                   @else
-                    <span class="badge badge-danger"><i class="fa fa-sign-out"></i> Logged Out</span>
+                    <span class="badge badge-danger"><i class="fa fa-sign-out"></i> {{ __('Logged Out') }}</span>
                   @endif
                 </td>
                 <td><code>{{ $activity->ip_address }}</code></td>
@@ -331,7 +360,7 @@
               </tr>
               @empty
               <tr>
-                <td colspan="4" class="text-center">No login/logout activity</td>
+                <td colspan="4" class="text-center">{{ __('No login/logout activity') }}</td>
               </tr>
               @endforelse
             </tbody>
@@ -339,12 +368,12 @@
         </div>
         @if($loginLogoutActivities->hasPages())
         <div class="tile-footer">
-          <nav aria-label="Page navigation">
+          <nav aria-label="{{ __('Page navigation') }}">
             <ul class="pagination pagination-sm justify-content-center">
               @if($loginLogoutActivities->onFirstPage())
-                <li class="page-item disabled"><span class="page-link"><i class="fa fa-angle-left"></i> Prev</span></li>
+                <li class="page-item disabled"><span class="page-link"><i class="fa fa-angle-left"></i> {{ __('Prev') }}</span></li>
               @else
-                <li class="page-item"><a class="page-link" href="{{ $loginLogoutActivities->previousPageUrl() }}"><i class="fa fa-angle-left"></i> Prev</a></li>
+                <li class="page-item"><a class="page-link" href="{{ $loginLogoutActivities->previousPageUrl() }}"><i class="fa fa-angle-left"></i> {{ __('Prev') }}</a></li>
               @endif
               @php
                 $currentPage = $loginLogoutActivities->currentPage();
@@ -370,9 +399,9 @@
                 <li class="page-item"><a class="page-link" href="{{ $loginLogoutActivities->url($lastPage) }}">{{ $lastPage }}</a></li>
               @endif
               @if($loginLogoutActivities->hasMorePages())
-                <li class="page-item"><a class="page-link" href="{{ $loginLogoutActivities->nextPageUrl() }}">Next <i class="fa fa-angle-right"></i></a></li>
+                <li class="page-item"><a class="page-link" href="{{ $loginLogoutActivities->nextPageUrl() }}">{{ __('Next') }} <i class="fa fa-angle-right"></i></a></li>
               @else
-                <li class="page-item disabled"><span class="page-link">Next <i class="fa fa-angle-right"></i></span></li>
+                <li class="page-item disabled"><span class="page-link">{{ __('Next') }} <i class="fa fa-angle-right"></i></span></li>
               @endif
             </ul>
           </nav>
@@ -387,18 +416,18 @@
 <div class="row mb-3">
   <div class="col-md-12">
     <div class="tile">
-      <h3 class="tile-title"><i class="fa fa-exclamation-triangle"></i> Technical Issues (Errors & Critical)</h3>
+      <h3 class="tile-title"><i class="fa fa-exclamation-triangle"></i> {{ __('Technical Issues (Errors & Critical)') }}</h3>
       <div class="tile-body">
         <div class="table-responsive">
           <table class="table table-hover table-bordered">
             <thead>
               <tr>
-                <th>Level</th>
-                <th>Channel</th>
-                <th>Message</th>
-                <th>User</th>
-                <th>IP Address</th>
-                <th>Time</th>
+                <th>{{ __('Level') }}</th>
+                <th>{{ __('Channel') }}</th>
+                <th>{{ __('Message') }}</th>
+                <th>{{ __('User') }}</th>
+                <th>{{ __('IP Address') }}</th>
+                <th>{{ __('Time') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -406,9 +435,9 @@
               <tr>
                 <td>
                   @if($issue->level == 'error')
-                    <span class="badge badge-danger">ERROR</span>
+                    <span class="badge badge-danger">{{ __('ERROR') }}</span>
                   @else
-                    <span class="badge badge-dark">CRITICAL</span>
+                    <span class="badge badge-dark">{{ __('CRITICAL') }}</span>
                   @endif
                 </td>
                 <td><code>{{ $issue->channel ?? 'system' }}</code></td>
@@ -418,17 +447,17 @@
                     @php
                       $issueUser = \App\Models\User::find($issue->user_id);
                     @endphp
-                    {{ $issueUser->name ?? 'User #' . $issue->user_id }}
+                    {{ $issueUser->name ?? __('User') . ' #' . $issue->user_id }}
                   @else
-                    <span class="text-muted">System</span>
+                    <span class="text-muted">{{ __('System') }}</span>
                   @endif
                 </td>
-                <td><code>{{ $issue->ip_address ?? 'N/A' }}</code></td>
+                <td><code>{{ $issue->ip_address ?? __('N/A') }}</code></td>
                 <td>{{ $issue->created_at->format('M d, Y H:i:s') }}<br><small class="text-muted">{{ $issue->created_at->diffForHumans() }}</small></td>
               </tr>
               @empty
               <tr>
-                <td colspan="6" class="text-center">No technical issues found</td>
+                <td colspan="6" class="text-center">{{ __('No technical issues found') }}</td>
               </tr>
               @endforelse
             </tbody>
@@ -438,12 +467,12 @@
           <div class="d-flex justify-content-between align-items-center flex-wrap">
             <div class="mb-2 mb-md-0">
               @if($technicalIssues->hasPages())
-              <nav aria-label="Page navigation">
+              <nav aria-label="{{ __('Page navigation') }}">
                 <ul class="pagination pagination-sm">
                   @if($technicalIssues->onFirstPage())
-                    <li class="page-item disabled"><span class="page-link"><i class="fa fa-angle-left"></i> Prev</span></li>
+                    <li class="page-item disabled"><span class="page-link"><i class="fa fa-angle-left"></i> {{ __('Prev') }}</span></li>
                   @else
-                    <li class="page-item"><a class="page-link" href="{{ $technicalIssues->previousPageUrl() }}"><i class="fa fa-angle-left"></i> Prev</a></li>
+                    <li class="page-item"><a class="page-link" href="{{ $technicalIssues->previousPageUrl() }}"><i class="fa fa-angle-left"></i> {{ __('Prev') }}</a></li>
                   @endif
                   @php
                     $currentPage = $technicalIssues->currentPage();
@@ -469,16 +498,16 @@
                     <li class="page-item"><a class="page-link" href="{{ $technicalIssues->url($lastPage) }}">{{ $lastPage }}</a></li>
                   @endif
                   @if($technicalIssues->hasMorePages())
-                    <li class="page-item"><a class="page-link" href="{{ $technicalIssues->nextPageUrl() }}">Next <i class="fa fa-angle-right"></i></a></li>
+                    <li class="page-item"><a class="page-link" href="{{ $technicalIssues->nextPageUrl() }}">{{ __('Next') }} <i class="fa fa-angle-right"></i></a></li>
                   @else
-                    <li class="page-item disabled"><span class="page-link">Next <i class="fa fa-angle-right"></i></span></li>
+                    <li class="page-item disabled"><span class="page-link">{{ __('Next') }} <i class="fa fa-angle-right"></i></span></li>
                   @endif
                 </ul>
               </nav>
               @endif
             </div>
             <div>
-              <a href="{{ route('super_admin.system-logs') }}" class="btn btn-primary">View All System Logs</a>
+              <a href="{{ route('super_admin.system-logs') }}" class="btn btn-primary">{{ __('View All System Logs') }}</a>
             </div>
           </div>
         </div>
@@ -491,18 +520,18 @@
 <div class="row mb-3">
   <div class="col-md-12">
     <div class="tile">
-      <h3 class="tile-title"><i class="fa fa-users"></i> All Users with Last Login Information ({{ $usersWithLastLogin->total() ?? 0 }})</h3>
+      <h3 class="tile-title"><i class="fa fa-users"></i> {{ __('All Users with Last Login Information') }} ({{ $usersWithLastLogin->total() ?? 0 }})</h3>
       <div class="tile-body">
         <div class="table-responsive">
           <table class="table table-hover table-bordered">
             <thead>
               <tr>
-                <th>User</th>
-                <th>Role</th>
-                <th>Email</th>
-                <th>Last Login</th>
-                <th>Last Login IP</th>
-                <th>Status</th>
+                <th>{{ __('User') }}</th>
+                <th>{{ __('Role') }}</th>
+                <th>{{ __('Email') }}</th>
+                <th>{{ __('Last Login') }}</th>
+                <th>{{ __('Last Login IP') }}</th>
+                <th>{{ __('Status') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -511,13 +540,13 @@
                 <td><strong>{{ $user->name }}</strong></td>
                 <td>
                   @if($user->role == 'super_admin')
-                    <span class="badge badge-danger">Super Admin</span>
+                    <span class="badge badge-danger">{{ __('Super Admin') }}</span>
                   @elseif($user->role == 'manager')
-                    <span class="badge badge-warning">Manager</span>
+                    <span class="badge badge-warning">{{ __('Manager') }}</span>
                   @elseif($user->role == 'reception')
-                    <span class="badge badge-info">Reception</span>
+                    <span class="badge badge-info">{{ __('Reception') }}</span>
                   @else
-                    <span class="badge badge-success">Customer</span>
+                    <span class="badge badge-success">{{ __('Customer') }}</span>
                   @endif
                 </td>
                 <td>{{ $user->email }}</td>
@@ -526,25 +555,24 @@
                     {{ \Carbon\Carbon::parse($user->last_login)->format('M d, Y H:i:s') }}<br>
                     <small class="text-muted">{{ \Carbon\Carbon::parse($user->last_login)->diffForHumans() }}</small>
                   @else
-                    <span class="text-muted">Never</span>
+                    <span class="text-muted">{{ __('Never') }}</span>
                   @endif
                 </td>
-                <td><code>{{ $user->last_login_ip ?? 'N/A' }}</code></td>
+                <td><code>{{ $user->last_login_ip ?? __('N/A') }}</code></td>
                 <td>
                   @php
-                    // Check if user is active by email (more reliable than ID since Staff and Guest can have same IDs)
                     $isActive = !empty($activeUserEmails[$user->email]);
                   @endphp
                   @if($isActive)
-                    <span class="badge badge-success">Active Now</span>
+                    <span class="badge badge-success">{{ __('Active Now') }}</span>
                   @else
-                    <span class="badge badge-secondary">Offline</span>
+                    <span class="badge badge-secondary">{{ __('Offline') }}</span>
                   @endif
                 </td>
               </tr>
               @empty
               <tr>
-                <td colspan="6" class="text-center">No users found</td>
+                <td colspan="6" class="text-center">{{ __('No users found') }}</td>
               </tr>
               @endforelse
             </tbody>
@@ -552,12 +580,12 @@
         </div>
         @if($usersWithLastLogin->hasPages())
         <div class="tile-footer">
-          <nav aria-label="Page navigation">
+          <nav aria-label="{{ __('Page navigation') }}">
             <ul class="pagination pagination-sm justify-content-center">
               @if($usersWithLastLogin->onFirstPage())
-                <li class="page-item disabled"><span class="page-link"><i class="fa fa-angle-left"></i> Prev</span></li>
+                <li class="page-item disabled"><span class="page-link"><i class="fa fa-angle-left"></i> {{ __('Prev') }}</span></li>
               @else
-                <li class="page-item"><a class="page-link" href="{{ $usersWithLastLogin->previousPageUrl() }}"><i class="fa fa-angle-left"></i> Prev</a></li>
+                <li class="page-item"><a class="page-link" href="{{ $usersWithLastLogin->previousPageUrl() }}"><i class="fa fa-angle-left"></i> {{ __('Prev') }}</a></li>
               @endif
               @php
                 $currentPage = $usersWithLastLogin->currentPage();
@@ -583,9 +611,9 @@
                 <li class="page-item"><a class="page-link" href="{{ $usersWithLastLogin->url($lastPage) }}">{{ $lastPage }}</a></li>
               @endif
               @if($usersWithLastLogin->hasMorePages())
-                <li class="page-item"><a class="page-link" href="{{ $usersWithLastLogin->nextPageUrl() }}">Next <i class="fa fa-angle-right"></i></a></li>
+                <li class="page-item"><a class="page-link" href="{{ $usersWithLastLogin->nextPageUrl() }}">{{ __('Next') }} <i class="fa fa-angle-right"></i></a></li>
               @else
-                <li class="page-item disabled"><span class="page-link">Next <i class="fa fa-angle-right"></i></span></li>
+                <li class="page-item disabled"><span class="page-link">{{ __('Next') }} <i class="fa fa-angle-right"></i></span></li>
               @endif
             </ul>
           </nav>
@@ -600,46 +628,46 @@
 <div class="row">
   <div class="col-md-12">
     <div class="tile">
-      <h3 class="tile-title">Quick Actions</h3>
+      <h3 class="tile-title">{{ __('Quick Actions') }}</h3>
       <div class="row">
         <div class="col-md-3 mb-3">
           <a href="{{ route('super_admin.users') }}" class="btn btn-block btn-primary">
-            <i class="fa fa-users"></i> Manage Users
+            <i class="fa fa-users"></i> {{ __('Manage Users') }}
           </a>
         </div>
         <div class="col-md-3 mb-3">
           <a href="{{ route('super_admin.roles') }}" class="btn btn-block btn-info">
-            <i class="fa fa-key"></i> Manage Roles
+            <i class="fa fa-key"></i> {{ __('Manage Roles') }}
           </a>
         </div>
         <div class="col-md-3 mb-3">
           <a href="{{ route('super_admin.permissions') }}" class="btn btn-block btn-warning">
-            <i class="fa fa-shield"></i> Manage Permissions
+            <i class="fa fa-shield"></i> {{ __('Manage Permissions') }}
           </a>
         </div>
         <div class="col-md-3 mb-3">
           <a href="{{ route('super_admin.activity-logs') }}" class="btn btn-block btn-success">
-            <i class="fa fa-history"></i> Activity Logs
+            <i class="fa fa-history"></i> {{ __('Activity Logs') }}
           </a>
         </div>
         <div class="col-md-3 mb-3">
           <a href="{{ route('super_admin.system-settings') }}" class="btn btn-block btn-secondary">
-            <i class="fa fa-cog"></i> System Settings
+            <i class="fa fa-cog"></i> {{ __('System Settings') }}
           </a>
         </div>
         <div class="col-md-3 mb-3">
           <a href="{{ route('super_admin.failed-login-attempts') }}" class="btn btn-block btn-danger">
-            <i class="fa fa-shield"></i> Failed Logins
+            <i class="fa fa-shield"></i> {{ __('Failed Logins') }}
           </a>
         </div>
         <div class="col-md-3 mb-3">
           <a href="{{ route('super_admin.active-sessions') }}" class="btn btn-block btn-info">
-            <i class="fa fa-users"></i> Active Sessions
+            <i class="fa fa-users"></i> {{ __('Active Sessions') }}
           </a>
         </div>
         <div class="col-md-3 mb-3">
           <a href="{{ route('super_admin.cache-management') }}" class="btn btn-block btn-warning">
-            <i class="fa fa-refresh"></i> Cache Management
+            <i class="fa fa-refresh"></i> {{ __('Cache Management') }}
           </a>
         </div>
       </div>
@@ -704,7 +732,7 @@
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="fa fa-user-circle"></i> Active User Session Details</h5>
+        <h5 class="modal-title"><i class="fa fa-user-circle"></i> {{ __('Active User Session Details') }}</h5>
         <button type="button" class="close" data-dismiss="modal">
           <span>&times;</span>
         </button>
@@ -713,7 +741,7 @@
         <!-- Content will be populated by JavaScript -->
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __('Close') }}</button>
       </div>
     </div>
   </div>
@@ -724,7 +752,7 @@
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="fa fa-map-marker"></i> IP Address Information</h5>
+        <h5 class="modal-title"><i class="fa fa-map-marker"></i> {{ __('IP Address Information') }}</h5>
         <button type="button" class="close" data-dismiss="modal">
           <span>&times;</span>
         </button>
@@ -733,12 +761,12 @@
         <div id="ipLookupContent">
           <div class="text-center">
             <i class="fa fa-spinner fa-spin fa-2x"></i>
-            <p>Loading IP information...</p>
+            <p>{{ __('Loading IP information...') }}</p>
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __('Close') }}</button>
       </div>
     </div>
   </div>

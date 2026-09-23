@@ -75,22 +75,14 @@ class PaymentController extends Controller
                 ->with('service')
                 ->get();
             
-            // Use locked exchange rate from booking, or fallback to current rate if not set (for old bookings)
-            $exchangeRate = $booking->locked_exchange_rate;
-            if (!$exchangeRate) {
-                // Fallback for old bookings that don't have locked rate
-                $currencyService = new \App\Services\CurrencyExchangeService();
-                $exchangeRate = $currencyService->getUsdToTshRate();
-            }
-            
-            // Extension cost
-            $extensionCostUsd = 0;
+            // Amounts are already TSh — no FX conversion
+            $extensionCostTsh = 0;
             if ($booking->extension_status === 'approved' && $booking->original_check_out && $booking->extension_requested_to) {
                 $originalCheckOut = \Carbon\Carbon::parse($booking->original_check_out);
                 $requestedCheckOut = \Carbon\Carbon::parse($booking->extension_requested_to);
                 $extensionNights = $originalCheckOut->diffInDays($requestedCheckOut);
                 if ($extensionNights > 0 && $booking->room) {
-                    $extensionCostUsd = $booking->room->price_per_night * $extensionNights;
+                    $extensionCostTsh = $booking->room->price_per_night * $extensionNights;
                 }
             }
             
@@ -117,18 +109,17 @@ class PaymentController extends Controller
                 ? \Carbon\Carbon::parse($booking->original_check_out) 
                 : \Carbon\Carbon::parse($booking->check_out);
             $originalNights = $booking->check_in->diffInDays($originalCheckOutDate);
-            $baseRoomPriceUsd = $booking->room ? ($booking->room->price_per_night * $originalNights) : $booking->total_price;
+            $baseRoomPriceTsh = $booking->room ? ($booking->room->price_per_night * $originalNights) : $booking->total_price;
             
-            $roomPriceTsh = $baseRoomPriceUsd * $exchangeRate;
-            $totalPaidTsh = ($booking->amount_paid ?? 0) * $exchangeRate;
-            $paidAdditionalChargesTsh = max(0, $totalPaidTsh - $roomPriceTsh);
+            $totalPaidTsh = $booking->amount_paid ?? 0;
+            $paidAdditionalChargesTsh = max(0, $totalPaidTsh - $baseRoomPriceTsh);
             
             // Total additional charges (include everything not in the base room price)
-            $totalAdditionalChargesTsh = $otherServiceChargesTsh + ($extensionCostUsd * $exchangeRate) + $transportationChargesTsh;
+            $totalAdditionalChargesTsh = $otherServiceChargesTsh + $extensionCostTsh + $transportationChargesTsh;
             
-            // Outstanding additional charges
+            // Outstanding additional charges (TSh)
             $outstandingAdditionalChargesTsh = max(0, $totalAdditionalChargesTsh - $paidAdditionalChargesTsh);
-            $paymentAmount = $outstandingAdditionalChargesTsh / $exchangeRate;
+            $paymentAmount = $outstandingAdditionalChargesTsh;
             $paymentDescription = 'Additional Charges - Services, Extension, Transportation';
             
             // If no additional charges, redirect back
@@ -469,7 +460,7 @@ class PaymentController extends Controller
                                 $bookingExchangeRate = $booking->fresh()->locked_exchange_rate ?? (new \App\Services\CurrencyExchangeService())->getUsdToTshRate();
                                 $amountPaidTsh = ($amountPaid ?? 0) * $bookingExchangeRate;
                                 $smsMessage = "Payment Received: " . ($booking->guest_name ?? 'Guest') . " paid Tsh " . number_format($amountPaidTsh, 0, '.', '') . "/= via " . strtoupper($paymentMethod) . " (Ref: {$booking->booking_reference})";
-                                $smsService->sendSms($staff->phone, $smsMessage);
+                                $smsService->sendSms($staff->phone, $smsMessage, 'sms_payment_staff');
                             } catch (\Exception $e) {
                                 Log::error("Failed to send payment received SMS to manager: " . $e->getMessage());
                             }
@@ -489,7 +480,7 @@ class PaymentController extends Controller
                     $recentPaymentAmountTsh = ($paymentAmount ?? 0) * $bookingExchangeRate;
                     
                     $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", we have received your payment of Tsh " . number_format($recentPaymentAmountTsh, 0, '.', '') . "/= via " . strtoupper($paymentMethod) . ". Your current total paid is Tsh " . number_format($totalAmountPaidTsh, 0, '.', '') . "/=. Thank you!";
-                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                    $smsService->sendSms($booking->guest_phone, $smsMessage, 'sms_payment_guest');
                 } catch (\Exception $e) {
                     Log::error("Failed to send payment confirmation SMS to guest: " . $e->getMessage());
                 }
@@ -881,8 +872,8 @@ class PaymentController extends Controller
                         ->get();
                     
                     $guestServicePaymentsTsh = $serviceRequests->sum('total_price_tsh');
-                    $bookingExchangeRate = $booking->locked_exchange_rate ?? (new \App\Services\CurrencyExchangeService())->getUsdToTshRate();
-                    $guestServicePayments = $guestServicePaymentsTsh > 0 ? $guestServicePaymentsTsh / $bookingExchangeRate : 0;
+                    // Amounts are already TSh — pass through without exchange conversion
+                    $guestServicePayments = $guestServicePaymentsTsh;
                 }
                 // For guests with company-paid services, no payments to show (everything is company-paid)
             } else {

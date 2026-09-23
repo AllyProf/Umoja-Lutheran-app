@@ -18,55 +18,31 @@ class CashierController extends Controller
      */
     public function dashboard()
     {
-        $today = Carbon::today();
+        $counterWaiting = $this->shiftsFrom('counter')->where('status', 'pending_cashier');
+        $receptionWaiting = $this->shiftsFrom('reception')->where('status', 'pending_cashier');
+        $readyForAccountant = ShiftClosure::where('status', 'received');
 
-        // Statistics for today
         $stats = [
-            'today_restaurant_collected' => ShiftClosure::whereDate('closed_at', $today)
-                ->where('status', 'received')
-                ->whereHas('staff', function($q) {
-                    $q->where('role', 'LIKE', '%bar%')->orWhere('role', 'LIKE', '%counter%');
-                })
-                ->sum('amount_submitted_tzs'),
-            'today_reception_collected' => ShiftClosure::whereDate('closed_at', $today)
-                ->where('status', 'received')
-                ->whereHas('staff', function($q) {
-                    $q->where('role', 'reception');
-                })
-                ->sum('amount_submitted_tzs'),
-            'pending_restaurant_handovers' => ShiftClosure::where('status', 'pending_cashier')
-                ->whereHas('staff', function($q) {
-                    $q->where('role', 'LIKE', '%bar%')->orWhere('role', 'LIKE', '%counter%');
-                })
-                ->count(),
-            'pending_reception_handovers' => ShiftClosure::where('status', 'pending_cashier')
-                ->whereHas('staff', function($q) {
-                    $q->where('role', 'reception');
-                })
-                ->count(),
-            'unverified_revenue' => DayService::where('payment_status', 'paid')
-                ->whereNull('accountant_verified_at')
-                ->count(),
+            'counter_waiting_count' => (clone $counterWaiting)->count(),
+            'counter_waiting_amount' => (clone $counterWaiting)->sum('amount_submitted_tzs'),
+            'reception_waiting_count' => (clone $receptionWaiting)->count(),
+            'reception_waiting_amount' => (clone $receptionWaiting)->sum('amount_submitted_tzs'),
+            'ready_count' => (clone $readyForAccountant)->count(),
+            'ready_amount' => (clone $readyForAccountant)->sum('amount_submitted_tzs'),
         ];
 
-        // Recent Restaurant Handovers
-        $recentRestaurantHandovers = ShiftClosure::with('staff')
-            ->whereIn('status', ['pending_cashier', 'received'])
-            ->whereHas('staff', function($q) {
-                $q->where('role', 'LIKE', '%bar%')->orWhere('role', 'LIKE', '%counter%');
-            })
+        $recentRestaurantHandovers = $this->shiftsFrom('counter')
+            ->with('staff')
+            ->where('status', 'pending_cashier')
             ->orderByDesc('closed_at')
-            ->limit(5)
+            ->limit(8)
             ->get();
 
-        // Recent Reception Handovers
-        $recentReceptionHandovers = ShiftClosure::with('staff')
-            ->whereIn('status', ['pending_cashier', 'received'])
-            ->whereHas('staff', function($q) {
-                $q->where('role', 'reception');
-            })
+        $recentReceptionHandovers = $this->shiftsFrom('reception')
+            ->with('staff')
+            ->where('status', 'pending_cashier')
             ->orderByDesc('closed_at')
-            ->limit(5)
+            ->limit(8)
             ->get();
 
         return view('dashboard.cashier.dashboard', [
@@ -94,12 +70,14 @@ class CashierController extends Controller
                 $q->where('role', 'reception');
             });
         } else {
-            $query->whereHas('staff', function($q) {
-                $q->where('role', 'LIKE', '%bar%')->orWhere('role', 'LIKE', '%counter%');
+            $query->whereHas('staff', function ($q) {
+                $q->where(function ($inner) {
+                    $inner->where('role', 'LIKE', '%bar%')->orWhere('role', 'LIKE', '%counter%');
+                });
             });
         }
         
-        $handovers = $query->orderByDesc('closed_at')->paginate(15);
+        $handovers = $query->orderByDesc('closed_at')->paginate(15)->appends($request->only('type'));
 
         $historyQuery = ShiftClosure::with(['staff', 'receiver'])
             ->where('status', 'received');
@@ -109,8 +87,10 @@ class CashierController extends Controller
                 $q->where('role', 'reception');
             });
         } else {
-            $historyQuery->whereHas('staff', function($q) {
-                $q->where('role', 'LIKE', '%bar%')->orWhere('role', 'LIKE', '%counter%');
+            $historyQuery->whereHas('staff', function ($q) {
+                $q->where(function ($inner) {
+                    $inner->where('role', 'LIKE', '%bar%')->orWhere('role', 'LIKE', '%counter%');
+                });
             });
         }
         
@@ -137,7 +117,7 @@ class CashierController extends Controller
             'notes' => $shiftClosure->notes . "\n[Received by Cashier at " . now() . "]"
         ]);
 
-        return redirect()->back()->with('success', 'Shift cash handover received and acknowledged successfully. You can now submit it to the Accountant.');
+        return redirect()->back()->with('success', 'Cash received. Next, send it to the Accountant.');
     }
 
     /**
@@ -146,7 +126,7 @@ class CashierController extends Controller
     public function submitShiftToAccountant(ShiftClosure $shiftClosure)
     {
         if ($shiftClosure->status !== 'received') {
-            return redirect()->back()->with('error', 'Only received shifts can be submitted to the Accountant.');
+            return redirect()->back()->with('error', 'Only cash you have already received can be sent to the Accountant.');
         }
 
         $shiftClosure->update([
@@ -154,7 +134,7 @@ class CashierController extends Controller
             'notes' => $shiftClosure->notes . "\n[Submitted to Accountant by Cashier at " . now() . "]"
         ]);
 
-        return redirect()->back()->with('success', 'Shift funds submitted to Accountant for final verification.');
+        return redirect()->back()->with('success', 'Sent to the Accountant. They will close the account.');
     }
 
     /**
@@ -378,110 +358,53 @@ class CashierController extends Controller
         $tab = $request->get('tab', 'pending');
 
         if ($tab === 'history') {
-            // 1. History: Restaurant/Counter Shifts (submitted and verified by accountant)
             $shifts = ShiftClosure::with('staff')
-                ->where('status', 'verified')
-                ->whereHas('staff', function($q) {
-                    $q->where('role', 'LIKE', '%bar%')->orWhere('role', 'LIKE', '%counter%');
-                })
+                ->whereIn('status', ['pending_accountant', 'finalized', 'verified'])
                 ->orderByDesc('updated_at')
-                ->limit(20)
+                ->limit(30)
                 ->get();
-
-            // 2. History: Reception Revenue (verified by accountant)
-            $dsQuery = DayService::select(
-                'service_date as date',
-                DB::raw('SUM(amount_paid) as ds_revenue')
-            )
-            ->where('payment_status', 'paid')
-            ->whereNotNull('accountant_verified_at')
-            ->groupBy('service_date');
-
-            $bkQuery = Booking::select(
-                DB::raw('DATE(paid_at) as date'),
-                DB::raw('SUM(amount_paid) as bk_revenue')
-            )
-            ->where('payment_status', 'paid')
-            ->whereNotNull('accountant_verified_at')
-            ->groupBy(DB::raw('DATE(paid_at)'));
-
-            $dsResults = $dsQuery->get()->keyBy('date');
-            $bkResults = $bkQuery->get()->keyBy('date');
-            
-            $allDates = $dsResults->keys()->merge($bkResults->keys())->unique()->sortDesc();
-
-            $receptionRevenue = $allDates->map(function($date) use ($dsResults, $bkResults) {
-                return (object) [
-                    'date' => $date,
-                    'ds_revenue' => $dsResults->get($date)->ds_revenue ?? 0,
-                    'bk_revenue' => $bkResults->get($date)->bk_revenue ?? 0,
-                    'total_revenue' => ($dsResults->get($date)->ds_revenue ?? 0) + ($bkResults->get($date)->bk_revenue ?? 0),
-                ];
-            });
         } else {
-            // 1. Pending: Restaurant/Counter Shifts (collected but not submitted to accountant)
             $shifts = ShiftClosure::with('staff')
                 ->where('status', 'received')
-                ->whereHas('staff', function($q) {
-                    $q->where('role', 'LIKE', '%bar%')->orWhere('role', 'LIKE', '%counter%');
-                })
                 ->orderByDesc('updated_at')
                 ->get();
-
-            // 2. Pending: Reception Revenue (Day Services + Bookings) collected but not verified by accountant
-            $dsQuery = DayService::select(
-                'service_date as date',
-                DB::raw('SUM(amount_paid) as ds_revenue')
-            )
-            ->where('payment_status', 'paid')
-            ->whereNotNull('cashier_collected_at')
-            ->whereNull('accountant_verified_at')
-            ->groupBy('service_date');
-
-            $bkQuery = Booking::select(
-                DB::raw('DATE(paid_at) as date'),
-                DB::raw('SUM(amount_paid) as bk_revenue')
-            )
-            ->where('payment_status', 'paid')
-            ->whereNotNull('cashier_collected_at')
-            ->whereNull('accountant_verified_at')
-            ->groupBy(DB::raw('DATE(paid_at)'));
-
-            $dsResults = $dsQuery->get()->keyBy('date');
-            $bkResults = $bkQuery->get()->keyBy('date');
-            
-            $allDates = $dsResults->keys()->merge($bkResults->keys())->unique()->sortDesc();
-
-            $receptionRevenue = $allDates->map(function($date) use ($dsResults, $bkResults) {
-                return (object) [
-                    'date' => $date,
-                    'ds_revenue' => $dsResults->get($date)->ds_revenue ?? 0,
-                    'bk_revenue' => $bkResults->get($date)->bk_revenue ?? 0,
-                    'total_revenue' => ($dsResults->get($date)->ds_revenue ?? 0) + ($bkResults->get($date)->bk_revenue ?? 0),
-                ];
-            });
         }
 
-        // Stats for Widgets (Always show pending for quick oversight)
-        $pendingShifts = ShiftClosure::where('status', 'received')->sum('amount_submitted_tzs');
-        $dsPending = DayService::where('payment_status', 'paid')->whereNotNull('cashier_collected_at')->whereNull('accountant_verified_at')->sum('amount_paid');
-        $bkPending = Booking::where('payment_status', 'paid')->whereNotNull('cashier_collected_at')->whereNull('accountant_verified_at')->sum('amount_paid');
-
+        $ready = ShiftClosure::where('status', 'received');
         $stats = [
-            'total_shifts_cash' => $pendingShifts,
-            'total_reception_cash' => $dsPending + $bkPending,
-            'pending_shifts_count' => ShiftClosure::where('status', 'received')->count(),
-            'pending_reception_days' => $receptionRevenue->count(), // This count might vary if tab is history, but widgets should focus on pending
+            'ready_count' => (clone $ready)->count(),
+            'ready_amount' => (clone $ready)->sum('amount_submitted_tzs'),
+            'counter_amount' => (clone $ready)->whereHas('staff', function ($q) {
+                $q->where(function ($inner) {
+                    $inner->where('role', 'like', '%bar%')->orWhere('role', 'like', '%counter%');
+                });
+            })->sum('amount_submitted_tzs'),
+            'reception_amount' => (clone $ready)->whereHas('staff', fn ($q) => $q->where('role', 'reception'))->sum('amount_submitted_tzs'),
         ];
 
         return view('dashboard.cashier.accountant-handovers', [
             'shifts' => $shifts,
-            'receptionRevenue' => $receptionRevenue,
             'stats' => $stats,
             'tab' => $tab,
             'role' => 'cashier',
             'userName' => Auth::guard('staff')->user()->name ?? 'Cashier',
             'userRole' => 'Cashier',
         ]);
+    }
+
+    private function shiftsFrom(string $source)
+    {
+        $query = ShiftClosure::query();
+
+        if ($source === 'reception') {
+            return $query->whereHas('staff', fn ($q) => $q->where('role', 'reception'));
+        }
+
+        return $query->whereHas('staff', function ($q) {
+            $q->where(function ($inner) {
+                $inner->where('role', 'like', '%bar%')
+                    ->orWhere('role', 'like', '%counter%');
+            });
+        });
     }
 }

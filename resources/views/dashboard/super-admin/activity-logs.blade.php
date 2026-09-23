@@ -3,13 +3,13 @@
 @section('content')
 <div class="app-title">
   <div>
-    <h1><i class="fa fa-history"></i> Activity Logs</h1>
-    <p>Track all user activities in the system</p>
+    <h1><i class="fa fa-history"></i> {{ __('Activity Logs') }}</h1>
+    <p>{{ __('Track all user activities in the system') }}</p>
   </div>
   <ul class="app-breadcrumb breadcrumb">
     <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
-    <li class="breadcrumb-item"><a href="{{ route('super_admin.dashboard') }}">Dashboard</a></li>
-    <li class="breadcrumb-item"><a href="#">Activity Logs</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('super_admin.dashboard') }}">{{ __('Dashboard') }}</a></li>
+    <li class="breadcrumb-item"><a href="#">{{ __('Activity Logs') }}</a></li>
   </ul>
 </div>
 
@@ -21,9 +21,9 @@
         <div class="row">
           <div class="col-md-3">
             <div class="form-group">
-              <label for="filter_user">User</label>
+              <label for="filter_user">{{ __('User') }}</label>
               <select id="filter_user" class="form-control" onchange="filterActivityLogs()">
-                <option value="">All Users</option>
+                <option value="">{{ __('All Users') }}</option>
                 @foreach($users as $user)
                 <option value="{{ $user['id'] }}">
                   {{ $user['name'] }} ({{ $user['email'] }})
@@ -34,9 +34,9 @@
           </div>
           <div class="col-md-2">
             <div class="form-group">
-              <label for="filter_action">Action</label>
+              <label for="filter_action">{{ __('Action') }}</label>
               <select id="filter_action" class="form-control" onchange="filterActivityLogs()">
-                <option value="">All Actions</option>
+                <option value="">{{ __('All Actions') }}</option>
                 @foreach($actions as $action)
                 <option value="{{ $action }}">
                   {{ ucfirst($action) }}
@@ -47,9 +47,9 @@
           </div>
           <div class="col-md-2">
             <div class="form-group">
-              <label for="filter_model">Model Type</label>
+              <label for="filter_model">{{ __('Model Type') }}</label>
               <select id="filter_model" class="form-control" onchange="filterActivityLogs()">
-                <option value="">All Types</option>
+                <option value="">{{ __('All Types') }}</option>
                 @foreach($modelTypes as $type)
                 <option value="{{ $type }}">
                   {{ class_basename($type) }}
@@ -60,13 +60,13 @@
           </div>
           <div class="col-md-2">
             <div class="form-group">
-              <label for="filter_date_from">Date From</label>
+              <label for="filter_date_from">{{ __('Date From') }}</label>
               <input type="date" id="filter_date_from" class="form-control" onchange="filterActivityLogs()">
             </div>
           </div>
           <div class="col-md-2">
             <div class="form-group">
-              <label for="filter_date_to">Date To</label>
+              <label for="filter_date_to">{{ __('Date To') }}</label>
               <input type="date" id="filter_date_to" class="form-control" onchange="filterActivityLogs()">
             </div>
           </div>
@@ -74,17 +74,17 @@
             <div class="form-group">
               <label>&nbsp;</label>
               <button type="button" class="btn btn-secondary btn-block" onclick="resetActivityFilters()">
-                <i class="fa fa-refresh"></i> Reset
+                <i class="fa fa-refresh"></i> {{ __('Reset') }}
               </button>
             </div>
           </div>
         </div>
         <div class="mt-2">
           <a href="{{ route('super_admin.activity-logs.export', request()->query()) }}" class="btn btn-success">
-            <i class="fa fa-download"></i> Export Logs (CSV)
+            <i class="fa fa-download"></i> {{ __('Export Logs (CSV)') }}
           </a>
           <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#clearLogsModal">
-            <i class="fa fa-trash"></i> Clear Old Logs
+            <i class="fa fa-trash"></i> {{ __('Clear Old Logs') }}
           </button>
         </div>
       </div>
@@ -97,20 +97,20 @@
   <div class="col-md-12">
     <div class="tile">
       <div class="tile-title-w-btn">
-        <h3 class="title"><i class="fa fa-history"></i> Activity Logs (<span id="logCount">{{ $logs->count() }}</span> records)</h3>
+        <h3 class="title"><i class="fa fa-history"></i> {{ __('Activity Logs') }} (<span id="logCount">{{ $logs->count() }}</span> {{ __('records') }})</h3>
       </div>
       <div class="tile-body">
         <div class="table-responsive">
           <table class="table table-hover table-bordered">
             <thead>
               <tr>
-                <th>Time</th>
-                <th>User</th>
-                <th>Action</th>
-                <th>Model</th>
-                <th>Description</th>
-                <th>IP Address</th>
-                <th>Details</th>
+                <th>{{ __('Time') }}</th>
+                <th>{{ __('User') }}</th>
+                <th>{{ __('Action') }}</th>
+                <th>{{ __('Model') }}</th>
+                <th>{{ __('Description') }}</th>
+                <th>{{ __('IP Address') }}</th>
+                <th>{{ __('Details') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -152,7 +152,7 @@
                     <strong>{{ $logUser->name }}</strong><br>
                     <small class="text-muted">{{ $logUser->email }}</small>
                   @else
-                    <span class="text-muted">System</span>
+                    <span class="text-muted">{{ __('System') }}</span>
                   @endif
                 </td>
                 <td>
@@ -174,20 +174,20 @@
                 <td>
                   @if($log->ip_address && $log->ip_address !== '127.0.0.1' && $log->ip_address !== '::1')
                   <small>{{ $log->ip_address }}</small><br>
-                  <button type="button" class="btn btn-xs btn-primary mt-1" 
+                  <button type="button" class="btn btn-xs btn-primary mt-1"
                           onclick="lookupIpAddress('{{ $log->ip_address }}', {{ $log->id }})">
-                    <i class="fa fa-map-marker"></i> Location
+                    <i class="fa fa-map-marker"></i> {{ __('Location') }}
                   </button>
                   @else
-                  <small>{{ $log->ip_address ?? 'N/A' }}</small>
+                  <small>{{ $log->ip_address ?? __('N/A') }}</small>
                   @endif
                 </td>
                 <td>
                   @if($log->old_values || $log->new_values)
-                  <button type="button" class="btn btn-sm btn-info" 
-                          data-toggle="modal" 
+                  <button type="button" class="btn btn-sm btn-info"
+                          data-toggle="modal"
                           data-target="#logDetailsModal{{ $log->id }}">
-                    <i class="fa fa-eye"></i> View
+                    <i class="fa fa-eye"></i> {{ __('View') }}
                   </button>
                   @else
                   <span class="text-muted">-</span>

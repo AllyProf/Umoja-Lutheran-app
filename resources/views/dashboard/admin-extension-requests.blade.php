@@ -182,11 +182,9 @@
                 </td>
                 <td>
                   @if($additionalCost > 0)
-                    <strong class="text-success">+${{ number_format($additionalCost, 2) }}</strong><br>
-                    <small>+{{ number_format($additionalCost * $exchangeRate, 2) }} TZS</small>
+                    <strong class="text-success">+TSh {{ number_format($additionalCost, 0) }}</strong>
                   @elseif($additionalCost < 0)
-                    <strong class="text-warning">${{ number_format($additionalCost, 2) }}</strong><br>
-                    <small>{{ number_format($additionalCost * $exchangeRate, 2) }} TZS</small>
+                    <strong class="text-warning">TSh {{ number_format($additionalCost, 0) }}</strong>
                     <br><small class="text-muted">(Refund)</small>
                   @else
                     <span class="text-muted">-</span>

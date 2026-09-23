@@ -112,7 +112,7 @@
             <i class="icon fa fa-money fa-3x"></i>
             <div class="info">
               <h4 style="color: #000;">Total Revenue</h4>
-              <p><b style="color: #000;">{{ number_format($statistics['total_revenue'] ?? 0, 2) }} TZS</b></p>
+              <p><b style="color: #000;">{{ number_format($statistics['total_revenue'] ?? 0, 0) }} TSh</b></p>
             </div>
           </div>
         </div>
@@ -122,7 +122,7 @@
       <div class="row mb-3">
         <div class="col-md-12">
           <div class="alert alert-warning">
-            <i class="fa fa-exclamation-triangle"></i> <strong>Pending Amount:</strong> {{ number_format($statistics['pending_amount'] ?? 0, 2) }} TZS ({{ $statistics['pending_services'] ?? 0 }} service(s) awaiting payment)
+            <i class="fa fa-exclamation-triangle"></i> <strong>Pending Amount:</strong> {{ number_format($statistics['pending_amount'] ?? 0, 0) }} TSh ({{ $statistics['pending_services'] ?? 0 }} service(s) awaiting payment)
           </div>
         </div>
       </div>
@@ -235,22 +235,15 @@
               </td>
               <td>{{ $service->number_of_people }}</td>
               <td>
-                @if($service->guest_type === 'tanzanian')
-                  {{ number_format($service->amount, 2) }} TZS
-                @else
-                  ${{ number_format($service->amount, 2) }}
-                  @if($service->exchange_rate)
-                    <br><small class="text-muted">≈ {{ number_format($service->amount * $service->exchange_rate, 2) }} TZS</small>
-                  @endif
-                @endif
+                TSh {{ number_format($service->amount, 0) }}
                 
                 @if($service->discount_amount > 0)
                   <div class="small text-danger mt-1">
                     <span style="text-decoration: line-through; color: #999;">
-                      {{ number_format($service->amount + $service->discount_amount) }}
+                      {{ number_format($service->amount + $service->discount_amount, 0) }}
                     </span>
                     <br>
-                    -{{ number_format($service->discount_amount) }} (Disc.)
+                    -{{ number_format($service->discount_amount, 0) }} (Disc.)
                   </div>
                 @endif
               </td>
@@ -338,7 +331,7 @@
                   @endif
 
                   @if($hasUnpaidWeb)
-                    <button class="btn btn-sm btn-success" onclick="openSettleUsageModal({{ $service->id }}, '{{ addslashes($service->guest_name ?? '') }}', {{ $service->serviceRequests->where('payment_status', 'pending')->sum('total_price_tsh') }})" title="Settle Usage: {{ number_format($service->serviceRequests->where('payment_status', 'pending')->sum('total_price_tsh')) }} TZS">
+                    <button class="btn btn-sm btn-success" onclick="openSettleUsageModal({{ $service->id }}, '{{ addslashes($service->guest_name ?? '') }}', {{ $service->serviceRequests->where('payment_status', 'pending')->sum('total_price_tsh') }})" title="Settle Usage: {{ number_format($service->serviceRequests->where('payment_status', 'pending')->sum('total_price_tsh'), 0) }} TSh">
                       <i class="fa fa-cutlery"></i>
                     </button>
                   @endif
@@ -404,7 +397,7 @@
             <label for="payment_amount">Amount <span class="text-danger">*</span></label>
             <div class="input-group">
               <div class="input-group-prepend">
-                <span class="input-group-text" id="payment_currency_symbol">TZS</span>
+                <span class="input-group-text" id="payment_currency_symbol">TSh</span>
               </div>
               <input class="form-control" type="number" id="payment_amount" name="amount" step="0.01" min="0" required>
             </div>
@@ -441,7 +434,7 @@
             <label for="payment_amount_paid">Amount Paid <span class="text-danger">*</span></label>
             <div class="input-group">
               <div class="input-group-prepend">
-                <span class="input-group-text" id="payment_paid_currency_symbol">TZS</span>
+                <span class="input-group-text" id="payment_paid_currency_symbol">TSh</span>
               </div>
               <input class="form-control" type="number" id="payment_amount_paid" name="amount_paid" step="0.01" min="0" required>
             </div>
@@ -495,7 +488,7 @@
                 <label for="additional_total_amount">Total Additional Amount <span class="text-danger">*</span></label>
                 <div class="input-group">
                   <div class="input-group-prepend">
-                    <span class="input-group-text" id="add_items_currency_symbol">TZS</span>
+                    <span class="input-group-text" id="add_items_currency_symbol">TSh</span>
                   </div>
                   <input class="form-control" type="number" id="additional_total_amount" name="additional_amount" 
                          step="0.01" min="0" required readonly>
@@ -547,7 +540,7 @@
                 <label for="add_items_amount_paid">Amount Paid <span class="text-danger">*</span></label>
                 <div class="input-group">
                   <div class="input-group-prepend">
-                    <span class="input-group-text" id="add_items_paid_currency_symbol">TZS</span>
+                    <span class="input-group-text" id="add_items_paid_currency_symbol">TSh</span>
                   </div>
                   <input class="form-control" type="number" id="add_items_amount_paid" name="additional_payment" 
                          step="0.01" min="0" required>
@@ -611,7 +604,7 @@
                 <label for="edit_total_amount"><strong>Total Amount <span class="text-danger">*</span></strong></label>
                 <div class="input-group">
                   <div class="input-group-prepend">
-                    <span class="input-group-text" id="edit_items_currency_symbol">TZS</span>
+                    <span class="input-group-text" id="edit_items_currency_symbol">TSh</span>
                   </div>
                   <input class="form-control" type="number" id="edit_total_amount" name="total_amount" 
                          step="0.01" min="0" required readonly>
@@ -664,7 +657,7 @@
                 <label for="edit_items_amount_paid">Amount Paid</label>
                 <div class="input-group">
                   <div class="input-group-prepend">
-                    <span class="input-group-text" id="edit_items_paid_currency_symbol">TZS</span>
+                    <span class="input-group-text" id="edit_items_paid_currency_symbol">TSh</span>
                   </div>
                   <input class="form-control" type="number" id="edit_items_amount_paid" name="amount_paid" 
                          step="0.01" min="0">
@@ -925,7 +918,7 @@ function viewService(serviceId) {
       if (service.package_items && typeof service.package_items === 'object') {
         for (const [key, price] of Object.entries(service.package_items)) {
           const label = itemLabels[key] || key.charAt(0).toUpperCase() + key.slice(1);
-          packageItemsHtml += `<li><i class="fa fa-gift mr-1 text-info" title="Package Item"></i> ${label}: ${service.guest_type === 'tanzanian' ? parseFloat(price).toFixed(2) + ' TZS' : '$' + parseFloat(price).toFixed(2)}</li>`;
+          packageItemsHtml += `<li><i class="fa fa-gift mr-1 text-info" title="Package Item"></i> ${label}: TSh ${Math.round(parseFloat(price)).toLocaleString()}</li>`;
         }
       }
 
@@ -936,7 +929,7 @@ function viewService(serviceId) {
                                ? req.service_specific_data.item_name 
                                : (req.service ? req.service.name : 'Consumption Item');
               const total = parseFloat(req.total_price_tsh).toLocaleString();
-              packageItemsHtml += `<li><i class="fa fa-beer mr-1 text-primary" title="Bar Usage"></i> ${itemName} (x${req.quantity}): ${total} TZS</li>`;
+              packageItemsHtml += `<li><i class="fa fa-beer mr-1 text-primary" title="Bar Usage"></i> ${itemName} (x${req.quantity}): TSh ${total}</li>`;
           });
       }
 
@@ -987,8 +980,8 @@ function viewService(serviceId) {
                     <th>Item</th>
                     <th>Detail</th>
                     <th>Qty</th>
-                    <th class="text-right">Price (TZS)</th>
-                    <th class="text-right">Total (TZS)</th>
+                    <th class="text-right">Price (TSh)</th>
+                    <th class="text-right">Total (TSh)</th>
                   </tr>
                 </thead>
                 <tbody id="barConsumptionBody">
@@ -997,15 +990,15 @@ function viewService(serviceId) {
                 <tfoot>
                   <tr>
                     <td colspan="4" class="text-right">Total Consumption:</td>
-                    <td class="text-right" id="barUsageTotal">0 TZS</td>
+                    <td class="text-right" id="barUsageTotal">0 TSh</td>
                   </tr>
                   <tr class="text-success">
                     <td colspan="4" class="text-right">Amount Paid:</td>
-                    <td class="text-right" id="barPaidTotal">0 TZS</td>
+                    <td class="text-right" id="barPaidTotal">0 TSh</td>
                   </tr>
                   <tr class="text-danger font-weight-bold" style="font-size: 1.1em; background: #fff5f5;">
                     <td colspan="4" class="text-right">AMOUNT UNPAID:</td>
-                    <td class="text-right" id="barUnpaidTotal">0 TZS</td>
+                    <td class="text-right" id="barUnpaidTotal">0 TSh</td>
                   </tr>
                 </tfoot>
               </table>
@@ -1025,12 +1018,12 @@ function viewService(serviceId) {
           <div class="col-md-12">
             <h5><i class="fa fa-dollar"></i> Payment Information (Registration)</h5>
             <table class="table table-sm table-bordered">
-              <tr><td><strong>Registration Amount:</strong></td><td>${service.guest_type === 'tanzanian' ? service.amount + ' TZS' : '$' + parseFloat(service.amount).toFixed(2) + (service.exchange_rate ? ' (≈ ' + (service.amount * service.exchange_rate).toFixed(2) + ' TZS)' : '')}</td></tr>
+              <tr><td><strong>Registration Amount:</strong></td><td>TSh ${Math.round(parseFloat(service.amount) || 0).toLocaleString()}</td></tr>
               <tr><td><strong>Payment Status:</strong></td><td><span class="badge badge-${service.payment_status === 'paid' ? 'success' : 'warning'}">${service.payment_status === 'paid' ? 'Paid' : 'Pending'}</span></td></tr>
               <tr><td><strong>Payment Method:</strong></td><td>${paymentMethodName}</td></tr>
               ${service.payment_provider ? `<tr><td><strong>Provider:</strong></td><td>${service.payment_provider}</td></tr>` : ''}
               ${service.payment_reference ? `<tr><td><strong>Reference:</strong></td><td>${service.payment_reference}</td></tr>` : ''}
-              ${service.amount_paid ? `<tr><td><strong>Amount Paid:</strong></td><td>${service.guest_type === 'tanzanian' ? service.amount_paid + ' TZS' : '$' + parseFloat(service.amount_paid).toFixed(2)}</td></tr>` : ''}
+              ${service.amount_paid ? `<tr><td><strong>Amount Paid:</strong></td><td>TSh ${Math.round(parseFloat(service.amount_paid) || 0).toLocaleString()}</td></tr>` : ''}
               ${service.paid_at ? `<tr><td><strong>Paid At:</strong></td><td>${new Date(service.paid_at).toLocaleString()}</td></tr>` : ''}
             </table>
           </div>
@@ -1071,7 +1064,7 @@ function viewService(serviceId) {
           });
           
           consumptionBody.innerHTML = consumptionHtml;
-          totalDisplay.innerText = totalUsage.toLocaleString() + ' TZS';
+          totalDisplay.innerText = totalUsage.toLocaleString() + ' TSh';
           
           // Set paid/unpaid totals
           let paidUsage = 0;
@@ -1085,8 +1078,8 @@ function viewService(serviceId) {
               }
           });
           
-          document.getElementById('barPaidTotal').innerText = paidUsage.toLocaleString() + ' TZS';
-          document.getElementById('barUnpaidTotal').innerText = unpaidUsage.toLocaleString() + ' TZS';
+          document.getElementById('barPaidTotal').innerText = paidUsage.toLocaleString() + ' TSh';
+          document.getElementById('barUnpaidTotal').innerText = unpaidUsage.toLocaleString() + ' TSh';
           
           // Show/hide settle button based on unpaid amount
           const settleButtonContainer = document.getElementById('settleButtonContainer');
@@ -1105,9 +1098,9 @@ function viewService(serviceId) {
           noUsageMsg.style.display = 'none';
       } else {
           consumptionBody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">No usage recorded.</td></tr>';
-          totalDisplay.innerText = '0 TZS';
-          document.getElementById('barPaidTotal').innerText = '0 TZS';
-          document.getElementById('barUnpaidTotal').innerText = '0 TZS';
+          totalDisplay.innerText = '0 TSh';
+          document.getElementById('barPaidTotal').innerText = '0 TSh';
+          document.getElementById('barUnpaidTotal').innerText = '0 TSh';
           document.getElementById('settleButtonContainer').style.display = 'none';
           
           if (isCeremonyService) {
@@ -1166,7 +1159,7 @@ function processPayment(serviceId) {
       
       document.getElementById('payment_amount').value = amountToPay.toFixed(2);
       
-      const currencySymbol = service.guest_type === 'tanzanian' ? 'TZS' : 'USD';
+      const currencySymbol = 'TSh';
       document.getElementById('payment_currency_symbol').textContent = currencySymbol;
       document.getElementById('payment_paid_currency_symbol').textContent = currencySymbol;
     }
@@ -1288,8 +1281,8 @@ function openAddItemsModal(serviceId) {
   // Get service data
   const service = window.currentServiceData;
   if (service) {
-    // Set currency symbol based on guest type
-    const currencySymbol = service.guest_type === 'tanzanian' ? 'TZS' : 'USD';
+    // Set currency symbol to TSh
+    const currencySymbol = 'TSh';
     document.getElementById('add_items_currency_symbol').textContent = currencySymbol;
     document.getElementById('add_items_paid_currency_symbol').textContent = currencySymbol;
   }
@@ -1318,7 +1311,7 @@ function addItemRow() {
           <label for="add_item_price_${additionalItemCounter}">Price <span class="text-danger">*</span></label>
           <div class="input-group">
             <div class="input-group-prepend">
-              <span class="input-group-text">TZS</span>
+              <span class="input-group-text">TSh</span>
             </div>
             <input class="form-control additional-item-price" type="number" 
                    id="add_item_price_${additionalItemCounter}" 
@@ -1591,8 +1584,8 @@ function editServiceItems(serviceId) {
     if (data.success) {
       const service = data.day_service;
       
-      // Set currency symbol based on guest type
-      const currencySymbol = service.guest_type === 'tanzanian' ? 'TZS' : 'USD';
+      // Set currency symbol to TSh
+      const currencySymbol = 'TSh';
       document.getElementById('edit_items_currency_symbol').textContent = currencySymbol;
       document.getElementById('edit_items_paid_currency_symbol').textContent = currencySymbol;
       
@@ -1719,8 +1712,7 @@ function editServiceItems(serviceId) {
 function addEditItemRow() {
   editItemCounter++;
   const container = document.getElementById('editAdditionalItemsContainer');
-  const service = window.currentEditServiceData;
-  const currencySymbol = service && service.guest_type === 'tanzanian' ? 'TZS' : 'USD';
+  const currencySymbol = 'TSh';
   
   const itemHtml = `
     <div class="row additional-item-row mb-2" id="edit_item_row_${editItemCounter}">
@@ -1960,7 +1952,7 @@ function submitEditItems() {
 function openSettleUsageModal(id, name, amount) {
     document.getElementById('managerCeremonyDayServiceId').value = id;
     document.getElementById('managerCeremonyGuestName').innerText = name;
-    document.getElementById('managerCeremonyUnpaidAmount').innerText = amount.toLocaleString() + ' TZS';
+    document.getElementById('managerCeremonyUnpaidAmount').innerText = amount.toLocaleString() + ' TSh';
     
     // Reset fields
     document.getElementById('managerCeremonyPaymentMethod').value = 'cash';
@@ -1979,7 +1971,7 @@ function openManagerCeremonyPaymentModal() {
     const context = window.currentCeremonyContext;
     document.getElementById('managerCeremonyDayServiceId').value = context.dayServiceId;
     document.getElementById('managerCeremonyGuestName').innerText = context.guestName;
-    document.getElementById('managerCeremonyUnpaidAmount').innerText = context.unpaidAmount.toLocaleString() + ' TZS';
+    document.getElementById('managerCeremonyUnpaidAmount').innerText = context.unpaidAmount.toLocaleString() + ' TSh';
     document.getElementById('managerCeremonyPaymentMethod').value = 'cash';
     document.getElementById('managerCeremonyPaymentReference').value = '';
     toggleManagerCeremonyRefField();

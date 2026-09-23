@@ -3,7 +3,7 @@
 @section('content')
     <div class="app-title">
         <div>
-            <h1><i class="fa fa-money-bill"></i> Daily Financial Report</h1>
+            <h1><i class="fa fa-money"></i> Daily Financial Report</h1>
             <p>Unified reception income summary for handover</p>
         </div>
         <ul class="app-breadcrumb breadcrumb">
@@ -95,25 +95,25 @@
                 <div class="col-md-3">
                     <div class="summary-card bg-cash">
                         <h6>CASH IN HAND</h6>
-                        <h3>{{ number_format($summary['cash'] ?? 0, 0) }} TZS</h3>
+                        <h3>{{ number_format($summary['cash'] ?? 0, 0) }} TSh</h3>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="summary-card bg-mobile">
                         <h6>MOBILE MONEY</h6>
-                        <h3>{{ number_format($summary['mpesa'] ?? 0, 0) }} TZS</h3>
+                        <h3>{{ number_format($summary['mpesa'] ?? 0, 0) }} TSh</h3>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="summary-card bg-bank">
                         <h6>BANK / CARD</h6>
-                        <h3>{{ number_format(($summary['bank'] ?? 0) + ($summary['card'] ?? 0), 0) }} TZS</h3>
+                        <h3>{{ number_format(($summary['bank'] ?? 0) + ($summary['card'] ?? 0), 0) }} TSh</h3>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="summary-card bg-total">
                         <h6>TOTAL REVENUE</h6>
-                        <h3>{{ number_format(array_sum($summary), 0) }} TZS</h3>
+                        <h3>{{ number_format(array_sum($summary), 0) }} TSh</h3>
                     </div>
                 </div>
             </div>
@@ -128,8 +128,7 @@
                             <th>Guest</th>
                             <th>Room</th>
                             <th>Method</th>
-                            <th class="text-right">Amount (USD)</th>
-                            <th class="text-right">Amount (TZS)</th>
+                            <th class="text-right">Amount (TSh)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -139,21 +138,20 @@
                                 <td>{{ $payment->guest_name }}</td>
                                 <td>{{ $payment->room->room_number ?? 'N/A' }}</td>
                                 <td><span class="badge badge-info">{{ strtoupper($payment->payment_method) }}</span></td>
-                                <td class="text-right">${{ number_format($payment->amount_paid, 2) }}</td>
-                                <td class="text-right">{{ number_format($payment->amount_paid * $exchangeRate, 0) }}</td>
+                                <td class="text-right">{{ number_format($payment->amount_paid, 0) }} TSh</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center">No record found</td>
+                                <td colspan="5" class="text-center">No record found</td>
                             </tr>
                         @endforelse
                     </tbody>
                     @if($bookingPayments->count() > 0)
                         <tfoot>
                             <tr class="font-weight-bold">
-                                <td colspan="5" class="text-right">Subtotal Booking:</td>
+                                <td colspan="4" class="text-right">Subtotal Booking:</td>
                                 <td class="text-right text-primary">
-                                    {{ number_format($bookingPayments->sum('amount_paid') * $exchangeRate, 0) }} TZS
+                                    {{ number_format($bookingPayments->sum('amount_paid'), 0) }} TSh
                                 </td>
                             </tr>
                         </tfoot>
@@ -170,7 +168,7 @@
                             <th>Service</th>
                             <th>Reference</th>
                             <th>Method</th>
-                            <th class="text-right">Amount (TZS)</th>
+                            <th class="text-right">Amount (TSh)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -195,7 +193,7 @@
                             <tr class="font-weight-bold">
                                 <td colspan="3" class="text-right">Subtotal Services:</td>
                                 <td class="text-right text-primary">
-                                    {{ number_format($servicePayments->sum('total_price_tsh'), 0) }} TZS
+                                    {{ number_format($servicePayments->sum('total_price_tsh'), 0) }} TSh
                                 </td>
                             </tr>
                         </tfoot>
@@ -213,7 +211,7 @@
                             <th>Reference</th>
                             <th>Guest</th>
                             <th>Method</th>
-                            <th class="text-right">Amount (TZS)</th>
+                            <th class="text-right">Amount (TSh)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -223,7 +221,7 @@
                                 <td>{{ $payment->service_reference }}</td>
                                 <td>{{ $payment->guest_name }}</td>
                                 <td><span class="badge badge-info">{{ strtoupper($payment->payment_method) }}</span></td>
-                                <td class="text-right">{{ number_format($payment->amount_paid, 0) }} TZS</td>
+                                <td class="text-right">{{ number_format($payment->amount_paid, 0) }} TSh</td>
                             </tr>
                         @empty
                             <tr>
@@ -236,7 +234,7 @@
                             <tr class="font-weight-bold">
                                 <td colspan="4" class="text-right">Subtotal Day Services:</td>
                                 <td class="text-right text-primary">
-                                    {{ number_format($dayServicePayments->sum('amount_paid'), 0) }} TZS
+                                    {{ number_format($dayServicePayments->sum('amount_paid'), 0) }} TSh
                                 </td>
                             </tr>
                         </tfoot>
@@ -254,14 +252,14 @@
                                 @if($total > 0)
                                     <tr>
                                         <th class="text-right">{{ strtoupper($method) }}:</th>
-                                        <td class="text-right" width="150">{{ number_format($total, 0) }} TZS</td>
+                                        <td class="text-right" width="150">{{ number_format($total, 0) }} TSh</td>
                                     </tr>
                                 @endif
                             @endforeach
                             <tr class="table-dark">
                                 <th class="text-right">GRAND TOTAL:</th>
                                 <th class="text-right" style="font-size: 1.2rem;">
-                                    {{ number_format(array_sum($summary), 0) }} TZS
+                                    {{ number_format(array_sum($summary), 0) }} TSh
                                 </th>
                             </tr>
                         </table>

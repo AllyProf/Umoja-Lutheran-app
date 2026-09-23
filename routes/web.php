@@ -507,6 +507,10 @@ Route::prefix('super-admin')->group(function () {
         Route::get('/activity-logs', [\App\Http\Controllers\SuperAdminController::class, 'activityLogs'])->name('super_admin.activity-logs');
         Route::get('/activity-logs/export', [\App\Http\Controllers\SuperAdminController::class, 'exportActivityLogs'])->name('super_admin.activity-logs.export');
 
+        // SMS Usage
+        Route::get('/sms-usage', [\App\Http\Controllers\SuperAdminController::class, 'smsUsage'])->name('super_admin.sms-usage');
+        Route::post('/sms-usage/settings', [\App\Http\Controllers\SuperAdminController::class, 'updateSmsSettings'])->name('super_admin.sms-usage.settings');
+
         // System Logs
         Route::get('/system-logs', [\App\Http\Controllers\SuperAdminController::class, 'systemLogs'])->name('super_admin.system-logs');
 
@@ -766,6 +770,9 @@ Route::prefix('bar-keeper')->group(function () {
         Route::get('/shift-summary', [\App\Http\Controllers\BarKeeperController::class, 'getShiftSummary'])->name('bar-keeper.shift-summary');
         Route::post('/open-shift', [\App\Http\Controllers\BarKeeperController::class, 'openShift'])->name('bar-keeper.open-shift');
         Route::post('/close-shift', [\App\Http\Controllers\BarKeeperController::class, 'closeShift'])->name('bar-keeper.close-shift');
+        Route::post('/shifts/{shift}/force-close', [\App\Http\Controllers\BarKeeperController::class, 'forceCloseShift'])
+            ->middleware('role:manager,super_admin')
+            ->name('bar-keeper.shifts.force-close');
 
         // Bar Keeper Actions (Require Active Shift)
         Route::middleware(['active.shift'])->group(function () {

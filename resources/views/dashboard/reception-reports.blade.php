@@ -484,8 +484,8 @@
             <div class="receipt-info-row">
               <span class="receipt-info-label">Total Revenue:</span>
               <span class="receipt-info-value"
-                style="color: #e07632; font-size: 16px;"><strong>{{ number_format(($payments['total_revenue'] ?? 0) * $exchangeRate, 0) }}
-                  TZS</strong></span>
+                style="color: #e07632; font-size: 16px;"><strong>{{ number_format($payments['total_revenue'] ?? 0, 0) }}
+                  TSh</strong></span>
             </div>
 
           </div>
@@ -527,7 +527,7 @@
               <td><strong>Service Revenue</strong></td>
               <td style="text-align: right;"><strong
                   style="color: #e07632; font-size: 14px;">{{ number_format($serviceRequests['revenue'] ?? 0, 0) }}
-                  TZS</strong></td>
+                  TSh</strong></td>
             </tr>
           </tbody>
         </table>
@@ -561,7 +561,7 @@
                   <td>{{ $booking->check_in->format('M d, Y') }}</td>
                   <td>{{ $booking->check_out->format('M d, Y') }}</td>
                   <td style="text-align: right;">
-                    <strong>{{ number_format($booking->total_price * $exchangeRate, 0) }} TZS</strong><br>
+                    <strong>{{ number_format($booking->total_price, 0) }} TSh</strong><br>
 
                   </td>
                   <td>
@@ -624,7 +624,7 @@
           <i class="icon fa fa-money fa-2x"></i>
           <div class="info">
             <h4>Revenue</h4>
-            <p><b>0 TZS</b></p>
+            <p><b>0 TSh</b></p>
           </div>
         </div>
       </div>

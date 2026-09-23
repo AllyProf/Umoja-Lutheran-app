@@ -17,7 +17,7 @@ Great news! Your payment has been successfully processed and your booking is now
 
 **Number of Nights:** {{ \Carbon\Carbon::parse($booking->check_in)->diffInDays($booking->check_out) }} night(s)
 
-**Total Paid:** ${{ number_format($booking->amount_paid ?? $booking->total_price, 2) }}
+**Total Paid:** TSh {{ number_format($booking->amount_paid ?? $booking->total_price, 0) }}
 
 **Payment Method:** {{ ucfirst($booking->payment_method ?? 'PayPal') }}
 

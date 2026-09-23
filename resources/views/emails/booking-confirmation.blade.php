@@ -17,17 +17,17 @@ Thank you for your booking at Umoja Lutheran Hostel! We're excited to host you.
 
 **Number of Nights:** {{ \Carbon\Carbon::parse($booking->check_in)->diffInDays($booking->check_out) }} night(s)
 
-**Total Amount:** ${{ number_format($booking->total_price, 2) }}
+**Total Amount:** TSh {{ number_format($booking->total_price, 0) }}
 
 @if(isset($paymentPercentage) && $paymentPercentage)
 **Payment Status:** {{ $paymentPercentage }}% Paid
-**Amount Paid:** ${{ number_format($booking->amount_paid ?? ($booking->total_price * $paymentPercentage / 100), 2) }}
-**Remaining Amount:** ${{ number_format($remainingAmount ?? ($booking->total_price - ($booking->amount_paid ?? 0)), 2) }}
+**Amount Paid:** TSh {{ number_format($booking->amount_paid ?? ($booking->total_price * $paymentPercentage / 100), 0) }}
+**Remaining Amount:** TSh {{ number_format($remainingAmount ?? ($booking->total_price - ($booking->amount_paid ?? 0)), 0) }}
 @else
 **Payment Status:** {{ $booking->payment_status === 'paid' ? 'Paid' : ($booking->payment_status === 'partial' ? 'Partially Paid' : 'Pending Payment') }}
 @if($booking->amount_paid)
-**Amount Paid:** ${{ number_format($booking->amount_paid, 2) }}
-**Remaining Amount:** ${{ number_format($booking->total_price - $booking->amount_paid, 2) }}
+**Amount Paid:** TSh {{ number_format($booking->amount_paid, 0) }}
+**Remaining Amount:** TSh {{ number_format($booking->total_price - $booking->amount_paid, 0) }}
 @endif
 @endif
 

@@ -248,24 +248,20 @@
             </div>
             
             <div class="section">
-                <h2 class="section-title"><i class="fas fa-dollar-sign"></i> Payment Information</h2>
+                <h2 class="section-title"><i class="fas fa-money-bill-wave"></i> Payment Information</h2>
                 <div class="info-grid">
                     <div class="info-item">
                         <span class="info-label">Total Price</span>
-                        <span class="info-value">${{ number_format($booking->total_price, 2) }} USD</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Total Price (TZS)</span>
-                        <span class="info-value">{{ number_format($booking->total_price * $exchangeRate, 2) }} TZS</span>
+                        <span class="info-value">TSh {{ number_format($booking->total_price, 0) }}</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Amount Paid</span>
-                        <span class="info-value">${{ number_format($booking->amount_paid ?? 0, 2) }} USD</span>
+                        <span class="info-value">TSh {{ number_format($booking->amount_paid ?? 0, 0) }}</span>
                     </div>
                     @if($booking->payment_status === 'partial')
                         <div class="info-item">
                             <span class="info-label">Remaining Amount</span>
-                            <span class="info-value" style="color: #dc3545; font-weight: 600;">${{ number_format($booking->total_price - ($booking->amount_paid ?? 0), 2) }} USD</span>
+                            <span class="info-value" style="color: #dc3545; font-weight: 600;">TSh {{ number_format($booking->total_price - ($booking->amount_paid ?? 0), 0) }}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Payment Percentage</span>

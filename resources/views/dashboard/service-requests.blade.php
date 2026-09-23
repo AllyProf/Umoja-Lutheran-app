@@ -444,7 +444,7 @@
       }
 
       // Pricing
-      const exchangeRate = {{ $exchangeRate ?? 2500 }};
+      const exchangeRate = {{ $exchangeRate ?? 1 }};
       html += `
           <hr>
           <h6 style="color: #e07632; border-bottom: 2px solid #e07632; padding-bottom: 5px; margin-bottom: 15px;">Pricing</h6>

@@ -141,10 +141,10 @@
                                     <label for="amount">Amount <span class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <div class="input-group-prepend">
-                                            <span class="input-group-text" id="currency_symbol">TZS</span>
+                                            <span class="input-group-text" id="currency_symbol">TSh</span>
                                         </div>
                                         <input class="form-control" type="number" step="0.01" id="amount" name="amount"
-                                            value="{{ number_format($parkingService->price_tanzanian, 2, '.', '') }}"
+                                            value="{{ number_format($parkingService->price_tanzanian, 0, '.', '') }}"
                                             min="0" required>
                                     </div>
                                     <div class="form-check mt-2">
@@ -158,13 +158,8 @@
                                     <small class="form-text text-info">
                                         <i class="fa fa-info-circle"></i> Recommended:
                                         <span
-                                            id="recommended_amount_tzs">{{ number_format($parkingService->price_tanzanian, 2) }}
-                                            TZS</span>
-                                        @if($parkingService->price_international)
-                                            / <span
-                                                id="recommended_amount_usd">${{ number_format($parkingService->price_international, 2) }}
-                                                USD</span>
-                                        @endif
+                                            id="recommended_amount_tzs">{{ number_format($parkingService->price_tanzanian, 0) }}
+                                            TSh</span>
                                         (per vehicle)
                                     </small>
                                 </div>
@@ -214,11 +209,11 @@
                                         <label for="amount_paid">Amount Paid <span class="text-danger">*</span></label>
                                         <div class="input-group">
                                             <div class="input-group-prepend">
-                                                <span class="input-group-text" id="paid_currency_symbol">TZS</span>
+                                                <span class="input-group-text" id="paid_currency_symbol">TSh</span>
                                             </div>
                                             <input class="form-control" type="number" step="0.01" id="amount_paid"
                                                 name="amount_paid"
-                                                value="{{ number_format($parkingService->price_tanzanian, 2, '.', '') }}" min="0">
+                                                value="{{ number_format($parkingService->price_tanzanian, 0, '.', '') }}" min="0">
                                         </div>
                                     </div>
                                 </div>
@@ -317,7 +312,7 @@
 
                 currentPrice = (priceTanzanian + priceNight) * diffDays;
                 document.getElementById('recommended_amount_tzs').innerText =
-                    new Intl.NumberFormat().format(priceTanzanian + priceNight) + ' TZS x ' + diffDays + ' Days';
+                    new Intl.NumberFormat().format(Math.round(priceTanzanian + priceNight)) + ' TSh x ' + diffDays + ' Days';
             } else {
                 // Priority 2: single-day span
                 const timeToMins = (t) => {
@@ -360,18 +355,18 @@
                     currentPrice = priceTanzanian + priceNight;
                     if (isAllDayCheckBox && spansBoth) isAllDayCheckBox.checked = true;
 
-                    const label = spansBoth ? ' TZS (Day + Night Span Applied)' : ' TZS (All Day: Day + Night)';
+                    const label = spansBoth ? ' TSh (Day + Night Span Applied)' : ' TSh (All Day: Day + Night)';
                     document.getElementById('recommended_amount_tzs').innerText =
-                        new Intl.NumberFormat().format(currentPrice) + label;
+                        new Intl.NumberFormat().format(Math.round(currentPrice)) + label;
                 } else if (startMins !== null) {
                     if (startMins >= dayStartMins && startMins <= dayEndMins) {
                         currentPrice = priceTanzanian;
                         document.getElementById('recommended_amount_tzs').innerText =
-                            new Intl.NumberFormat().format(priceTanzanian) + ' TZS (Day)';
+                            new Intl.NumberFormat().format(Math.round(priceTanzanian)) + ' TSh (Day)';
                     } else {
                         currentPrice = priceNight;
                         document.getElementById('recommended_amount_tzs').innerText =
-                            new Intl.NumberFormat().format(priceNight) + ' TZS (Night)';
+                            new Intl.NumberFormat().format(Math.round(priceNight)) + ' TSh (Night)';
                     }
                 }
             }

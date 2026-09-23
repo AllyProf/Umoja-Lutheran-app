@@ -36,7 +36,7 @@
                   <th>Service Key</th>
                   <th>Pricing Type</th>
                   <th>Price (Tanzanian)</th>
-                  <th>Price (International)</th>
+                  <th>Price (Foreign Guest)</th>
                   <th>Payment Required Upfront</th>
                   <th>Requires Items</th>
                   <th>Status</th>
@@ -60,27 +60,27 @@
 
                       @if($ageGroup === 'both' && $hasChildPrice)
                         {{-- Show both adult and child prices --}}
-                        <strong>Adult:</strong> {{ number_format($service->price_tanzanian, 0) }} TZS<br>
-                        <strong>Child:</strong> {{ number_format($service->child_price_tanzanian, 0) }} TZS
+                        <strong>Adult:</strong> TSh {{ number_format($service->price_tanzanian, 0) }}<br>
+                        <strong>Child:</strong> TSh {{ number_format($service->child_price_tanzanian, 0) }}
                       @elseif($ageGroup === 'adult')
                         {{-- Adult only --}}
-                        {{ number_format($service->price_tanzanian, 0) }} TZS <small class="text-muted">(Adult Only)</small>
+                        TSh {{ number_format($service->price_tanzanian, 0) }} <small class="text-muted">(Adult Only)</small>
                       @elseif($ageGroup === 'child')
                         {{-- Child only --}}
                         @if($service->child_price_tanzanian)
-                          {{ number_format($service->child_price_tanzanian, 0) }} TZS <small class="text-muted">(Child
+                          TSh {{ number_format($service->child_price_tanzanian, 0) }} <small class="text-muted">(Child
                             Only)</small>
                         @else
-                          {{ number_format($service->price_tanzanian, 0) }} TZS <small class="text-muted">(Child Only)</small>
+                          TSh {{ number_format($service->price_tanzanian, 0) }} <small class="text-muted">(Child Only)</small>
                         @endif
                       @else
                         {{-- Default: single price --}}
-                        {{ number_format($service->price_tanzanian, 0) }} TZS
+                        TSh {{ number_format($service->price_tanzanian, 0) }}
                       @endif
                     </td>
                     <td>
                       @if($service->price_international)
-                        ${{ number_format($service->price_international, 2) }}
+                        TSh {{ number_format($service->price_international, 0) }}
                       @else
                         <span class="text-muted">Same as Tanzanian</span>
                       @endif

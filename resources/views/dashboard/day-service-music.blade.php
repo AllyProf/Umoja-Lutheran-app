@@ -150,22 +150,17 @@
                                         <label for="amount">Amount <span class="text-danger">*</span></label>
                                         <div class="input-group">
                                             <div class="input-group-prepend">
-                                                <span class="input-group-text" id="currency_symbol">TZS</span>
+                                                <span class="input-group-text" id="currency_symbol">TSh</span>
                                             </div>
                                             <input class="form-control" type="number" step="0.01" id="amount" name="amount"
-                                                value="{{ number_format($musicService->price_tanzanian, 2, '.', '') }}"
+                                                value="{{ number_format($musicService->price_tanzanian, 0, '.', '') }}"
                                                 min="0" required>
                                         </div>
                                         <small class="form-text text-info">
                                             <i class="fa fa-info-circle"></i> Recommended:
                                             <span
-                                                id="recommended_amount_tzs">{{ number_format($musicService->price_tanzanian, 2) }}
-                                                TZS</span>
-                                            @if($musicService->price_international)
-                                                / <span
-                                                    id="recommended_amount_usd">${{ number_format($musicService->price_international, 2) }}
-                                                    USD</span>
-                                            @endif
+                                                id="recommended_amount_tzs">{{ number_format($musicService->price_tanzanian, 0) }}
+                                                TSh</span>
                                             ({{ str_replace('_', ' ', $musicService->pricing_type) }})
                                         </small>
                                     </div>
@@ -189,12 +184,12 @@
                                 <label for="amount_paid">Amount Paid <span class="text-danger">*</span></label>
                                 <div class="input-group">
                                     <div class="input-group-prepend">
-                                        <span class="input-group-text" id="paid_currency_symbol">TZS</span>
-                                    </div>
-                                    <input class="form-control" type="number" step="0.01" id="amount_paid"
-                                        name="amount_paid"
-                                        value="{{ number_format($musicService->price_tanzanian, 2, '.', '') }}" min="0"
-                                        required>
+                                                <span class="input-group-text" id="paid_currency_symbol">TSh</span>
+                                            </div>
+                                            <input class="form-control" type="number" step="0.01" id="amount_paid"
+                                                name="amount_paid"
+                                                value="{{ number_format($musicService->price_tanzanian, 0, '.', '') }}" min="0"
+                                                required>
                                 </div>
                             </div>
 
@@ -290,7 +285,7 @@
             amountInput.value = calculatedAmount.toFixed(2);
 
             document.getElementById('recommended_amount_tzs').innerText =
-                new Intl.NumberFormat().format(calculatedAmount) + ' TZS';
+                new Intl.NumberFormat().format(Math.round(calculatedAmount)) + ' TSh';
 
             const isPaid = document.getElementById('status_paid').checked;
             if (isPaid) {

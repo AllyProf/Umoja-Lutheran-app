@@ -981,7 +981,7 @@ function viewBookingDetails(bookingId, bookingRef) {
     if (data.success) {
       const booking = data.booking;
       const room = booking.room || {};
-      const exchangeRate = {{ $exchangeRate ?? 2500 }};
+      const exchangeRate = {{ $exchangeRate ?? 1 }};
       const fallbackImage = '{{ asset("landing_page_assets/img/bg-img/1.jpg") }}';
       
       const detailsHtml = `

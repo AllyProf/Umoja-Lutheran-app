@@ -149,8 +149,7 @@
           <i class="icon fa fa-money fa-2x"></i>
           <div class="info">
             <h4>Total Revenue</h4>
-            <p><b>{{ number_format($statistics['total_revenue'], 0) }} TZS</b></p>
-            <p><small>${{ number_format($statistics['total_revenue_usd'], 2) }}</small></p>
+            <p><b>{{ number_format($statistics['total_revenue'], 0) }} TSh</b></p>
           </div>
         </div>
       </div>
@@ -192,8 +191,7 @@
                     <th>Service Type</th>
                     <th>Guest Name</th>
                     <th>Guest Type</th>
-                    <th>Amount (TZS)</th>
-                    <th>Amount (USD)</th>
+                    <th>Amount (TSh)</th>
                     <th>Payment Status</th>
                     <th>Registered By</th>
                   </tr>
@@ -221,19 +219,7 @@
                         @endif
                       </td>
                       <td>
-                        @php $rate = $service->exchange_rate ?: $exchangeRate; @endphp
-                        @if($service->guest_type === 'tanzanian')
-                          <strong>{{ number_format($service->amount_paid ?? $service->amount ?? 0, 0) }}</strong>
-                        @else
-                          <strong>{{ number_format(($service->amount_paid ?? $service->amount ?? 0) * $rate, 0) }}</strong>
-                        @endif
-                      </td>
-                      <td>
-                        @if($service->guest_type === 'tanzanian')
-                          ${{ number_format(($service->amount_paid ?? $service->amount ?? 0) / $rate, 2) }}
-                        @else
-                          $<strong>{{ number_format($service->amount_paid ?? $service->amount ?? 0, 2) }}</strong>
-                        @endif
+                        <strong>{{ number_format($service->amount_paid ?? $service->amount ?? 0, 0) }}</strong>
                       </td>
                       <td>
                         @if($service->payment_status === 'paid')
@@ -251,8 +237,7 @@
                 <tfoot>
                   <tr>
                     <th colspan="6" class="text-right">Total Revenue:</th>
-                    <th><strong>{{ number_format($statistics['total_revenue'], 0) }} TZS</strong></th>
-                    <th><strong>${{ number_format($statistics['total_revenue_usd'], 2) }}</strong></th>
+                    <th><strong>{{ number_format($statistics['total_revenue'], 0) }} TSh</strong></th>
                     <th colspan="2"></th>
                   </tr>
                 </tfoot>

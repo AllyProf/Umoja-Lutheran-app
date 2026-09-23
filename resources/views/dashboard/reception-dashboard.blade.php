@@ -446,8 +446,8 @@
                                                 {{ $booking->check_out->format('M d') }}</small>
                                         </td>
                                         <td>
-                                            <strong>{{ number_format($booking->total_price * ($booking->locked_exchange_rate ?? $exchangeRate ?? 2500), 0) }}
-                                                TZS</strong>
+                                            <strong>{{ number_format($booking->total_price, 0) }}
+                                                TSh</strong>
                                         </td>
                                         <td>
                                             @if($booking->status === 'confirmed') <span
@@ -584,15 +584,11 @@
                         let statusClass = b.status === 'confirmed' ? 'success' : (b.status === 'pending' ? 'warning' : 'secondary');
                         let payClass = b.payment_status === 'paid' ? 'success' : (b.payment_status === 'partial' ? 'info' : 'warning');
 
-                        // Format amounts
-                        let exchangeRate = {{ $exchangeRate ?? 2500 }};
-                        let lockedRate = parseFloat(b.locked_exchange_rate) || exchangeRate;
-
-                        // Financial breakdown (Everything converted to TZS)
-                        let roomTotalTsh = parseFloat(b.total_price) * lockedRate || 0;
+                        // Amounts are already TSh — no FX conversion
+                        let roomTotalTsh = parseFloat(b.total_price) || 0;
                         let serviceTotalTsh = parseFloat(b.total_service_charges_tsh) || 0;
                         let grandTotalTsh = roomTotalTsh + serviceTotalTsh;
-                        let paidTsh = parseFloat(b.amount_paid) * lockedRate || 0;
+                        let paidTsh = parseFloat(b.amount_paid) || 0;
                         let balanceTsh = Math.max(0, grandTotalTsh - paidTsh);
 
                         // Dynamic percentage calculation

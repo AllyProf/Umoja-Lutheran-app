@@ -113,23 +113,19 @@
               <div class="form-group">
                 <label for="base_currency">Base Currency</label>
                 <select class="form-control" id="base_currency" name="base_currency">
-                  <option value="USD" {{ \App\Models\HotelSetting::getValue('base_currency', 'USD') == 'USD' ? 'selected' : '' }}>USD (US Dollar)</option>
-                  <option value="TZS" {{ \App\Models\HotelSetting::getValue('base_currency') == 'TZS' ? 'selected' : '' }}>TZS (Tanzanian Shilling)</option>
+                  <option value="TZS" selected>TSh (Tanzanian Shilling)</option>
                 </select>
+                <small class="form-text text-muted">System currency is TSh (Tanzanian Shilling) only.</small>
               </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-4" style="display:none;">
               <div class="form-group">
-                <label for="exchange_rate_usd_to_tzs" style="font-weight: bold; color: #e07632;">
-                  <i class="fa fa-pencil"></i> Global Exchange Rate (1 USD = X TZS)
+                <label for="exchange_rate_usd_to_tzs">
+                  Legacy Exchange Rate (unused)
                 </label>
                 <input type="number" class="form-control" id="exchange_rate_usd_to_tzs" name="exchange_rate_usd_to_tzs" 
-                       value="{{ \App\Models\HotelSetting::getValue('exchange_rate_usd_to_tzs', '2540') }}" 
-                       step="0.01" min="0" style="border: 2px solid #e07632;">
-                <small class="form-text text-muted">
-                  <strong>Priority:</strong> This manual rate will be used across the system. 
-                  Leave empty or set to 0 to use the live automated API rates instead.
-                </small>
+                       value="1" 
+                       step="0.01" min="0">
               </div>
             </div>
           </div>

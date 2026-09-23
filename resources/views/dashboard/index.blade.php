@@ -53,7 +53,7 @@
       <i class="icon fa fa-money fa-3x"></i>
       <div class="info">
         <h4>Total Revenue</h4>
-        <p><b>{{ number_format($stats['total_revenue'] ?? 0, 0) }} TZS</b></p>
+        <p><b>{{ number_format($stats['total_revenue'] ?? 0, 0) }} TSh</b></p>
       </div>
     </div>
   </div>
@@ -163,14 +163,14 @@
         </a>
     </div>
     <div class="col-md-6 col-lg-3 mt-3 mt-lg-0">
-        <a href="{{ route('housekeeper.inventory') }}" style="text-decoration: none;">
-            <div class="tile shadow-sm border-0 d-flex align-items-center bg-danger text-white p-3" style="border-radius: 12px;">
-                <div class="mr-3 bg-white text-danger rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                    <i class="fa fa-building fa-2x"></i>
+        <a href="{{ route('bar-keeper.order-summary') }}" style="text-decoration: none;">
+            <div class="tile shadow-sm border-0 d-flex align-items-center bg-info text-white p-3" style="border-radius: 12px;">
+                <div class="mr-3 bg-white text-info rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                    <i class="fa fa-bar-chart fa-2x"></i>
                 </div>
                 <div>
-                    <h5 class="mb-0">HK Stock</h5>
-                    <p class="mb-0 small opacity-75">View housekeeping inventory</p>
+                    <h5 class="mb-0">Order Summary</h5>
+                    <p class="mb-0 small opacity-75">Live counter sales & shifts</p>
                 </div>
             </div>
         </a>
@@ -226,7 +226,7 @@
                 <i class="icon fa fa-money fa-2x"></i>
                 <div class="info">
                   <h4>Today's Revenue</h4>
-                  <p><b>{{ number_format($stats['today_revenue'] ?? 0, 0) }} TZS</b></p>
+                  <p><b>{{ number_format($stats['today_revenue'] ?? 0, 0) }} TSh</b></p>
                 </div>
               </div>
             </div>
@@ -235,7 +235,7 @@
                 <i class="icon fa fa-car fa-2x"></i>
                 <div class="info">
                   <h4>Day Services</h4>
-                  <p><b>{{ number_format($stats['today_day_service_revenue'] ?? 0, 0) }} TZS</b></p>
+                  <p><b>{{ number_format($stats['today_day_service_revenue'] ?? 0, 0) }} TSh</b></p>
                 </div>
               </div>
             </div>
@@ -575,18 +575,15 @@
                 </td>
                 <td>
                   @php
-                    $lockedRate = $isGrouped ? ($firstBooking->locked_exchange_rate ?? $exchangeRate ?? 2500) : ($booking->locked_exchange_rate ?? $exchangeRate ?? 2500);
                     $displayTotalPrice = $isGrouped ? $totalPrice : ($booking->total_price ?? 0);
                     $displayTotalPaid = $isGrouped ? $totalPaid : ($booking->amount_paid ?? 0);
-                    $totalPriceTsh = $displayTotalPrice * $lockedRate;
-                    $totalPaidTsh = $displayTotalPaid * $lockedRate;
                   @endphp
-                  <strong>{{ number_format($totalPriceTsh, 0) }} TZS</strong>
+                  <strong>{{ number_format($displayTotalPrice, 0) }} TSh</strong>
                   @if($isGrouped)
                     <br><small class="text-muted">Total for all guests</small>
                   @endif
                   @if($displayTotalPaid > 0)
-                    <br><small style="font-size: 10px; color: #158cba;">Paid: {{ number_format($totalPaidTsh, 0) }} TZS</small>
+                    <br><small style="font-size: 10px; color: #158cba;">Paid: {{ number_format($displayTotalPaid, 0) }} TSh</small>
                   @endif
                 </td>
                 <td>
@@ -863,8 +860,8 @@ function viewBooking(bookingId) {
             <div class="col-md-6">
               <h5><i class="fa fa-money"></i> Payment Information</h5>
               <table class="table table-sm table-bordered">
-                <tr><td><strong>Total Price (TZS):</strong></td><td><strong>${(parseFloat(booking.total_price || 0) * (booking.locked_exchange_rate || {{ $exchangeRate ?? 2500 }})).toLocaleString()} TZS</strong></td></tr>
-                <tr><td><strong>Amount Paid (TZS):</strong></td><td><strong>${booking.amount_paid ? (parseFloat(booking.amount_paid) * (booking.locked_exchange_rate || {{ $exchangeRate ?? 2500 }})).toLocaleString() + ' TZS' : 'N/A'}</strong></td></tr>
+                <tr><td><strong>Total Price:</strong></td><td><strong>${parseFloat(booking.total_price || 0).toLocaleString()} TSh</strong></td></tr>
+                <tr><td><strong>Amount Paid:</strong></td><td><strong>${booking.amount_paid ? parseFloat(booking.amount_paid).toLocaleString() + ' TSh' : 'N/A'}</strong></td></tr>
                 <tr><td><strong>Payment Method:</strong></td><td>${booking.payment_method ? booking.payment_method.charAt(0).toUpperCase() + booking.payment_method.slice(1) : 'N/A'}</td></tr>
                 <tr><td><strong>Payment Status:</strong></td><td><span class="badge badge-${booking.payment_status === 'paid' ? 'success' : booking.payment_status === 'partial' ? 'info' : booking.payment_status === 'pending' ? 'warning' : 'danger'}">${booking.payment_status ? (booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1) + (booking.payment_status === 'partial' && booking.payment_percentage ? ` (${booking.payment_percentage}% paid)` : '')) : 'N/A'}</span></td></tr>
                 ${booking.payment_transaction_id ? `<tr><td><strong>Transaction ID:</strong></td><td><small>${booking.payment_transaction_id}</small></td></tr>` : ''}
@@ -946,7 +943,7 @@ function viewBooking(bookingId) {
     labels: {!! json_encode(array_column($revenueData, 'month')) !!},
     datasets: [
       {
-        label: "Revenue (TZS)",
+        label: "Revenue (TSh)",
         fillColor: "rgba(151,187,205,0.2)",
         strokeColor: "rgba(151,187,205,1)",
         pointColor: "rgba(151,187,205,1)",

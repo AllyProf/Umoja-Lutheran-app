@@ -52,7 +52,6 @@ class DayService extends Model
         'expected_checkout_date' => 'date',
         'amount' => 'decimal:2',
         'amount_paid' => 'decimal:2',
-        'exchange_rate' => 'decimal:4',
         'paid_at' => 'datetime',
         'number_of_people' => 'integer',
         'adult_quantity' => 'integer',
@@ -74,6 +73,14 @@ class DayService extends Model
     public function serviceRequests()
     {
         return $this->hasMany(ServiceRequest::class);
+    }
+
+    /**
+     * System is TSh-only — never multiply amounts by a stored FX rate.
+     */
+    public function getExchangeRateAttribute($value): float
+    {
+        return 1.0;
     }
 
     // Accessors

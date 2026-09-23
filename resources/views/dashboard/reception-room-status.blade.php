@@ -139,12 +139,12 @@
                             }
                         }
                         
-                        // Prepare data for modal
+                        // Prepare data for modal (amounts already in TSh)
                         $roomData = [
                             'number' => $room->room_number,
                             'type' => $room->room_type,
                             'status' => $statusText,
-                            'price' => $room->price_per_night * ($exchangeRate ?? 2500),
+                            'price' => $room->price_per_night,
                             'capacity' => $room->capacity,
                             'guest' => null,
                             'checkin' => null,
@@ -162,16 +162,14 @@
                             $roomData['booking_ref'] = $booking->booking_reference;
                             
                             // Calculate actual total (Room + Services) for accurate modal display
-                            $roomBillUsd = $booking->total_price;
+                            $roomBillTsh = $booking->total_price;
                             $servicesBillTsh = $booking->serviceRequests
                                 ->whereIn('status', ['approved', 'completed'])
                                 ->sum('total_price_tsh');
                             
-                            $bookingExchangeRate = $booking->locked_exchange_rate ?? ($exchangeRate ?? 2500);
-                            $roomBillTsh = $roomBillUsd * $bookingExchangeRate;
                             $grandTotalTsh = $roomBillTsh + $servicesBillTsh;
 
-                            $roomData['paid'] = number_format(($booking->amount_paid ?? 0) * $bookingExchangeRate, 0);
+                            $roomData['paid'] = number_format($booking->amount_paid ?? 0, 0);
                             $roomData['total'] = number_format($grandTotalTsh, 0);
                         } elseif ($room->has_immediate_booking && $room->upcoming_checkin) {
                             $roomData['guest'] = $room->upcoming_checkin->guest_name;
@@ -395,7 +393,7 @@
         document.getElementById('modalRoomTitle').innerText = 'Room ' + data.number;
         document.getElementById('modalRoomType').innerText = data.type;
         document.getElementById('modalStatus').innerHTML = '<span class="badge badge-secondary">' + data.status + '</span>';
-        document.getElementById('modalPrice').innerText = data.price.toLocaleString() + ' TZS';
+        document.getElementById('modalPrice').innerText = data.price.toLocaleString() + ' TSh';
         document.getElementById('modalCapacity').innerText = data.capacity + ' Person(s)';
 
         // Reset visibility
@@ -417,7 +415,7 @@
             document.getElementById('rowCheckout').style.display = 'table-row';
 
             if (data.paid !== null) {
-                 document.getElementById('modalPayment').innerText = 'Paid: ' + data.paid + ' TZS / Total: ' + data.total + ' TZS';
+                 document.getElementById('modalPayment').innerText = 'Paid: ' + data.paid + ' TSh / Total: ' + data.total + ' TSh';
                  document.getElementById('rowPayment').style.display = 'table-row';
             }
             

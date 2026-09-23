@@ -111,7 +111,6 @@
                 <th>Status</th>
                 <th>Payment Status</th>
                 <th>Check-in Status</th>
-                <th>Exchange Rate</th>
                 <th>Total Price</th>
                 <th>Actions</th>
               </tr>
@@ -168,23 +167,7 @@
                   @endif
                 </td>
                 <td>
-                  @if($booking->locked_exchange_rate)
-                    <strong>{{ number_format($booking->locked_exchange_rate, 2) }}</strong><br>
-                    <small class="text-muted">TZS/USD</small>
-                  @else
-                    <span class="text-muted">N/A</span><br>
-                    <small class="text-muted">(Old booking)</small>
-                  @endif
-                </td>
-                <td>
-                  <strong>${{ number_format($booking->total_price, 2) }}</strong><br>
-                  <small>
-                    @if($booking->locked_exchange_rate)
-                      {{ number_format($booking->total_price * $booking->locked_exchange_rate, 2) }} TZS
-                    @else
-                      {{ number_format($booking->total_price * $exchangeRate, 2) }} TZS
-                    @endif
-                  </small>
+                  <strong>{{ number_format($booking->total_price, 0) }} TSh</strong>
                 </td>
                 <td>
                   <div class="dropdown">
@@ -397,9 +380,6 @@ function viewBookingDetailsModal(element) {
     checked_out_at: button.getAttribute('data-checked-out-at')
   };
   
-  const exchangeRate = bookingData.locked_exchange_rate || {{ $exchangeRate ?? 2500 }};
-  const totalPriceTsh = bookingData.total_price * exchangeRate;
-  
   // Status badges
   const statusBadges = {
     'pending': '<span class="badge badge-warning">Pending</span>',
@@ -514,33 +494,17 @@ function viewBookingDetailsModal(element) {
         </h5>
         <table class="table table-sm table-borderless">
           <tr>
-            <td width="40%"><strong>Total Price (USD):</strong></td>
-            <td><strong>$${parseFloat(bookingData.total_price).toFixed(2)}</strong></td>
-          </tr>
-          <tr>
-            <td><strong>Exchange Rate:</strong></td>
-            <td>${bookingData.locked_exchange_rate ? parseFloat(bookingData.locked_exchange_rate).toFixed(2) + ' TZS/USD' : 'N/A (Old booking)'}</td>
-          </tr>
-          <tr>
-            <td><strong>Total Price (TZS):</strong></td>
-            <td><strong>${parseFloat(totalPriceTsh).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} TZS</strong></td>
+            <td width="40%"><strong>Total Price:</strong></td>
+            <td><strong>${parseFloat(bookingData.total_price).toLocaleString()} TSh</strong></td>
           </tr>
           ${bookingData.payment_status === 'partial' && bookingData.amount_paid ? `
           <tr>
-            <td><strong>Amount Paid (USD):</strong></td>
-            <td><strong style="color: #17a2b8;">$${parseFloat(bookingData.amount_paid).toFixed(2)}</strong></td>
+            <td><strong>Amount Paid:</strong></td>
+            <td><strong style="color: #17a2b8;">${parseFloat(bookingData.amount_paid || 0).toLocaleString()} TSh</strong></td>
           </tr>
           <tr>
-            <td><strong>Amount Paid (TZS):</strong></td>
-            <td><strong style="color: #17a2b8;">${parseFloat((bookingData.amount_paid || 0) * (bookingData.locked_exchange_rate || 2442.54)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} TZS</strong></td>
-          </tr>
-          <tr>
-            <td><strong>Remaining Amount (USD):</strong></td>
-            <td><strong style="color: #dc3545;">$${parseFloat((bookingData.total_price || 0) - (bookingData.amount_paid || 0)).toFixed(2)}</strong></td>
-          </tr>
-          <tr>
-            <td><strong>Remaining Amount (TZS):</strong></td>
-            <td><strong style="color: #dc3545;">${parseFloat(((bookingData.total_price || 0) - (bookingData.amount_paid || 0)) * (bookingData.locked_exchange_rate || 2442.54)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} TZS</strong></td>
+            <td><strong>Remaining Amount:</strong></td>
+            <td><strong style="color: #dc3545;">${parseFloat((bookingData.total_price || 0) - (bookingData.amount_paid || 0)).toLocaleString()} TSh</strong></td>
           </tr>
           <tr>
             <td><strong>Payment Percentage:</strong></td>

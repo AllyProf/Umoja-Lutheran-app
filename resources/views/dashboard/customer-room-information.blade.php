@@ -98,7 +98,7 @@
                 @if($room->price_per_night)
                 <tr>
                   <td style="vertical-align: middle;"><strong><i class="fa fa-dollar" style="color: #940000;"></i> Price/Night:</strong></td>
-                  <td><strong>${{ number_format($room->price_per_night, 2) }}</strong></td>
+                  <td><strong>TSh {{ number_format($room->price_per_night, 0) }}</strong></td>
                 </tr>
                 @endif
               </table>
@@ -529,8 +529,6 @@
 </style>
 
 <script>
-const exchangeRate = {{ $exchangeRate ?? 2500 }};
-
 function showRoomDetailsModal(roomId) {
   const button = document.querySelector(`button[data-room-id="${roomId}"]`);
   if (!button) return;
@@ -591,8 +589,7 @@ function showRoomDetailsModal(roomId) {
     contentHtml += '<div class="info-row"><span class="info-label"><i class="fa fa-shower" style="color: #940000;"></i> Bathroom:</span><span class="info-value">' + room.bathroom + '</span></div>';
   }
   if (room.price) {
-    const priceTzs = (parseFloat(room.price) * exchangeRate).toLocaleString('en-US');
-    contentHtml += '<div class="info-row"><span class="info-label"><i class="fa fa-dollar" style="color: #940000;"></i> Price/Night:</span><span class="info-value"><strong>$' + parseFloat(room.price).toFixed(2) + '</strong> ≈ <strong>' + priceTzs + ' TZS</strong></span></div>';
+    contentHtml += '<div class="info-row"><span class="info-label"><i class="fa fa-money" style="color: #940000;"></i> Price/Night:</span><span class="info-value"><strong>TSh ' + Math.round(parseFloat(room.price)).toLocaleString('en-US') + '</strong></span></div>';
   }
   contentHtml += '</div>';
   contentHtml += '</div>';
@@ -667,7 +664,7 @@ function viewBookingDetails(bookingId) {
         if (data.success) {
             const booking = data.booking;
             const room = booking.room || {};
-            const exchangeRate = booking.locked_exchange_rate || {{ $exchangeRate ?? 2500 }};
+            // Amounts already stored in TSh
             const fallbackImage = '{{ asset("landing_page_assets/img/bg-img/1.jpg") }}';
             
             // Corporate Logic
@@ -789,7 +786,7 @@ function viewBookingDetails(bookingId) {
                                    </div>
                                    <div class="d-flex justify-content-between small text-muted border-top pt-2">
                                       <span>Price per Night:</span>
-                                      <span class="font-weight-bold">$${parseFloat(room.price_per_night || 0).toFixed(2)}</span>
+                                      <span class="font-weight-bold">TSh ${Math.round(parseFloat(room.price_per_night || 0)).toLocaleString()}</span>
                                    </div>
                                 </div>
                             </div>
@@ -817,22 +814,19 @@ function viewBookingDetails(bookingId) {
 
                                    <div class="d-flex justify-content-between mb-2">
                                       <span class="text-muted">Total Price:</span>
-                                      <span class="font-weight-bold h5 mb-0" style="color: #e07632;">$${parseFloat(booking.total_price || 0).toFixed(2)}</span>
-                                   </div>
-                                   <div class="text-right text-muted small mb-3">
-                                      ≈ ${(parseFloat(booking.total_price || 0) * exchangeRate).toLocaleString()} TZS
+                                      <span class="font-weight-bold h5 mb-0" style="color: #e07632;">TSh ${Math.round(parseFloat(booking.total_price || 0)).toLocaleString()}</span>
                                    </div>
 
                                    <div class="d-flex justify-content-between mb-2 small">
                                       <span class="text-muted">Amount Paid:</span>
-                                      <span class="text-success font-weight-bold">-$${parseFloat(booking.amount_paid || 0).toFixed(2)}</span>
+                                      <span class="text-success font-weight-bold">-TSh ${Math.round(parseFloat(booking.amount_paid || 0)).toLocaleString()}</span>
                                    </div>
                                    
                                    ${booking.payment_status === 'partial' ? `
                                    <hr class="my-2">
                                    <div class="d-flex justify-content-between align-items-end">
                                       <span class="font-weight-bold">Remaining:</span>
-                                      <span class="h6 mb-0 text-danger">$${parseFloat((booking.total_price || 0) - (booking.amount_paid || 0)).toFixed(2)}</span>
+                                      <span class="h6 mb-0 text-danger">TSh ${Math.round(parseFloat((booking.total_price || 0) - (booking.amount_paid || 0))).toLocaleString()}</span>
                                    </div>
                                    
                                    ${!companyPays ? `

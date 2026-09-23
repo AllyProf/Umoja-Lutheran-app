@@ -72,7 +72,7 @@
 {{-- ============================================ --}}
 <li class="treeview-item-header" style="padding: 10px 20px; color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-top: 10px;">Information</li>
 
-<li class="treeview {{ str_contains($activePage, 'customer/notifications') || str_contains($activePage, 'customer/local-info') || str_contains($activePage, 'exchange-rates') ? 'is-expanded' : '' }}">
+<li class="treeview {{ str_contains($activePage, 'customer/notifications') || str_contains($activePage, 'customer/local-info') ? 'is-expanded' : '' }}">
   <a class="app-menu__item" href="#" data-toggle="treeview">
     <i class="app-menu__icon fa fa-info-circle"></i>
     <span class="app-menu__label">Information & Tools @if($badges['notifications'] > 0)<span class="badge badge-info badge-pill ml-2">{{ $badges['notifications'] }}</span>@endif</span>
@@ -81,7 +81,6 @@
   <ul class="treeview-menu">
     <li><a class="treeview-item {{ $currentRoute === 'customer.notifications' || str_contains($activePage, 'customer/notifications') ? 'active' : '' }}" href="{{ route('customer.notifications') }}"><i class="icon fa fa-bell"></i> Notifications @if($badges['notifications'] > 0)<span class="badge badge-info badge-pill ml-2">{{ $badges['notifications'] }}</span>@endif</a></li>
     <li><a class="treeview-item {{ $currentRoute === 'customer.local-info' || str_contains($activePage, 'customer/local-info') ? 'active' : '' }}" href="{{ route('customer.local-info') }}"><i class="icon fa fa-map-marker"></i> Local Information</a></li>
-    <li><a class="treeview-item {{ $currentRoute === 'exchange-rates' || str_contains($activePage, 'exchange-rates') ? 'active' : '' }}" href="{{ route('exchange-rates') }}"><i class="icon fa fa-exchange"></i> Exchange Rates</a></li>
   </ul>
 </li>
 

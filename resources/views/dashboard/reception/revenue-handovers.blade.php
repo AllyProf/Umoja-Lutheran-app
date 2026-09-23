@@ -24,58 +24,71 @@
                     <table class="table table-hover table-bordered">
                         <thead class="bg-light">
                             <tr>
-                                <th>Service Date</th>
-                                <th>Total Services</th>
-                                <th>Total Revenue (TZS)</th>
-                                <th>Cashier Collection</th>
-                                <th>Accountant Verification</th>
+                                <th>Opened</th>
+                                <th>Closed</th>
+                                <th>Cash (TZS)</th>
+                                <th>M-Pesa (TZS)</th>
+                                <th>Submitted (TZS)</th>
+                                <th>Difference</th>
+                                <th>Received By</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($dayServices as $day)
+                            @forelse($history as $shift)
                             <tr>
-                                <td>{{ \Carbon\Carbon::parse($day->service_date)->format('M d, Y') }}</td>
-                                <td>{{ $day->total_services }}</td>
-                                <td><strong>{{ number_format($day->total_revenue) }}</strong></td>
+                                <td>{{ $shift->opened_at ? $shift->opened_at->format('M d, Y H:i') : '-' }}</td>
                                 <td>
-                                    @if($day->collected_at)
-                                        <span class="text-success"><i class="fa fa-check-circle"></i> {{ \Carbon\Carbon::parse($day->collected_at)->format('M d, H:i') }}</span>
+                                    @if($shift->closed_at)
+                                        {{ $shift->closed_at->format('M d, Y H:i') }}
                                     @else
-                                        <span class="text-muted"><i class="fa fa-clock-o"></i> Pending Collection</span>
+                                        <span class="text-muted">Still open</span>
                                     @endif
                                 </td>
+                                <td>{{ number_format($shift->total_cash_tzs ?? 0) }}</td>
+                                <td>{{ number_format($shift->total_mpesa_tzs ?? 0) }}</td>
+                                <td><strong>{{ number_format($shift->amount_submitted_tzs ?? 0) }}</strong></td>
                                 <td>
-                                    @if($day->verified_at)
-                                        <span class="text-success"><i class="fa fa-check-circle"></i> {{ \Carbon\Carbon::parse($day->verified_at)->format('M d, H:i') }}</span>
+                                    @php $difference = (float) ($shift->difference_tzs ?? 0); @endphp
+                                    @if($difference > 0)
+                                        <span class="text-success">+{{ number_format($difference) }}</span>
+                                    @elseif($difference < 0)
+                                        <span class="text-danger">{{ number_format($difference) }}</span>
                                     @else
-                                        <span class="text-muted"><i class="fa fa-hourglass-half"></i> Pending Verification</span>
+                                        <span class="text-muted">0</span>
                                     @endif
                                 </td>
+                                <td>{{ $shift->receiver->name ?? '-' }}</td>
                                 <td>
-                                    @if($day->verified_at)
+                                    @if($shift->status === 'finalized')
                                         <span class="badge badge-success">Finalized</span>
-                                    @elseif($day->collected_at)
-                                        <span class="badge badge-info">Collected by Cashier</span>
+                                    @elseif($shift->status === 'pending_accountant')
+                                        <span class="badge badge-info">With Accountant</span>
+                                    @elseif($shift->status === 'received')
+                                        <span class="badge badge-primary">Collected by Cashier</span>
+                                    @elseif($shift->status === 'pending_cashier')
+                                        <span class="badge badge-warning">Waiting for Cashier</span>
+                                    @elseif($shift->status === 'active')
+                                        <span class="badge badge-danger">Open</span>
                                     @else
-                                        <span class="badge badge-warning">At Reception</span>
+                                        <span class="badge badge-secondary">{{ ucfirst(str_replace('_', ' ', $shift->status ?? 'unknown')) }}</span>
                                     @endif
                                 </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="6" class="text-center">No revenue records found.</td>
+                                <td colspan="8" class="text-center">No handover records found.</td>
                             </tr>
                             @endforelse
                         </tbody>
                     </table>
-                    {{ $dayServices->links() }}
+                    {{ $history->links() }}
                 </div>
             </div>
             <div class="tile-footer">
                 <p class="text-muted">
                     <i class="fa fa-info-circle"></i> 
-                    This list shows your daily revenue from Day Services and tracks when the Cashier collects it and when the Accountant verifies it.
+                    This list shows your shift handovers: cash submitted, who received it, and whether the cashier or accountant has cleared it.
                 </p>
             </div>
         </div>

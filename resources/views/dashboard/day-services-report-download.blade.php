@@ -562,7 +562,7 @@
                     </div>
                     <div class="info-row">
                         <span class="info-label">Total Revenue:</span>
-                        <span class="info-value"><span class="amount-highlight">{{ number_format($statistics['total_revenue'] ?? 0, 2) }} TZS</span></span>
+                        <span class="info-value"><span class="amount-highlight">{{ number_format($statistics['total_revenue'] ?? 0, 0) }} TSh</span></span>
                     </div>
                 </div>
             </div>
@@ -595,14 +595,7 @@
                             <small style="color: #999;">{{ $service->service_time }}</small>
                         </td>
                         <td class="text-right">
-                            @if($service->guest_type === 'tanzanian')
-                                {{ number_format($service->amount, 2) }} TZS
-                            @else
-                                ${{ number_format($service->amount, 2) }}
-                                @if($service->exchange_rate)
-                                    <br><small style="color: #999;">≈ {{ number_format($service->amount * $service->exchange_rate, 2) }} TZS</small>
-                                @endif
-                            @endif
+                            TSh {{ number_format($service->amount, 0) }}
                         </td>
                         <td>
                             <span class="badge badge-{{ $service->payment_status === 'paid' ? 'paid' : 'pending' }}">
@@ -614,7 +607,7 @@
                     @endforeach
                     <tr class="total-row">
                         <td colspan="4"><strong>Total Revenue</strong></td>
-                        <td class="text-right"><span class="amount-highlight">{{ number_format($statistics['total_revenue'] ?? 0, 2) }} TZS</span></td>
+                        <td class="text-right"><span class="amount-highlight">{{ number_format($statistics['total_revenue'] ?? 0, 0) }} TSh</span></td>
                         <td colspan="2"></td>
                     </tr>
                 </tbody>

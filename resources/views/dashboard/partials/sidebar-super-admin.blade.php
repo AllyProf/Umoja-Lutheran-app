@@ -97,6 +97,14 @@
   style="padding: 10px 20px; color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-top: 10px;">
   System Monitoring</li>
 
+<li>
+  <a class="app-menu__item {{ $currentRoute === 'super_admin.sms-usage' || str_contains($activePage ?? '', 'super-admin/sms-usage') ? 'active' : '' }}"
+    href="{{ route('super_admin.sms-usage') }}">
+    <i class="app-menu__icon fa fa-mobile"></i>
+    <span class="app-menu__label">SMS Usage</span>
+  </a>
+</li>
+
 <li
   class="treeview {{ str_contains($activePage ?? '', 'super-admin/activity-logs') || str_contains($activePage ?? '', 'super-admin/system-logs') || str_contains($activePage ?? '', 'super-admin/failed-login') ? 'is-expanded' : '' }}">
   <a class="app-menu__item {{ str_contains($activePage ?? '', 'super-admin/activity-logs') || str_contains($activePage ?? '', 'super-admin/system-logs') || str_contains($activePage ?? '', 'super-admin/failed-login') ? 'active' : '' }}"

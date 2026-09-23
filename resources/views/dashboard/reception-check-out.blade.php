@@ -213,13 +213,9 @@
                       <small class="text-muted"><i class="fa fa-info-circle"></i> Expand to view guest services</small>
                     </td>
                     <td>
-                      @php
-                        $groupRate = $firstBooking->locked_exchange_rate ?? $exchangeRate;
-                      @endphp
-                      <strong>{{ number_format($totalPrice, 2) }} TZS</strong>
+                      <strong>{{ number_format($totalPrice, 0) }} TSh</strong>
                       @php
                         $totalOutstandingTsh = $group['total_outstanding_tsh'] ?? 0;
-                        $totalOutstandingUsd = $group['total_outstanding_usd'] ?? 0;
 
                         $selfPaidGuestsWithBalance = $companyBookings->filter(function($b) {
                             return ($b->payment_responsibility ?? 'company') === 'self' && 
@@ -227,11 +223,10 @@
                                    $b->outstanding_balance_tsh >= 50;
                         });
                         $guestOutstandingTsh = $selfPaidGuestsWithBalance->sum('outstanding_balance_tsh');
-                        $guestOutstandingUsd = $selfPaidGuestsWithBalance->sum('outstanding_balance_usd');
                       @endphp
                       @if($totalOutstandingTsh >= 50)
                         <br><small class="text-danger">
-                          <strong>Company Outstanding: {{ number_format($totalOutstandingTsh, 2) }} TZS</strong>
+                          <strong>Company Outstanding: {{ number_format($totalOutstandingTsh, 0) }} TSh</strong>
                         </small>
                       @endif
 
@@ -241,7 +236,7 @@
                                 onclick="viewCompanyBookings({{ $company->id ?? 0 }}, {{ $loop->index }})"
                                 style="cursor: pointer; padding: 5px 10px;"
                                 title="Click to view and pay individual guest charges">
-                            <i class="fa fa-user"></i> Guest Outstanding: {{ number_format($guestOutstandingTsh, 2) }} TZS
+                            <i class="fa fa-user"></i> Guest Outstanding: {{ number_format($guestOutstandingTsh, 0) }} TSh
                             <br><small>(Click to Pay)</small>
                           </span>
                         </div>
@@ -270,7 +265,7 @@
                         <i class="fa fa-print"></i> Group Bill
                       </a>
                       @if($totalOutstandingTsh >= 50)
-                        <button class="btn btn-sm btn-success mr-1" onclick="openCashPaymentModalCompany({{ $company->id ?? 0 }}, {{ json_encode($safeCompanyName) }}, {{ $totalOutstandingUsd }}, {{ $totalOutstandingTsh }})" title="Process Payment">
+                        <button class="btn btn-sm btn-success mr-1" onclick="openCashPaymentModalCompany({{ $company->id ?? 0 }}, {{ json_encode($safeCompanyName) }}, {{ $totalOutstandingTsh }})" title="Process Payment">
                           <i class="fa fa-money"></i> Pay Company Bill
                         </button>
                         <button class="btn btn-sm btn-danger" disabled title="Cannot check out - Outstanding balance must be paid first">
@@ -340,11 +335,9 @@
                               </td>
                                <td>
                                 @php
-                                  $bookingCurrentRate = $booking->locked_exchange_rate ?? $exchangeRate;
                                   $totalGuestBillTsh = $booking->total_bill_tsh ?? $booking->total_price;
-                                  $totalGuestBillUsd = $booking->total_bill_usd ?? ($totalGuestBillTsh / $bookingCurrentRate);
                                 @endphp
-                                <strong>{{ number_format($totalGuestBillTsh, 2) }} TZS</strong>
+                                <strong>{{ number_format($totalGuestBillTsh, 0) }} TSh</strong>
                               </td>
                               <td>
                                 @php
@@ -354,7 +347,7 @@
                                 @endphp
                                 @if($hasOutstanding)
                                   <span class="text-danger">
-                                    <strong>{{ number_format($booking->outstanding_balance_tsh, 2) }} TZS</strong>
+                                    <strong>{{ number_format($booking->outstanding_balance_tsh, 0) }} TSh</strong>
                                     @if($isSelfPaid)
                                       <br><small class="badge badge-warning"><i class="fa fa-user"></i> Self-Paid Services</small>
                                     @endif
@@ -372,7 +365,7 @@
                                   <i class="fa fa-file-text"></i> Bill
                                 </a>
                                 @if(isset($booking->outstanding_balance_tsh) && $booking->outstanding_balance_tsh >= 50)
-                                      <button class="btn btn-xs btn-success" onclick="openCashPaymentModal({{ $booking->id }}, {{ json_encode($booking->booking_reference) }}, {{ $booking->outstanding_balance_usd ?? 0 }}, {{ $booking->outstanding_balance_tsh ?? 0 }})" title="Process Payment">
+                                      <button class="btn btn-xs btn-success" onclick="openCashPaymentModal({{ $booking->id }}, {{ json_encode($booking->booking_reference) }}, {{ $booking->outstanding_balance_tsh ?? 0 }})" title="Process Payment">
                                         <i class="fa fa-money"></i> Pay Guest Charge
                                       </button>
                                 @endif
@@ -504,15 +497,11 @@
                 </td>
                 <td>
                   @php
-                    $bookingRate = $booking->locked_exchange_rate ?? $exchangeRate;
-                    
-                    // Calculate service charges
+                    // Calculate service charges (amounts already in TSh)
                     $serviceRequests = $booking->serviceRequests->whereIn('status', ['approved', 'completed']);
                     $serviceChargesTsh = $serviceRequests->sum('total_price_tsh');
-                    $serviceChargesUsd = $serviceChargesTsh / $bookingRate;
                     
                     // Total bill = Room + Services
-                    $totalBillUsd = ((float)$booking->total_price / $bookingRate) + $serviceChargesUsd;
                     $totalBillTsh = $booking->total_price + $serviceChargesTsh;
                     
                     // Determine guest type for display
@@ -520,15 +509,15 @@
                     $isTanzanian = $guestType === 'tanzanian';
                   @endphp
                   
-                    <strong>{{ number_format($totalBillTsh, 2) }} TZS</strong><br>
+                    <strong>{{ number_format($totalBillTsh, 0) }} TSh</strong><br>
                     @if($serviceChargesTsh > 0)
-                      <small class="text-muted">Room: {{ number_format($booking->total_price, 2) }} TZS</small><br>
-                      <small class="text-muted">Services: {{ number_format($serviceChargesTsh, 2) }} TZS</small>
+                      <small class="text-muted">Room: {{ number_format($booking->total_price, 0) }} TSh</small><br>
+                      <small class="text-muted">Services: {{ number_format($serviceChargesTsh, 0) }} TSh</small>
                     @endif
                   
                   @if(isset($booking->outstanding_balance_tsh) && $booking->outstanding_balance_tsh >= 50)
                     <br><small class="text-danger">
-                      <strong>Outstanding: {{ number_format($booking->outstanding_balance_tsh, 2) }} TZS</strong>
+                      <strong>Outstanding: {{ number_format($booking->outstanding_balance_tsh, 0) }} TSh</strong>
                     </small>
                   @elseif(isset($booking->outstanding_balance_tsh))
                     <br><small class="text-success"><i class="fa fa-check-circle"></i> All Paid</small>
@@ -539,7 +528,7 @@
                     <i class="fa fa-file-text"></i> View Bill
                   </a>
                   @if(isset($booking->outstanding_balance_tsh) && $booking->outstanding_balance_tsh >= 50)
-                    <button class="btn btn-sm btn-success mr-1" onclick="openCashPaymentModal({{ $booking->id }}, {{ json_encode($booking->booking_reference) }}, {{ $booking->outstanding_balance_usd ?? 0 }}, {{ $booking->outstanding_balance_tsh ?? 0 }})" title="Process Payment">
+                    <button class="btn btn-sm btn-success mr-1" onclick="openCashPaymentModal({{ $booking->id }}, {{ json_encode($booking->booking_reference) }}, {{ $booking->outstanding_balance_tsh ?? 0 }})" title="Process Payment">
                       <i class="fa fa-money"></i> Pay
                     </button>
                     <button class="btn btn-sm btn-danger" disabled title="Cannot check out - Outstanding balance must be paid first">
@@ -705,10 +694,9 @@
                 <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
                   <span style="font-weight: 600; color: #495057; font-size: 14px; flex: 0 0 40%;">Total Price:</span>
                   <span style="text-align: right; flex: 1;">
-                    <strong>{{ number_format($totalPrice, 2) }} TZS</strong>
+                    <strong>{{ number_format($totalPrice, 0) }} TSh</strong>
                     @php
                       $totalOutstandingTsh = $group['total_outstanding_tsh'] ?? 0;
-                      $totalOutstandingUsd = $group['total_outstanding_usd'] ?? 0;
 
                       $selfPaidGuestsWithBalance = $companyBookings->filter(function($b) {
                           return ($b->payment_responsibility ?? 'company') === 'self' && 
@@ -716,18 +704,17 @@
                                  $b->outstanding_balance_tsh >= 50;
                       });
                       $guestOutstandingTsh = $selfPaidGuestsWithBalance->sum('outstanding_balance_tsh');
-                      $guestOutstandingUsd = $selfPaidGuestsWithBalance->sum('outstanding_balance_usd');
                     @endphp
                     @if($totalOutstandingTsh >= 50)
                       <br><small class="text-danger">
-                        <strong>Company Outstanding: {{ number_format($totalOutstandingTsh, 2) }} TZS</strong>
+                        <strong>Company Outstanding: {{ number_format($totalOutstandingTsh, 0) }} TSh</strong>
                       </small>
                     @endif
 
                     @if($selfPaidGuestsWithBalance->count() > 0)
                       <div class="mt-1">
                         <span class="badge badge-warning" style="font-size: 11px;">
-                          <i class="fa fa-user"></i> Guest Outstanding: {{ number_format($guestOutstandingTsh, 2) }} TZS
+                          <i class="fa fa-user"></i> Guest Outstanding: {{ number_format($guestOutstandingTsh, 0) }} TSh
                         </span>
                       </div>
                     @endif
@@ -760,7 +747,7 @@
                     <i class="fa fa-print"></i> Group Bill
                   </a>
                   @if($totalOutstandingTsh >= 50)
-                    <button class="btn btn-sm btn-success" onclick="openCashPaymentModalCompany({{ $company->id ?? 0 }}, {{ json_encode($safeCompanyName) }}, {{ $totalOutstandingUsd }}, {{ $totalOutstandingTsh }})" title="Process Payment" style="flex: 1; min-width: calc(50% - 4px);">
+                    <button class="btn btn-sm btn-success" onclick="openCashPaymentModalCompany({{ $company->id ?? 0 }}, {{ json_encode($safeCompanyName) }}, {{ $totalOutstandingTsh }})" title="Process Payment" style="flex: 1; min-width: calc(50% - 4px);">
                       <i class="fa fa-money"></i> Pay Company Bill
                     </button>
                     <button class="btn btn-sm btn-danger" disabled title="Cannot check out - Outstanding balance must be paid first" style="flex: 0 0 100%; margin-top: 8px;">
@@ -904,14 +891,12 @@
                 <span style="font-weight: 600; color: #495057; font-size: 14px; flex: 0 0 40%;">Total Price:</span>
                 <span style="text-align: right; flex: 1;">
                   @php
-                    $bookingCurrentRate = $booking->locked_exchange_rate ?? $exchangeRate;
-                    $totalBillTsh = $booking->total_bill_tsh ?? ($booking->total_price * $bookingCurrentRate);
-                    $totalBillUsd = $booking->total_bill_usd ?? ($totalBillTsh / $bookingCurrentRate);
+                    $totalBillTsh = $booking->total_bill_tsh ?? $booking->total_price;
                   @endphp
-                  <strong>{{ number_format($totalBillTsh, 2) }} TZS</strong>
+                  <strong>{{ number_format($totalBillTsh, 0) }} TSh</strong>
                   @if(isset($booking->outstanding_balance_tsh) && $booking->outstanding_balance_tsh >= 50)
                     <br><small class="text-danger">
-                      <strong>Outstanding: {{ number_format($booking->outstanding_balance_tsh, 2) }} TZS</strong>
+                      <strong>Outstanding: {{ number_format($booking->outstanding_balance_tsh, 0) }} TSh</strong>
                     </small>
                   @elseif(isset($booking->outstanding_balance_tsh))
                     <br><small class="text-success"><i class="fa fa-check-circle"></i> All Paid</small>
@@ -944,7 +929,7 @@
                   <i class="fa fa-file-text"></i> View Bill
                 </a>
                 @if(isset($booking->outstanding_balance_tsh) && $booking->outstanding_balance_tsh >= 50)
-                <button class="btn btn-sm btn-success" onclick="openCashPaymentModal({{ $booking->id }}, '{{ $booking->booking_reference }}', {{ $booking->outstanding_balance_usd ?? 0 }}, {{ $booking->outstanding_balance_tsh ?? 0 }})" title="Process Payment" style="flex: 1; min-width: calc(50% - 4px);">
+                <button class="btn btn-sm btn-success" onclick="openCashPaymentModal({{ $booking->id }}, '{{ $booking->booking_reference }}', {{ $booking->outstanding_balance_tsh ?? 0 }})" title="Process Payment" style="flex: 1; min-width: calc(50% - 4px);">
                   <i class="fa fa-money"></i> Pay
                 </button>
                 <button class="btn btn-sm btn-danger" disabled title="Cannot check out - Outstanding balance must be paid first" style="flex: 0 0 100%; margin-top: 8px;">
@@ -1023,10 +1008,10 @@
             <input type="text" class="form-control" id="cash_payment_reference" name="payment_reference" placeholder="Enter transaction reference">
           </div>
           <div class="form-group">
-            <label for="cash_amount_tsh">Amount Received (TZS) *</label>
-            <input type="number" step="1" class="form-control" id="cash_amount_tsh" required oninput="calculateUsdAmount()">
-            <input type="hidden" id="cash_amount" name="amount"> <!-- Stores USD value for backend -->
-            <small class="form-text text-muted">Enter the amount received in TZS (System calculates USD equivalent)</small>
+            <label for="cash_amount_tsh">Amount Received (TSh) *</label>
+            <input type="number" step="1" class="form-control" id="cash_amount_tsh" required oninput="syncTshAmount()">
+            <input type="hidden" id="cash_amount" name="amount"> <!-- Stores TSh amount for backend -->
+            <small class="form-text text-muted">Enter the amount received in TSh</small>
           </div>
           <div id="cashPaymentAlert"></div>
         </form>
@@ -1133,15 +1118,10 @@
 }
 </style>
 <script>
-function calculateUsdAmount() {
+function syncTshAmount() {
     const tshAmount = parseFloat(document.getElementById('cash_amount_tsh').value) || 0;
-    const rate = parseFloat(document.getElementById('cash_amount_tsh').getAttribute('data-rate')) || 2500; // Default fallback rate
-    
-    // Calculate USD: TZS / Rate
-    const usdAmount = tshAmount / rate;
-    
-    // Update hidden USD input
-    document.getElementById('cash_amount').value = usdAmount.toFixed(2);
+    // Pass TSh amount as-is (amount_paid is already in TSh)
+    document.getElementById('cash_amount').value = tshAmount.toFixed(0);
 }
 
 function handlePaymentMethodChange() {
@@ -1217,21 +1197,17 @@ function handlePaymentMethodChange() {
     }
 }
 
-function openCashPaymentModal(bookingId, bookingRef, outstandingUsd, outstandingTsh) {
+function openCashPaymentModal(bookingId, bookingRef, outstandingTsh) {
     document.getElementById('cash_booking_id').value = bookingId;
     document.getElementById('cash_company_id').value = ''; // Clear company ID for individual payments
     document.getElementById('cash_booking_ref').textContent = bookingRef;
     
-    // Calculate rate (TZS / USD)
-    const rate = outstandingUsd > 0 ? (outstandingTsh / outstandingUsd) : 1;
-    document.getElementById('cash_amount_tsh').setAttribute('data-rate', rate);
-    
     document.getElementById('cash_outstanding_balance').innerHTML = 
-        '<strong>' + parseFloat(outstandingTsh).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' TZS</strong>';
+        '<strong>' + parseFloat(outstandingTsh).toLocaleString() + ' TSh</strong>';
     
-    // Set TZS amount (visible) and USD amount (hidden)
-    document.getElementById('cash_amount_tsh').value = parseFloat(outstandingTsh).toFixed(2);
-    document.getElementById('cash_amount').value = parseFloat(outstandingUsd).toFixed(2);
+    // Set TSh amount (visible and hidden — amounts are already TSh)
+    document.getElementById('cash_amount_tsh').value = parseFloat(outstandingTsh).toFixed(0);
+    document.getElementById('cash_amount').value = parseFloat(outstandingTsh).toFixed(0);
     
     document.getElementById('cash_payment_method').value = '';
     document.getElementById('cash_payment_provider').value = '';
@@ -1518,22 +1494,18 @@ function viewCompanyBookingsMobile(companyId, index) {
     viewCompanyBookings(companyId, index);
 }
 
-function openCashPaymentModalCompany(companyId, companyName, outstandingUsd, outstandingTsh) {
+function openCashPaymentModalCompany(companyId, companyName, outstandingTsh) {
     // Store company info for payment processing
     document.getElementById('cash_booking_id').value = '';
     document.getElementById('cash_company_id').value = companyId;
     document.getElementById('cash_booking_ref').textContent = companyName + ' (All Guests)';
     
-    // Calculate rate (TZS / USD)
-    const rate = outstandingUsd > 0 ? (outstandingTsh / outstandingUsd) : 1;
-    document.getElementById('cash_amount_tsh').setAttribute('data-rate', rate);
-    
     document.getElementById('cash_outstanding_balance').innerHTML = 
-        '<strong>' + parseFloat(outstandingTsh).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' TZS</strong>';
+        '<strong>' + parseFloat(outstandingTsh).toLocaleString() + ' TSh</strong>';
     
-    // Set TZS amount (visible) and USD amount (hidden)
-    document.getElementById('cash_amount_tsh').value = parseFloat(outstandingTsh).toFixed(2);
-    document.getElementById('cash_amount').value = parseFloat(outstandingUsd).toFixed(2);
+    // Set TSh amount (visible and hidden — amounts are already TSh)
+    document.getElementById('cash_amount_tsh').value = parseFloat(outstandingTsh).toFixed(0);
+    document.getElementById('cash_amount').value = parseFloat(outstandingTsh).toFixed(0);
     
     document.getElementById('cash_payment_method').value = '';
     document.getElementById('cash_payment_provider').value = '';

@@ -365,7 +365,7 @@
                                 <a href="{{ route('booking.index') }}" class="btn theme_btn button_hover">Book Now</a>
                             </div>
                             <a href="{{ route('booking.index') }}"><h4 class="sec_h4">Double Deluxe Room</h4></a>
-                            <h5>$250<small>/night</small></h5>
+                            <h5>TSh 75,000<small>/night</small></h5>
                         </div>
                     </div>
                     <div class="col-lg-3 col-sm-6">
@@ -375,7 +375,7 @@
                                 <a href="{{ route('booking.index') }}" class="btn theme_btn button_hover">Book Now</a>
                             </div>
                             <a href="{{ route('booking.index') }}"><h4 class="sec_h4">Single Deluxe Room</h4></a>
-                            <h5>$200<small>/night</small></h5>
+                            <h5>TSh 60,000<small>/night</small></h5>
                         </div>
                     </div>
                     <div class="col-lg-3 col-sm-6">
@@ -385,7 +385,7 @@
                                 <a href="{{ route('booking.index') }}" class="btn theme_btn button_hover">Book Now</a>
                             </div>
                             <a href="{{ route('booking.index') }}"><h4 class="sec_h4">Honeymoon Suit</h4></a>
-                            <h5>$750<small>/night</small></h5>
+                            <h5>TSh 225,000<small>/night</small></h5>
                         </div>
                     </div>
                     <div class="col-lg-3 col-sm-6">
@@ -395,7 +395,7 @@
                                 <a href="{{ route('booking.index') }}" class="btn theme_btn button_hover">Book Now</a>
                             </div>
                             <a href="{{ route('booking.index') }}"><h4 class="sec_h4">Economy Double</h4></a>
-                            <h5>$200<small>/night</small></h5>
+                            <h5>TSh 60,000<small>/night</small></h5>
                         </div>
                     </div>
                 </div>
@@ -475,7 +475,7 @@
                                 <a href="{{ route('booking.index') }}" class="btn theme_btn button_hover">Book Now</a>
                             </div>
                             <a href="{{ route('booking.index') }}"><h4 class="sec_h4">Double Deluxe Room</h4></a>
-                            <h5>$250<small>/night</small></h5>
+                            <h5>TSh 75,000<small>/night</small></h5>
                         </div>
                     </div>
                     <div class="col-lg-3 col-sm-6">
@@ -485,7 +485,7 @@
                                 <a href="{{ route('booking.index') }}" class="btn theme_btn button_hover">Book Now</a>
                             </div>
                             <a href="{{ route('booking.index') }}"><h4 class="sec_h4">Single Deluxe Room</h4></a>
-                            <h5>$200<small>/night</small></h5>
+                            <h5>TSh 60,000<small>/night</small></h5>
                         </div>
                     </div>
                     <div class="col-lg-3 col-sm-6">
@@ -495,7 +495,7 @@
                                 <a href="{{ route('booking.index') }}" class="btn theme_btn button_hover">Book Now</a>
                             </div>
                             <a href="{{ route('booking.index') }}"><h4 class="sec_h4">Honeymoon Suit</h4></a>
-                            <h5>$750<small>/night</small></h5>
+                            <h5>TSh 225,000<small>/night</small></h5>
                         </div>
                     </div>
                     <div class="col-lg-3 col-sm-6">
@@ -505,7 +505,7 @@
                                 <a href="{{ route('booking.index') }}" class="btn theme_btn button_hover">Book Now</a>
                             </div>
                             <a href="{{ route('booking.index') }}"><h4 class="sec_h4">Economy Double</h4></a>
-                            <h5>$200<small>/night</small></h5>
+                            <h5>TSh 60,000<small>/night</small></h5>
                         </div>
                     </div>
                     <div class="col-lg-3 col-sm-6">
@@ -515,7 +515,7 @@
                                 <a href="{{ route('booking.index') }}" class="btn theme_btn button_hover">Book Now</a>
                             </div>
                             <a href="{{ route('booking.index') }}"><h4 class="sec_h4">Double Deluxe Room</h4></a>
-                            <h5>$250<small>/night</small></h5>
+                            <h5>TSh 75,000<small>/night</small></h5>
                         </div>
                     </div>
                     <div class="col-lg-3 col-sm-6">
@@ -525,7 +525,7 @@
                                 <a href="{{ route('booking.index') }}" class="btn theme_btn button_hover">Book Now</a>
                             </div>
                             <a href="{{ route('booking.index') }}"><h4 class="sec_h4">Single Deluxe Room</h4></a>
-                            <h5>$200<small>/night</small></h5>
+                            <h5>TSh 60,000<small>/night</small></h5>
                         </div>
                     </div>
                     <div class="col-lg-3 col-sm-6">
@@ -535,7 +535,7 @@
                                 <a href="{{ route('booking.index') }}" class="btn theme_btn button_hover">Book Now</a>
                             </div>
                             <a href="{{ route('booking.index') }}"><h4 class="sec_h4">Honeymoon Suit</h4></a>
-                            <h5>$750<small>/night</small></h5>
+                            <h5>TSh 225,000<small>/night</small></h5>
                         </div>
                     </div>
                     <div class="col-lg-3 col-sm-6">
@@ -545,7 +545,7 @@
                                 <a href="{{ route('booking.index') }}" class="btn theme_btn button_hover">Book Now</a>
                             </div>
                             <a href="{{ route('booking.index') }}"><h4 class="sec_h4">Economy Double</h4></a>
-                            <h5>$200<small>/night</small></h5>
+                            <h5>TSh 60,000<small>/night</small></h5>
                         </div>
                     </div>
                 </div>

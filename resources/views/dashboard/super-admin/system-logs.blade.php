@@ -3,13 +3,13 @@
 @section('content')
 <div class="app-title">
   <div>
-    <h1><i class="fa fa-file-text-o"></i> System Logs</h1>
-    <p>View system events and errors</p>
+    <h1><i class="fa fa-file-text-o"></i> {{ __('System Logs') }}</h1>
+    <p>{{ __('View system events and errors') }}</p>
   </div>
   <ul class="app-breadcrumb breadcrumb">
     <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
-    <li class="breadcrumb-item"><a href="{{ route('super_admin.dashboard') }}">Dashboard</a></li>
-    <li class="breadcrumb-item"><a href="#">System Logs</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('super_admin.dashboard') }}">{{ __('Dashboard') }}</a></li>
+    <li class="breadcrumb-item"><a href="#">{{ __('System Logs') }}</a></li>
   </ul>
 </div>
 
@@ -21,9 +21,9 @@
         <form method="GET" action="{{ route('super_admin.system-logs') }}" class="row">
           <div class="col-md-3">
             <div class="form-group">
-              <label for="level">Log Level</label>
+              <label for="level">{{ __('Log Level') }}</label>
               <select name="level" id="level" class="form-control">
-                <option value="">All Levels</option>
+                <option value="">{{ __('All Levels') }}</option>
                 @foreach($levels as $level)
                 <option value="{{ $level }}" {{ request('level') == $level ? 'selected' : '' }}>
                   {{ ucfirst($level) }}
@@ -34,9 +34,9 @@
           </div>
           <div class="col-md-3">
             <div class="form-group">
-              <label for="channel">Channel</label>
+              <label for="channel">{{ __('Channel') }}</label>
               <select name="channel" id="channel" class="form-control">
-                <option value="">All Channels</option>
+                <option value="">{{ __('All Channels') }}</option>
                 @foreach($channels as $channel)
                 <option value="{{ $channel }}" {{ request('channel') == $channel ? 'selected' : '' }}>
                   {{ ucfirst($channel) }}
@@ -47,15 +47,15 @@
           </div>
           <div class="col-md-2">
             <div class="form-group">
-              <label for="date_from">Date From</label>
-              <input type="date" name="date_from" id="date_from" class="form-control" 
+              <label for="date_from">{{ __('Date From') }}</label>
+              <input type="date" name="date_from" id="date_from" class="form-control"
                      value="{{ request('date_from') }}">
             </div>
           </div>
           <div class="col-md-2">
             <div class="form-group">
-              <label for="date_to">Date To</label>
-              <input type="date" name="date_to" id="date_to" class="form-control" 
+              <label for="date_to">{{ __('Date To') }}</label>
+              <input type="date" name="date_to" id="date_to" class="form-control"
                      value="{{ request('date_to') }}">
             </div>
           </div>
@@ -63,14 +63,14 @@
             <div class="form-group">
               <label>&nbsp;</label>
               <button type="submit" class="btn btn-primary btn-block">
-                <i class="fa fa-search"></i> Filter
+                <i class="fa fa-search"></i> {{ __('Filter') }}
               </button>
             </div>
           </div>
         </form>
         <div class="mt-2">
           <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#clearLogsModal">
-            <i class="fa fa-trash"></i> Clear Old Logs
+            <i class="fa fa-trash"></i> {{ __('Clear Old Logs') }}
           </button>
         </div>
       </div>
@@ -83,9 +83,9 @@
   <div class="col-md-12">
     <div class="tile">
       <div class="tile-title-w-btn">
-        <h3 class="title"><i class="fa fa-file-text-o"></i> System Logs ({{ $logs->total() }} records)</h3>
+        <h3 class="title"><i class="fa fa-file-text-o"></i> {{ __('System Logs') }} ({{ $logs->total() }} {{ __('records') }})</h3>
         <div class="btn-group">
-          <input type="text" id="logSearchInput" class="form-control" placeholder="Search logs..." style="width: 250px; margin-right: 10px;">
+          <input type="text" id="logSearchInput" class="form-control" placeholder="{{ __('Search logs...') }}" style="width: 250px; margin-right: 10px;">
           <span class="badge badge-info" id="searchResultCount" style="display: none; padding: 8px 12px; font-size: 14px;"></span>
         </div>
       </div>
@@ -94,13 +94,13 @@
           <table class="table table-hover table-bordered">
             <thead>
               <tr>
-                <th>Time</th>
-                <th>Level</th>
-                <th>Channel</th>
-                <th>Message</th>
-                <th>User</th>
-                <th>IP Address</th>
-                <th>Context</th>
+                <th>{{ __('Time') }}</th>
+                <th>{{ __('Level') }}</th>
+                <th>{{ __('Channel') }}</th>
+                <th>{{ __('Message') }}</th>
+                <th>{{ __('User') }}</th>
+                <th>{{ __('IP Address') }}</th>
+                <th>{{ __('Context') }}</th>
               </tr>
             </thead>
             <tbody id="logsTableBody">
@@ -183,7 +183,7 @@
                       @endif
                     @endif
                   @else
-                    <span class="text-muted">System</span>
+                    <span class="text-muted">{{ __('System') }}</span>
                   @endif
                 </td>
                 <td><small>{{ $log->ip_address }}</small></td>
@@ -339,7 +339,7 @@
               @endif
               @empty
               <tr>
-                <td colspan="7" class="text-center">No system logs found</td>
+                <td colspan="7" class="text-center">{{ __('No system logs found') }}</td>
               </tr>
               @endforelse
             </tbody>

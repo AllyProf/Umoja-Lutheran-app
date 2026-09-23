@@ -685,38 +685,29 @@ class BarKeeperController extends Controller
                 'reception_notes' => $serviceRequest->reception_notes . " | Served by {$user->name} (" . ucfirst(str_replace('_', ' ', $request->payment_method)) . ")" . ($request->payment_reference ? " Ref: {$request->payment_reference}" : ""),
             ]);
 
-            // 2. Handle Payment for Residents (Booking-based)
+            // 2. Handle Payment for Residents (Booking-based) — amounts are TSh only
             if ($serviceRequest->booking_id && $request->payment_method !== 'room_charge') {
                 $booking = $serviceRequest->booking;
                 $amountTsh = $serviceRequest->total_price_tsh;
-
-                // Convert to USD using locked rate or current rate
-                $exchangeRate = $booking->locked_exchange_rate;
-                if (!$exchangeRate) {
-                    $currencyService = new \App\Services\CurrencyExchangeService();
-                    $exchangeRate = $currencyService->getUsdToTshRate();
-                }
-
-                $amountUsd = $amountTsh / $exchangeRate;
-                $newAmountPaidUsd = ($booking->amount_paid ?? 0) + $amountUsd;
+                $newAmountPaid = ($booking->amount_paid ?? 0) + $amountTsh;
 
                 // Finalize Booking Payment Status if fully paid
                 $serviceTotalTsh = $booking->serviceRequests()->whereIn('status', ['approved', 'completed'])->sum('total_price_tsh');
-                $roomTotalTsh = ($booking->total_price * $exchangeRate);
+                $roomTotalTsh = $booking->total_price;
 
                 // Extension cost check
                 $extensionCostTsh = 0;
                 if ($booking->extension_status === 'approved' && $booking->original_check_out && $booking->extension_requested_to) {
                     $nights = \Carbon\Carbon::parse($booking->original_check_out)->diffInDays($booking->extension_requested_to);
                     if ($nights > 0 && $booking->room)
-                        $extensionCostTsh = $booking->room->price_per_night * $nights * $exchangeRate;
+                        $extensionCostTsh = $booking->room->price_per_night * $nights;
                 }
 
                 $totalBillTsh = $roomTotalTsh + $serviceTotalTsh + $extensionCostTsh;
-                $isFullyPaid = (($newAmountPaidUsd * $exchangeRate) >= ($totalBillTsh - 50));
+                $isFullyPaid = ($newAmountPaid >= ($totalBillTsh - 50));
 
                 $booking->update([
-                    'amount_paid' => $newAmountPaidUsd,
+                    'amount_paid' => $newAmountPaid,
                     'payment_status' => $isFullyPaid ? 'paid' : 'partial'
                 ]);
             }
@@ -926,19 +917,97 @@ class BarKeeperController extends Controller
 
         $cancelledOrders = $cancelledQuery->orderBy('cancelled_at', 'desc')->get();
 
+        // ── Shift info for counters (live + closed duration) ──
+        $formatDuration = function ($from, $to) {
+            if (!$from) {
+                return null;
+            }
+            $to = $to ?? now();
+            $totalMinutes = max(0, $from->diffInMinutes($to));
+            $hours = intdiv($totalMinutes, 60);
+            $minutes = $totalMinutes % 60;
+            if ($hours > 0 && $minutes > 0) {
+                return "{$hours}h {$minutes}m";
+            }
+            if ($hours > 0) {
+                return "{$hours}h";
+            }
+            return "{$minutes}m";
+        };
+
+        // Keep null approved_by as 0 (System / Walk-in)
+        $counterIds = $soldOrders->pluck('approved_by')
+            ->map(fn ($id) => $id ?: 0)
+            ->unique()
+            ->values();
+
+        // Also include bar keepers who are live even with zero sales (manager view)
+        $liveShifts = ShiftClosure::with('staff')
+            ->where('status', 'active')
+            ->when(!$isManager, fn ($q) => $q->where('staff_id', $user->id))
+            ->when($isManager, function ($q) {
+                $q->whereHas('staff', fn ($s) => $s->where('role', 'bar_keeper'));
+            })
+            ->get()
+            ->keyBy('staff_id');
+
+        $counterIds = $counterIds->merge($liveShifts->keys())->unique()->values();
+        $staffIdsForShifts = $counterIds->filter(fn ($id) => (int) $id > 0)->values();
+
+        $closedShifts = collect();
+        if ($staffIdsForShifts->isNotEmpty()) {
+            $closedShifts = ShiftClosure::with('staff')
+                ->whereIn('staff_id', $staffIdsForShifts)
+                ->whereNotNull('closed_at')
+                ->where(function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('opened_at', [$startDate, $endDate])
+                        ->orWhereBetween('closed_at', [$startDate, $endDate]);
+                })
+                ->orderByDesc('id')
+                ->get()
+                ->groupBy('staff_id');
+        }
+
         // ── Group sold orders by counter (approved_by) ──
-        $byCounter = $soldOrders->groupBy(function ($o) {
-            return $o->approved_by ?? 0;
-        })->map(function ($group) {
-            $first = $group->first();
-            return [
-                'counter_name'  => $first->approvedBy->name ?? 'System / Walk-in',
-                'total_orders'  => $group->count(),
-                'total_revenue' => $group->sum('total_price_tsh'),
-                'paid_revenue'  => $group->where('payment_status', 'paid')->sum('total_price_tsh'),
-                'pending_revenue' => $group->where('payment_status', 'pending')->sum('total_price_tsh'),
-                'orders'        => $group,
-            ];
+        $ordersByCounter = $soldOrders->groupBy(fn ($o) => $o->approved_by ?: 0);
+
+        $byCounter = collect();
+        foreach ($counterIds as $counterId) {
+            $group = $ordersByCounter->get($counterId, collect());
+            $liveShift = $liveShifts->get($counterId);
+            $latestClosed = optional($closedShifts->get($counterId))->first();
+
+            $isLive = (bool) $liveShift;
+            $openedAt = $liveShift?->opened_at ?? $latestClosed?->opened_at;
+            $closedAt = $isLive ? null : $latestClosed?->closed_at;
+            $durationTo = $isLive ? now() : $closedAt;
+
+            $counterName = $group->first()?->approvedBy?->name
+                ?? $liveShift?->staff?->name
+                ?? $latestClosed?->staff?->name
+                ?? ((int) $counterId === 0 ? 'System / Walk-in' : 'Unknown Counter');
+
+            $byCounter->put($counterId, [
+                'counter_id'       => $counterId,
+                'counter_name'     => $counterName,
+                'is_live'          => $isLive,
+                'shift_id'         => $liveShift?->id,
+                'shift_sort_id'    => $liveShift?->id ?? $latestClosed?->id ?? 0,
+                'opened_at'        => $openedAt,
+                'closed_at'        => $closedAt,
+                'duration_label'   => $formatDuration($openedAt, $durationTo),
+                'total_orders'     => $group->count(),
+                'total_revenue'    => $group->sum('total_price_tsh'),
+                'paid_revenue'     => $group->where('payment_status', 'paid')->sum('total_price_tsh'),
+                'pending_revenue'  => $group->where('payment_status', 'pending')->sum('total_price_tsh'),
+                'orders'           => $group,
+            ]);
+        }
+
+        // Last opened shift stays on top, including after it is closed.
+        // A newly opened shift gets a higher id and moves to the top.
+        $byCounter = $byCounter->sortByDesc(function ($row) {
+            return (int) ($row['shift_sort_id'] ?? 0);
         });
 
         // ── Summary stats ──
@@ -948,6 +1017,7 @@ class BarKeeperController extends Controller
             'paid_revenue'    => $soldOrders->where('payment_status', 'paid')->sum('total_price_tsh'),
             'pending_revenue' => $soldOrders->where('payment_status', 'pending')->sum('total_price_tsh'),
             'total_cancelled' => $cancelledOrders->count(),
+            'live_counters'   => $liveShifts->count(),
         ];
 
         return view('dashboard.bar-keeper-order-summary', compact(
@@ -1571,22 +1641,46 @@ class BarKeeperController extends Controller
     }
 
     /**
-     * Get shift summary (unclosed sales)
+     * Get shift summary (sales linked to the active shift)
      */
     public function getShiftSummary()
     {
         $staffId = Auth::guard('staff')->id();
 
-        $unclosedSales = ServiceRequest::where('approved_by', $staffId)
-            ->whereNull('shift_closure_id')
-            ->where('payment_status', 'paid')
+        $activeShift = ShiftClosure::where('staff_id', $staffId)
+            ->where('status', 'active')
+            ->first();
+
+        if (!$activeShift) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Huna shift iliyofunguliwa.',
+                'summary' => [
+                    'total_cash' => 0,
+                    'total_mpesa' => 0,
+                    'total_other' => 0,
+                    'count' => 0,
+                ],
+            ], 400);
+        }
+
+        // Count paid sales for this shift (linked at payment time),
+        // plus any legacy paid sales by this staff that were never linked.
+        $shiftSales = ServiceRequest::where('payment_status', 'paid')
+            ->where(function ($q) use ($staffId, $activeShift) {
+                $q->where('shift_closure_id', $activeShift->id)
+                    ->orWhere(function ($sub) use ($staffId) {
+                        $sub->where('approved_by', $staffId)
+                            ->whereNull('shift_closure_id');
+                    });
+            })
             ->get();
 
         $summary = [
-            'total_cash' => (float) $unclosedSales->where('payment_method', 'cash')->sum('total_price_tsh'),
-            'total_mpesa' => (float) $unclosedSales->where('payment_method', 'mpesa')->sum('total_price_tsh'),
-            'total_other' => (float) $unclosedSales->whereNotIn('payment_method', ['cash', 'mpesa'])->sum('total_price_tsh'),
-            'count' => $unclosedSales->count(),
+            'total_cash' => (float) $shiftSales->where('payment_method', 'cash')->sum('total_price_tsh'),
+            'total_mpesa' => (float) $shiftSales->where('payment_method', 'mpesa')->sum('total_price_tsh'),
+            'total_other' => (float) $shiftSales->whereNotIn('payment_method', ['cash', 'mpesa'])->sum('total_price_tsh'),
+            'count' => $shiftSales->count(),
         ];
 
         return response()->json([
@@ -1651,15 +1745,20 @@ class BarKeeperController extends Controller
             ], 400);
         }
 
-        // Get all unclosed paid sales for this staff
-        $unclosedSales = ServiceRequest::where('approved_by', $staffId)
-            ->whereNull('shift_closure_id')
-            ->where('payment_status', 'paid')
+        // Sales already linked to this shift at payment time, plus unlinked legacy sales
+        $shiftSales = ServiceRequest::where('payment_status', 'paid')
+            ->where(function ($q) use ($staffId, $activeShift) {
+                $q->where('shift_closure_id', $activeShift->id)
+                    ->orWhere(function ($sub) use ($staffId) {
+                        $sub->where('approved_by', $staffId)
+                            ->whereNull('shift_closure_id');
+                    });
+            })
             ->get();
 
-        $totalCash = (float) $unclosedSales->where('payment_method', 'cash')->sum('total_price_tsh');
-        $totalMpesa = (float) $unclosedSales->where('payment_method', 'mpesa')->sum('total_price_tsh');
-        $totalOther = (float) $unclosedSales->whereNotIn('payment_method', ['cash', 'mpesa'])->sum('total_price_tsh');
+        $totalCash = (float) $shiftSales->where('payment_method', 'cash')->sum('total_price_tsh');
+        $totalMpesa = (float) $shiftSales->where('payment_method', 'mpesa')->sum('total_price_tsh');
+        $totalOther = (float) $shiftSales->whereNotIn('payment_method', ['cash', 'mpesa'])->sum('total_price_tsh');
 
         $amountSubmitted = (float) $request->amount_submitted;
         $difference = $amountSubmitted - $totalCash;
@@ -1675,13 +1774,94 @@ class BarKeeperController extends Controller
             'notes' => $request->notes
         ]);
 
-        // Link sales to closure
-        ServiceRequest::whereIn('id', $unclosedSales->pluck('id'))->update(['shift_closure_id' => $activeShift->id]);
+        // Link any remaining unlinked sales to this closure
+        ServiceRequest::whereIn('id', $shiftSales->whereNull('shift_closure_id')->pluck('id'))
+            ->update(['shift_closure_id' => $activeShift->id]);
 
         return response()->json([
             'success' => true,
             'message' => 'Shift imefungwa vizuri. Tafadhali kabidhi hela kwa Cashier.',
             'closure' => $activeShift
+        ]);
+    }
+
+    /**
+     * Manager force-closes a counter shift that was left open.
+     */
+    public function forceCloseShift(Request $request, ShiftClosure $shift)
+    {
+        $manager = Auth::guard('staff')->user();
+        $role = strtolower($manager->role ?? '');
+
+        if (!in_array($role, ['manager', 'super_admin'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only manager can force-close a shift.',
+            ], 403);
+        }
+
+        if ($shift->status !== 'active') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Shift hii tayari imefungwa.',
+            ], 400);
+        }
+
+        $request->validate([
+            'notes' => 'nullable|string|max:500',
+            'amount_submitted' => 'nullable|numeric|min:0',
+        ]);
+
+        $staffId = $shift->staff_id;
+
+        $shiftSales = ServiceRequest::where('payment_status', 'paid')
+            ->where(function ($q) use ($staffId, $shift) {
+                $q->where('shift_closure_id', $shift->id)
+                    ->orWhere(function ($sub) use ($staffId) {
+                        $sub->where('approved_by', $staffId)
+                            ->whereNull('shift_closure_id');
+                    });
+            })
+            ->get();
+
+        $totalCash = (float) $shiftSales->where('payment_method', 'cash')->sum('total_price_tsh');
+        $totalMpesa = (float) $shiftSales->where('payment_method', 'mpesa')->sum('total_price_tsh');
+        $totalOther = (float) $shiftSales->whereNotIn('payment_method', ['cash', 'mpesa'])->sum('total_price_tsh');
+
+        $amountSubmitted = $request->filled('amount_submitted')
+            ? (float) $request->amount_submitted
+            : $totalCash;
+
+        $managerNote = 'Force-closed by manager ' . ($manager->name ?? $manager->id)
+            . ' at ' . now()->format('Y-m-d H:i');
+        if ($request->filled('notes')) {
+            $managerNote .= ' | Reason: ' . $request->notes;
+        }
+
+        $shift->update([
+            'closed_at' => now(),
+            'total_cash_tzs' => $totalCash,
+            'total_mpesa_tzs' => $totalMpesa,
+            'total_other_tzs' => $totalOther,
+            'amount_submitted_tzs' => $amountSubmitted,
+            'difference_tzs' => $amountSubmitted - $totalCash,
+            'status' => 'pending_cashier',
+            'notes' => trim(($shift->notes ? $shift->notes . "\n" : '') . $managerNote),
+        ]);
+
+        ServiceRequest::whereIn('id', $shiftSales->whereNull('shift_closure_id')->pluck('id'))
+            ->update(['shift_closure_id' => $shift->id]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Shift ya counter imefungwa na manager.',
+            'closure' => $shift->fresh('staff'),
+            'summary' => [
+                'total_cash' => $totalCash,
+                'total_mpesa' => $totalMpesa,
+                'total_other' => $totalOther,
+                'count' => $shiftSales->count(),
+            ],
         ]);
     }
 }

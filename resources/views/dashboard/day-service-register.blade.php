@@ -186,11 +186,11 @@
               <label for="amount">Amount <span class="text-danger">*</span></label>
               <div class="input-group">
                 <div class="input-group-prepend">
-                  <span class="input-group-text" id="currency_symbol">TZS</span>
+                  <span class="input-group-text" id="currency_symbol">TSh</span>
                 </div>
                 <input class="form-control" type="number" id="amount" name="amount" step="0.01" min="0" placeholder="0.00" required>
               </div>
-              <small class="form-text text-muted" id="currency_hint">Enter amount in TZS</small>
+              <small class="form-text text-muted" id="currency_hint">Enter amount in TSh</small>
             </div>
           </div>
         </div>
@@ -216,7 +216,7 @@
                 <label for="amount_paid">Amount Paid <span id="amount_paid_required" class="text-danger"></span></label>
                 <div class="input-group">
                   <div class="input-group-prepend">
-                    <span class="input-group-text" id="paid_currency_symbol">TZS</span>
+                    <span class="input-group-text" id="paid_currency_symbol">TSh</span>
                   </div>
                   <input class="form-control" type="number" id="amount_paid" name="amount_paid" step="0.01" min="0" placeholder="0.00">
                 </div>
@@ -358,10 +358,9 @@ $(document).ready(function() {
       singleQuantityGroup.style.display = 'block';
       packageItemsSection.style.display = 'block';
       
-      // Calculate based on base price + selected package items
+      // Always use Tanzanian/TSh price
       const priceTanzanian = parseFloat(selectedOption.getAttribute('data-price-tanzanian') || 0);
-      const priceInternational = parseFloat(selectedOption.getAttribute('data-price-international') || priceTanzanian);
-      const basePrice = guestType === 'tanzanian' ? priceTanzanian : priceInternational;
+      const basePrice = priceTanzanian;
       
       // TODO: Add pricing for package items (drinks, foods, decoration, photos)
       // For now, use base price only
@@ -390,8 +389,7 @@ $(document).ready(function() {
       const numPeople = parseInt(document.getElementById('number_of_people_single').value) || 1;
       const pricingType = selectedOption.getAttribute('data-pricing-type');
       const priceTanzanian = parseFloat(selectedOption.getAttribute('data-price-tanzanian') || 0);
-      const priceInternational = parseFloat(selectedOption.getAttribute('data-price-international') || priceTanzanian);
-      const basePrice = guestType === 'tanzanian' ? priceTanzanian : priceInternational;
+      const basePrice = priceTanzanian;
       
       let calculatedAmount = 0;
       if (pricingType === 'per_person') {
@@ -461,15 +459,12 @@ $(document).ready(function() {
     }
   });
 
-  // Guest type change handler
+  // Guest type change handler — always TSh
   guestTypeSelect.addEventListener('change', function() {
-    const guestType = this.value;
-    const currencySymbol = guestType === 'tanzanian' ? 'TZS' : 'USD';
+    const currencySymbol = 'TSh';
     document.getElementById('currency_symbol').textContent = currencySymbol;
     document.getElementById('paid_currency_symbol').textContent = currencySymbol;
-    document.getElementById('currency_hint').textContent = guestType === 'tanzanian' 
-      ? 'Enter amount in TZS' 
-      : 'Enter amount in USD';
+    document.getElementById('currency_hint').textContent = 'Enter amount in TSh';
     
     // Recalculate amount if service is selected
     const serviceTypeSelect = document.getElementById('service_type');

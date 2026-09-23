@@ -389,7 +389,6 @@
         }
         
         $balanceBase = max(0, $grandTotalBase - $grandPaidBase);
-        $currentExchangeRate = $exchangeRate ?? 2500;
     @endphp
 
     <div class="no-print-bar no-print">
@@ -473,8 +472,8 @@
                 <tr>
                     <th style="width: 50%;">Description</th>
                     <th style="text-align: center;">Nights</th>
-                    <th style="text-align: right;">Rate (TZS)</th>
-                    <th style="text-align: right;">Total (TZS)</th>
+                    <th style="text-align: right;">Rate (TSh)</th>
+                    <th style="text-align: right;">Total (TSh)</th>
                 </tr>
             </thead>
             <tbody>
@@ -488,25 +487,20 @@
                         <td>{{ $gs->service->name }} @if($gs->quantity > 1) <small>(x{{ $gs->quantity }})</small> @endif</td>
                         <td style="text-align: center;">-</td>
                         <td style="text-align: right;">-</td>
-                        <td style="text-align: right;">{{ number_format($gs->total_price_tsh, 0) }} TZS</td>
+                        <td style="text-align: right;">{{ number_format($gs->total_price_tsh, 0) }} TSh</td>
                     </tr>
                     @endforeach
                 @else
                     {{-- Default: Show Rooms listed --}}
                     @foreach($displayBookings as $b)
-                    @php
-                        $bookingExchangeRate = $b->locked_exchange_rate ?? $currentExchangeRate;
-                        $ratePerNightTZS = $b->room->price_per_night * $bookingExchangeRate;
-                        $totalPriceTZS = $b->total_price * $bookingExchangeRate;
-                    @endphp
                     <tr>
                         <td>
                             <strong>Room Accommodation: {{ $b->room->room_type }}</strong><br>
                             <small style="color: grey;">Guest: {{ $b->guest_name }} | Ref: {{ $b->booking_reference }}</small>
                         </td>
                         <td style="text-align: center;">{{ $b->check_in->diffInDays($b->check_out) }}</td>
-                        <td style="text-align: right;">{{ number_format($ratePerNightTZS, 0) }} TZS</td>
-                        <td style="text-align: right;">{{ number_format($totalPriceTZS, 0) }} TZS</td>
+                        <td style="text-align: right;">{{ number_format($b->room->price_per_night, 0) }} TSh</td>
+                        <td style="text-align: right;">{{ number_format($b->total_price, 0) }} TSh</td>
                     </tr>
                     @endforeach
                 @endif
@@ -517,11 +511,11 @@
             <div class="summary-box">
                 <div class="summary-row">
                     <b>Subtotal:</b>
-                    <span>{{ number_format($grandTotalBase * $currentExchangeRate, 0) }} TZS</span>
+                    <span>{{ number_format($grandTotalBase, 0) }} TSh</span>
                 </div>
                 <div class="summary-row total">
                     <b>Grand Total:</b>
-                    <span>{{ number_format($grandTotalBase * $currentExchangeRate, 0) }} TZS</span>
+                    <span>{{ number_format($grandTotalBase, 0) }} TSh</span>
                 </div>
                 @if(isset($isGuestWithCompanyPaidServices) && $isGuestWithCompanyPaidServices)
                     {{-- For company-billed bookings viewed by guest, show clear message --}}
@@ -537,12 +531,12 @@
                     {{-- For individual or self-pay bookings, show normal payment details --}}
                     <div class="summary-row paid">
                         <b>Total Amount Paid:</b>
-                        <span>{{ number_format($grandPaidBase * $currentExchangeRate, 0) }} TZS</span>
+                        <span>{{ number_format($grandPaidBase, 0) }} TSh</span>
                     </div>
                     @if($balanceBase > 0.1)
                     <div class="summary-row" style="color: var(--danger); font-weight: 700; border-top: 1px dashed #ddd; margin-top: 10px; padding-top: 10px;">
                         <b>Remaining Balance:</b>
-                        <span>{{ number_format($balanceBase * $currentExchangeRate, 0) }} TZS</span>
+                        <span>{{ number_format($balanceBase, 0) }} TSh</span>
                     </div>
                     @endif
                 @endif

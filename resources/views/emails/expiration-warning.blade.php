@@ -42,7 +42,7 @@ This is a friendly reminder that your booking payment is still pending. Please c
 
 **Number of Nights:** {{ \Carbon\Carbon::parse($booking->check_in)->diffInDays($booking->check_out) }} night(s)
 
-**Total Amount:** ${{ number_format($booking->total_price, 2) }}
+**Total Amount:** TSh {{ number_format($booking->total_price, 0) }}
 
 @if($booking->expires_at)
 **Expires At:** {{ \Carbon\Carbon::parse($booking->expires_at)->setTimezone('Africa/Nairobi')->format('F d, Y \a\t g:i A') }} (East Africa Time)

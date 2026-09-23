@@ -170,7 +170,7 @@ class PurchaseRequestController extends Controller
                                 try {
                                     $smsService = app(\App\Services\SmsService::class);
                                     $smsMessage = "URGENT PURCHASE: {$staff->name} requested {$item['quantity']} {$item['unit']} of '{$itemName}'. Priority: " . strtoupper($item['priority']);
-                                    $smsService->sendSms($manager->phone, $smsMessage);
+                                    $smsService->sendSms($manager->phone, $smsMessage, 'sms_purchase_request');
                                 } catch (\Exception $e) {
                                     \Log::error("Failed to send purchase request SMS to manager: " . $e->getMessage());
                                 }
@@ -231,7 +231,7 @@ class PurchaseRequestController extends Controller
                             try {
                                 $smsService = app(\App\Services\SmsService::class);
                                 $smsMessage = "URGENT PURCHASE: {$staff->name} requested {$request->quantity} {$request->unit} of '{$request->item_name}'. Priority: " . strtoupper($request->priority);
-                                $smsService->sendSms($manager->phone, $smsMessage);
+                                $smsService->sendSms($manager->phone, $smsMessage, 'sms_purchase_request');
                             } catch (\Exception $e) {
                                 \Log::error("Failed to send purchase request SMS to manager: " . $e->getMessage());
                             }
@@ -315,7 +315,7 @@ class PurchaseRequestController extends Controller
                     try {
                         $smsService = app(\App\Services\SmsService::class);
                         $smsMessage = "🚨 EMERGENCY: {$staff->name} requested {$request->quantity} {$request->unit} of '{$request->item_name}'. Cost Est: " . ($request->estimated_cost ?? 'N/A');
-                        $smsService->sendSms($manager->phone, $smsMessage);
+                        $smsService->sendSms($manager->phone, $smsMessage, 'sms_purchase_request');
                     } catch (\Exception $e) {
                         \Log::error("Failed to send emergency purchase SMS to manager: " . $e->getMessage());
                     }
@@ -793,7 +793,7 @@ class PurchaseRequestController extends Controller
             if ($requester && $requester->phone) {
                 $smsService = app(\App\Services\SmsService::class);
                 $smsMessage = "Hi " . ($requester->name ?? 'Staff') . ", your purchase request for '{$purchaseRequest->item_name}' ({$purchaseRequest->quantity} {$purchaseRequest->unit}) has been APPROVED. Thank you!";
-                $smsService->sendSms($requester->phone, $smsMessage);
+                $smsService->sendSms($requester->phone, $smsMessage, 'sms_purchase_request');
             }
         } catch (\Exception $e) {
             \Log::error("Failed to send purchase approval SMS to requester: " . $e->getMessage());
@@ -888,7 +888,7 @@ class PurchaseRequestController extends Controller
             if ($requester && $requester->phone) {
                 $smsService = app(\App\Services\SmsService::class);
                 $smsMessage = "Hi " . ($requester->name ?? 'Staff') . ", your purchase request for '{$purchaseRequest->item_name}' has been REJECTED. Reason: " . ($request->rejection_reason ?? 'N/A') . ". Thank you!";
-                $smsService->sendSms($requester->phone, $smsMessage);
+                $smsService->sendSms($requester->phone, $smsMessage, 'sms_purchase_request');
             }
         } catch (\Exception $e) {
             \Log::error("Failed to send purchase rejection SMS to requester: " . $e->getMessage());

@@ -2629,13 +2629,12 @@
           let totalCompanyCharges = 0;
           let totalCompanyPaid = 0;
           let totalRemaining = 0;
-          const exchangeRate = bookings.length > 0 ? (bookings[0].locked_exchange_rate || 2500) : 2500;
 
           bookings.forEach(function(booking) {
             totalCompanyCharges += parseFloat(booking.total_price || 0);
             // Only include service charges if company is responsible (Mixed or Company)
             if (booking.payment_responsibility !== 'self') {
-              totalCompanyCharges += parseFloat(booking.service_charges_usd || 0);
+              totalCompanyCharges += parseFloat(booking.service_charges_tsh || booking.service_charges_usd || 0);
             }
             totalCompanyPaid += parseFloat(booking.amount_paid || 0);
           });
@@ -2735,7 +2734,6 @@
             const checkIn = booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
             const checkOut = booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
             const room = booking.room || {};
-            const exchangeRate = booking.locked_exchange_rate || 2500;
             const roomTotal = parseFloat(booking.total_price || 0);
             const paidAmount = parseFloat(booking.amount_paid || 0);
             const remaining = roomTotal - paidAmount;

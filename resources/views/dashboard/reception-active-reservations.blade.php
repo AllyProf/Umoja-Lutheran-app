@@ -78,8 +78,7 @@
                   @endif
                 </td>
                 <td>
-                  <strong>${{ number_format($booking->total_price, 2) }}</strong><br>
-                  <small>{{ number_format($booking->total_price * $exchangeRate, 2) }} TZS</small>
+                  <strong>{{ number_format($booking->total_price, 0) }} TSh</strong>
                 </td>
                 <td>
                   <button onclick="viewReservationDetails({{ $booking->id }}, '{{ $booking->booking_reference }}')" class="btn btn-sm btn-info" title="View Details">
@@ -158,8 +157,7 @@
             <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
               <span style="font-weight: 600; color: #495057; font-size: 14px; flex: 0 0 40%;">Total Price:</span>
               <span style="text-align: right; flex: 1;">
-                <strong>${{ number_format($booking->total_price, 2) }}</strong><br>
-                <small>{{ number_format($booking->total_price * $exchangeRate, 2) }} TZS</small>
+                <strong>{{ number_format($booking->total_price, 0) }} TSh</strong>
               </span>
             </div>
             
@@ -377,7 +375,6 @@ function viewReservationDetails(bookingId, bookingRef) {
     if (data.success) {
       const booking = data.booking;
       const room = booking.room || {};
-      const exchangeRate = {{ $exchangeRate ?? 2500 }};
       const fallbackImage = '{{ asset("landing_page_assets/img/bg-img/1.jpg") }}';
       
       const detailsHtml = `
@@ -446,7 +443,7 @@ function viewReservationDetails(bookingId, bookingRef) {
                 <tr><td width="40%"><strong>Room Number:</strong></td><td><strong>${room.room_number || 'N/A'}</strong></td></tr>
                 <tr><td><strong>Room Type:</strong></td><td>${room.room_type || 'N/A'}</td></tr>
                 <tr><td><strong>Capacity:</strong></td><td>${room.capacity || 'N/A'} guests</td></tr>
-                <tr><td><strong>Price per Night:</strong></td><td>$${parseFloat(room.price_per_night || 0).toFixed(2)} USD</td></tr>
+                <tr><td><strong>Price per Night:</strong></td><td>${parseFloat(room.price_per_night || 0).toLocaleString()} TSh</td></tr>
               </table>
               ${(() => {
                 // Get amenities
@@ -497,13 +494,12 @@ function viewReservationDetails(bookingId, bookingRef) {
               })()}
             </div>
             <div class="col-md-6">
-              <h5 style="color: #e07632; border-bottom: 2px solid #e07632; padding-bottom: 5px; margin-bottom: 15px;"><i class="fa fa-dollar"></i> Payment Information</h5>
+              <h5 style="color: #e07632; border-bottom: 2px solid #e07632; padding-bottom: 5px; margin-bottom: 15px;"><i class="fa fa-money"></i> Payment Information</h5>
               <table class="table table-sm table-bordered">
-                <tr><td width="40%"><strong>Total Price:</strong></td><td><strong>$${parseFloat(booking.total_price || 0).toFixed(2)} USD</strong></td></tr>
-                <tr><td><strong>Total Price (TZS):</strong></td><td><strong>${(parseFloat(booking.total_price || 0) * exchangeRate).toLocaleString()} TZS</strong></td></tr>
-                <tr><td><strong>Amount Paid:</strong></td><td>${booking.amount_paid ? '$' + parseFloat(booking.amount_paid).toFixed(2) + ' USD' : 'N/A'}</td></tr>
+                <tr><td width="40%"><strong>Total Price:</strong></td><td><strong>${parseFloat(booking.total_price || 0).toLocaleString()} TSh</strong></td></tr>
+                <tr><td><strong>Amount Paid:</strong></td><td>${booking.amount_paid ? parseFloat(booking.amount_paid).toLocaleString() + ' TSh' : 'N/A'}</td></tr>
                 ${booking.payment_status === 'partial' && booking.amount_paid ? `
-                <tr><td><strong>Remaining Amount:</strong></td><td><strong style="color: #dc3545;">$${parseFloat((booking.total_price || 0) - (booking.amount_paid || 0)).toFixed(2)} USD</strong></td></tr>
+                <tr><td><strong>Remaining Amount:</strong></td><td><strong style="color: #dc3545;">${parseFloat((booking.total_price || 0) - (booking.amount_paid || 0)).toLocaleString()} TSh</strong></td></tr>
                 <tr><td><strong>Payment Percentage:</strong></td><td><span class="badge badge-info">${parseFloat(((booking.amount_paid || 0) / (booking.total_price || 1)) * 100).toFixed(0)}%</span></td></tr>
                 ` : ''}
                 <tr><td><strong>Payment Method:</strong></td><td>${booking.payment_method ? booking.payment_method.charAt(0).toUpperCase() + booking.payment_method.slice(1) : 'N/A'}</td></tr>

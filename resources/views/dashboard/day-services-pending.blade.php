@@ -78,14 +78,7 @@
               <td>{{ $service->number_of_people }}</td>
               <td>{{ Str::limit($service->items_ordered ?? 'N/A', 50) }}</td>
               <td>
-                @if($service->guest_type === 'tanzanian')
-                  {{ number_format($service->amount, 2) }} TZS
-                @else
-                  ${{ number_format($service->amount, 2) }}
-                  @if($service->exchange_rate)
-                    <br><small class="text-muted">≈ {{ number_format($service->amount * $service->exchange_rate, 2) }} TZS</small>
-                  @endif
-                @endif
+                TSh {{ number_format($service->amount, 0) }}
               </td>
               <td>{{ $service->registeredBy->name ?? 'N/A' }}</td>
               <td>
@@ -163,7 +156,7 @@
             <label for="payment_amount">Amount <span class="text-danger">*</span></label>
             <div class="input-group">
               <div class="input-group-prepend">
-                <span class="input-group-text" id="payment_currency_symbol">TZS</span>
+                <span class="input-group-text" id="payment_currency_symbol">TSh</span>
               </div>
               <input class="form-control" type="number" id="payment_amount" name="amount" step="0.01" min="0" required>
             </div>
@@ -200,7 +193,7 @@
             <label for="payment_amount_paid">Amount Paid <span class="text-danger">*</span></label>
             <div class="input-group">
               <div class="input-group-prepend">
-                <span class="input-group-text" id="payment_paid_currency_symbol">TZS</span>
+                <span class="input-group-text" id="payment_paid_currency_symbol">TSh</span>
               </div>
               <input class="form-control" type="number" id="payment_amount_paid" name="amount_paid" step="0.01" min="0" required>
             </div>
@@ -280,7 +273,7 @@ function viewService(serviceId) {
           <div class="col-md-12">
             <h5><i class="fa fa-dollar"></i> Payment Information</h5>
             <table class="table table-sm table-bordered">
-              <tr><td><strong>Amount:</strong></td><td>${service.guest_type === 'tanzanian' ? service.amount + ' TZS' : '$' + parseFloat(service.amount).toFixed(2) + (service.exchange_rate ? ' (≈ ' + (service.amount * service.exchange_rate).toFixed(2) + ' TZS)' : '')}</td></tr>
+              <tr><td><strong>Amount:</strong></td><td>TSh ${Math.round(parseFloat(service.amount) || 0).toLocaleString()}</td></tr>
               <tr><td><strong>Payment Status:</strong></td><td><span class="badge badge-warning">Pending</span></td></tr>
             </table>
           </div>
@@ -322,7 +315,7 @@ function processPayment(serviceId) {
       document.getElementById('payment_items_ordered').value = service.items_ordered || '';
       document.getElementById('payment_amount').value = service.amount || '';
       
-      const currencySymbol = service.guest_type === 'tanzanian' ? 'TZS' : 'USD';
+      const currencySymbol = 'TSh';
       document.getElementById('payment_currency_symbol').textContent = currencySymbol;
       document.getElementById('payment_paid_currency_symbol').textContent = currencySymbol;
     }

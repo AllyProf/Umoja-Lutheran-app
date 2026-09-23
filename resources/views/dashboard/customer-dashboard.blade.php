@@ -631,14 +631,6 @@
             </button>
           </div>
           @endif
-          @if($hasActiveStay)
-          <div class="col-md-3 col-sm-6 col-6 mb-2">
-            <a href="{{ route('exchange-rates') }}" class="btn btn-light btn-block" style="min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none;">
-              <i class="fa fa-exchange fa-2x mb-1"></i><br>
-              <strong>Exchange rate</strong>
-            </a>
-          </div>
-          @endif
           {{-- Feedback button always visible --}}
           <div class="col-md-3 col-sm-6 col-6 mb-2">
             <a href="{{ route('customer.feedback') }}" class="btn btn-light btn-block" style="min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none;">
@@ -848,8 +840,7 @@
               $hasCorporateBooking = true;
             }
             
-            // Use locked exchange rate for each booking
-            $bookingExchangeRate = $booking->locked_exchange_rate ?? $exchangeRate;
+            // Amounts already stored in TSh — do not multiply by exchange rate for display
             
             // Get all approved/completed service requests
             $serviceRequests = $booking->serviceRequests()
@@ -871,8 +862,7 @@
               
               // Handle corporate services based on responsibility
               if ($isCorporate) {
-                  $extensionCostUSD = $extensionCostUsd;
-                  $companyRoomChargesTZS += $extensionCostUSD * $bookingExchangeRate;
+                  $companyRoomChargesTZS += $extensionCostUsd; // already TSh
                   
                   if ($paymentResponsibility == 'self') {
                       // Guest pays for ALL services (including room_charge ones)
@@ -890,16 +880,16 @@
               } else {
                   // Individual booking check-out
                   $otherServiceChargesTZS = $serviceRequests->sum('total_price_tsh');
-                  $extensionCostTZS = $extensionCostUsd * $bookingExchangeRate;
+                  $extensionCostTZS = $extensionCostUsd; // already TSh
                   $billTZS = $extensionCostTZS + $otherServiceChargesTZS;
                   
                   // Calculate paid additional charges
-                  $paidAdditionalChargesTZS = (($booking->amount_paid ?? 0) * $bookingExchangeRate) - ($booking->total_price * $bookingExchangeRate);
+                  $paidAdditionalChargesTZS = ($booking->amount_paid ?? 0) - $booking->total_price; // already TSh
                   $paidTZS = max(0, $paidAdditionalChargesTZS);
               }
             } else {
               // For active bookings
-              $roomPriceTZS = $booking->total_price * $bookingExchangeRate; 
+              $roomPriceTZS = $booking->total_price; // already TSh 
               $extensionCostTZS = 0;
               
               if ($booking->extension_status === 'pending' && $booking->original_check_out && $booking->extension_requested_to) {
@@ -907,7 +897,7 @@
                 $requestedCheckOut = \Carbon\Carbon::parse($booking->extension_requested_to);
                 $extensionNights = $originalCheckOut->diffInDays($requestedCheckOut);
                 if ($extensionNights > 0 && $booking->room) {
-                   $extensionCostTZS = ($booking->room->price_per_night * $extensionNights) * $bookingExchangeRate;
+                   $extensionCostTZS = $booking->room->price_per_night * $extensionNights; // already TSh
                 }
               }
               
@@ -933,11 +923,11 @@
                 $totalServiceChargesTZS = $serviceRequests->sum('total_price_tsh');
                 $billTZS = $roomPriceTZS + $extensionCostTZS + $totalServiceChargesTZS;
                 
-                // Amount paid in TZS
+                // Amount paid in TSh
                 if ($booking->payment_status === 'paid' && !$booking->amount_paid) {
                   $paidTZS = $roomPriceTZS;
                 } else {
-                  $paidTZS = ($booking->amount_paid ?? 0) * $bookingExchangeRate;
+                  $paidTZS = $booking->amount_paid ?? 0; // already TSh
                 }
                 
                 // Add services that are already paid directly
@@ -969,7 +959,7 @@
             <div class="mb-2">
               <strong>Room Charges:</strong> 
               <span class="badge badge-success" style="background-color: #28a745;">Company Paid</span>
-              <span class="text-muted">({{ number_format($companyRoomChargesTZS, 2) }} TZS)</span>
+              <span class="text-muted">({{ number_format($companyRoomChargesTZS, 0) }} TSh)</span>
             </div>
             @php
               // Check payment responsibility for services
@@ -990,9 +980,9 @@
               <strong>Service Charges:</strong> 
               <span class="badge badge-warning">Self-Paid</span>
               @if($selfServiceChargesTZS > 0)
-                <span class="text-muted">({{ number_format($selfServiceChargesTZS, 2) }} TZS)</span>
+                <span class="text-muted">({{ number_format($selfServiceChargesTZS, 0) }} TSh)</span>
               @else
-                <span class="text-muted">(0.00 TZS - No services used yet)</span>
+                <span class="text-muted">(0 TSh - No services used yet)</span>
               @endif
             </div>
             @endif
@@ -1001,9 +991,9 @@
               <strong>Service Charges:</strong> 
               <span class="badge badge-info">Company Paid</span>
               @if($companyServiceChargesTZS > 0)
-                <span class="text-muted">({{ number_format($companyServiceChargesTZS, 2) }} TZS)</span>
+                <span class="text-muted">({{ number_format($companyServiceChargesTZS, 0) }} TSh)</span>
               @else
-                <span class="text-muted">(0.00 TZS - No services used yet)</span>
+                <span class="text-muted">(0 TSh - No services used yet)</span>
               @endif
             </div>
             @endif
@@ -1017,7 +1007,7 @@
             <div class="status-card-content">
               <span class="status-card-label">Total Bill{{ $hasCorporateBooking ? ' (Your Portion)' : '' }}</span>
               <span class="status-card-value">
-                {{ number_format($totalBillTZS, 2) }} TZS
+                {{ number_format($totalBillTZS, 0) }} TSh
               </span>
             </div>
           </div>
@@ -1026,7 +1016,7 @@
             <div class="status-card-content">
               <span class="status-card-label">Amount Paid</span>
               <span class="status-card-value text-success">
-                {{ number_format($totalPaidTZS, 2) }} TZS
+                {{ number_format($totalPaidTZS, 0) }} TSh
               </span>
             </div>
           </div>
@@ -1037,7 +1027,7 @@
             <div class="status-card-content">
               <span class="status-card-label">{{ $outstandingTZS < 0 ? 'Credit Balance' : 'Balance Due' }}</span>
               <span class="status-card-value {{ $outstandingTZS > 0 ? 'text-danger' : 'text-success' }}">
-                {{ number_format(abs($outstandingTZS), 2) }} TZS
+                {{ number_format(abs($outstandingTZS), 0) }} TSh
               </span>
             </div>
           </div>
@@ -1063,7 +1053,7 @@
               <strong style="color: #1976D2;">Payment Required</strong>
               <p class="mb-0 mt-1" style="color: #555;">
                 Please visit the reception desk to settle your outstanding balance of 
-                <strong>{{ number_format($outstandingTZS, 2) }} TZS</strong>.
+                <strong>{{ number_format($outstandingTZS, 0) }} TSh</strong>.
               </p>
             </div>
           </div>
@@ -1218,8 +1208,8 @@
           <div id="decreaseCostPreview" style="display: none; padding: 15px; background: #fff3cd; border-radius: 5px; margin-bottom: 15px;">
             <p class="mb-0">
               <span id="decreaseNights">0</span> night(s) reduction × 
-              $<span id="decreaseRoomPrice">0</span> per night = 
-              <strong>Amount: $<span id="decreaseTotalRefund">0</span></strong>
+              TSh <span id="decreaseRoomPrice">0</span> per night = 
+              <strong>Amount: TSh <span id="decreaseTotalRefund">0</span></strong>
             </p>
             <small class="text-danger"><strong>Note: No refund will be provided for the reduced nights.</strong></small>
           </div>
@@ -1266,8 +1256,8 @@
             <h6><strong>Estimated Additional Cost:</strong></h6>
             <p class="mb-0">
               <span id="extensionNights">0</span> additional night(s) × 
-              $<span id="extensionRoomPrice">0</span> per night = 
-              <strong>$<span id="extensionTotalCost">0</span></strong>
+              TSh <span id="extensionRoomPrice">0</span> per night = 
+              <strong>TSh <span id="extensionTotalCost">0</span></strong>
             </p>
             <small class="text-muted">Final amount will be confirmed upon approval.</small>
           </div>
@@ -1344,7 +1334,7 @@
             <textarea class="form-control" id="guest_request" name="guest_request" rows="3" placeholder="Any special requests or notes..."></textarea>
           </div>
           <div class="alert alert-info" id="service_price_info" style="display: none;">
-            <strong>Estimated Price:</strong> <span id="service_total_price">0</span> TZS
+            <strong>Estimated Price:</strong> <span id="service_total_price">0</span> TSh
             <span id="service_price_details" style="display: none;"></span>
           </div>
           <div id="serviceRequestAlert"></div>
@@ -1480,38 +1470,38 @@
                     
                     $bookingPriceTZS = $guestBillTZSMobile;
                   } else {
-                    $bookingPriceTZS = $booking->total_price * ($booking->locked_exchange_rate ?? $exchangeRate ?? 2500);
+                    $bookingPriceTZS = $booking->total_price; // already TSh
                   }
                 @endphp
                 @if($isCorporateMobile)
                   @if($paymentResponsibilityMobile == 'self' && $bookingPriceTZS > 0)
-                    <strong>{{ number_format($bookingPriceTZS, 2) }} TZS</strong>
+                    <strong>{{ number_format($bookingPriceTZS, 0) }} TSh</strong>
                     <br><small class="text-muted">(Services only)</small>
                   @else
-                    <strong>0.00 TZS</strong><br>
+                    <strong>0 TSh</strong><br>
                     <small class="text-muted">(Company Paid)</small>
                   @endif
                 @else
-                    <strong>{{ number_format($bookingPriceTZS, 2) }} TZS</strong>
+                    <strong>{{ number_format($bookingPriceTZS, 0) }} TSh</strong>
                 @endif
                 @if($isExtended && $booking->room && $extendedNights > 0)
                   @php
-                    $extensionCost = ($booking->room->price_per_night * $extendedNights) * ($booking->locked_exchange_rate ?? $exchangeRate ?? 2500);
-                    $originalPrice = ($booking->total_price * ($booking->locked_exchange_rate ?? $exchangeRate ?? 2500)) - $extensionCost;
+                    $extensionCost = $booking->room->price_per_night * $extendedNights; // already TSh
+                    $originalPrice = $booking->total_price - $extensionCost; // already TSh
                   @endphp
                   <br><small class="text-info" style="font-size: 10px;">
-                    <i class="fa fa-calendar-plus-o"></i> +{{ number_format($extensionCost, 2) }} TZS (extension)
+                    <i class="fa fa-calendar-plus-o"></i> +{{ number_format($extensionCost, 0) }} TSh (extension)
                   </small>
-                  <br><small class="text-muted" style="font-size: 10px;">Original: {{ number_format($originalPrice, 2) }} TZS</small>
+                  <br><small class="text-muted" style="font-size: 10px;">Original: {{ number_format($originalPrice, 0) }} TSh</small>
                 @elseif($isDecreased && $booking->room && $decreasedNights > 0)
                   @php
-                    $decreaseRefund = ($booking->room->price_per_night * $decreasedNights) * ($booking->locked_exchange_rate ?? $exchangeRate ?? 2500);
-                    $originalPrice = ($booking->total_price * ($booking->locked_exchange_rate ?? $exchangeRate ?? 2500)) + $decreaseRefund;
+                    $decreaseRefund = $booking->room->price_per_night * $decreasedNights; // already TSh
+                    $originalPrice = $booking->total_price + $decreaseRefund; // already TSh
                   @endphp
                   <br><small class="text-warning" style="font-size: 10px;">
-                    <i class="fa fa-calendar-minus-o"></i> -{{ number_format($decreaseRefund, 2) }} TZS (decrease)
+                    <i class="fa fa-calendar-minus-o"></i> -{{ number_format($decreaseRefund, 0) }} TSh (decrease)
                   </small>
-                  <br><small class="text-muted" style="font-size: 10px;">Original: {{ number_format($originalPrice, 2) }} TZS</small>
+                  <br><small class="text-muted" style="font-size: 10px;">Original: {{ number_format($originalPrice, 0) }} TSh</small>
                 @endif
               </div>
               <div class="col-6">
@@ -1554,17 +1544,10 @@
                 <div class="mb-2"><strong>Check-out:</strong> {{ $booking->check_out->format('M d, Y') }}</div>
                 <div class="mb-2"><strong>Nights:</strong> {{ $booking->check_in->diffInDays($booking->check_out) }} nights</div>
                 @php
-                  $bookingGuestType = $booking->guest_type ?? 'international';
-                  $isBookingTanzanian = $bookingGuestType === 'tanzanian';
-                  $bookingRate = $booking->locked_exchange_rate ?? $exchangeRate ?? 2500;
-                  $bookingPriceTZS = $booking->total_price * $bookingRate;
+                  // total_price is already in TSh
                 @endphp
                 <div class="mb-2"><strong>Total Price:</strong> 
-                  @if($isBookingTanzanian)
-                    {{ number_format($bookingPriceTZS, 2) }} TZS
-                  @else
-                    ${{ number_format($booking->total_price, 2) }} (≈ {{ number_format($bookingPriceTZS, 2) }} TZS)
-                  @endif
+                  TSh {{ number_format($booking->total_price, 0) }}
                 </div>
                 <div class="mb-2"><strong>Status:</strong> {{ ucfirst($booking->status) }}</div>
                 <div class="mb-2"><strong>Check-in Status:</strong> {{ ucfirst(str_replace('_', ' ', $booking->check_in_status)) }}</div>
@@ -1682,7 +1665,6 @@
                   @php
                     $isCorporate = $booking->is_corporate_booking ?? false;
                     $paymentResponsibility = $booking->payment_responsibility ?? 'company';
-                    $bookingRate = $booking->locked_exchange_rate ?? $exchangeRate ?? 2500;
                     
                     // For corporate bookings, calculate guest's portion
                     if ($isCorporate) {
@@ -1712,38 +1694,38 @@
                       
                       $bookingPriceTZS = $guestBillTZS;
                     } else {
-                      $bookingPriceTZS = $booking->total_price * $bookingRate;
+                      $bookingPriceTZS = $booking->total_price; // already TSh
                     }
                   @endphp
                   @if($isCorporate)
                     @if($paymentResponsibility == 'self' && $bookingPriceTZS > 0)
-                        <div><strong>{{ number_format($bookingPriceTZS, 2) }} TZS</strong></div>
+                        <div><strong>{{ number_format($bookingPriceTZS, 0) }} TSh</strong></div>
                         <div><small class="text-muted">(Services only)</small></div>
                     @else
-                      <div><strong>0.00 TZS</strong></div>
+                      <div><strong>0 TSh</strong></div>
                       <div><small class="text-muted">(Company Paid)</small></div>
                     @endif
                   @else
-                      <div><strong>{{ number_format($bookingPriceTZS, 2) }} TZS</strong></div>
+                      <div><strong>{{ number_format($bookingPriceTZS, 0) }} TSh</strong></div>
                   @endif
                   @if($isExtended && $booking->room && $extendedNights > 0)
                     @php
-                      $extensionCost = ($booking->room->price_per_night * $extendedNights) * $bookingRate;
-                      $originalPrice = ($booking->total_price * $bookingRate) - $extensionCost;
+                      $extensionCost = $booking->room->price_per_night * $extendedNights; // already TSh
+                      $originalPrice = $booking->total_price - $extensionCost; // already TSh
                     @endphp
                     <br><small class="text-info" style="display: block; margin-top: 5px;">
-                      <i class="fa fa-calendar-plus-o"></i> +{{ number_format($extensionCost, 2) }} TZS (extension)
+                      <i class="fa fa-calendar-plus-o"></i> +{{ number_format($extensionCost, 0) }} TSh (extension)
                     </small>
-                    <br><small class="text-muted">Original: {{ number_format($originalPrice, 2) }} TZS</small>
+                    <br><small class="text-muted">Original: {{ number_format($originalPrice, 0) }} TSh</small>
                   @elseif($isDecreased && $booking->room && $decreasedNights > 0)
                     @php
-                      $decreaseRefund = ($booking->room->price_per_night * $decreasedNights) * $bookingRate;
-                      $originalPrice = ($booking->total_price * $bookingRate) + $decreaseRefund;
+                      $decreaseRefund = $booking->room->price_per_night * $decreasedNights; // already TSh
+                      $originalPrice = $booking->total_price + $decreaseRefund; // already TSh
                     @endphp
                     <br><small class="text-warning" style="display: block; margin-top: 5px;">
-                      <i class="fa fa-calendar-minus-o"></i> -{{ number_format($decreaseRefund, 2) }} TZS (decrease)
+                      <i class="fa fa-calendar-minus-o"></i> -{{ number_format($decreaseRefund, 0) }} TSh (decrease)
                     </small>
-                    <br><small class="text-muted">Original: {{ number_format($originalPrice, 2) }} TZS</small>
+                    <br><small class="text-muted">Original: {{ number_format($originalPrice, 0) }} TSh</small>
                   @endif
                 </td>
                 <td>
@@ -1828,8 +1810,7 @@
                                     $extensionCostUsd = $booking->room->price_per_night * $extensionNights;
                                   }
                                 }
-                                $bookingExchangeRate = $booking->locked_exchange_rate ?? $exchangeRate ?? 2500;
-                                $extensionCostTsh = $extensionCostUsd * $bookingExchangeRate;
+                                $extensionCostTsh = $extensionCostUsd; // already TSh
                               @endphp
                               <table class="table table-sm table-borderless mb-0">
                                 <tr>
@@ -1871,8 +1852,7 @@
                                   <td><strong>Extension Cost:</strong></td>
                                   <td>
                                     <strong style="color: #e07632;">
-                                      ${{ number_format($extensionCostUsd, 2) }} 
-                                      ({{ number_format($extensionCostTsh, 2) }} TZS)
+                                      TSh {{ number_format($extensionCostUsd, 0) }}
                                     </strong>
                                   </td>
                                 </tr>
@@ -1946,14 +1926,14 @@
                   </div>
                   <div class="col-6">
                     <small class="text-muted">Unit Price</small><br>
-                    <strong>{{ number_format($serviceRequest->unit_price_tsh, 2) }} TZS</strong><br>
+                    <strong>{{ number_format($serviceRequest->unit_price_tsh, 0) }} TSh</strong><br>
                   </div>
                 </div>
                 <div class="mt-2 pt-2" style="border-top: 1px solid #eee;">
                   <div class="d-flex justify-content-between align-items-center">
                     <small class="text-muted">Total:</small>
                     <div class="text-right">
-                      <strong style="color: #e07632;">{{ number_format($serviceRequest->total_price_tsh, 2) }} TZS</strong><br>
+                      <strong style="color: #e07632;">{{ number_format($serviceRequest->total_price_tsh, 0) }} TSh</strong><br>
                     </div>
                   </div>
                 </div>
@@ -1963,7 +1943,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                   <strong style="color: #e07632; font-size: 16px;">Total Service Charges:</strong>
                   <div class="text-right">
-                    <strong style="color: #e07632; font-size: 16px;">{{ number_format($booking->total_service_charges_tsh ?? 0, 2) }} TZS</strong><br>
+                    <strong style="color: #e07632; font-size: 16px;">{{ number_format($booking->total_service_charges_tsh ?? 0, 0) }} TSh</strong><br>
                   </div>
                 </div>
               </div>
@@ -1987,10 +1967,10 @@
                     <td>{{ $serviceRequest->service->name }}</td>
                     <td>{{ $serviceRequest->quantity }} {{ $serviceRequest->service->unit }}</td>
                     <td>
-                      <div>{{ number_format($serviceRequest->unit_price_tsh, 2) }} TZS</div>
+                      <div>{{ number_format($serviceRequest->unit_price_tsh, 0) }} TSh</div>
                     </td>
                     <td>
-                      <div><strong>{{ number_format($serviceRequest->total_price_tsh, 2) }} TZS</strong></div>
+                      <div><strong>{{ number_format($serviceRequest->total_price_tsh, 0) }} TSh</strong></div>
                     </td>
                     <td>
                       @if($serviceRequest->status === 'pending')
@@ -2010,7 +1990,7 @@
                   <tr>
                     <td colspan="3" class="text-right"><strong>Total Service Charges:</strong></td>
                     <td colspan="2">
-                      <div><strong>{{ number_format($booking->total_service_charges_tsh ?? 0, 2) }} TZS</strong></div>
+                      <div><strong>{{ number_format($booking->total_service_charges_tsh ?? 0, 0) }} TSh</strong></div>
                     </td>
                   </tr>
                 </tfoot>
@@ -2055,7 +2035,7 @@
                 </td>
                 <td>{{ $booking->check_in->format('M d, Y') }}</td>
                 <td>{{ $booking->check_out->format('M d, Y') }}</td>
-                <td><strong>${{ number_format($booking->total_price, 2) }}</strong></td>
+                <td><strong>TSh {{ number_format($booking->total_price, 0) }}</strong></td>
                 <td>
                   @if($booking->expires_at)
                     <span class="text-danger">
@@ -2493,11 +2473,11 @@ function loadServices() {
                     } else {
                         const ageGroup = service.age_group || 'both';
                         if (ageGroup === 'both' && service.child_price_tsh && service.child_price_tsh > 0) {
-                            serviceText += ` - Adult: ${parseFloat(service.price_tsh).toLocaleString()} TZS / Child: ${parseFloat(service.child_price_tsh).toLocaleString()} TZS`;
+                            serviceText += ` - Adult: ${parseFloat(service.price_tsh).toLocaleString()} TSh / Child: ${parseFloat(service.child_price_tsh).toLocaleString()} TSh`;
                         } else if (ageGroup === 'adult' || ageGroup === 'both') {
-                            serviceText += ' - ' + parseFloat(service.price_tsh).toLocaleString() + ' TZS';
+                            serviceText += ' - ' + parseFloat(service.price_tsh).toLocaleString() + ' TSh';
                         } else if (ageGroup === 'child') {
-                            serviceText += ' - ' + parseFloat(service.child_price_tsh || service.price_tsh).toLocaleString() + ' TZS';
+                            serviceText += ' - ' + parseFloat(service.child_price_tsh || service.price_tsh).toLocaleString() + ' TSh';
                         }
                     }
                     
@@ -2582,13 +2562,13 @@ function calculateServicePrice() {
                 totalPriceSpan.textContent = '0';
                 priceDetailsSpan.innerHTML = '<br><small class="text-success">This service is free for internal guests</small>';
             } else {
-                totalPriceSpan.textContent = total.toLocaleString() + ' TZS';
+                totalPriceSpan.textContent = total.toLocaleString() + ' TSh';
                 let breakdown = [];
                 if (adultQuantity > 0) {
-                    breakdown.push(`${adultQuantity} adult(s) × ${adultPrice.toLocaleString()} TZS = ${adultTotal.toLocaleString()} TZS`);
+                    breakdown.push(`${adultQuantity} adult(s) × ${adultPrice.toLocaleString()} TSh = ${adultTotal.toLocaleString()} TSh`);
                 }
                 if (childQuantity > 0) {
-                    breakdown.push(`${childQuantity} child(ren) × ${childPrice.toLocaleString()} TZS = ${childTotal.toLocaleString()} TZS`);
+                    breakdown.push(`${childQuantity} child(ren) × ${childPrice.toLocaleString()} TSh = ${childTotal.toLocaleString()} TSh`);
                 }
                 if (breakdown.length > 0) {
                     priceDetailsSpan.innerHTML = '<br><small class="text-muted">' + breakdown.join('<br>') + '</small>';
@@ -2625,8 +2605,8 @@ function calculateServicePrice() {
                 priceDetailsSpan.innerHTML = '<br><small class="text-success">This service is free for internal guests</small>';
                 priceDetailsSpan.style.display = 'inline';
             } else {
-                totalPriceSpan.textContent = total.toLocaleString() + ' TZS';
-                priceDetailsSpan.innerHTML = `<br><small class="text-muted">(${quantity} × ${price.toLocaleString()} TZS)</small>`;
+                totalPriceSpan.textContent = total.toLocaleString() + ' TSh';
+                priceDetailsSpan.innerHTML = `<br><small class="text-muted">(${quantity} × ${price.toLocaleString()} TSh)</small>`;
                 priceDetailsSpan.style.display = 'inline';
             }
             priceInfo.style.display = 'block';
@@ -3749,8 +3729,8 @@ function calculateExtensionCost() {
     if (diffDays > 0) {
         const totalCost = currentBookingData.roomPrice * diffDays;
         document.getElementById('extensionNights').textContent = diffDays;
-        document.getElementById('extensionRoomPrice').textContent = currentBookingData.roomPrice.toFixed(2);
-        document.getElementById('extensionTotalCost').textContent = totalCost.toFixed(2);
+        document.getElementById('extensionRoomPrice').textContent = Math.round(currentBookingData.roomPrice).toLocaleString();
+        document.getElementById('extensionTotalCost').textContent = Math.round(totalCost).toLocaleString();
         document.getElementById('extensionCostPreview').style.display = 'block';
     } else {
         document.getElementById('extensionCostPreview').style.display = 'none';
@@ -3888,8 +3868,8 @@ function calculateDecreaseRefund() {
     if (diffDays > 0) {
         const totalRefund = currentBookingData.roomPrice * diffDays;
         document.getElementById('decreaseNights').textContent = diffDays;
-        document.getElementById('decreaseRoomPrice').textContent = currentBookingData.roomPrice.toFixed(2);
-        document.getElementById('decreaseTotalRefund').textContent = totalRefund.toFixed(2);
+        document.getElementById('decreaseRoomPrice').textContent = Math.round(currentBookingData.roomPrice).toLocaleString();
+        document.getElementById('decreaseTotalRefund').textContent = Math.round(totalRefund).toLocaleString();
         document.getElementById('decreaseCostPreview').style.display = 'block';
     } else {
         document.getElementById('decreaseCostPreview').style.display = 'none';

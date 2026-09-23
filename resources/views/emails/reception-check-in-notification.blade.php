@@ -35,13 +35,13 @@ Check-in scheduled for {{ \Carbon\Carbon::parse($booking->check_in)->format('M d
 
 **Nights:** {{ \Carbon\Carbon::parse($booking->check_in)->diffInDays(\Carbon\Carbon::parse($booking->check_out)) }} night(s)
 
-**Total Price:** ${{ number_format($booking->total_price, 2) }}
+**Total Price:** TSh {{ number_format($booking->total_price, 0) }}
 
 **Payment Status:** 
 @if($booking->payment_status === 'paid')
 Paid
 @elseif($booking->payment_status === 'partial')
-Partial (${{ number_format($booking->amount_paid ?? 0, 2) }})
+Partial (TSh {{ number_format($booking->amount_paid ?? 0, 0) }})
 @else
 Pending
 @endif

@@ -611,7 +611,7 @@ class HousekeeperController extends Controller
                 try {
                     $smsService = app(\App\Services\SmsService::class);
                     $smsMessage = "Housekeeping Alert: Room {$issue->room->room_number} issue reported: {$issue->issue_type}. Priority: " . strtoupper($issue->priority);
-                    $smsService->sendSms($staff->phone, $smsMessage);
+                    $smsService->sendSms($staff->phone, $smsMessage, 'sms_issues_housekeeping');
                 } catch (\Exception $e) {
                     \Log::error("Failed to send room issue SMS to staff: " . $e->getMessage());
                 }

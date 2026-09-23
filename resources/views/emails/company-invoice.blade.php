@@ -22,11 +22,11 @@ Thank you for your corporate booking at Umoja Lutheran Hostel. This email contai
 
 ## Cost Breakdown
 
-**Company Charges:** ${{ number_format($companyCharges, 2) }}  
-**Self-Paid Charges:** ${{ number_format($selfPaidCharges, 2) }}  
-**Total Booking Value:** ${{ number_format($companyCharges + $selfPaidCharges, 2) }}  
-**Total Company Amount Paid:** ${{ number_format($totalCompanyPaid, 2) }}  
-**Company Balance Due:** ${{ number_format($companyCharges - $totalCompanyPaid, 2) }}
+**Company Charges:** TSh {{ number_format($companyCharges, 0) }}  
+**Self-Paid Charges:** TSh {{ number_format($selfPaidCharges, 0) }}  
+**Total Booking Value:** TSh {{ number_format($companyCharges + $selfPaidCharges, 0) }}  
+**Total Company Amount Paid:** TSh {{ number_format($totalCompanyPaid, 0) }}  
+**Company Balance Due:** TSh {{ number_format($companyCharges - $totalCompanyPaid, 0) }}
 
 ## Guest Details
 
@@ -35,8 +35,8 @@ Thank you for your corporate booking at Umoja Lutheran Hostel. This email contai
 - Room: {{ $booking->room->room_number }} ({{ $booking->room->room_type }})
 - Email: {{ $booking->guest_email }}
 - Payment Responsibility: {{ $booking->payment_responsibility === 'company' ? 'Company Paid' : 'Self-Paid' }}
-- Amount: ${{ number_format($booking->total_price, 2) }}
-- Amount Paid: ${{ number_format($booking->amount_paid ?? 0, 2) }}
+- Amount: TSh {{ number_format($booking->total_price, 0) }}
+- Amount Paid: TSh {{ number_format($booking->amount_paid ?? 0, 0) }}
 - Booking Reference: {{ $booking->booking_reference }}
 @if($booking->special_requests)
 - Special Requests: {{ $booking->special_requests }}

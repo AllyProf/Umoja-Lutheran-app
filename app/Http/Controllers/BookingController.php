@@ -904,7 +904,7 @@ class BookingController extends Controller
                     $smsMessage .= " We look forward to welcoming you on " . Carbon::parse($booking->check_in)->format('M d, Y') . ".";
                 }
 
-                $smsService->sendSms($booking->guest_phone, $smsMessage);
+                $smsService->sendSms($booking->guest_phone, $smsMessage, 'sms_booking_guest');
             } catch (\Exception $e) {
                 \Log::error("Failed to send booking status SMS to guest: " . $e->getMessage());
             }
@@ -921,7 +921,7 @@ class BookingController extends Controller
                     try {
                         $smsService = app(\App\Services\SmsService::class);
                         $smsMessage = "Booking Status Update: {$booking->guest_name} - {$booking->booking_reference} is now " . strtoupper($request->status);
-                        $smsService->sendSms($staff->phone, $smsMessage);
+                        $smsService->sendSms($staff->phone, $smsMessage, 'sms_booking_staff');
                     } catch (\Exception $e) {
                         \Log::error("Failed to send booking status SMS to manager: " . $e->getMessage());
                     }
@@ -1001,7 +1001,7 @@ class BookingController extends Controller
                     $wifiPassword = \App\Models\HotelSetting::getWifiPassword();
                     $wifiNetworkName = \App\Models\HotelSetting::getWifiNetworkName();
                     $smsMessage = "Welcome to " . config('app.name') . ", {$booking->first_name}! You are checked in to Room {$booking->room->room_number}. WiFi: {$wifiNetworkName}, Password: {$wifiPassword}. Enjoy your stay!";
-                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                    $smsService->sendSms($booking->guest_phone, $smsMessage, 'sms_checkin_checkout_guest');
                 } catch (\Exception $e) {
                     \Log::error("Failed to send check-in SMS to guest: " . $e->getMessage());
                 }
@@ -1029,7 +1029,7 @@ class BookingController extends Controller
                     if ($staff->phone) {
                         try {
                             $smsMessage = "Check-in Alert: Guest {$booking->guest_name} has checked in to Room {$booking->room->room_number}.";
-                            $smsService->sendSms($staff->phone, $smsMessage);
+                            $smsService->sendSms($staff->phone, $smsMessage, 'sms_checkin_checkout_staff');
                         } catch (\Exception $e) {
                             \Log::error("Failed to send check-in SMS to manager: " . $e->getMessage());
                         }
@@ -1137,7 +1137,7 @@ class BookingController extends Controller
                         try {
                             $smsService = app(SmsService::class);
                             $smsMessage = "Cleaning Alert: Room {$booking->room->room_number} is now vacant and needs cleaning (Guest: {$booking->guest_name}).";
-                            $smsService->sendSms($housekeeper->phone, $smsMessage);
+                            $smsService->sendSms($housekeeper->phone, $smsMessage, 'sms_checkin_checkout_staff');
                         } catch (\Exception $e) {
                             \Log::error("Failed to send room cleaning SMS to housekeeper: " . $e->getMessage());
                         }
@@ -1164,7 +1164,7 @@ class BookingController extends Controller
                 try {
                     $smsService = app(SmsService::class);
                     $smsMessage = "Thank you for staying with us at " . config('app.name') . ", {$booking->first_name}! Your stay is now completed. We hope to see you again soon!";
-                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                    $smsService->sendSms($booking->guest_phone, $smsMessage, 'sms_checkin_checkout_guest');
                 } catch (\Exception $e) {
                     \Log::error("Failed to send check-out SMS to guest: " . $e->getMessage());
                 }
@@ -1192,7 +1192,7 @@ class BookingController extends Controller
                     if ($staff->phone) {
                         try {
                             $smsMessage = "Check-out Alert: Guest {$booking->guest_name} has checked out of Room {$booking->room->room_number}. Status: Completed.";
-                            $smsService->sendSms($staff->phone, $smsMessage);
+                            $smsService->sendSms($staff->phone, $smsMessage, 'sms_checkin_checkout_staff');
                         } catch (\Exception $e) {
                             \Log::error("Failed to send check-out SMS to manager: " . $e->getMessage());
                         }
@@ -1825,7 +1825,7 @@ class BookingController extends Controller
                 $wifiPassword = \App\Models\HotelSetting::getWifiPassword();
                 $wifiNetworkName = \App\Models\HotelSetting::getWifiNetworkName();
                 $smsMessage = "Welcome to " . config('app.name') . ", {$booking->first_name}! You are checked in to Room {$booking->room->room_number}. WiFi: {$wifiNetworkName}, Password: {$wifiPassword}. Enjoy your stay!";
-                $smsService->sendSms($booking->guest_phone, $smsMessage);
+                $smsService->sendSms($booking->guest_phone, $smsMessage, 'sms_checkin_checkout_guest');
             } catch (\Exception $e) {
                 \Log::error("Failed to send check-in SMS to guest: " . $e->getMessage());
             }
@@ -1842,7 +1842,7 @@ class BookingController extends Controller
                     try {
                         $smsService = app(\App\Services\SmsService::class);
                         $smsMessage = "CHECK-IN ALERT: " . ($booking->guest_name ?? 'Guest') . " has self-checked in to Room " . ($booking->room->room_number ?? 'N/A') . ". (Ref: {$booking->booking_reference})";
-                        $smsService->sendSms($staff->phone, $smsMessage);
+                        $smsService->sendSms($staff->phone, $smsMessage, 'sms_checkin_checkout_staff');
                     } catch (\Exception $e) {
                         \Log::error("Failed to send check-in SMS to manager: " . $e->getMessage());
                     }
@@ -2022,7 +2022,7 @@ class BookingController extends Controller
     {
         // Get exchange rate for tooltips/displays
         $currencyService = new \App\Services\CurrencyExchangeService();
-        $exchangeRate = $currencyService->getUsdToTshRate() ?? 2500;
+        $exchangeRate = $currencyService->getUsdToTshRate() ?? 1;
 
         // Get all rooms
         $rooms = Room::orderBy('room_number', 'asc')->get();
@@ -2122,8 +2122,8 @@ class BookingController extends Controller
                     'payment_status' => $booking->payment_status,
                     'check_in_status' => $booking->check_in_status,
                     'total_price' => $booking->total_price,
-                    'total_price_tsh' => ($booking->total_price * ($booking->locked_exchange_rate ?? $exchangeRate)),
-                    'locked_exchange_rate' => $booking->locked_exchange_rate ?? $exchangeRate,
+                    'total_price_tsh' => $booking->total_price,
+                    'locked_exchange_rate' => 1,
                 ];
             }
         }
@@ -2206,7 +2206,7 @@ class BookingController extends Controller
             if ($booking->guest_phone && $smsMessage) {
                 try {
                     $smsService = app(\App\Services\SmsService::class);
-                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                    $smsService->sendSms($booking->guest_phone, $smsMessage, 'sms_booking_guest');
                     $message .= " and SMS sent successfully.";
                 } catch (\Exception $e) {
                     \Log::error("Failed to send reminder SMS to guest: " . $e->getMessage());
@@ -2778,7 +2778,7 @@ class BookingController extends Controller
                 try {
                     $smsService = app(\App\Services\SmsService::class);
                     $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", your booking stay has been extended. New checkout date: " . $newCheckOut->format('M d, Y') . ". Thank you!";
-                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                    $smsService->sendSms($booking->guest_phone, $smsMessage, 'sms_booking_guest');
                 } catch (\Exception $e) {
                     \Log::error("Failed to send extension SMS to guest: " . $e->getMessage());
                 }
@@ -2789,7 +2789,7 @@ class BookingController extends Controller
                 try {
                     $smsService = app(\App\Services\SmsService::class);
                     $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", your booking stay has been decreased. New checkout date: " . $newCheckOut->format('M d, Y') . ". Thank you!";
-                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                    $smsService->sendSms($booking->guest_phone, $smsMessage, 'sms_booking_guest');
                 } catch (\Exception $e) {
                     \Log::error("Failed to send stay decrease SMS to guest: " . $e->getMessage());
                 }
@@ -2929,7 +2929,7 @@ class BookingController extends Controller
                 try {
                     $smsService = app(\App\Services\SmsService::class);
                     $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", your request to " . ($isExtension ? 'extend' : 'decrease') . " your stay has been APPROVED. New checkout date: " . $newCheckOut->format('M d, Y') . ". Thank you!";
-                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                    $smsService->sendSms($booking->guest_phone, $smsMessage, 'sms_booking_guest');
                 } catch (\Exception $e) {
                     \Log::error("Failed to send extension approval SMS to guest: " . $e->getMessage());
                 }
@@ -3036,7 +3036,7 @@ class BookingController extends Controller
                 try {
                     $smsService = app(\App\Services\SmsService::class);
                     $smsMessage = "Hi " . ($booking->first_name ?? 'Guest') . ", your request to extend/decrease your stay has been REJECTED. Please contact reception for more information. Thank you!";
-                    $smsService->sendSms($booking->guest_phone, $smsMessage);
+                    $smsService->sendSms($booking->guest_phone, $smsMessage, 'sms_booking_guest');
                 } catch (\Exception $e) {
                     \Log::error("Failed to send extension rejection SMS to guest: " . $e->getMessage());
                 }
@@ -3412,7 +3412,7 @@ class BookingController extends Controller
                                         if ($staff->phone) {
                                             try {
                                                 $smsMessage = "Special Request: Guest {$fullName} (Room {$room->room_number}) requested: " . Str::limit($guestData['special_requests'], 80);
-                                                $smsService->sendSms($staff->phone, $smsMessage);
+                                                $smsService->sendSms($staff->phone, $smsMessage, 'sms_booking_staff');
                                             } catch (\Exception $e) {
                                                 \Log::error("Failed to send special request SMS to staff: " . $e->getMessage());
                                             }
@@ -3448,7 +3448,7 @@ class BookingController extends Controller
                         try {
                             $smsService = app(SmsService::class);
                             $smsMessage = "Hello {$firstName}, your corporate booking at " . config('app.name') . " is confirmed! Ref: {$bookingReference}. See you on {$validated['check_in']}!";
-                            $smsService->sendSms($guestData['phone'], $smsMessage);
+                            $smsService->sendSms($guestData['phone'], $smsMessage, 'sms_booking_guest');
                         } catch (\Exception $e) {
                             \Log::error("Failed to send guest SMS: " . $e->getMessage());
                         }
@@ -3600,7 +3600,7 @@ class BookingController extends Controller
                     try {
                         $smsService = app(SmsService::class);
                         $smsMessage = "Hello {$company->name}, a corporate booking for " . count($createdBookings) . " guests has been created. Check-in: {$validated['check_in']}. Thank you for choosing " . config('app.name') . "!";
-                        $smsService->sendSms($company->phone, $smsMessage);
+                        $smsService->sendSms($company->phone, $smsMessage, 'sms_booking_guest');
                     } catch (\Exception $e) {
                         \Log::error("Failed to send SMS to company: " . $e->getMessage());
                     }
@@ -3632,7 +3632,7 @@ class BookingController extends Controller
                     try {
                         $smsService = app(SmsService::class);
                         $smsMessage = "Hello {$validated['guider_name']}, the group booking for {$company->name} (" . count($createdBookings) . " guests) is confirmed. Ref: Group Booking. See you on {$validated['check_in']}!";
-                        $smsService->sendSms($validated['guider_phone'], $smsMessage);
+                        $smsService->sendSms($validated['guider_phone'], $smsMessage, 'sms_booking_guest');
                     } catch (\Exception $e) {
                         \Log::error("Failed to send SMS to guider: " . $e->getMessage());
                     }
@@ -3668,7 +3668,7 @@ class BookingController extends Controller
                         try {
                             $smsService = app(SmsService::class);
                             $smsMessage = "New Corporate Booking: {$company->name} with " . count($createdBookings) . " guests arriving on {$validated['check_in']}.";
-                            $smsService->sendSms($staff->phone, $smsMessage);
+                            $smsService->sendSms($staff->phone, $smsMessage, 'sms_booking_staff');
                         } catch (\Exception $e) {
                             \Log::error("Failed to send corporate booking SMS to staff: " . $e->getMessage());
                         }
@@ -4312,7 +4312,7 @@ class BookingController extends Controller
                 if ($staff->phone) {
                     try {
                         $smsMessage = "New Booking: Guest {$fullName} (Room {$room->room_number}) arriving on {$validated['check_in']}. Ref: {$bookingReference}";
-                        $smsService->sendSms($staff->phone, $smsMessage);
+                        $smsService->sendSms($staff->phone, $smsMessage, 'sms_booking_staff');
                     } catch (\Exception $e) {
                         \Log::error("Failed to send booking SMS to reception staff: " . $e->getMessage());
                     }
@@ -4341,7 +4341,7 @@ class BookingController extends Controller
                 if ($manager->phone) {
                     try {
                         $smsMessage = "New Manual Booking: {$fullName} (Room {$room->room_number}) on {$validated['check_in']}.";
-                        $smsService->sendSms($manager->phone, $smsMessage);
+                        $smsService->sendSms($manager->phone, $smsMessage, 'sms_booking_staff');
                     } catch (\Exception $e) {
                         \Log::error("Failed to send booking SMS to manager: " . $e->getMessage());
                     }
@@ -4417,7 +4417,7 @@ class BookingController extends Controller
                                 if ($staff->phone) {
                                     try {
                                         $smsMessage = "Special Request: Guest {$fullName} (Room {$room->room_number}) requested: " . Str::limit($validated['special_requests'], 80);
-                                        $smsService->sendSms($staff->phone, $smsMessage);
+                                        $smsService->sendSms($staff->phone, $smsMessage, 'sms_booking_staff');
                                         \Log::info("Special request SMS sent to {$staff->name} ({$staff->phone})");
                                     } catch (\Exception $e) {
                                         \Log::error("Failed to send special request SMS to {$staff->phone}: " . $e->getMessage());
@@ -4439,7 +4439,7 @@ class BookingController extends Controller
             try {
                 $smsService = app(SmsService::class);
                 $smsMessage = "Hello {$firstName}, your booking at " . config('app.name') . " is confirmed! Ref: {$bookingReference}. Check-in: " . $checkIn->format('Y-m-d H:i') . ". See you soon!";
-                $smsService->sendSms($validated['guest_phone'], $smsMessage);
+                $smsService->sendSms($validated['guest_phone'], $smsMessage, 'sms_booking_guest');
                 \Log::info("Booking confirmation SMS sent to guest: {$validated['guest_phone']}");
             } catch (\Exception $e) {
                 \Log::error("Failed to send booking SMS to guest: " . $e->getMessage());

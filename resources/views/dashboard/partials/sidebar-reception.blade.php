@@ -146,7 +146,7 @@
   <ul class="treeview-menu">
     <li><a class="treeview-item" href="{{ route('reception.reports') }}"><i class="icon fa fa-circle-o"></i> Operational
         Report</a></li>
-    <li><a class="treeview-item" href="{{ route('reception.reports.financial') }}"><i class="icon fa fa-money-bill"></i>
+    <li><a class="treeview-item" href="{{ route('reception.reports.financial') }}"><i class="icon fa fa-money"></i>
         Financial Report</a></li>
   </ul>
 </li>

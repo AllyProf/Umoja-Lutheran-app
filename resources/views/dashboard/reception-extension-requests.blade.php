@@ -191,8 +191,7 @@
                 </td>
                 <td>
                   @if($additionalCost > 0)
-                    <strong class="text-success">+${{ number_format($additionalCost, 2) }}</strong><br>
-                    <small>+{{ number_format($additionalCost * $exchangeRate, 2) }} TZS</small>
+                    <strong class="text-success">+TSh {{ number_format($additionalCost, 0) }}</strong>
                   @elseif($additionalNights < 0)
                     <span class="badge badge-secondary">No Refund</span>
                   @else

@@ -1810,9 +1810,8 @@
       cardHtml += '</div>';
       cardHtml += '<div class="room-price">';
       cardHtml += '<span class="price-label">Per night</span>';
-      const roomPriceUSD = parseFloat(room.price_per_night) || 0;
-      const roomPriceTZS = roomPriceUSD * exchangeRate;
-      cardHtml += '<span class="price-amount">' + roomPriceTZS.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' TZS</span>';
+      const roomPriceTsh = parseFloat(room.price_per_night) || 0;
+      cardHtml += '<span class="price-amount">TSh ' + roomPriceTsh.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + '</span>';
       cardHtml += '</div>';
 
       // Show guest slots and info
@@ -2094,12 +2093,12 @@
         const room = bookingData.rooms.find(r => r.id == roomId);
 
         if (room) {
-          const roomPriceTZS = (parseFloat(room.price_per_night) || 0) * exchangeRate;
-          const extraFeeTZS = (parseFloat(room.extra_guest_fee) || 0) * exchangeRate;
+          const roomPriceTsh = parseFloat(room.price_per_night) || 0;
+          const extraFeeTsh = parseFloat(room.extra_guest_fee) || 0;
 
           // Formula: (Base Price + (Extra Guests * Extra Fee)) * Nights
           const extraGuests = Math.max(0, guestsInRoom.length - 1);
-          const roomTotalCost = (roomPriceTZS + (extraGuests * extraFeeTZS)) * nights;
+          const roomTotalCost = (roomPriceTsh + (extraGuests * extraFeeTsh)) * nights;
 
           totalCompanyCost += roomTotalCost;
         }
