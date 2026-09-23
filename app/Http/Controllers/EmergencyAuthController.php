@@ -17,6 +17,7 @@ use App\Models\LoginOtp;
 use App\Models\SystemLog;
 use App\Mail\LoginOtpMail;
 use App\Services\SmsService;
+use App\Support\HostelMaintenance;
 
 class EmergencyAuthController extends Controller
 {
@@ -358,10 +359,35 @@ class EmergencyAuthController extends Controller
     }
 
     /**
+     * During maintenance, only a super admin with the right password gets in.
+     * Everyone else sees the maintenance message after they click Login.
+     */
+    private function maintenanceLoginGate(Request $request)
+    {
+        if (!HostelMaintenance::data()['enabled']) {
+            return null;
+        }
+
+        $email = (string) $request->input('email', '');
+        $password = (string) $request->input('password', '');
+        $staff = $email !== '' ? Staff::where('email', $email)->first() : null;
+
+        if ($staff && $staff->is_active && $staff->isSuperAdmin() && $password !== '' && Hash::check($password, $staff->password)) {
+            return null;
+        }
+
+        return HostelMaintenance::pageResponse();
+    }
+
+    /**
      * Handle unified login without enforcing a specific route role
      */
     public function loginUnified(Request $request)
     {
+        if ($closed = $this->maintenanceLoginGate($request)) {
+            return $closed;
+        }
+
         // Force database driver to ensure session persistence on live server
         config(['session.driver' => 'database']);
 

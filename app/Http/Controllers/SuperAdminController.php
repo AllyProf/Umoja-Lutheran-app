@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
 use App\Services\SmsService;
+use App\Support\HostelMaintenance;
 use Carbon\Carbon;
 
 class SuperAdminController extends Controller
@@ -1800,54 +1801,49 @@ class SuperAdminController extends Controller
      */
     public function maintenanceMode()
     {
-        $isDown = File::exists(storage_path('framework/down')) || File::exists(storage_path('framework/maintenance.php'));
-        $maintenanceMessage = HotelSetting::getValue('maintenance_message', 'System is under maintenance. Please check back later.');
+        $state = HostelMaintenance::data();
+        $maintenanceMessage = $state['message'] !== ''
+            ? $state['message']
+            : HotelSetting::getValue('maintenance_message', 'System is under maintenance. Please check back later.');
 
         return view('dashboard.super-admin.maintenance-mode', [
             'role' => 'super_admin',
             'userName' => (auth()->guard('staff')->user() ?? auth()->guard('guest')->user())->name ?? 'Super Admin',
             'userRole' => 'Super Administrator',
-            'isDown' => $isDown,
+            'isDown' => $state['enabled'],
             'maintenanceMessage' => $maintenanceMessage,
         ]);
     }
 
     public function toggleMaintenanceMode(Request $request)
     {
-        $isDown = File::exists(storage_path('framework/down'));
+        $request->validate([
+            'action' => 'required|in:enable,disable,update',
+            'message' => 'nullable|string|max:2000',
+        ]);
+
+        $isDown = HostelMaintenance::data()['enabled'];
 
         try {
-            if ($isDown) {
-                // Remove maintenance files (both formats)
-                if (File::exists(storage_path('framework/down'))) {
-                    File::delete(storage_path('framework/down'));
-                }
-                if (File::exists(storage_path('framework/maintenance.php'))) {
-                    File::delete(storage_path('framework/maintenance.php'));
-                }
-                $message = 'Maintenance mode disabled. System is now live.';
+            if ($request->input('action') === 'disable') {
+                HostelMaintenance::disable();
+                $message = 'Maintenance mode is off. The system is open again.';
                 $action = 'disabled_maintenance';
             } else {
-                $maintenanceMessage = $request->message ?? 'System is under maintenance. Please check back later.';
-                // Create maintenance file with message (JSON format for Laravel 11)
-                File::put(
-                    storage_path('framework/down'),
-                    json_encode([
-                        'time' => now()->getTimestamp(),
-                        'retry' => 60,
-                        'message' => $maintenanceMessage,
-                    ], JSON_PRETTY_PRINT)
-                );
-                // Also create the old format for compatibility
-                $maintenancePhp = "<?php\n\nhttp_response_code(503);\nheader('Retry-After: 60');\nheader('Content-Type: text/html; charset=utf-8');\n\necho '<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>Service Unavailable</title>\n    <style>\n        body { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f5f5f5; }\n        .container { text-align: center; padding: 2rem; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 500px; }\n        h1 { color: #333; margin-bottom: 1rem; }\n        p { color: #666; line-height: 1.6; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <h1>Service Unavailable</h1>\n        <p>" . addslashes($maintenanceMessage) . "</p>\n    </div>\n</body>\n</html>';\n";
-                File::put(storage_path('framework/maintenance.php'), $maintenancePhp);
+                $maintenanceMessage = trim((string) $request->input('message', ''));
+                if ($maintenanceMessage === '') {
+                    $maintenanceMessage = 'System is under maintenance. Please check back later.';
+                }
+                HostelMaintenance::enable($maintenanceMessage);
                 HotelSetting::setValue('maintenance_message', $maintenanceMessage);
-                $message = 'Maintenance mode enabled. System is now offline. Super admins can still access.';
-                $action = 'enabled_maintenance';
+                $message = $isDown
+                    ? 'Maintenance message updated. Visitors will see this exact text.'
+                    : 'Maintenance mode is on. Only a super admin can use the system. Everyone else sees your message.';
+                $action = $isDown ? 'updated_maintenance_message' : 'enabled_maintenance';
             }
 
             ActivityLog::create([
-                'user_id' => auth()->id(),
+                'user_id' => auth()->guard('staff')->id(),
                 'action' => $action,
                 'description' => $message,
                 'ip_address' => $request->ip(),

@@ -517,6 +517,9 @@ Route::prefix('super-admin')->group(function () {
         Route::get('/system-settings', [\App\Http\Controllers\SuperAdminController::class, 'systemSettings'])->name('super_admin.system-settings');
         Route::post('/system-settings', [\App\Http\Controllers\SuperAdminController::class, 'updateSystemSettings'])->name('super_admin.system-settings.update');
 
+        Route::get('/maintenance-mode', [\App\Http\Controllers\SuperAdminController::class, 'maintenanceMode'])->name('super_admin.maintenance-mode');
+        Route::post('/maintenance-mode', [\App\Http\Controllers\SuperAdminController::class, 'toggleMaintenanceMode'])->name('super_admin.toggle-maintenance');
+
         Route::get('/announcements', [\App\Http\Controllers\StoreAnnouncementController::class, 'index'])->name('super_admin.announcements.index');
         Route::post('/announcements', [\App\Http\Controllers\StoreAnnouncementController::class, 'store'])->name('super_admin.announcements.store');
         Route::post('/announcements/{announcement}/toggle', [\App\Http\Controllers\StoreAnnouncementController::class, 'toggleStatus'])->name('super_admin.announcements.toggle');

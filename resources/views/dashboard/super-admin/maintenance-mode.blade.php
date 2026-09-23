@@ -4,7 +4,7 @@
 <div class="app-title">
   <div>
     <h1><i class="fa fa-wrench"></i> Maintenance Mode</h1>
-    <p>Enable or disable system maintenance mode</p>
+    <p>Turn the system off and write the message visitors will see</p>
   </div>
   <ul class="app-breadcrumb breadcrumb">
     <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
@@ -16,61 +16,103 @@
 <div class="row">
   <div class="col-md-12">
     <div class="tile">
-      <h3 class="tile-title">Maintenance Mode Control</h3>
+      <h3 class="tile-title">Maintenance Mode</h3>
       <div class="tile-body">
         <div class="alert alert-{{ $isDown ? 'warning' : 'success' }}" role="alert">
           <h4>
             <i class="fa fa-{{ $isDown ? 'exclamation-triangle' : 'check-circle' }}"></i>
-            System Status: <strong>{{ $isDown ? 'MAINTENANCE MODE ACTIVE' : 'SYSTEM IS LIVE' }}</strong>
+            System status: <strong>{{ $isDown ? 'OFF — under maintenance' : 'LIVE' }}</strong>
           </h4>
           <p class="mb-0">
             @if($isDown)
-              The system is currently in maintenance mode. Only super administrators can access the system.
+              Visitors still open the login page. After they click Login, they see the message below. A super admin can still sign in.
             @else
-              The system is currently live and accessible to all users.
+              The system is open. Turn it off when you need to do maintenance.
             @endif
           </p>
         </div>
 
         <form action="{{ route('super_admin.toggle-maintenance') }}" method="POST" id="maintenanceForm">
           @csrf
-          
+
           <div class="form-group">
-            <label for="message">Maintenance Message</label>
-            <textarea name="message" id="message" class="form-control" rows="4" 
+            <label for="message">Message visitors will see</label>
+            <textarea name="message" id="message" class="form-control" rows="5" maxlength="2000"
                       placeholder="System is under maintenance. Please check back later.">{{ $maintenanceMessage }}</textarea>
-            <small class="form-text text-muted">This message will be displayed to users when maintenance mode is enabled.</small>
+            <small class="form-text text-muted">This text is shown exactly as you type it, including line breaks.</small>
+            @error('message')
+              <div class="text-danger mt-1">{{ $message }}</div>
+            @enderror
+          </div>
+
+          <div class="form-group">
+            <label>Preview</label>
+            <div id="messagePreview" style="background:#fff;color:#1c1c1c;border:1px solid #ddd;border-left:6px solid #940000;border-radius:8px;padding:16px 18px;font-size:18px;line-height:1.65;white-space:pre-wrap;word-wrap:break-word;"></div>
           </div>
 
           <div class="tile-footer">
             @if($isDown)
-            <button type="submit" class="btn btn-success btn-lg">
-              <i class="fa fa-power-off"></i> Disable Maintenance Mode
+            <button type="submit" class="btn btn-primary btn-lg" name="action" value="update">
+              <i class="fa fa-save"></i> Save message
+            </button>
+            <button type="submit" class="btn btn-success btn-lg" name="action" value="disable">
+              <i class="fa fa-power-off"></i> Turn the system back on
             </button>
             @else
-            <button type="button" class="btn btn-warning btn-lg" 
-                    onclick="confirmAction('This will put the system in maintenance mode. Only super admins will be able to access. Continue?', 'Enable Maintenance Mode', 'Yes, enable!', 'Cancel').then((result) => { if (result.isConfirmed) { document.getElementById('maintenanceForm').submit(); } });">
-              <i class="fa fa-wrench"></i> Enable Maintenance Mode
+            <button type="button" class="btn btn-warning btn-lg" id="enableMaintenance">
+              <i class="fa fa-wrench"></i> Turn the system off
             </button>
             @endif
-            <a href="{{ route('super_admin.dashboard') }}" class="btn btn-secondary">
-              <i class="fa fa-times"></i> Cancel
-            </a>
+            <a href="{{ route('super_admin.dashboard') }}" class="btn btn-secondary">Cancel</a>
           </div>
         </form>
-
-        <div class="mt-4">
-          <h5>Important Notes:</h5>
-          <ul>
-            <li>When maintenance mode is enabled, only super administrators can access the system.</li>
-            <li>All other users will see the maintenance message.</li>
-            <li>You can customize the maintenance message above.</li>
-            <li>Remember to disable maintenance mode when done.</li>
-          </ul>
-        </div>
       </div>
     </div>
   </div>
 </div>
 @endsection
 
+@section('scripts')
+<script>
+  (function () {
+    var area = document.getElementById('message');
+    var preview = document.getElementById('messagePreview');
+    if (area && preview) {
+      var sync = function () {
+        preview.textContent = area.value;
+      };
+      area.addEventListener('input', sync);
+      sync();
+    }
+
+    var enableBtn = document.getElementById('enableMaintenance');
+    if (enableBtn) {
+      enableBtn.addEventListener('click', function () {
+        var form = document.getElementById('maintenanceForm');
+        var submit = function () {
+          var input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'action';
+          input.value = 'enable';
+          form.appendChild(input);
+          form.submit();
+        };
+        if (typeof confirmAction === 'function') {
+          confirmAction(
+            'Visitors will still see the login page. When they click Login, they will see the message you wrote. A super admin can still sign in.',
+            'Turn the system off?',
+            'Yes, turn it off',
+            'Cancel'
+          ).then(function (result) {
+            if (result.isConfirmed) {
+              submit();
+            }
+          });
+        } else {
+          submit();
+        }
+      });
+    }
+  })();
+</script>
+@endsection

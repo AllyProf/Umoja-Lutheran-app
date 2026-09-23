@@ -28,6 +28,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\TrustProxies::class,
         ]);
 
+        $middleware->web(append: [
+            \App\Http\Middleware\EnforceHostelMaintenance::class,
+        ]);
+
         // Add CSRF debugging middleware (only when debug is enabled via env)
         if (env('APP_DEBUG', false) || env('ENABLE_CSRF_DEBUG', false)) {
             $middleware->web(append: [
