@@ -224,6 +224,14 @@ class AppServiceProvider extends ServiceProvider
                         $userRole = 'head_chef';
                     } elseif ($normalizedRole === 'housekeeper' || strtolower($rawRole) === 'housekeeper') {
                         $userRole = 'housekeeper';
+                    } elseif ($normalizedRole === 'cashier' || strtolower($rawRole) === 'cashier') {
+                        $userRole = 'cashier';
+                    } elseif ($normalizedRole === 'accountant' || strtolower($rawRole) === 'accountant') {
+                        $userRole = 'accountant';
+                    } elseif ($normalizedRole === 'storekeeper' || strtolower($rawRole) === 'storekeeper') {
+                        $userRole = 'storekeeper';
+                    } elseif ($normalizedRole === 'waiter' || strtolower($rawRole) === 'waiter') {
+                        $userRole = 'waiter';
                     }
                 } elseif ($user instanceof \App\Models\Guest) {
                     $userRole = 'customer';

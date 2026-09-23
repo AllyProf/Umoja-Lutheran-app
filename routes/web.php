@@ -517,6 +517,11 @@ Route::prefix('super-admin')->group(function () {
         Route::get('/system-settings', [\App\Http\Controllers\SuperAdminController::class, 'systemSettings'])->name('super_admin.system-settings');
         Route::post('/system-settings', [\App\Http\Controllers\SuperAdminController::class, 'updateSystemSettings'])->name('super_admin.system-settings.update');
 
+        Route::get('/announcements', [\App\Http\Controllers\StoreAnnouncementController::class, 'index'])->name('super_admin.announcements.index');
+        Route::post('/announcements', [\App\Http\Controllers\StoreAnnouncementController::class, 'store'])->name('super_admin.announcements.store');
+        Route::post('/announcements/{announcement}/toggle', [\App\Http\Controllers\StoreAnnouncementController::class, 'toggleStatus'])->name('super_admin.announcements.toggle');
+        Route::delete('/announcements/{announcement}', [\App\Http\Controllers\StoreAnnouncementController::class, 'destroy'])->name('super_admin.announcements.destroy');
+
         // Google Auth for Backups
         Route::get('/google/auth', [GoogleAuthController::class, 'redirectToGoogle'])->name('admin.google.auth');
         Route::get('/google/callback', [GoogleAuthController::class, 'handleGoogleCallback'])->name('admin.google.callback');

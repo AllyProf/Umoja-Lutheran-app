@@ -123,8 +123,8 @@
   System Management</li>
 
 <li
-  class="treeview {{ str_contains($activePage ?? '', 'super-admin/active-sessions') || str_contains($activePage ?? '', 'super-admin/cache') || str_contains($activePage ?? '', 'super-admin/system-settings') ? 'is-expanded' : '' }}">
-  <a class="app-menu__item {{ str_contains($activePage ?? '', 'super-admin/active-sessions') || str_contains($activePage ?? '', 'super-admin/cache') || str_contains($activePage ?? '', 'super-admin/system-settings') ? 'active' : '' }}"
+  class="treeview {{ str_contains($activePage ?? '', 'super-admin/active-sessions') || str_contains($activePage ?? '', 'super-admin/cache') || str_contains($activePage ?? '', 'super-admin/system-settings') || str_contains($activePage ?? '', 'super-admin/announcements') ? 'is-expanded' : '' }}">
+  <a class="app-menu__item {{ str_contains($activePage ?? '', 'super-admin/active-sessions') || str_contains($activePage ?? '', 'super-admin/cache') || str_contains($activePage ?? '', 'super-admin/system-settings') || str_contains($activePage ?? '', 'super-admin/announcements') ? 'active' : '' }}"
     href="#" data-toggle="treeview">
     <i class="app-menu__icon fa fa-cog"></i>
     <span class="app-menu__label">System Settings</span>
@@ -133,6 +133,8 @@
   <ul class="treeview-menu">
     <li><a class="treeview-item {{ str_contains($activePage ?? '', 'super-admin/system-settings') ? 'active' : '' }}"
         href="{{ route('super_admin.system-settings') }}"><i class="icon fa fa-cog"></i> General Settings</a></li>
+    <li><a class="treeview-item {{ str_contains($activePage ?? '', 'super-admin/announcements') ? 'active' : '' }}"
+        href="{{ route('super_admin.announcements.index') }}"><i class="icon fa fa-bullhorn"></i> Announcements</a></li>
     <li><a class="treeview-item {{ str_contains($activePage ?? '', 'super-admin/active-sessions') ? 'active' : '' }}"
         href="{{ route('super_admin.active-sessions') }}"><i class="icon fa fa-users"></i> Active Sessions</a></li>
     <li><a class="treeview-item {{ str_contains($activePage ?? '', 'super-admin/cache') ? 'active' : '' }}"
