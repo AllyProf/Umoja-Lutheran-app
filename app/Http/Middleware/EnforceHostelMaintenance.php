@@ -37,6 +37,8 @@ class EnforceHostelMaintenance
             return HostelMaintenance::pageResponse();
         }
 
-        return redirect()->route('login');
+        return redirect()->route('login')
+            ->header('Cache-Control', 'no-store, private, max-age=0')
+            ->header('X-LiteSpeed-Cache-Control', 'no-cache');
     }
 }

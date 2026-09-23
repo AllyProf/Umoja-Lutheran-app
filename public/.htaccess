@@ -53,6 +53,16 @@
     RewriteRule ^ index.php [L]
 </IfModule>
 
+# Do not cache PHP pages. A cached redirect was being shown as
+# "Redirecting to /login" instead of signing the user in.
+<IfModule mod_expires.c>
+    ExpiresActive Off
+</IfModule>
+<IfModule mod_headers.c>
+    Header set Cache-Control "no-store, private, max-age=0"
+    Header set X-LiteSpeed-Cache-Control "no-cache"
+</IfModule>
+
 # php -- BEGIN cPanel-generated handler, do not edit
 # Set the “ea-php82” package as the default “PHP” programming language.
 <IfModule mime_module>
