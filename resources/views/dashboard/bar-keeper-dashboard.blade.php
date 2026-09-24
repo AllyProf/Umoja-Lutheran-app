@@ -1208,6 +1208,7 @@
       const now = new Date();
       const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       const dateStr = now.toLocaleDateString('en-GB');
+      const orderTotal = posCart.reduce((sum, item) => sum + (Number(item.price) * Number(item.qty)), 0);
 
 
 
@@ -1225,6 +1226,7 @@
                       table { width:100%; border-collapse:collapse; margin-top:10px; table-layout: fixed; }
                       td { vertical-align:top; border-bottom: 2px solid #000; word-wrap: break-word; }
                       .footer { font-size:14px; margin-top:15px; font-weight:900; text-transform: uppercase; }
+                      .total { font-size:22px; font-weight:900; margin-top:8px; }
                       @media print { 
                         body { margin:0; padding:2mm; width: 100%; }
                         @page { margin: 0; }
@@ -1250,6 +1252,8 @@
                           `).join('')}
                         </tbody>
                       </table>
+                      <div class="divider"></div>
+                      <div class="center total">TOTAL : ${orderTotal.toLocaleString()} TZS</div>
                       <div class="divider"></div>
                       <div class="center footer">-- Tafadhali andaa haraka --</div>
                     </body></html>`;
