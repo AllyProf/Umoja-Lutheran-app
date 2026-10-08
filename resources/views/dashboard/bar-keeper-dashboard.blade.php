@@ -314,19 +314,93 @@
     </div>
   </div>
 
-  <!-- Today's Verified Sales -->
-  <div class="row mb-4">
+  <!-- Shift / Today's Verified Sales -->
+  <style>
+    #sales-history .sales-table thead th,
+    #sales-history .sales-table tfoot th {
+      background: #f1f3f5 !important;
+      color: #1c1c1c !important;
+      border-color: #ced4da !important;
+    }
+    #sales-history .sales-table td,
+    #sales-history .sales-table th {
+      color: #1c1c1c !important;
+      border-color: #ced4da !important;
+    }
+    #sales-history h5 {
+      color: inherit;
+    }
+    html[data-theme="dark"] #sales-history .sales-table thead th,
+    html[data-theme="dark"] #sales-history .sales-table tfoot th {
+      background: #21262d !important;
+      color: #f0f6fc !important;
+      border-color: #30363d !important;
+    }
+    html[data-theme="dark"] #sales-history .sales-table td,
+    html[data-theme="dark"] #sales-history .sales-table th {
+      background: #0d1117 !important;
+      color: #e6edf3 !important;
+      border-color: #30363d !important;
+    }
+    html[data-theme="dark"] #sales-history .sales-table tbody tr:hover td {
+      background: #161b22 !important;
+    }
+    html[data-theme="dark"] #sales-history h5,
+    html[data-theme="dark"] #sales-history .title,
+    html[data-theme="dark"] #sales-history .text-muted {
+      color: #e6edf3 !important;
+    }
+  </style>
+  <div class="row mb-4" id="sales-history">
     <div class="col-md-12">
       <div class="tile shadow-sm" style="border-top: 4px solid #28a745;">
         <div class="tile-title-w-btn">
-          <h3 class="title"><i class="fa fa-history text-success"></i> Today's Sales (Verification History)</h3>
-          <span class="badge badge-success">{{ $completedSales->count() }} Orders</span>
+          <h3 class="title">
+            <i class="fa fa-history text-success"></i>
+            {{ !empty($activeShift) ? 'Shift Sales (Verification History)' : "Today's Sales (Verification History)" }}
+          </h3>
+          <span class="badge badge-success">{{ $salesForSummary->count() }} Orders · {{ number_format($salesForSummary->sum('total_price_tsh')) }} TZS</span>
         </div>
 
-        @if($completedSales->count() > 0)
+        @if($salesForSummary->count() > 0)
+          <div class="mb-3">
+            <h5 class="mb-2"><i class="fa fa-users"></i> Summary by guest</h5>
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered mb-0 sales-table">
+                <thead>
+                  <tr>
+                    <th>Guest / Room</th>
+                    <th class="text-center">Orders</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-right">Total (TZS)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @foreach($salesSummary as $row)
+                    <tr>
+                      <td><strong>{{ $row['label'] }}</strong></td>
+                      <td class="text-center">{{ $row['orders'] }}</td>
+                      <td class="text-center">{{ number_format($row['qty']) }}</td>
+                      <td class="text-right font-weight-bold">{{ number_format($row['total']) }}</td>
+                    </tr>
+                  @endforeach
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th>All guests</th>
+                    <th class="text-center">{{ $salesForSummary->count() }}</th>
+                    <th class="text-center">{{ number_format($salesForSummary->sum('quantity')) }}</th>
+                    <th class="text-right">{{ number_format($salesForSummary->sum('total_price_tsh')) }}</th>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <h5 class="mb-2"><i class="fa fa-list"></i> Sale details</h5>
           <div class="table-responsive">
-            <table class="table table-sm table-hover table-bordered">
-              <thead class="bg-light">
+            <table class="table table-sm table-hover table-bordered sales-table">
+              <thead>
                 <tr>
                   <th>Time</th>
                   <th>Guest/Room</th>
@@ -359,9 +433,18 @@
               </tbody>
             </table>
           </div>
+
+          <div class="d-flex flex-wrap justify-content-between align-items-center mt-3">
+            <small class="text-muted mb-2">
+              Showing {{ $completedSales->firstItem() }}–{{ $completedSales->lastItem() }} of {{ $completedSales->total() }} sales
+            </small>
+            <div class="mb-2">
+              {{ $completedSales->onEachSide(1)->links() }}
+            </div>
+          </div>
         @else
           <div class="text-center py-4">
-            <p class="text-muted"><i class="fa fa-info-circle"></i> Hakuna mauzo yaliyokamilishwa bado kwa leo.</p>
+            <p class="text-muted"><i class="fa fa-info-circle"></i> Hakuna mauzo yaliyokamilishwa bado katika shift hii.</p>
           </div>
         @endif
       </div>
@@ -916,6 +999,77 @@
     </div>
   </div>
   <!-- Shift Closure Modal -->
+  <style>
+    #shiftClosureModal .shift-summary-table th,
+    #shiftClosureModal .shift-summary-table td {
+      color: #1c1c1c !important;
+      background: #fff !important;
+      border-color: #ced4da !important;
+      vertical-align: middle;
+    }
+    #shiftClosureModal .shift-summary-table th {
+      background: #f1f3f5 !important;
+      font-weight: 700;
+      width: 55%;
+    }
+    #shiftClosureModal .shift-summary-table tr.shift-row-sales th,
+    #shiftClosureModal .shift-summary-table tr.shift-row-sales td {
+      background: #e8f5e9 !important;
+      color: #1b5e20 !important;
+    }
+    #shiftClosureModal .shift-summary-table tr.shift-row-count th,
+    #shiftClosureModal .shift-summary-table tr.shift-row-count td {
+      background: #e3f2fd !important;
+      color: #0d47a1 !important;
+    }
+    #shiftClosureModal .shift-summary-table .shift-cash {
+      color: #1b5e20 !important;
+    }
+    #shiftClosureModal .shift-summary-table .shift-duration {
+      color: #940000 !important;
+    }
+    html[data-theme="dark"] #shiftClosureModal .modal-content {
+      background: #161b22 !important;
+      color: #e6edf3 !important;
+    }
+    html[data-theme="dark"] #shiftClosureModal .modal-body,
+    html[data-theme="dark"] #shiftClosureModal .modal-body label,
+    html[data-theme="dark"] #shiftClosureModal .modal-body .text-muted,
+    html[data-theme="dark"] #shiftClosureModal #shiftSummaryLoading {
+      color: #e6edf3 !important;
+    }
+    html[data-theme="dark"] #shiftClosureModal .shift-summary-table th,
+    html[data-theme="dark"] #shiftClosureModal .shift-summary-table td {
+      background: #0d1117 !important;
+      color: #e6edf3 !important;
+      border-color: #30363d !important;
+    }
+    html[data-theme="dark"] #shiftClosureModal .shift-summary-table th {
+      background: #21262d !important;
+      color: #f0f6fc !important;
+    }
+    html[data-theme="dark"] #shiftClosureModal .shift-summary-table tr.shift-row-sales th,
+    html[data-theme="dark"] #shiftClosureModal .shift-summary-table tr.shift-row-sales td {
+      background: #12332f !important;
+      color: #b2dfdb !important;
+    }
+    html[data-theme="dark"] #shiftClosureModal .shift-summary-table tr.shift-row-count th,
+    html[data-theme="dark"] #shiftClosureModal .shift-summary-table tr.shift-row-count td {
+      background: #12263a !important;
+      color: #90caf9 !important;
+    }
+    html[data-theme="dark"] #shiftClosureModal .shift-summary-table .shift-cash {
+      color: #81c784 !important;
+    }
+    html[data-theme="dark"] #shiftClosureModal .shift-summary-table .shift-duration {
+      color: #ff8a80 !important;
+    }
+    html[data-theme="dark"] #shiftClosureModal .alert-warning {
+      background: #3a2a00 !important;
+      color: #ffe082 !important;
+      border-color: #5c4500 !important;
+    }
+  </style>
   <div class="modal fade" id="shiftClosureModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-md" role="document">
       <div class="modal-content">
@@ -931,21 +1085,41 @@
             <p class="mt-2">Inapakia mauzo...</p>
           </div>
           <div id="shiftSummaryContent" style="display: none;">
-            <table class="table table-bordered mb-4">
+            <table class="table table-bordered mb-3 shift-summary-table">
               <tr>
-                <th class="bg-light">Jumla ya Cash (Hela Mkononi)</th>
-                <td id="summaryTotalCash" class="text-right font-weight-bold text-success" style="font-size: 1.2em;">0
+                <th>Muda wa kufungua</th>
+                <td id="summaryOpenedAt" class="text-right font-weight-bold">—</td>
+              </tr>
+              <tr>
+                <th>Muda wa kufunga (sasa)</th>
+                <td id="summaryClosingAt" class="text-right font-weight-bold">—</td>
+              </tr>
+              <tr>
+                <th>Muda uliotumika</th>
+                <td id="summaryDuration" class="text-right font-weight-bold shift-duration">—</td>
+              </tr>
+              <tr>
+                <th>Total Guests</th>
+                <td id="summaryTotalGuests" class="text-right font-weight-bold">0</td>
+              </tr>
+              <tr class="shift-row-sales">
+                <th>Total Sales</th>
+                <td id="summaryTotalSales" class="text-right font-weight-bold" style="font-size: 1.15em;">0</td>
+              </tr>
+              <tr>
+                <th>Jumla ya Cash (Hela Mkononi)</th>
+                <td id="summaryTotalCash" class="text-right font-weight-bold shift-cash" style="font-size: 1.2em;">0
                 </td>
               </tr>
               <tr>
-                <th class="bg-light">Mauzo ya M-Pesa/Mobile</th>
+                <th>Mauzo ya M-Pesa/Mobile</th>
                 <td id="summaryTotalMpesa" class="text-right">0</td>
               </tr>
               <tr>
-                <th class="bg-light">Mauzo Mengine (Bank)</th>
+                <th>Mauzo Mengine (Bank)</th>
                 <td id="summaryTotalOther" class="text-right">0</td>
               </tr>
-              <tr class="table-info">
+              <tr class="shift-row-count">
                 <th>Idadi ya Huduma Zote</th>
                 <td id="summaryTotalCount" class="text-right">0</td>
               </tr>
@@ -1792,18 +1966,24 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            $('#summaryTotalCash').text(new Intl.NumberFormat().format(data.summary.total_cash));
-            $('#summaryTotalMpesa').text(new Intl.NumberFormat().format(data.summary.total_mpesa));
-            $('#summaryTotalOther').text(new Intl.NumberFormat().format(data.summary.total_other));
-            $('#summaryTotalCount').text(data.summary.count);
+            const s = data.summary;
+            $('#summaryOpenedAt').text(s.opened_at || '—');
+            $('#summaryClosingAt').text(s.closing_at || '—');
+            $('#summaryDuration').text(s.duration_label || '—');
+            $('#summaryTotalGuests').text(s.total_guests || 0);
+            $('#summaryTotalSales').text(new Intl.NumberFormat().format(s.total_sales || 0) + ' TZS');
+            $('#summaryTotalCash').text(new Intl.NumberFormat().format(s.total_cash));
+            $('#summaryTotalMpesa').text(new Intl.NumberFormat().format(s.total_mpesa));
+            $('#summaryTotalOther').text(new Intl.NumberFormat().format(s.total_other));
+            $('#summaryTotalCount').text(s.count);
 
             // Pre-fill amount submitted with total cash as a helpful default
-            $('#amountSubmitted').val(data.summary.total_cash);
+            $('#amountSubmitted').val(s.total_cash);
 
             $('#shiftSummaryLoading').hide();
             $('#shiftSummaryContent').show();
           } else {
-            Swal.fire("Error", "Imeshindwa kupata muhtasari wa shift.", "error");
+            Swal.fire("Error", data.message || "Imeshindwa kupata muhtasari wa shift.", "error");
             $('#shiftClosureModal').modal('hide');
           }
         })
@@ -1812,6 +1992,101 @@
           Swal.fire("Error", "Kuna tatizo la mtandao.", "error");
           $('#shiftClosureModal').modal('hide');
         });
+    }
+
+    function buildShiftReportHtml(report) {
+      const money = (n) => new Intl.NumberFormat().format(Number(n || 0));
+      return `<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8"><title>Shift Sales Report</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #555; margin-bottom: 18px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th, td { border: 1px solid #333; padding: 10px 12px; text-align: left; }
+  th { background: #f3f3f3; width: 45%; }
+  td { text-align: right; font-weight: 700; }
+  .footer { margin-top: 24px; font-size: 12px; color: #666; }
+</style>
+</head><body>
+  <h1>UMOJA LUTHERAN HOSTEL</h1>
+  <div class="sub">Shift Sales Report — ${report.staff_name || ''}</div>
+  <table>
+    <tr><th>Opened at</th><td>${report.opened_at || '—'}</td></tr>
+    <tr><th>Closed at</th><td>${report.closed_at || '—'}</td></tr>
+    <tr><th>Duration</th><td>${report.duration_label || '—'}</td></tr>
+    <tr><th>Total Guests</th><td>${report.total_guests || 0}</td></tr>
+    <tr><th>Total Orders</th><td>${report.count || 0}</td></tr>
+    <tr><th>Total Sales</th><td>${money(report.total_sales)} TZS</td></tr>
+    <tr><th>Cash</th><td>${money(report.total_cash)} TZS</td></tr>
+    <tr><th>M-Pesa</th><td>${money(report.total_mpesa)} TZS</td></tr>
+    <tr><th>Other</th><td>${money(report.total_other)} TZS</td></tr>
+    <tr><th>Cash submitted</th><td>${money(report.amount_submitted)} TZS</td></tr>
+    <tr><th>Difference</th><td>${money(report.difference)} TZS</td></tr>
+  </table>
+  <div class="footer">Printed ${new Date().toLocaleString()}</div>
+</body></html>`;
+    }
+
+    function printShiftCloseReport(report) {
+      if (!report) return;
+      const html = buildShiftReportHtml(report);
+      let frame = document.getElementById('shiftReportPrintFrame');
+      if (!frame) {
+        frame = document.createElement('iframe');
+        frame.id = 'shiftReportPrintFrame';
+        frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+        document.body.appendChild(frame);
+      }
+      const doc = frame.contentWindow.document;
+      doc.open();
+      doc.write(html);
+      doc.close();
+      setTimeout(() => {
+        frame.contentWindow.focus();
+        frame.contentWindow.print();
+      }, 400);
+    }
+
+    async function downloadShiftReportFile(report, downloadUrl) {
+      if (!downloadUrl) {
+        Swal.fire('Error', 'PDF link was not found. Close the shift again and try download.', 'error');
+        return false;
+      }
+
+      try {
+        const response = await fetch(downloadUrl, {
+          method: 'GET',
+          credentials: 'same-origin',
+          headers: { 'Accept': 'application/pdf' }
+        });
+
+        if (!response.ok) {
+          throw new Error('Server returned ' + response.status);
+        }
+
+        const blob = await response.blob();
+        const type = (blob.type || response.headers.get('Content-Type') || '').toLowerCase();
+        if (type.includes('text/html') && !type.includes('pdf')) {
+          throw new Error('Server did not return a PDF file');
+        }
+
+        const stamp = (report && report.closed_at ? report.closed_at : '').replace(/[^\d]/g, '') || Date.now();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'shift-report-' + stamp + '.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        return true;
+      } catch (err) {
+        console.error(err);
+        Swal.fire('Download failed', (err && err.message) ? err.message : 'Could not download PDF.', 'error');
+        return false;
+      }
     }
 
     function openShift() {
@@ -1869,10 +2144,41 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            Swal.fire("Shift Imefungwa!", data.message, "success")
-              .then(() => {
+            $('#shiftClosureModal').modal('hide');
+            const report = data.report || null;
+            const money = (n) => new Intl.NumberFormat().format(Number(n || 0));
+            const html = report ? `
+              <div style="text-align:left;font-size:0.95rem;">
+                <p><b>Opened:</b> ${report.opened_at || '—'}</p>
+                <p><b>Closed:</b> ${report.closed_at || '—'}</p>
+                <p><b>Duration:</b> ${report.duration_label || '—'}</p>
+                <p><b>Total Guests:</b> ${report.total_guests || 0}</p>
+                <p><b>Total Sales:</b> ${money(report.total_sales)} TZS</p>
+                <p><b>Cash / M-Pesa / Other:</b> ${money(report.total_cash)} / ${money(report.total_mpesa)} / ${money(report.total_other)}</p>
+              </div>` : data.message;
+
+            const downloadUrl = data.download_url || null;
+            Swal.fire({
+              title: 'Shift Sales Report',
+              html: html,
+              icon: 'success',
+              showDenyButton: true,
+              showCancelButton: true,
+              confirmButtonText: 'Print report',
+              denyButtonText: 'Download report',
+              cancelButtonText: 'Continue',
+              allowOutsideClick: false
+            }).then(async (result) => {
+              if (result.isConfirmed) {
+                printShiftCloseReport(report);
+                setTimeout(() => location.reload(), 1500);
+              } else if (result.isDenied) {
+                const ok = await downloadShiftReportFile(report, downloadUrl);
+                setTimeout(() => location.reload(), ok ? 2000 : 500);
+              } else {
                 location.reload();
-              });
+              }
+            });
           } else {
             Swal.fire("Attention", data.message, "warning");
             btn.prop('disabled', false).html(originalText);

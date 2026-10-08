@@ -94,6 +94,69 @@
     </div>
 </div>
 
+{{-- ── Past closed shifts (download reports anytime) ── --}}
+@if(isset($pastShifts) && $pastShifts->count() > 0)
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="tile shadow-sm">
+            <div class="tile-title-w-btn">
+                <h3 class="title"><i class="fa fa-file-pdf-o text-danger"></i> Closed Shift Reports</h3>
+                <span class="badge badge-secondary">{{ $pastShifts->count() }} shifts</span>
+            </div>
+            <p class="text-muted small mb-3">
+                Download any closed-shift report here if you did not take it when closing the shift.
+            </p>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered table-hover mb-0 sales-history-shifts">
+                    <thead>
+                        <tr>
+                            @if($isManager)<th>Counter</th>@endif
+                            <th>Opened</th>
+                            <th>Closed</th>
+                            <th>Duration</th>
+                            <th class="text-right">Cash</th>
+                            <th class="text-right">M-Pesa</th>
+                            <th class="text-right">Total Sales</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($pastShifts as $shift)
+                            @php
+                                $opened = $shift->opened_at ?? $shift->created_at;
+                                $closed = $shift->closed_at;
+                                $mins = ($opened && $closed) ? $opened->diffInMinutes($closed) : 0;
+                                $hours = intdiv($mins, 60);
+                                $rem = $mins % 60;
+                                $duration = $hours > 0 ? ($hours.'h'.($rem ? ' '.$rem.'m' : '')) : ($rem.'m');
+                                $totalSales = (float) $shift->total_cash_tzs + (float) $shift->total_mpesa_tzs + (float) $shift->total_other_tzs;
+                            @endphp
+                            <tr>
+                                @if($isManager)
+                                    <td><strong>{{ $shift->staff->name ?? 'Counter' }}</strong></td>
+                                @endif
+                                <td>{{ $opened ? $opened->format('d M Y H:i') : '—' }}</td>
+                                <td>{{ $closed ? $closed->format('d M Y H:i') : '—' }}</td>
+                                <td>{{ $duration }}</td>
+                                <td class="text-right">{{ number_format($shift->total_cash_tzs) }}</td>
+                                <td class="text-right">{{ number_format($shift->total_mpesa_tzs) }}</td>
+                                <td class="text-right font-weight-bold">{{ number_format($totalSales) }}</td>
+                                <td class="text-nowrap">
+                                    <a href="{{ route('bar-keeper.shifts.report', $shift->id, false) }}"
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fa fa-download"></i> PDF
+                                    </a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
 {{-- ── Per-Counter Breakdown ── --}}
 @if($byCounter->isEmpty())
     <div class="row mb-4">
@@ -101,6 +164,7 @@
             <div class="tile shadow-sm text-center py-5">
                 <i class="fa fa-coffee fa-4x text-muted mb-3"></i>
                 <h4 class="text-muted">Hakuna mauzo wala shift live kwa kipindi hiki.</h4>
+                <p class="text-muted mb-0">Unaweza bado kuona na kudownload ripoti za shift zilizofungwa hapo juu.</p>
             </div>
         </div>
     </div>
@@ -158,6 +222,13 @@
                                     title="Close shift for counter who forgot">
                                 <i class="fa fa-lock"></i> Force Close Shift
                             </button>
+                        @endif
+                        @if(!empty($data['closed_shift_id']))
+                            <a href="{{ route('bar-keeper.shifts.report', $data['closed_shift_id'], false) }}"
+                               class="btn btn-sm btn-outline-primary"
+                               title="Download shift PDF report">
+                                <i class="fa fa-download"></i> Download Report
+                            </a>
                         @endif
                         <span class="badge badge-success">
                             Paid: {{ number_format($data['paid_revenue']) }} TZS
@@ -352,6 +423,16 @@
     html[data-theme="dark"] .order-cancelled-total td {
         background: #3a1518 !important;
         color: #ff8a80 !important;
+    }
+    html[data-theme="dark"] .sales-history-shifts th,
+    html[data-theme="dark"] .sales-history-shifts td {
+        background: #0d1117 !important;
+        color: #e6edf3 !important;
+        border-color: #30363d !important;
+    }
+    html[data-theme="dark"] .sales-history-shifts thead th {
+        background: #21262d !important;
+        color: #f0f6fc !important;
     }
     .tile { border-radius: 8px; }
     .counter-card.is-live {

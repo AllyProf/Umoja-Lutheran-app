@@ -770,9 +770,13 @@ Route::prefix('bar-keeper')->group(function () {
         Route::get('/shift-summary', [\App\Http\Controllers\BarKeeperController::class, 'getShiftSummary'])->name('bar-keeper.shift-summary');
         Route::post('/open-shift', [\App\Http\Controllers\BarKeeperController::class, 'openShift'])->name('bar-keeper.open-shift');
         Route::post('/close-shift', [\App\Http\Controllers\BarKeeperController::class, 'closeShift'])->name('bar-keeper.close-shift');
+        Route::get('/shifts/{shift}/report', [\App\Http\Controllers\BarKeeperController::class, 'downloadShiftReport'])->name('bar-keeper.shifts.report');
         Route::post('/shifts/{shift}/force-close', [\App\Http\Controllers\BarKeeperController::class, 'forceCloseShift'])
             ->middleware('role:manager,super_admin')
             ->name('bar-keeper.shifts.force-close');
+
+        // Available with or without an open shift
+        Route::get('/order-summary', [\App\Http\Controllers\BarKeeperController::class, 'orderSummary'])->name('bar-keeper.order-summary');
 
         // Bar Keeper Actions (Require Active Shift)
         Route::middleware(['active.shift'])->group(function () {
@@ -796,7 +800,6 @@ Route::prefix('bar-keeper')->group(function () {
             Route::post('/orders/{serviceRequest}/cancel', [\App\Http\Controllers\BarKeeperController::class, 'cancelOrder'])->name('bar-keeper.orders.cancel');
             Route::get('/orders/{serviceRequest}/print-docket', [\App\Http\Controllers\BarKeeperController::class, 'printDocket'])->name('bar-keeper.orders.print-docket');
             Route::get('/orders/print-group', [\App\Http\Controllers\BarKeeperController::class, 'printGroupDocket'])->name('bar-keeper.orders.print-group');
-            Route::get('/order-summary', [\App\Http\Controllers\BarKeeperController::class, 'orderSummary'])->name('bar-keeper.order-summary');
 
             // Reports
             Route::get('/reports', [\App\Http\Controllers\BarKeeperController::class, 'reports'])->name('bar-keeper.reports');
