@@ -1996,23 +1996,50 @@
 
     function buildShiftReportHtml(report) {
       const money = (n) => new Intl.NumberFormat().format(Number(n || 0));
+      const qty = (n) => {
+        const v = Number(n || 0);
+        return Number.isInteger(v) ? String(v) : String(v);
+      };
+      const items = Array.isArray(report.items) ? report.items : [];
+      const itemRows = items.length
+        ? items.map((item, i) => `
+    <tr>
+      <td class="center">${i + 1}</td>
+      <td>${item.time || '—'}</td>
+      <td>${item.item || 'Item'}</td>
+      <td>${item.guest || '—'}</td>
+      <td class="center">${qty(item.qty)}</td>
+      <td>${item.payment || '—'}</td>
+      <td class="num">${money(item.amount)}</td>
+    </tr>`).join('') + `
+    <tr>
+      <td colspan="6" style="text-align:right;font-weight:700;">Total</td>
+      <td class="num" style="font-weight:700;">${money(report.total_sales)}</td>
+    </tr>`
+        : `<tr><td colspan="7" style="text-align:center;font-style:italic;color:#666;">No paid items were recorded for this shift.</td></tr>`;
+
       return `<!DOCTYPE html>
 <html><head>
 <meta charset="UTF-8"><title>Shift Sales Report</title>
 <style>
-  body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
+  body { font-family: Arial, sans-serif; padding: 24px; color: #111; font-size: 12px; }
   h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 14px; margin: 20px 0 8px; }
   .sub { color: #555; margin-bottom: 18px; }
   table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-  th, td { border: 1px solid #333; padding: 10px 12px; text-align: left; }
-  th { background: #f3f3f3; width: 45%; }
-  td { text-align: right; font-weight: 700; }
+  th, td { border: 1px solid #333; padding: 8px 10px; text-align: left; }
+  .summary th { background: #f3f3f3; width: 45%; }
+  .summary td { text-align: right; font-weight: 700; }
+  .items th { background: #f3f3f3; font-size: 11px; }
+  .items td { font-size: 11px; vertical-align: top; }
+  .items .num { text-align: right; white-space: nowrap; }
+  .items .center { text-align: center; }
   .footer { margin-top: 24px; font-size: 12px; color: #666; }
 </style>
 </head><body>
   <h1>UMOJA LUTHERAN HOSTEL</h1>
   <div class="sub">Shift Sales Report — ${report.staff_name || ''}</div>
-  <table>
+  <table class="summary">
     <tr><th>Opened at</th><td>${report.opened_at || '—'}</td></tr>
     <tr><th>Closed at</th><td>${report.closed_at || '—'}</td></tr>
     <tr><th>Duration</th><td>${report.duration_label || '—'}</td></tr>
@@ -2024,6 +2051,15 @@
     <tr><th>Other</th><td>${money(report.total_other)} TZS</td></tr>
     <tr><th>Cash submitted</th><td>${money(report.amount_submitted)} TZS</td></tr>
     <tr><th>Difference</th><td>${money(report.difference)} TZS</td></tr>
+  </table>
+  <h2>Items Sold</h2>
+  <table class="items">
+    <thead>
+      <tr>
+        <th>#</th><th>Time</th><th>Item</th><th>Guest</th><th>Qty</th><th>Payment</th><th>Amount (TZS)</th>
+      </tr>
+    </thead>
+    <tbody>${itemRows}</tbody>
   </table>
   <div class="footer">Printed ${new Date().toLocaleString()}</div>
 </body></html>`;

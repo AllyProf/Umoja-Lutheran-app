@@ -1778,10 +1778,41 @@ class BarKeeperController extends Controller
     private function paidSalesForShift(int $staffId, ShiftClosure $shift)
     {
         return $this->scopeSalesForShift(
-            ServiceRequest::with(['booking.room'])->where('payment_status', 'paid'),
+            ServiceRequest::with(['booking.room', 'service'])->where('payment_status', 'paid'),
             $staffId,
             $shift
         )->get();
+    }
+
+    /**
+     * Line items for shift print/PDF report.
+     */
+    private function mapShiftSaleItems($shiftSales): array
+    {
+        return $shiftSales->sortBy('completed_at')->values()->map(function ($sale) {
+            $itemName = data_get($sale->service_specific_data, 'item_name')
+                ?? $sale->service->name
+                ?? 'Item';
+
+            if ($sale->is_walk_in) {
+                $guest = 'Walk-in: ' . ($sale->walk_in_name ?: 'Guest');
+            } else {
+                $room = $sale->booking?->room?->room_number;
+                $guestName = $sale->booking?->guest_name;
+                $guest = $room
+                    ? ('Room ' . $room . ($guestName ? ' — ' . $guestName : ''))
+                    : ($guestName ?: 'Guest');
+            }
+
+            return [
+                'time' => optional($sale->completed_at)->format('H:i'),
+                'item' => $itemName,
+                'guest' => $guest,
+                'qty' => (float) $sale->quantity,
+                'payment' => ucfirst(str_replace('_', ' ', (string) ($sale->payment_method ?: 'other'))),
+                'amount' => (float) $sale->total_price_tsh,
+            ];
+        })->all();
     }
 
     private function sealSalesToShift(int $staffId, ShiftClosure $shift): void
@@ -1925,6 +1956,7 @@ class BarKeeperController extends Controller
                 'count' => $shiftSales->count(),
                 'amount_submitted' => $amountSubmitted,
                 'difference' => $difference,
+                'items' => $this->mapShiftSaleItems($shiftSales),
             ],
         ]);
     }
@@ -1953,9 +1985,10 @@ class BarKeeperController extends Controller
         $durationMinutes = $openedAt && $closedAt ? $openedAt->diffInMinutes($closedAt) : 0;
         $totalSales = (float) $shift->total_cash_tzs + (float) $shift->total_mpesa_tzs + (float) $shift->total_other_tzs;
 
-        $shiftSales = ServiceRequest::with(['booking.room'])
+        $shiftSales = ServiceRequest::with(['booking.room', 'service'])
             ->where('shift_closure_id', $shift->id)
             ->where('payment_status', 'paid')
+            ->orderBy('completed_at')
             ->get();
 
         $report = [
@@ -1971,6 +2004,7 @@ class BarKeeperController extends Controller
             'count' => $shiftSales->count(),
             'amount_submitted' => (float) $shift->amount_submitted_tzs,
             'difference' => (float) $shift->difference_tzs,
+            'items' => $this->mapShiftSaleItems($shiftSales),
         ];
 
         $filename = 'shift-report-' . $shift->id . '-' . ($closedAt?->format('Ymd-Hi') ?? 'report') . '.pdf';
