@@ -954,26 +954,17 @@ class BarKeeperController extends Controller
             return "{$minutes}m";
         };
 
-        // Keep null approved_by as 0 (System / Walk-in)
-        $counterIds = $soldOrders->pluck('approved_by')
-            ->map(fn ($id) => $id ?: 0)
-            ->unique()
-            ->values();
-
-        // Also include bar keepers who are live even with zero sales (manager view)
+        // Live shifts (always current — never mix with a past weekly/monthly period)
         $liveShifts = ShiftClosure::with('staff')
             ->where('status', 'active')
             ->when(!$isManager, fn ($q) => $q->where('staff_id', $user->id))
             ->when($isManager, function ($q) {
                 $q->whereHas('staff', fn ($s) => $s->where('role', 'bar_keeper'));
             })
-            ->get()
-            ->keyBy('staff_id');
+            ->orderByDesc('id')
+            ->get();
 
-        $counterIds = $counterIds->merge($liveShifts->keys())->unique()->values();
-        $staffIdsForShifts = $counterIds->filter(fn ($id) => (int) $id > 0)->values();
-
-        $pastShiftsQuery = ShiftClosure::with('staff')
+        $pastShifts = ShiftClosure::with('staff')
             ->whereNotNull('closed_at')
             ->where(function ($q) use ($startDate, $endDate) {
                 $q->whereBetween('opened_at', [$startDate, $endDate])
@@ -983,59 +974,111 @@ class BarKeeperController extends Controller
             ->when($isManager, function ($q) {
                 $q->whereHas('staff', fn ($s) => $s->where('role', 'bar_keeper'));
             })
-            ->orderByDesc('id');
+            ->orderByDesc('id')
+            ->get();
 
-        $pastShifts = $pastShiftsQuery->get();
-        $closedShifts = $pastShifts->groupBy('staff_id');
-
-        // Include counters who closed a shift in this period even with zero filtered sales
-        $counterIds = $counterIds->merge($closedShifts->keys())->unique()->values();
-        $staffIdsForShifts = $counterIds->filter(fn ($id) => (int) $id > 0)->values();
-
-        // ── Group sold orders by counter (approved_by) ──
-        $ordersByCounter = $soldOrders->groupBy(fn ($o) => $o->approved_by ?: 0);
-
-        $byCounter = collect();
-        foreach ($counterIds as $counterId) {
-            $group = $ordersByCounter->get($counterId, collect());
-            $liveShift = $liveShifts->get($counterId);
-            $latestClosed = optional($closedShifts->get($counterId))->first();
-
-            $isLive = (bool) $liveShift;
-            $openedAt = $liveShift?->opened_at ?? $latestClosed?->opened_at;
-            $closedAt = $isLive ? null : $latestClosed?->closed_at;
+        $buildShiftCard = function ($shift, $orders, bool $isLive) use ($formatDuration) {
+            $openedAt = $shift->opened_at ?? $shift->created_at;
+            $closedAt = $isLive ? null : $shift->closed_at;
             $durationTo = $isLive ? now() : $closedAt;
 
-            $counterName = $group->first()?->approvedBy?->name
-                ?? $liveShift?->staff?->name
-                ?? $latestClosed?->staff?->name
+            return [
+                'counter_id'      => (int) $shift->staff_id,
+                'counter_name'    => $shift->staff->name ?? 'Counter',
+                'is_live'         => $isLive,
+                'shift_id'        => $shift->id,
+                'closed_shift_id' => $isLive ? null : $shift->id,
+                'opened_at'       => $openedAt,
+                'closed_at'       => $closedAt,
+                'duration_label'  => $formatDuration($openedAt, $durationTo),
+                'total_orders'    => $orders->count(),
+                'total_revenue'   => (float) $orders->sum('total_price_tsh'),
+                'paid_revenue'    => (float) $orders->where('payment_status', 'paid')->sum('total_price_tsh'),
+                'pending_revenue' => (float) $orders->where('payment_status', 'pending')->sum('total_price_tsh'),
+                'orders'          => $orders->values(),
+            ];
+        };
+
+        // LIVE cards: only sales from this open shift window (not the whole week/month)
+        $liveCards = $liveShifts->map(function ($shift) use ($baseQuery, $buildShiftCard, $isManager, $user) {
+            $openedAt = $shift->opened_at ?? $shift->created_at;
+            $orders = $baseQuery()
+                ->whereIn('status', ['completed'])
+                ->where('approved_by', $shift->staff_id)
+                ->where(function ($q) use ($shift, $openedAt) {
+                    $q->where('shift_closure_id', $shift->id)
+                        ->orWhere(function ($sub) use ($openedAt) {
+                            $sub->whereNull('shift_closure_id')
+                                ->where('completed_at', '>=', $openedAt);
+                        });
+                })
+                ->orderByDesc('completed_at')
+                ->get();
+
+            // Non-managers already filtered by staff_id on the shift query.
+            if (!$isManager && (int) $shift->staff_id !== (int) $user->id) {
+                $orders = collect();
+            }
+
+            return $buildShiftCard($shift, $orders, true);
+        })->values();
+
+        // PERIOD cards: one card per closed shift in range (sealed sales only)
+        $periodCards = $pastShifts->map(function ($shift) use ($soldOrders, $buildShiftCard) {
+            $orders = $soldOrders
+                ->where('shift_closure_id', $shift->id)
+                ->values();
+
+            // Fallback for older unlinked sales that still fall inside this shift window
+            if ($orders->isEmpty()) {
+                $openedAt = $shift->opened_at ?? $shift->created_at;
+                $closedAt = $shift->closed_at;
+                $orders = $soldOrders->filter(function ($o) use ($shift, $openedAt, $closedAt) {
+                    if ((int) ($o->approved_by ?: 0) !== (int) $shift->staff_id) {
+                        return false;
+                    }
+                    if ($o->shift_closure_id) {
+                        return (int) $o->shift_closure_id === (int) $shift->id;
+                    }
+                    if (!$o->completed_at || !$openedAt || !$closedAt) {
+                        return false;
+                    }
+
+                    return $o->completed_at->between($openedAt, $closedAt);
+                })->values();
+            }
+
+            return $buildShiftCard($shift, $orders, false);
+        })->values();
+
+        // Orphan period sales (no shift link / no matching closed shift card)
+        $assignedIds = $periodCards->flatMap(fn ($c) => $c['orders']->pluck('id'))->all();
+        $orphanOrders = $soldOrders->whereNotIn('id', $assignedIds)->values();
+        $orphanCards = $orphanOrders->groupBy(fn ($o) => $o->approved_by ?: 0)->map(function ($group, $counterId) {
+            $name = $group->first()?->approvedBy?->name
                 ?? ((int) $counterId === 0 ? 'System / Walk-in' : 'Unknown Counter');
 
-            $byCounter->put($counterId, [
-                'counter_id'       => $counterId,
-                'counter_name'     => $counterName,
-                'is_live'          => $isLive,
-                'shift_id'         => $liveShift?->id ?? $latestClosed?->id,
-                'closed_shift_id'  => $isLive ? null : $latestClosed?->id,
-                'shift_sort_id'    => $liveShift?->id ?? $latestClosed?->id ?? 0,
-                'opened_at'        => $openedAt,
-                'closed_at'        => $closedAt,
-                'duration_label'   => $formatDuration($openedAt, $durationTo),
-                'total_orders'     => $group->count(),
-                'total_revenue'    => $group->sum('total_price_tsh'),
-                'paid_revenue'     => $group->where('payment_status', 'paid')->sum('total_price_tsh'),
-                'pending_revenue'  => $group->where('payment_status', 'pending')->sum('total_price_tsh'),
-                'orders'           => $group,
-            ]);
-        }
+            return [
+                'counter_id'      => (int) $counterId,
+                'counter_name'    => $name,
+                'is_live'         => false,
+                'shift_id'        => null,
+                'closed_shift_id' => null,
+                'opened_at'       => null,
+                'closed_at'       => null,
+                'duration_label'  => null,
+                'total_orders'    => $group->count(),
+                'total_revenue'   => (float) $group->sum('total_price_tsh'),
+                'paid_revenue'    => (float) $group->where('payment_status', 'paid')->sum('total_price_tsh'),
+                'pending_revenue' => (float) $group->where('payment_status', 'pending')->sum('total_price_tsh'),
+                'orders'          => $group->values(),
+                'is_orphan'       => true,
+            ];
+        })->values();
 
-        // Last opened shift stays on top, including after it is closed.
-        // A newly opened shift gets a higher id and moves to the top.
-        $byCounter = $byCounter->sortByDesc(function ($row) {
-            return (int) ($row['shift_sort_id'] ?? 0);
-        });
+        $byCounter = $periodCards->concat($orphanCards);
 
-        // ── Summary stats ──
+        // ── Summary stats (period only — live is separate) ──
         $summary = [
             'total_sold'      => $soldOrders->count(),
             'total_revenue'   => $soldOrders->sum('total_price_tsh'),
@@ -1047,7 +1090,7 @@ class BarKeeperController extends Controller
         ];
 
         return view('dashboard.bar-keeper-order-summary', compact(
-            'byCounter', 'cancelledOrders', 'unpaidGuests', 'unpaidOrders', 'summary', 'pastShifts',
+            'byCounter', 'liveCards', 'cancelledOrders', 'unpaidGuests', 'unpaidOrders', 'summary', 'pastShifts',
             'isManager', 'startDate', 'endDate', 'date', 'dateType'
         ));
     }
