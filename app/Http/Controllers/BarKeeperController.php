@@ -898,15 +898,24 @@ class BarKeeperController extends Controller
             'cocktails', 'liquor', 'food', 'restaurant', 'traditional', 'bites', 'snacks', 'chai', 'fruit_salad'];
 
         // Date range filter (default = today)
-        $date     = $request->filled('date') ? \Carbon\Carbon::parse($request->date) : now();
         $dateType = $request->input('date_type', 'daily');
+        $date = $request->filled('date')
+            ? \Carbon\Carbon::parse($request->date)->startOfDay()
+            : now()->startOfDay();
 
         if ($dateType === 'weekly') {
+            // Weekly = previous full week by default (not the current week of "today").
+            // Choose any other date to open the calendar week that contains it.
+            if (!$request->filled('date') || $date->isSameDay(now())) {
+                $date = now()->subWeek()->startOfDay();
+            }
             $startDate = $date->copy()->startOfWeek();
             $endDate   = $date->copy()->endOfWeek();
+            $date      = $startDate->copy(); // keep date picker on that week's Monday
         } elseif ($dateType === 'monthly') {
             $startDate = $date->copy()->startOfMonth();
             $endDate   = $date->copy()->endOfMonth();
+            $date      = $startDate->copy();
         } else {
             $startDate = $date->copy()->startOfDay();
             $endDate   = $date->copy()->endOfDay();
@@ -942,6 +951,25 @@ class BarKeeperController extends Controller
         }
 
         $cancelledOrders = $cancelledQuery->orderBy('cancelled_at', 'desc')->get();
+
+        // ── Unpaid guests (served / ordered but not yet paid) ──
+        $unpaidQuery = $baseQuery()
+            ->where('payment_status', 'pending')
+            ->whereNotIn('status', ['cancelled'])
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('completed_at', [$startDate, $endDate])
+                    ->orWhere(function ($q2) use ($startDate, $endDate) {
+                        $q2->whereNull('completed_at')
+                            ->whereBetween('requested_at', [$startDate, $endDate]);
+                    });
+            });
+
+        if (!$isManager) {
+            $unpaidQuery->where('approved_by', $user->id);
+        }
+
+        $unpaidOrders = $unpaidQuery->orderByDesc('completed_at')->orderByDesc('requested_at')->get();
+        $unpaidGuests = $this->groupUnpaidGuests($unpaidOrders);
 
         // ── Shift info for counters (live + closed duration) ──
         $formatDuration = function ($from, $to) {
@@ -1047,13 +1075,14 @@ class BarKeeperController extends Controller
             'total_sold'      => $soldOrders->count(),
             'total_revenue'   => $soldOrders->sum('total_price_tsh'),
             'paid_revenue'    => $soldOrders->where('payment_status', 'paid')->sum('total_price_tsh'),
-            'pending_revenue' => $soldOrders->where('payment_status', 'pending')->sum('total_price_tsh'),
+            'pending_revenue' => $unpaidOrders->sum('total_price_tsh'),
+            'unpaid_guests'   => count($unpaidGuests),
             'total_cancelled' => $cancelledOrders->count(),
             'live_counters'   => $liveShifts->count(),
         ];
 
         return view('dashboard.bar-keeper-order-summary', compact(
-            'byCounter', 'cancelledOrders', 'summary', 'pastShifts',
+            'byCounter', 'cancelledOrders', 'unpaidGuests', 'unpaidOrders', 'summary', 'pastShifts',
             'isManager', 'startDate', 'endDate', 'date', 'dateType'
         ));
     }
@@ -1784,32 +1813,102 @@ class BarKeeperController extends Controller
         )->get();
     }
 
+    private function guestLabelForSale($sale): string
+    {
+        if ($sale->is_walk_in) {
+            return 'Walk-in: ' . ($sale->walk_in_name ?: 'Guest');
+        }
+
+        $room = $sale->booking?->room?->room_number;
+        $guestName = $sale->booking?->guest_name;
+
+        return $room
+            ? ('Room ' . $room . ($guestName ? ' — ' . $guestName : ''))
+            : ($guestName ?: 'Guest');
+    }
+
+    private function guestKeyForSale($sale): string
+    {
+        if ($sale->is_walk_in) {
+            return 'walk:' . strtolower(trim((string) ($sale->walk_in_name ?: 'guest')));
+        }
+
+        if ($sale->booking_id) {
+            return 'booking:' . $sale->booking_id;
+        }
+
+        return 'guest:' . strtolower(trim($this->guestLabelForSale($sale)));
+    }
+
+    /**
+     * Group unpaid orders by guest for reports / order summary.
+     */
+    private function groupUnpaidGuests($unpaidOrders): array
+    {
+        return $unpaidOrders->groupBy(fn ($sale) => $this->guestKeyForSale($sale))
+            ->map(function ($rows) {
+                $first = $rows->first();
+
+                return [
+                    'guest' => $this->guestLabelForSale($first),
+                    'orders' => $rows->count(),
+                    'qty' => (float) $rows->sum('quantity'),
+                    'amount' => (float) $rows->sum('total_price_tsh'),
+                    'items' => $rows->map(function ($sale) {
+                        return [
+                            'time' => optional($sale->completed_at ?? $sale->requested_at)->format('H:i'),
+                            'item' => data_get($sale->service_specific_data, 'item_name')
+                                ?? $sale->service->name
+                                ?? 'Item',
+                            'qty' => (float) $sale->quantity,
+                            'amount' => (float) $sale->total_price_tsh,
+                            'status' => $sale->status,
+                        ];
+                    })->values()->all(),
+                ];
+            })
+            ->sortByDesc('amount')
+            ->values()
+            ->all();
+    }
+
+    private function unpaidOrdersForShift(int $staffId, ShiftClosure $shift)
+    {
+        $openedAt = $shift->opened_at ?? $shift->created_at;
+        $closedAt = $shift->closed_at ?? now();
+
+        return ServiceRequest::with(['booking.room', 'service'])
+            ->where('payment_status', 'pending')
+            ->whereNotIn('status', ['cancelled'])
+            ->where('approved_by', $staffId)
+            ->where(function ($q) use ($openedAt, $closedAt) {
+                $q->whereBetween('completed_at', [$openedAt, $closedAt])
+                    ->orWhere(function ($q2) use ($openedAt, $closedAt) {
+                        $q2->whereNull('completed_at')
+                            ->whereBetween('requested_at', [$openedAt, $closedAt]);
+                    });
+            })
+            ->orderBy('completed_at')
+            ->orderBy('requested_at')
+            ->get();
+    }
+
     /**
      * Line items for shift print/PDF report.
      */
-    private function mapShiftSaleItems($shiftSales): array
+    private function mapShiftSaleItems($shiftSales, string $paymentFallback = 'other'): array
     {
-        return $shiftSales->sortBy('completed_at')->values()->map(function ($sale) {
-            $itemName = data_get($sale->service_specific_data, 'item_name')
-                ?? $sale->service->name
-                ?? 'Item';
-
-            if ($sale->is_walk_in) {
-                $guest = 'Walk-in: ' . ($sale->walk_in_name ?: 'Guest');
-            } else {
-                $room = $sale->booking?->room?->room_number;
-                $guestName = $sale->booking?->guest_name;
-                $guest = $room
-                    ? ('Room ' . $room . ($guestName ? ' — ' . $guestName : ''))
-                    : ($guestName ?: 'Guest');
-            }
-
+        return $shiftSales->sortBy(fn ($s) => $s->completed_at ?? $s->requested_at)->values()->map(function ($sale) use ($paymentFallback) {
             return [
-                'time' => optional($sale->completed_at)->format('H:i'),
-                'item' => $itemName,
-                'guest' => $guest,
+                'time' => optional($sale->completed_at ?? $sale->requested_at)->format('H:i'),
+                'item' => data_get($sale->service_specific_data, 'item_name')
+                    ?? $sale->service->name
+                    ?? 'Item',
+                'guest' => $this->guestLabelForSale($sale),
                 'qty' => (float) $sale->quantity,
-                'payment' => ucfirst(str_replace('_', ' ', (string) ($sale->payment_method ?: 'other'))),
+                'payment' => $sale->payment_status === 'pending'
+                    ? 'Unpaid'
+                    : ucfirst(str_replace('_', ' ', (string) ($sale->payment_method ?: $paymentFallback))),
                 'amount' => (float) $sale->total_price_tsh,
             ];
         })->all();
@@ -1938,6 +2037,9 @@ class BarKeeperController extends Controller
 
         $activeShift->refresh();
 
+        $unpaidOrders = $this->unpaidOrdersForShift($staffId, $activeShift);
+        $unpaidGuests = $this->groupUnpaidGuests($unpaidOrders);
+
         return response()->json([
             'success' => true,
             'message' => 'Shift imefungwa vizuri. Tafadhali kabidhi hela kwa Cashier.',
@@ -1957,6 +2059,10 @@ class BarKeeperController extends Controller
                 'amount_submitted' => $amountSubmitted,
                 'difference' => $difference,
                 'items' => $this->mapShiftSaleItems($shiftSales),
+                'unpaid_guests' => $unpaidGuests,
+                'unpaid_items' => $this->mapShiftSaleItems($unpaidOrders),
+                'unpaid_total' => (float) $unpaidOrders->sum('total_price_tsh'),
+                'unpaid_guest_count' => count($unpaidGuests),
             ],
         ]);
     }
@@ -1991,6 +2097,9 @@ class BarKeeperController extends Controller
             ->orderBy('completed_at')
             ->get();
 
+        $unpaidOrders = $this->unpaidOrdersForShift((int) $shift->staff_id, $shift);
+        $unpaidGuests = $this->groupUnpaidGuests($unpaidOrders);
+
         $report = [
             'staff_name' => $shift->staff->name ?? 'Counter',
             'opened_at' => $openedAt?->format('d M Y H:i'),
@@ -2005,6 +2114,10 @@ class BarKeeperController extends Controller
             'amount_submitted' => (float) $shift->amount_submitted_tzs,
             'difference' => (float) $shift->difference_tzs,
             'items' => $this->mapShiftSaleItems($shiftSales),
+            'unpaid_guests' => $unpaidGuests,
+            'unpaid_items' => $this->mapShiftSaleItems($unpaidOrders),
+            'unpaid_total' => (float) $unpaidOrders->sum('total_price_tsh'),
+            'unpaid_guest_count' => count($unpaidGuests),
         ];
 
         $filename = 'shift-report-' . $shift->id . '-' . ($closedAt?->format('Ymd-Hi') ?? 'report') . '.pdf';

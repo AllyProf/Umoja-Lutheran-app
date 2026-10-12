@@ -2001,6 +2001,7 @@
         return Number.isInteger(v) ? String(v) : String(v);
       };
       const items = Array.isArray(report.items) ? report.items : [];
+      const unpaidGuests = Array.isArray(report.unpaid_guests) ? report.unpaid_guests : [];
       const itemRows = items.length
         ? items.map((item, i) => `
     <tr>
@@ -2017,6 +2018,29 @@
       <td class="num" style="font-weight:700;">${money(report.total_sales)}</td>
     </tr>`
         : `<tr><td colspan="7" style="text-align:center;font-style:italic;color:#666;">No paid items were recorded for this shift.</td></tr>`;
+
+      const unpaidRows = unpaidGuests.length
+        ? unpaidGuests.map((guest, i) => {
+            const itemLines = (guest.items || []).map((item) => `
+    <tr>
+      <td></td>
+      <td colspan="3" style="color:#444;">${item.time || ''} — ${item.item || 'Item'} (x${qty(item.qty)})</td>
+      <td class="num">${money(item.amount)}</td>
+    </tr>`).join('');
+            return `
+    <tr>
+      <td class="center">${i + 1}</td>
+      <td>${guest.guest || '—'}</td>
+      <td class="center">${guest.orders || 0}</td>
+      <td class="center">${qty(guest.qty)}</td>
+      <td class="num">${money(guest.amount)}</td>
+    </tr>${itemLines}`;
+          }).join('') + `
+    <tr>
+      <td colspan="4" style="text-align:right;font-weight:700;">Total unpaid</td>
+      <td class="num" style="font-weight:700;">${money(report.unpaid_total)}</td>
+    </tr>`
+        : `<tr><td colspan="5" style="text-align:center;font-style:italic;color:#666;">No unpaid guests for this shift.</td></tr>`;
 
       return `<!DOCTYPE html>
 <html><head>
@@ -2051,6 +2075,8 @@
     <tr><th>Other</th><td>${money(report.total_other)} TZS</td></tr>
     <tr><th>Cash submitted</th><td>${money(report.amount_submitted)} TZS</td></tr>
     <tr><th>Difference</th><td>${money(report.difference)} TZS</td></tr>
+    <tr><th>Unpaid guests</th><td>${report.unpaid_guest_count || 0}</td></tr>
+    <tr><th>Unpaid total</th><td>${money(report.unpaid_total)} TZS</td></tr>
   </table>
   <h2>Items Sold</h2>
   <table class="items">
@@ -2060,6 +2086,15 @@
       </tr>
     </thead>
     <tbody>${itemRows}</tbody>
+  </table>
+  <h2>Unpaid Guests</h2>
+  <table class="items">
+    <thead>
+      <tr>
+        <th>#</th><th>Guest / Room</th><th>Orders</th><th>Qty</th><th>Amount Due (TZS)</th>
+      </tr>
+    </thead>
+    <tbody>${unpaidRows}</tbody>
   </table>
   <div class="footer">Printed ${new Date().toLocaleString()}</div>
 </body></html>`;

@@ -17,18 +17,18 @@
 <div class="row mb-3">
     <div class="col-md-12">
         <div class="tile shadow-sm">
-            <form method="GET" action="{{ route('bar-keeper.order-summary') }}" class="form-inline flex-wrap" style="gap:8px;">
+            <form method="GET" action="{{ route('bar-keeper.order-summary') }}" class="form-inline flex-wrap" id="orderSummaryFilterForm" style="gap:8px;">
                 <div class="form-group mr-2">
                     <label class="mr-2 font-weight-bold">Period:</label>
-                    <select name="date_type" class="form-control form-control-sm" onchange="this.form.submit()">
+                    <select name="date_type" id="orderSummaryDateType" class="form-control form-control-sm" onchange="onOrderSummaryPeriodChange(this)">
                         <option value="daily"   {{ $dateType === 'daily'   ? 'selected' : '' }}>Daily</option>
                         <option value="weekly"  {{ $dateType === 'weekly'  ? 'selected' : '' }}>Weekly</option>
                         <option value="monthly" {{ $dateType === 'monthly' ? 'selected' : '' }}>Monthly</option>
                     </select>
                 </div>
                 <div class="form-group mr-2">
-                    <label class="mr-2 font-weight-bold">Date:</label>
-                    <input type="date" name="date" class="form-control form-control-sm"
+                    <label class="mr-2 font-weight-bold">{{ $dateType === 'weekly' ? 'Week of:' : ($dateType === 'monthly' ? 'Month of:' : 'Date:') }}</label>
+                    <input type="date" name="date" id="orderSummaryDate" class="form-control form-control-sm"
                            value="{{ $date->toDateString() }}" onchange="this.form.submit()">
                 </div>
                 <button type="submit" class="btn btn-sm btn-primary">
@@ -41,6 +41,29 @@
                     {{ $startDate->format('M d, Y') }} – {{ $endDate->format('M d, Y') }}
                 </span>
             </form>
+            <script>
+                function onOrderSummaryPeriodChange(sel) {
+                    const dateInput = document.getElementById('orderSummaryDate');
+                    const today = new Date();
+                    const pad = (n) => String(n).padStart(2, '0');
+                    const toYmd = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+
+                    if (sel.value === 'weekly') {
+                        // Monday of the previous full week
+                        const d = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                        const day = d.getDay(); // 0=Sun ... 6=Sat
+                        const toMonday = day === 0 ? 6 : day - 1;
+                        d.setDate(d.getDate() - toMonday - 7);
+                        dateInput.value = toYmd(d);
+                    } else if (sel.value === 'daily') {
+                        dateInput.value = toYmd(today);
+                    } else if (sel.value === 'monthly') {
+                        const d = new Date(today.getFullYear(), today.getMonth(), 1);
+                        dateInput.value = toYmd(d);
+                    }
+                    sel.form.submit();
+                }
+            </script>
         </div>
     </div>
 </div>
@@ -76,6 +99,16 @@
     </div>
     <div class="col-6 col-md-2">
         <div class="widget-small warning coloured-icon">
+            <i class="icon fa fa-exclamation-triangle fa-3x"></i>
+            <div class="info">
+                <h4>Unpaid</h4>
+                <p><b>{{ number_format($summary['pending_revenue'] ?? 0) }} TZS</b></p>
+                <small>{{ number_format($summary['unpaid_guests'] ?? 0) }} guests</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-2">
+        <div class="widget-small warning coloured-icon">
             <i class="icon fa fa-circle text-danger fa-3x" style="animation: pulse-live 1.4s infinite;"></i>
             <div class="info">
                 <h4>Live Now</h4>
@@ -83,13 +116,83 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md-2">
         <div class="widget-small danger coloured-icon">
             <i class="icon fa fa-times-circle fa-3x"></i>
             <div class="info">
                 <h4>Cancelled</h4>
                 <p><b>{{ number_format($summary['total_cancelled']) }} orders</b></p>
             </div>
+        </div>
+    </div>
+</div>
+
+{{-- ── Unpaid Guests ── --}}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="tile shadow-sm" style="border-top: 4px solid #f0ad4e;">
+            <div class="tile-title-w-btn">
+                <h3 class="title" style="color:#d58512;">
+                    <i class="fa fa-user-times mr-1"></i> Unpaid Guests
+                    <span class="badge badge-warning ml-2">{{ count($unpaidGuests ?? []) }}</span>
+                </h3>
+                <span class="badge badge-warning">
+                    Due: {{ number_format($summary['pending_revenue'] ?? 0) }} TZS
+                </span>
+            </div>
+
+            @if(empty($unpaidGuests))
+                <div class="text-center py-4 text-muted">
+                    <i class="fa fa-check-circle fa-2x text-success mb-2"></i>
+                    <p>Hakuna mgeni aliyebaki kulipa kwa kipindi hiki.</p>
+                </div>
+            @else
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover table-bordered mb-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Guest / Room</th>
+                                <th>Items</th>
+                                <th class="text-center">Orders</th>
+                                <th class="text-center">Qty</th>
+                                <th class="text-right">Amount Due</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($unpaidGuests as $i => $guest)
+                                <tr>
+                                    <td>{{ $i + 1 }}</td>
+                                    <td><strong>{{ $guest['guest'] }}</strong></td>
+                                    <td>
+                                        @foreach(($guest['items'] ?? []) as $item)
+                                            <div class="small">
+                                                <span class="text-muted">{{ $item['time'] ?? '' }}</span>
+                                                {{ $item['item'] ?? 'Item' }}
+                                                <span class="text-muted">×{{ $item['qty'] ?? 0 }}</span>
+                                                — {{ number_format($item['amount'] ?? 0) }}
+                                            </div>
+                                        @endforeach
+                                    </td>
+                                    <td class="text-center">{{ $guest['orders'] }}</td>
+                                    <td class="text-center">{{ $guest['qty'] }}</td>
+                                    <td class="text-right font-weight-bold text-warning">
+                                        {{ number_format($guest['amount']) }} TZS
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="5" class="text-right font-weight-bold">Total unpaid:</td>
+                                <td class="text-right font-weight-bold text-warning">
+                                    {{ number_format($summary['pending_revenue'] ?? 0) }} TZS
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            @endif
         </div>
     </div>
 </div>

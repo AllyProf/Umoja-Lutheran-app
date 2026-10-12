@@ -36,6 +36,8 @@
         <tr><th>Other</th><td>{{ number_format($report['total_other'] ?? 0) }} TZS</td></tr>
         <tr><th>Cash submitted</th><td>{{ number_format($report['amount_submitted'] ?? 0) }} TZS</td></tr>
         <tr><th>Difference</th><td>{{ number_format($report['difference'] ?? 0) }} TZS</td></tr>
+        <tr><th>Unpaid guests</th><td>{{ $report['unpaid_guest_count'] ?? 0 }}</td></tr>
+        <tr><th>Unpaid total</th><td>{{ number_format($report['unpaid_total'] ?? 0) }} TZS</td></tr>
     </table>
 
     <h2>Items Sold</h2>
@@ -73,6 +75,50 @@
         </table>
     @else
         <div class="empty">No paid items were recorded for this shift.</div>
+    @endif
+
+    <h2>Unpaid Guests</h2>
+    @php $unpaidGuests = $report['unpaid_guests'] ?? []; @endphp
+    @if(count($unpaidGuests))
+        <table class="items">
+            <thead>
+                <tr>
+                    <th style="width:6%;">#</th>
+                    <th>Guest / Room</th>
+                    <th style="width:12%;" class="center">Orders</th>
+                    <th style="width:12%;" class="center">Qty</th>
+                    <th style="width:18%;" class="num">Amount Due (TZS)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($unpaidGuests as $i => $guest)
+                    <tr>
+                        <td class="center">{{ $i + 1 }}</td>
+                        <td>{{ $guest['guest'] ?? '—' }}</td>
+                        <td class="center">{{ $guest['orders'] ?? 0 }}</td>
+                        <td class="center">{{ rtrim(rtrim(number_format($guest['qty'] ?? 0, 2, '.', ''), '0'), '.') }}</td>
+                        <td class="num">{{ number_format($guest['amount'] ?? 0) }}</td>
+                    </tr>
+                    @foreach(($guest['items'] ?? []) as $item)
+                        <tr>
+                            <td></td>
+                            <td colspan="3" style="color:#444;">
+                                {{ $item['time'] ?? '' }}
+                                — {{ $item['item'] ?? 'Item' }}
+                                (x{{ rtrim(rtrim(number_format($item['qty'] ?? 0, 2, '.', ''), '0'), '.') }})
+                            </td>
+                            <td class="num">{{ number_format($item['amount'] ?? 0) }}</td>
+                        </tr>
+                    @endforeach
+                @endforeach
+                <tr>
+                    <td colspan="4" style="text-align:right;font-weight:bold;">Total unpaid</td>
+                    <td class="num" style="font-weight:bold;">{{ number_format($report['unpaid_total'] ?? 0) }}</td>
+                </tr>
+            </tbody>
+        </table>
+    @else
+        <div class="empty">No unpaid guests for this shift.</div>
     @endif
 
     <div class="footer">Generated {{ now()->format('d M Y H:i') }}</div>
