@@ -131,14 +131,20 @@
 <div class="row mb-4">
     <div class="col-md-12">
         <div class="tile shadow-sm" style="border-top: 4px solid #f0ad4e;">
-            <div class="tile-title-w-btn">
-                <h3 class="title" style="color:#d58512;">
+            <div class="tile-title-w-btn flex-wrap" style="gap:8px;">
+                <h3 class="title mb-0" style="color:#d58512;">
                     <i class="fa fa-user-times mr-1"></i> Unpaid Guests
                     <span class="badge badge-warning ml-2">{{ count($unpaidGuests ?? []) }}</span>
                 </h3>
-                <span class="badge badge-warning">
-                    Due: {{ number_format($summary['pending_revenue'] ?? 0) }} TZS
-                </span>
+                <div class="d-flex align-items-center flex-wrap" style="gap:6px;">
+                    <span class="badge badge-warning">
+                        Due: {{ number_format($summary['pending_revenue'] ?? 0) }} TZS
+                    </span>
+                    <a href="{{ route('bar-keeper.order-summary.unpaid-report', request()->only(['date', 'date_type'])) }}"
+                       class="btn btn-sm btn-warning">
+                        <i class="fa fa-download"></i> Download Unpaid PDF
+                    </a>
+                </div>
             </div>
 
             @if(empty($unpaidGuests))

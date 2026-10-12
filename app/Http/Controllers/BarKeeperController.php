@@ -893,33 +893,13 @@ class BarKeeperController extends Controller
         $user = Auth::guard('staff')->user();
         $isManager = in_array(strtolower($user->role ?? ''), ['manager', 'super_admin']);
 
-        $barCategories = ['drinks', 'non_alcoholic_beverage', 'water', 'juices', 'energy_drinks', 'bar',
-            'beverage', 'soda', 'beverages', 'hot_beverages', 'soft_drinks', 'beers', 'wines', 'spirits',
-            'cocktails', 'liquor', 'food', 'restaurant', 'traditional', 'bites', 'snacks', 'chai', 'fruit_salad'];
+        $period = $this->resolveOrderSummaryPeriod($request);
+        $dateType = $period['dateType'];
+        $date = $period['date'];
+        $startDate = $period['startDate'];
+        $endDate = $period['endDate'];
 
-        // Date range filter (default = today)
-        $dateType = $request->input('date_type', 'daily');
-        $date = $request->filled('date')
-            ? \Carbon\Carbon::parse($request->date)->startOfDay()
-            : now()->startOfDay();
-
-        if ($dateType === 'weekly') {
-            // Weekly = previous full week by default (not the current week of "today").
-            // Choose any other date to open the calendar week that contains it.
-            if (!$request->filled('date') || $date->isSameDay(now())) {
-                $date = now()->subWeek()->startOfDay();
-            }
-            $startDate = $date->copy()->startOfWeek();
-            $endDate   = $date->copy()->endOfWeek();
-            $date      = $startDate->copy(); // keep date picker on that week's Monday
-        } elseif ($dateType === 'monthly') {
-            $startDate = $date->copy()->startOfMonth();
-            $endDate   = $date->copy()->endOfMonth();
-            $date      = $startDate->copy();
-        } else {
-            $startDate = $date->copy()->startOfDay();
-            $endDate   = $date->copy()->endOfDay();
-        }
+        $barCategories = $this->barOrderCategories();
 
         // Base query builder (closure so we can reuse)
         $baseQuery = function () use ($barCategories) {
@@ -953,22 +933,7 @@ class BarKeeperController extends Controller
         $cancelledOrders = $cancelledQuery->orderBy('cancelled_at', 'desc')->get();
 
         // ── Unpaid guests (served / ordered but not yet paid) ──
-        $unpaidQuery = $baseQuery()
-            ->where('payment_status', 'pending')
-            ->whereNotIn('status', ['cancelled'])
-            ->where(function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('completed_at', [$startDate, $endDate])
-                    ->orWhere(function ($q2) use ($startDate, $endDate) {
-                        $q2->whereNull('completed_at')
-                            ->whereBetween('requested_at', [$startDate, $endDate]);
-                    });
-            });
-
-        if (!$isManager) {
-            $unpaidQuery->where('approved_by', $user->id);
-        }
-
-        $unpaidOrders = $unpaidQuery->orderByDesc('completed_at')->orderByDesc('requested_at')->get();
+        $unpaidOrders = $this->fetchUnpaidOrdersForPeriod($user, $isManager, $startDate, $endDate);
         $unpaidGuests = $this->groupUnpaidGuests($unpaidOrders);
 
         // ── Shift info for counters (live + closed duration) ──
@@ -1087,6 +1052,97 @@ class BarKeeperController extends Controller
         ));
     }
 
+    /**
+     * Download PDF of unpaid guests (wanaodaiwa) for the selected period.
+     */
+    public function downloadUnpaidReport(Request $request)
+    {
+        $user = Auth::guard('staff')->user();
+        $isManager = in_array(strtolower($user->role ?? ''), ['manager', 'super_admin']);
+
+        $period = $this->resolveOrderSummaryPeriod($request);
+        $unpaidOrders = $this->fetchUnpaidOrdersForPeriod($user, $isManager, $period['startDate'], $period['endDate']);
+        $unpaidGuests = $this->groupUnpaidGuests($unpaidOrders);
+        $unpaidTotal = (float) $unpaidOrders->sum('total_price_tsh');
+
+        $report = [
+            'staff_name' => $user->name ?? 'Counter',
+            'is_manager' => $isManager,
+            'period_label' => ucfirst($period['dateType']),
+            'start_date' => $period['startDate']->format('d M Y'),
+            'end_date' => $period['endDate']->format('d M Y'),
+            'range_label' => $period['startDate']->format('d M Y') . ' – ' . $period['endDate']->format('d M Y'),
+            'guest_count' => count($unpaidGuests),
+            'order_count' => $unpaidOrders->count(),
+            'unpaid_total' => $unpaidTotal,
+            'guests' => $unpaidGuests,
+        ];
+
+        $filename = 'unpaid-guests-' . $period['startDate']->format('Ymd') . '-' . $period['endDate']->format('Ymd') . '.pdf';
+
+        return Pdf::loadView('dashboard.print-unpaid-guests-report', compact('report'))
+            ->download($filename);
+    }
+
+    private function barOrderCategories(): array
+    {
+        return ['drinks', 'non_alcoholic_beverage', 'water', 'juices', 'energy_drinks', 'bar',
+            'beverage', 'soda', 'beverages', 'hot_beverages', 'soft_drinks', 'beers', 'wines', 'spirits',
+            'cocktails', 'liquor', 'food', 'restaurant', 'traditional', 'bites', 'snacks', 'chai', 'fruit_salad'];
+    }
+
+    private function resolveOrderSummaryPeriod(Request $request): array
+    {
+        $dateType = $request->input('date_type', 'daily');
+        $date = $request->filled('date')
+            ? \Carbon\Carbon::parse($request->date)->startOfDay()
+            : now()->startOfDay();
+
+        if ($dateType === 'weekly') {
+            // Weekly defaults to the previous full week (not current week of "today").
+            if (!$request->filled('date') || $date->isSameDay(now())) {
+                $date = now()->subWeek()->startOfDay();
+            }
+            $startDate = $date->copy()->startOfWeek();
+            $endDate = $date->copy()->endOfWeek();
+            $date = $startDate->copy();
+        } elseif ($dateType === 'monthly') {
+            $startDate = $date->copy()->startOfMonth();
+            $endDate = $date->copy()->endOfMonth();
+            $date = $startDate->copy();
+        } else {
+            $startDate = $date->copy()->startOfDay();
+            $endDate = $date->copy()->endOfDay();
+        }
+
+        return compact('dateType', 'date', 'startDate', 'endDate');
+    }
+
+    private function fetchUnpaidOrdersForPeriod($user, bool $isManager, $startDate, $endDate)
+    {
+        $barCategories = $this->barOrderCategories();
+
+        $query = ServiceRequest::with(['service', 'booking.room', 'approvedBy'])
+            ->where(function ($q) use ($barCategories) {
+                $q->whereHas('service', fn ($sq) => $sq->whereIn('category', $barCategories))
+                    ->orWhereIn('service_id', [3, 4]);
+            })
+            ->where('payment_status', 'pending')
+            ->whereNotIn('status', ['cancelled'])
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('completed_at', [$startDate, $endDate])
+                    ->orWhere(function ($q2) use ($startDate, $endDate) {
+                        $q2->whereNull('completed_at')
+                            ->whereBetween('requested_at', [$startDate, $endDate]);
+                    });
+            });
+
+        if (!$isManager) {
+            $query->where('approved_by', $user->id);
+        }
+
+        return $query->orderByDesc('completed_at')->orderByDesc('requested_at')->get();
+    }
 
     /**
      * Dedicated Stock Transfers Page

@@ -777,6 +777,8 @@ Route::prefix('bar-keeper')->group(function () {
 
         // Available with or without an open shift
         Route::get('/order-summary', [\App\Http\Controllers\BarKeeperController::class, 'orderSummary'])->name('bar-keeper.order-summary');
+        Route::get('/order-summary/unpaid-report', [\App\Http\Controllers\BarKeeperController::class, 'downloadUnpaidReport'])
+            ->name('bar-keeper.order-summary.unpaid-report');
 
         // Bar Keeper Actions (Require Active Shift)
         Route::middleware(['active.shift'])->group(function () {
