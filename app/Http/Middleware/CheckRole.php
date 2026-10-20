@@ -37,6 +37,8 @@ class CheckRole
                 $userRole = 'super_admin';
             } elseif ($normalizedRole === 'manager' || $rawRoleLower === 'manager') {
                 $userRole = 'manager';
+            } elseif ($normalizedRole === 'restaurantmanager' || $rawRoleLower === 'restaurant_manager' || $rawRoleLower === 'restaurant manager' || $normalizedRole === 'assistantmanager' || $rawRoleLower === 'assistant_manager') {
+                $userRole = 'restaurant_manager';
             } elseif ($normalizedRole === 'reception' || $rawRoleLower === 'reception') {
                 $userRole = 'reception';
             } elseif ($normalizedRole === 'barkeeper' || $normalizedRole === 'barkeepr' || $rawRoleLower === 'bar_keeper' || $rawRoleLower === 'bar keeper' || $rawRoleLower === 'bartender') {
@@ -53,6 +55,9 @@ class CheckRole
                 $userRole = 'accountant';
             } elseif ($normalizedRole === 'cashier' || $rawRoleLower === 'cashier') {
                 $userRole = 'cashier';
+            } else {
+                // Custom roles created in Super Admin → Roles: use slug-style name
+                $userRole = strtolower(str_replace([' ', '-'], '_', trim($rawRole)));
             }
         } elseif ($user instanceof \App\Models\Guest) {
             $userRole = 'customer'; // Guests are mapped to 'customer' role

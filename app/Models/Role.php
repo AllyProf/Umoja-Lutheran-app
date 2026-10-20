@@ -20,6 +20,35 @@ class Role extends Model
         'is_system' => 'boolean',
     ];
 
+    /** Roles that belong to guests, not Staff accounts. */
+    public const GUEST_ROLE_NAMES = ['guest', 'customer'];
+
+    /**
+     * Roles that can be assigned when creating/editing staff or guests.
+     */
+    public static function assignableRoles()
+    {
+        return static::query()
+            ->orderByRaw("CASE WHEN name = 'super_admin' THEN 0 WHEN name = 'manager' THEN 1 WHEN name = 'restaurant_manager' THEN 2 ELSE 3 END")
+            ->orderBy('display_name')
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * Whether this role name should create a Staff (not Guest) account.
+     */
+    public static function isStaffRoleName(?string $roleName): bool
+    {
+        if (!$roleName) {
+            return false;
+        }
+
+        $normalized = strtolower(str_replace([' ', '-'], '_', trim($roleName)));
+
+        return !in_array($normalized, self::GUEST_ROLE_NAMES, true);
+    }
+
     /**
      * Get staff members with this role
      */

@@ -118,6 +118,10 @@
                    href="{{ route('bar-keeper.order-summary') }}">
                    <i class="icon fa fa-bar-chart"></i> Order Summary
                </a></li>
+            <li><a class="treeview-item {{ str_contains($activePage, 'bar-keeper/debts') ? 'active' : '' }}"
+                   href="{{ route('bar-keeper.debts') }}">
+                   <i class="icon fa fa-handshake-o"></i> Debt Management
+               </a></li>
             <li class="treeview-divider"></li>
             <li><a class="treeview-item" href="{{ route('admin.restaurants.shopping-list.index') }}"><i
                         class="icon fa fa-shopping-basket"></i> Shopping Lists</a></li>
@@ -291,7 +295,7 @@
     <li class="treeview-item-header"
         style="padding: 10px 20px; color: #999; font-size: 11px; text-transform: uppercase; font-weight: 600; margin-top: 10px;">
         Finance & Analytics</li>
-    <li><a class="app-menu__item {{ str_contains($activePage, 'admin/reports') ? 'active' : '' }}"
+    <li><a class="app-menu__item {{ (str_contains($activePage, 'manager/reports') || str_contains($activePage, 'admin/reports')) ? 'active' : '' }}"
             href="{{ route('admin.reports.index') }}"><i class="app-menu__icon fa fa-bar-chart"></i><span
                 class="app-menu__label">Reports Dashboard</span></a></li>
     <li><a class="app-menu__item {{ str_contains($activePage, 'reception/reports/financial') ? 'active' : '' }}"
@@ -300,6 +304,9 @@
     <li><a class="app-menu__item {{ str_contains($activePage, 'admin/payments') ? 'active' : '' }}"
             href="{{ route('admin.payments') }}"><i class="app-menu__icon fa fa-money"></i><span class="app-menu__label">All
                 Payments</span></a></li>
+    <li><a class="app-menu__item {{ str_contains($activePage, 'bar-keeper/debts') || str_contains($activePage, 'cashier/debts') ? 'active' : '' }}"
+            href="{{ route('bar-keeper.debts') }}"><i class="app-menu__icon fa fa-handshake-o"></i><span
+                class="app-menu__label">Debt Management</span></a></li>
 
     <li><a class="app-menu__item {{ str_contains($activePage, 'admin/feedback') ? 'active' : '' }}"
             href="{{ route('admin.feedback') }}"><i class="app-menu__icon fa fa-star"></i><span

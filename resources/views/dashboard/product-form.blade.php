@@ -55,8 +55,8 @@
                                             name="category" id="categorySelect" required onchange="checkFoodCategory()"
                                             style="flex: 1;">
                                             <option value="">Select Category (Drink / Food / Housekeeping)</option>
-                                            <option value="vinywaji" {{ (old('category', $product->category ?? '') == 'vinywaji') ? 'selected' : '' }}>Vinywaji (Drinks)</option>
-                                            <option value="chakula" {{ (old('category', $product->category ?? '') == 'chakula') ? 'selected' : '' }}>Chakula (Food)</option>
+                                            <option value="vinywaji" {{ (old('category', $product->category ?? '') == 'vinywaji') ? 'selected' : '' }}>Drinks</option>
+                                            <option value="chakula" {{ (old('category', $product->category ?? '') == 'chakula') ? 'selected' : '' }}>Food</option>
                                             <option value="housekeeping" {{ (old('category', $product->category ?? '') == 'housekeeping') ? 'selected' : '' }}>Housekeeping</option>
                                             <option value="general">General / Shared</option>
                                         </select>
@@ -277,7 +277,7 @@
                                             <option value="Litres">Litres (L)</option>
                                             <option value="ml">ml</option>
                                             <option value="Bucket">Bucket (Ndoo)</option>
-                                            <option value="Bundle">Bundle (Funga)</option>
+                                            <option value="Bundle">Bundle</option>
                                             <option value="Packet">Packet</option>
                                             <option value="Bottle">Bottle</option>
                                             <option value="Glass">Glass</option>
@@ -306,7 +306,7 @@
                                             <option value="Litres">Litres (L)</option>
                                             <option value="ml">ml</option>
                                             <option value="Bucket">Bucket (Ndoo)</option>
-                                            <option value="Bundle">Bundle (Funga)</option>
+                                            <option value="Bundle">Bundle</option>
                                             <option value="Packet">Packet</option>
                                             <option value="Bottle">Bottle</option>
                                             <option value="Glass">Glass</option>

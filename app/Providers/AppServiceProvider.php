@@ -46,6 +46,11 @@ class AppServiceProvider extends ServiceProvider
         // If production but APP_URL is HTTP, don't force HTTPS (let it use HTTP)
         // This ensures CSRF tokens are generated with the correct protocol
 
+        // Contextual user manual for each dashboard page / sidebar menu
+        View::composer('dashboard.layouts.app', function ($view) {
+            $view->with('userGuide', \App\Support\UserGuide::forRoute());
+        });
+
         // Share sidebar badge counts for customer
         View::composer('dashboard.partials.sidebar-customer', function ($view) {
             $badges = [

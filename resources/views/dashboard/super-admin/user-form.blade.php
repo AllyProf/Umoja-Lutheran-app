@@ -63,40 +63,14 @@
             <select name="role" id="role"
                     class="form-control @error('role') is-invalid @enderror" required>
               <option value="">{{ __('Select Role') }}</option>
-              <option value="super_admin" {{ old('role', $user->role ?? '') == 'super_admin' ? 'selected' : '' }}>
-                {{ __('Super Administrator') }}
-              </option>
-              <option value="manager" {{ old('role', $user->role ?? '') == 'manager' ? 'selected' : '' }}>
-                {{ __('Manager') }}
-              </option>
-              <option value="reception" {{ old('role', $user->role ?? '') == 'reception' ? 'selected' : '' }}>
-                {{ __('Reception Staff') }}
-              </option>
-              <option value="bar_keeper" {{ old('role', $user->role ?? '') == 'bar_keeper' ? 'selected' : '' }}>
-                {{ __('Counter') }}
-              </option>
-              <option value="head_chef" {{ old('role', $user->role ?? '') == 'head_chef' ? 'selected' : '' }}>
-                {{ __('Head Chef') }}
-              </option>
-              <option value="housekeeper" {{ old('role', $user->role ?? '') == 'housekeeper' ? 'selected' : '' }}>
-                {{ __('Housekeeper') }}
-              </option>
-              <option value="waiter" {{ old('role', $user->role ?? '') == 'waiter' ? 'selected' : '' }}>
-                {{ __('Waiter') }}
-              </option>
-              <option value="storekeeper" {{ old('role', $user->role ?? '') == 'storekeeper' ? 'selected' : '' }}>
-                {{ __('Storekeeper') }}
-              </option>
-              <option value="accountant" {{ old('role', $user->role ?? '') == 'accountant' ? 'selected' : '' }}>
-                {{ __('Accountant') }}
-              </option>
-              <option value="cashier" {{ old('role', $user->role ?? '') == 'cashier' ? 'selected' : '' }}>
-                {{ __('Cashier') }}
-              </option>
-              <option value="guest" {{ old('role', $user->role ?? '') == 'guest' ? 'selected' : '' }}>
-                {{ __('Guest') }}
-              </option>
+              @foreach(($roles ?? collect()) as $roleOption)
+                <option value="{{ $roleOption->name }}"
+                  {{ old('role', $user->role ?? '') == $roleOption->name ? 'selected' : '' }}>
+                  {{ $roleOption->display_name ?: ucwords(str_replace('_', ' ', $roleOption->name)) }}
+                </option>
+              @endforeach
             </select>
+            <small class="form-text text-muted">{{ __('Roles listed here come from Super Admin → Roles. Create a role there first if it is missing.') }}</small>
             @error('role')
             <div class="invalid-feedback">{{ $message }}</div>
             @enderror

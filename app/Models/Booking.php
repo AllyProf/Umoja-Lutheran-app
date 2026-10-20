@@ -128,4 +128,62 @@ class Booking extends Model
     {
         return $this->hasMany(ServiceRequest::class);
     }
+
+    /**
+     * Approved/completed service lines still unpaid (matches counter: pending + room_charge).
+     */
+    public function unpaidServiceChargesTsh($serviceRequests = null): float
+    {
+        $serviceRequests = $serviceRequests ?? $this->serviceRequests()
+            ->whereIn('status', ['approved', 'completed'])
+            ->get();
+
+        return (float) $serviceRequests
+            ->filter(fn ($sr) => in_array($sr->payment_status ?? 'pending', ['pending', 'room_charge'], true))
+            ->sum('total_price_tsh');
+    }
+
+    /**
+     * Paid service line total (payment_status = paid only — not room_charge).
+     */
+    public function paidServiceChargesTsh($serviceRequests = null): float
+    {
+        $serviceRequests = $serviceRequests ?? $this->serviceRequests()
+            ->whereIn('status', ['approved', 'completed'])
+            ->get();
+
+        return (float) $serviceRequests
+            ->where('payment_status', 'paid')
+            ->sum('total_price_tsh');
+    }
+
+    /**
+     * Guest outstanding in TSh aligned with counter food bills.
+     * - Unpaid services = pending + room_charge (line-based)
+     * - Room/extension debt uses booking.amount_paid after attributing paid service lines
+     *   (avoids double-counting bar cash already stored on amount_paid)
+     *
+     * @param  bool  $includeRoom  false for corporate self-paid (guest owes services only)
+     */
+    public function computeOutstandingBalanceTsh($serviceRequests = null, bool $includeRoom = true): float
+    {
+        $serviceRequests = $serviceRequests ?? $this->serviceRequests()
+            ->whereIn('status', ['approved', 'completed'])
+            ->get();
+
+        $unpaidServicesTsh = $this->unpaidServiceChargesTsh($serviceRequests);
+        $paidServicesTsh = $this->paidServiceChargesTsh($serviceRequests);
+        $amountPaidPool = (float) ($this->amount_paid ?? 0);
+
+        if (!$includeRoom) {
+            return max(0, $unpaidServicesTsh);
+        }
+
+        // booking.total_price already includes approved extension in this app
+        $roomBillTsh = (float) ($this->total_price ?? 0);
+        $remainingAfterServices = max(0, $amountPaidPool - $paidServicesTsh);
+        $roomOutstandingTsh = max(0, $roomBillTsh - $remainingAfterServices);
+
+        return max(0, $roomOutstandingTsh + $unpaidServicesTsh);
+    }
 }

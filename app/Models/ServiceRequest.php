@@ -96,4 +96,57 @@ class ServiceRequest extends Model
     {
         return $this->belongsTo(Staff::class, 'cancelled_by');
     }
+
+    /**
+     * Whether this paid sale was a collection of an older unpaid/room-charge debt.
+     */
+    public function wasPaidFromPriorDebt(): bool
+    {
+        return (bool) data_get($this->service_specific_data, 'paid_from_prior_debt');
+    }
+
+    /**
+     * Paid at reception (room bill) — visible on counter with PAID status,
+     * but must never count as counter cash / shift revenue.
+     */
+    public function wasPaidAtReception(): bool
+    {
+        return (bool) data_get($this->service_specific_data, 'paid_at_reception');
+    }
+
+    /**
+     * Money the counter actually collected (excludes reception-paid room charges).
+     */
+    public function countsAsCounterCash(): bool
+    {
+        return $this->payment_status === 'paid' && !$this->wasPaidAtReception();
+    }
+
+    /**
+     * Build service_specific_data marking payment as prior-debt collection when applicable.
+     * Counts in the receiving (current) shift, but keeps audit trail of the original order.
+     */
+    public function withPriorDebtPaymentMeta(?ShiftClosure $activeShift = null): array
+    {
+        $data = is_array($this->service_specific_data) ? $this->service_specific_data : [];
+        $orderAt = $this->requested_at ?? $this->created_at;
+        $shiftOpened = $activeShift?->opened_at ?? $activeShift?->created_at;
+
+        $wasUnpaid = in_array($this->payment_status, ['pending', 'room_charge'], true);
+        $fromEarlierShift = $wasUnpaid && $orderAt && $shiftOpened && $orderAt->lt($shiftOpened);
+        $fromOtherShiftLink = $wasUnpaid
+            && $activeShift
+            && $this->shift_closure_id
+            && (int) $this->shift_closure_id !== (int) $activeShift->id;
+
+        if ($fromEarlierShift || $fromOtherShiftLink) {
+            $data['paid_from_prior_debt'] = true;
+            $data['original_order_at'] = optional($orderAt)->toDateTimeString();
+            if ($this->shift_closure_id) {
+                $data['original_shift_closure_id'] = (int) $this->shift_closure_id;
+            }
+        }
+
+        return $data;
+    }
 }

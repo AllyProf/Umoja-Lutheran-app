@@ -52,14 +52,33 @@
     }
   </style>
 
+  @php
+    $isProxySeller = $isProxySeller ?? false;
+    $activeCounterShifts = $activeCounterShifts ?? collect();
+  @endphp
   <div class="shift-management-card shadow-sm">
     <div class="shift-status-info">
-      <h1><i class="fa fa-dashboard text-primary"></i> Counter Dashboard</h1>
-      @if($activeShift)
+      <h1><i class="fa fa-dashboard text-primary"></i> {{ $isProxySeller ? 'Restaurant Counter (Proxy)' : 'Counter Dashboard' }}</h1>
+      @if($isProxySeller)
+        @if($activeShift)
+          <div class="d-flex align-items-center flex-wrap">
+            <span class="badge badge-success pulse-animation mr-2" style="width: 10px; height: 10px; border-radius: 50%; padding: 0;">&nbsp;</span>
+            <p class="text-success mb-0 font-weight-bold">
+              <i class="fa fa-user"></i> Selling on behalf of:
+              <strong>{{ $activeShift->staff->name ?? 'Counter' }}</strong>
+              <span class="text-muted font-weight-normal small ml-1">(shift {{ $activeShift->opened_at->format('H:i') }})</span>
+            </p>
+          </div>
+        @else
+          <p class="text-danger mb-0 font-weight-bold">
+            <i class="fa fa-warning"></i> Select a counter with an open shift to sell.
+          </p>
+        @endif
+      @elseif($activeShift)
         <div class="d-flex align-items-center">
           <span class="badge badge-success pulse-animation mr-2" style="width: 10px; height: 10px; border-radius: 50%; padding: 0;">&nbsp;</span>
           <p class="text-success mb-0 font-weight-bold">
-            <i class="fa fa-clock-o"></i> Shift Active: {{ $activeShift->opened_at->format('H:i') }} 
+            <i class="fa fa-clock-o"></i> Shift Active: {{ $activeShift->opened_at->format('H:i') }}
             <span class="text-muted font-weight-normal small ml-1">({{ $activeShift->opened_at->diffForHumans() }})</span>
           </p>
         </div>
@@ -70,17 +89,49 @@
       @endif
     </div>
     <div>
-      @if($activeShift)
+      @if($isProxySeller)
+        {{-- No personal shift open/close for restaurant manager --}}
+      @elseif($activeShift)
         <button class="shift-btn shift-btn-close shadow-sm" onclick="openShiftClosureModal()">
-          <i class="fa fa-power-off"></i> FUNGA HESABU
+          <i class="fa fa-power-off"></i> CLOSE SHIFT
         </button>
       @else
         <button class="shift-btn shift-btn-open shadow-sm" onclick="openShift()">
-          <i class="fa fa-play-circle fa-lg"></i> FUNGUA HESABU
+          <i class="fa fa-play-circle fa-lg"></i> OPEN SHIFT
         </button>
       @endif
     </div>
   </div>
+
+  @if($isProxySeller)
+  <div class="tile mb-4">
+    <div class="tile-body">
+      <label class="font-weight-bold mb-2 d-block"><i class="fa fa-exchange"></i> Counter you are selling for</label>
+      @if($activeCounterShifts->isEmpty())
+        <div class="alert alert-warning mb-0">No counter has an active shift right now. A counter must open a shift first.</div>
+      @else
+        <div class="form-row align-items-end">
+          <div class="col-md-8">
+            <select id="proxyCounterShift" class="form-control form-control-lg">
+              <option value="">— Select counter —</option>
+              @foreach($activeCounterShifts as $shiftOpt)
+                <option value="{{ $shiftOpt->id }}" {{ ($activeShift && (int)$activeShift->id === (int)$shiftOpt->id) ? 'selected' : '' }}>
+                  {{ $shiftOpt->staff->name ?? 'Counter' }} — since {{ optional($shiftOpt->opened_at)->format('H:i') }}
+                </option>
+              @endforeach
+            </select>
+          </div>
+          <div class="col-md-4">
+            <button type="button" class="btn btn-primary btn-lg btn-block" onclick="selectProxyCounterShift()">
+              <i class="fa fa-check"></i> Tumia Counter Hii
+            </button>
+          </div>
+        </div>
+        <small class="text-muted d-block mt-2">Orders will appear on that counter's shift and show that <strong>you</strong> placed them.</small>
+      @endif
+    </div>
+  </div>
+  @endif
 
   <ul class="app-breadcrumb breadcrumb mb-4">
     <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
@@ -141,7 +192,7 @@
               </a>
             @endif
             <button class="btn btn-primary {{ !$activeShift ? 'disabled' : '' }}" {{ !$activeShift ? 'disabled' : '' }}
-              onclick="openWalkInModal()"><i class="fa fa-plus"></i> New Walk-in Sale</button>
+              onclick="openWalkInModal()"><i class="fa fa-plus"></i> New Sale</button>
           </div>
         </div>
 
@@ -173,8 +224,16 @@
                 @foreach($groupedOrders as $groupKey => $orderGroup)
                   @php
                     $first = $orderGroup->first();
-                    $guestTotal = $orderGroup->where('payment_status', 'pending')->sum('total_price_tsh');
+                    $counterPending = $orderGroup->where('payment_status', 'pending');
+                    $receptionUnpaid = $orderGroup->where('payment_status', 'room_charge');
+                    $receptionPaid = $orderGroup->filter(fn($o) => $o->wasPaidAtReception());
+                    $guestTotal = $counterPending->sum('total_price_tsh');
+                    $receptionTotal = $receptionUnpaid->sum('total_price_tsh');
+                    $receptionPaidTotal = $receptionPaid->sum('total_price_tsh');
                     $latestRequest = $orderGroup->sortByDesc('requested_at')->first()->requested_at;
+                    $allOnReception = $orderGroup->every(fn($o) => $o->payment_status === 'room_charge' || $o->wasPaidAtReception());
+                    $allReceptionPaid = $receptionUnpaid->isEmpty() && $receptionPaid->isNotEmpty()
+                        && $orderGroup->every(fn($o) => $o->wasPaidAtReception() || $o->countsAsCounterCash());
                   @endphp
                   <tr style="border-top: 3px solid #009688;">
                     <td style="vertical-align: top;">
@@ -199,6 +258,9 @@
                       @else
                         <span class="badge badge-primary mb-1">Room {{ $first->booking?->room?->room_number ?? 'N/A' }}</span><br>
                         <strong>{{ $first->booking?->guest_name ?? 'Guest' }}</strong>
+                        @if($receptionTotal > 0 || $receptionPaidTotal > 0)
+                          <br><span class="badge badge-info mt-1" style="font-size: 10px;">PAY AT RECEPTION</span>
+                        @endif
                       @endif
                     </td>
                     <td colspan="4" class="p-0">
@@ -207,8 +269,21 @@
                           <tr style="background: transparent;">
                             <td style="width: 35%; border-top: none;">
                               <strong>{{ $order->service_specific_data['item_name'] ?? $order->service?->name ?? 'Deleted Service' }}</strong>
+                              @php $placedBy = $order->service_specific_data['placed_by_name'] ?? null; @endphp
+                              @if($placedBy)
+                                <div><small class="text-info"><i class="fa fa-user"></i> Placed by: {{ $placedBy }}</small></div>
+                              @endif
                               @if($order->payment_status === 'pending')
                                 <br><span class="badge badge-warning" style="font-size: 9px;">UNPAID</span>
+                              @elseif($order->payment_status === 'room_charge')
+                                <br><span class="badge badge-info" style="font-size: 9px;">PAY AT RECEPTION</span>
+                                <span class="badge badge-warning" style="font-size: 9px;">UNPAID</span>
+                              @elseif($order->wasPaidAtReception())
+                                <br><span class="badge badge-info" style="font-size: 9px;">PAY AT RECEPTION</span>
+                                <span class="badge badge-success" style="font-size: 9px;">PAID</span>
+                                <br><small class="text-muted">Not counter cash</small>
+                              @elseif($order->payment_status === 'paid')
+                                <br><span class="badge badge-success" style="font-size: 9px;">PAID</span>
                               @endif
                             </td>
                             <td style="width: 10%; border-top: none;">x {{ $order->quantity }}</td>
@@ -257,7 +332,7 @@
                                 </button>
                               @endif
 
-                              @if(!$order->is_walk_in)
+                              @if(!$order->is_walk_in && $order->payment_status === 'pending' && in_array($order->status, ['pending', 'approved', 'completed'], true))
                                 <button class="btn btn-xs btn-primary pull-right {{ !$activeShift ? 'disabled' : '' }}" {{ !$activeShift ? 'disabled' : '' }} onclick="completeOrder({{ $order->id }}, 'room_charge')"
                                   title="Charge to Room">
                                   <i class="fa fa-bed"></i> Room Charge
@@ -269,9 +344,29 @@
                         @if($guestTotal > 0)
                           <tr style="background: #e0f2f1;">
                             <td colspan="2" style="border-top: 1px solid #b2dfdb; text-align: right;"><strong>Total
-                                Pending:</strong></td>
+                                Pending (Counter):</strong></td>
                             <td colspan="2" style="border-top: 1px solid #b2dfdb;"><strong>{{ number_format($guestTotal) }}
                                 TZS</strong></td>
+                          </tr>
+                        @endif
+                        @if($receptionTotal > 0)
+                          <tr style="background: #fff3cd;">
+                            <td colspan="2" style="border-top: 1px solid #ffeaa7; text-align: right;"><strong>Unpaid at
+                                Reception:</strong></td>
+                            <td colspan="2" style="border-top: 1px solid #ffeaa7;"><strong>{{ number_format($receptionTotal) }}
+                                TZS</strong>
+                              <span class="badge badge-warning ml-1">UNPAID</span>
+                            </td>
+                          </tr>
+                        @endif
+                        @if($receptionPaidTotal > 0)
+                          <tr style="background: #e8f5e9;">
+                            <td colspan="2" style="border-top: 1px solid #c8e6c9; text-align: right;"><strong>Paid at
+                                Reception:</strong></td>
+                            <td colspan="2" style="border-top: 1px solid #c8e6c9;">
+                              <span class="badge badge-success">PAID</span>
+                              <br><small class="text-muted">Not counted in counter cash</small>
+                            </td>
                           </tr>
                         @endif
                       </table>
@@ -295,6 +390,19 @@
                             onclick="openPaymentModal({{ $first->id }}, {{ $guestTotal }}, {{ $first->is_walk_in ? 1 : 0 }})">
                             <i class="fa fa-money"></i> PAY: {{ number_format($guestTotal) }}
                           </button>
+                        @elseif($receptionTotal > 0)
+                          <div class="alert alert-warning py-2 px-2 mb-0 text-center" style="font-size: 11px;">
+                            <i class="fa fa-building"></i><br>
+                            <strong>Pay at Reception</strong><br>
+                            <span class="badge badge-warning">UNPAID</span>
+                          </div>
+                        @elseif($receptionPaidTotal > 0 && $guestTotal <= 0)
+                          <div class="alert alert-success py-2 px-2 mb-0 text-center" style="font-size: 11px;">
+                            <i class="fa fa-building"></i><br>
+                            <strong>Pay at Reception</strong><br>
+                            <span class="badge badge-success">PAID</span>
+                            <div class="small mt-1">Cash via reception → cashier</div>
+                          </div>
                         @endif
                       </div>
                     </td>
@@ -349,6 +457,26 @@
     html[data-theme="dark"] #sales-history .title,
     html[data-theme="dark"] #sales-history .text-muted {
       color: #e6edf3 !important;
+    }
+
+    /* Prior-debt sale rows */
+    .row-prior-debt > td {
+      background: #fff8e6 !important;
+      color: #1c1917 !important;
+      border-color: #f0e0b2 !important;
+    }
+    .row-prior-debt .text-muted { color: #78716c !important; }
+    html[data-theme="dark"] .row-prior-debt > td {
+      background: #3d2e12 !important;
+      color: #fde68a !important;
+      border-color: #854d0e !important;
+    }
+    html[data-theme="dark"] .row-prior-debt .text-muted {
+      color: #fbbf24 !important;
+    }
+    html[data-theme="dark"] .row-prior-debt .badge-warning {
+      background: #854d0e !important;
+      color: #fef3c7 !important;
     }
   </style>
   <div class="row mb-4" id="sales-history">
@@ -413,7 +541,8 @@
               </thead>
               <tbody>
                 @foreach($completedSales as $sale)
-                  <tr>
+                  @php $fromPriorDebt = $sale->wasPaidFromPriorDebt(); @endphp
+                  <tr class="{{ $fromPriorDebt ? 'row-prior-debt' : '' }}">
                     <td>{{ \Carbon\Carbon::parse($sale->completed_at)->format('H:i') }}</td>
                     <td>
                       @if($sale->is_walk_in)
@@ -422,11 +551,27 @@
                         <strong>Room {{ $sale->booking?->room?->room_number ?? 'N/A' }}</strong><br>
                         <small>{{ $sale->booking?->guest_name ?? '' }}</small>
                       @endif
+                      @if($fromPriorDebt)
+                        <br><span class="badge badge-warning" style="font-size:9px;">PAID FROM PRIOR DEBT</span>
+                        @if(!empty($sale->service_specific_data['original_order_at']))
+                          <br><small class="text-muted">Ordered: {{ \Carbon\Carbon::parse($sale->service_specific_data['original_order_at'])->format('d M Y H:i') }}</small>
+                        @endif
+                      @endif
                     </td>
-                    <td>{{ $sale->service_specific_data['item_name'] ?? $sale->service?->name ?? 'Deleted Service' }}</td>
+                    <td>
+                      {{ $sale->service_specific_data['item_name'] ?? $sale->service?->name ?? 'Deleted Service' }}
+                      @if(!empty($sale->service_specific_data['placed_by_name']))
+                        <br><small class="text-info"><i class="fa fa-user"></i> Placed by: {{ $sale->service_specific_data['placed_by_name'] }}</small>
+                      @endif
+                    </td>
                     <td>{{ $sale->quantity }}</td>
                     <td class="font-weight-bold">{{ number_format($sale->total_price_tsh) }}</td>
-                    <td><span class="badge badge-outline-secondary">{{ strtoupper($sale->payment_method) }}</span></td>
+                    <td>
+                      <span class="badge badge-outline-secondary">{{ strtoupper($sale->payment_method) }}</span>
+                      @if($fromPriorDebt)
+                        <br><span class="badge badge-warning mt-1" style="font-size:9px;">Debt collection</span>
+                      @endif
+                    </td>
                     <td><small class="text-muted">{{ $sale->payment_reference ?: '-' }}</small></td>
                   </tr>
                 @endforeach
@@ -444,7 +589,7 @@
           </div>
         @else
           <div class="text-center py-4">
-            <p class="text-muted"><i class="fa fa-info-circle"></i> Hakuna mauzo yaliyokamilishwa bado katika shift hii.</p>
+            <p class="text-muted"><i class="fa fa-info-circle"></i> No completed sales yet in this shift.</p>
           </div>
         @endif
       </div>
@@ -640,7 +785,7 @@
               class="btn btn-primary btn-block p-4 shadow-sm h-100 d-flex flex-column align-items-center justify-content-center {{ !$activeShift ? 'disabled' : '' }}"
               {{ !$activeShift ? 'disabled' : '' }}>
               <i class="fa fa-glass fa-2x mb-2"></i>
-              <span>New Walk-in Sale</span>
+              <span>New Sale</span>
             </button>
           </div>
           <div class="col-md-3 mb-3">
@@ -849,8 +994,44 @@
                 <h6 class="font-weight-bold mb-2 d-flex align-items-center">
                   <i class="fa fa-user mr-2 text-primary"></i> Guest Information
                 </h6>
-                <input type="text" id="walkInGuestName" class="form-control mb-2" placeholder="Guest Name (Optional)">
 
+                <div class="btn-group btn-group-sm btn-block mb-2" role="group">
+                  <button type="button" class="btn btn-primary" id="guestTypeWalkIn" onclick="setPosGuestType('walk_in')">
+                    Walk-in
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" id="guestTypeInHouse" onclick="setPosGuestType('in_house')">
+                    In-house Guest
+                  </button>
+                </div>
+
+                <div id="walkInGuestFields">
+                  <input type="text" id="walkInGuestName" class="form-control mb-2" placeholder="Guest Name (Optional)">
+                </div>
+
+                <div id="inHouseGuestFields" style="display: none;">
+                  <div class="input-group mb-2">
+                    <input type="text" id="inHouseGuestSearch" class="form-control" placeholder="Search name or room..."
+                      autocomplete="off" oninput="searchInHouseGuests()">
+                    <div class="input-group-append">
+                      <button class="btn btn-outline-secondary" type="button" onclick="searchInHouseGuests()">
+                        <i class="fa fa-search"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="inHouseGuestResults" class="border rounded bg-white mb-2"
+                    style="display:none; max-height: 160px; overflow-y: auto;"></div>
+                  <div id="selectedInHouseGuest" class="alert alert-info py-2 px-3 mb-0" style="display:none;">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div>
+                        <strong id="selectedGuestName"></strong>
+                        <div class="small mb-0">Room <span id="selectedGuestRoom"></span></div>
+                      </div>
+                      <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="clearSelectedInHouseGuest()">
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div class="flex-grow-1 p-3" id="posCartList" style="overflow-y: auto;">
@@ -1074,7 +1255,7 @@
     <div class="modal-dialog modal-md" role="document">
       <div class="modal-content">
         <div class="modal-header bg-warning text-dark">
-          <h5 class="modal-title font-weight-bold"><i class="fa fa-calculator"></i> Muhtasari wa Shift Yako</h5>
+          <h5 class="modal-title font-weight-bold"><i class="fa fa-calculator"></i> Your Shift Summary</h5>
           <button type="button" class="close text-dark" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
@@ -1082,20 +1263,20 @@
         <div class="modal-body">
           <div id="shiftSummaryLoading" class="text-center py-4">
             <i class="fa fa-spinner fa-spin fa-2x text-warning"></i>
-            <p class="mt-2">Inapakia mauzo...</p>
+            <p class="mt-2">Loading sales...</p>
           </div>
           <div id="shiftSummaryContent" style="display: none;">
             <table class="table table-bordered mb-3 shift-summary-table">
               <tr>
-                <th>Muda wa kufungua</th>
+                <th>Opened at</th>
                 <td id="summaryOpenedAt" class="text-right font-weight-bold">—</td>
               </tr>
               <tr>
-                <th>Muda wa kufunga (sasa)</th>
+                <th>Closing time (now)</th>
                 <td id="summaryClosingAt" class="text-right font-weight-bold">—</td>
               </tr>
               <tr>
-                <th>Muda uliotumika</th>
+                <th>Duration</th>
                 <td id="summaryDuration" class="text-right font-weight-bold shift-duration">—</td>
               </tr>
               <tr>
@@ -1107,16 +1288,16 @@
                 <td id="summaryTotalSales" class="text-right font-weight-bold" style="font-size: 1.15em;">0</td>
               </tr>
               <tr>
-                <th>Jumla ya Cash (Hela Mkononi)</th>
+                <th>Total Cash (on hand)</th>
                 <td id="summaryTotalCash" class="text-right font-weight-bold shift-cash" style="font-size: 1.2em;">0
                 </td>
               </tr>
               <tr>
-                <th>Mauzo ya M-Pesa/Mobile</th>
+                <th>M-Pesa / Mobile sales</th>
                 <td id="summaryTotalMpesa" class="text-right">0</td>
               </tr>
               <tr>
-                <th>Mauzo Mengine (Bank)</th>
+                <th>Other sales (Bank)</th>
                 <td id="summaryTotalOther" class="text-right">0</td>
               </tr>
               <tr class="shift-row-count">
@@ -1128,22 +1309,22 @@
             <form id="shiftClosureForm">
               @csrf
               <div class="form-group">
-                <label><b>Kiasi cha Cash Unachokabidhi (TZS)</b></label>
+                <label><b>Cash amount you are handing over (TZS)</b></label>
                 <input type="number" name="amount_submitted" id="amountSubmitted"
                   class="form-control form-control-lg border-primary" required>
-                <small class="text-muted">Andika kiasi cha hela ghafi unachopeleka Reception hivi sasa.</small>
+                <small class="text-muted">Enter the cash amount you are taking to Reception now.</small>
               </div>
               <div class="form-group">
-                <label>Maelezo ya Ziada (Notes)</label>
+                <label>Additional notes</label>
                 <textarea name="notes" class="form-control" rows="2"
-                  placeholder="Mfano: Cash imepungua kidogo sababu ya chenji..."></textarea>
+                  placeholder="Example: Cash is slightly short due to change given..."></textarea>
               </div>
               <div class="alert alert-warning py-2 small">
-                <i class="fa fa-info-circle"></i> Ukibonyeza "Kamilisha Handover", mauzo yako ya leo yatafungwa na
-                hayawezi kubadilishwa tena.
+                <i class="fa fa-info-circle"></i> When you click "Complete Handover", today's sales will be locked and
+                cannot be changed again.
               </div>
               <button type="submit" class="btn btn-warning btn-block btn-lg font-weight-bold" id="submitShiftBtn">
-                <i class="fa fa-check-circle"></i> Kamilisha Handover
+                <i class="fa fa-check-circle"></i> Complete Handover
               </button>
             </form>
           </div>
@@ -1156,6 +1337,36 @@
 
 @section('scripts')
   <script>
+    window.isProxySeller = @json($isProxySeller ?? false);
+    window.proxyCounterShiftId = @json(optional($activeShift)->id);
+    async function selectProxyCounterShift() {
+      const sel = document.getElementById('proxyCounterShift');
+      if (!sel || !sel.value) {
+        Swal.fire('Select counter', 'Please select a counter with an active shift.', 'warning');
+        return;
+      }
+      try {
+        const res = await fetch('{{ route("bar-keeper.proxy-shift") }}', {
+          method: 'POST',
+          headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ shift_id: parseInt(sel.value, 10) })
+        });
+        const data = await res.json();
+        if (data.success) {
+          window.proxyCounterShiftId = data.shift_id;
+          Swal.fire('Done', data.message, 'success').then(() => location.reload());
+        } else {
+          Swal.fire('Error', data.message || 'Failed', 'error');
+        }
+      } catch (e) {
+        Swal.fire('Error', e.message || 'Failed', 'error');
+      }
+    }
+
     function receiveTransfer(transferId) {
       Swal.fire({
         title: "Receive Transfer?",
@@ -1176,9 +1387,115 @@
 
     // POS Logic
     let posCart = [];
+    let posGuestType = 'walk_in'; // walk_in | in_house
+    let selectedInHouseBooking = null;
+    let inHouseSearchTimer = null;
 
     // Data for Dynamic Food selection
     const foodBasesData = @json($foodBases ?? []);
+
+    function setPosGuestType(type) {
+      posGuestType = type;
+      const walkBtn = document.getElementById('guestTypeWalkIn');
+      const houseBtn = document.getElementById('guestTypeInHouse');
+      const walkFields = document.getElementById('walkInGuestFields');
+      const houseFields = document.getElementById('inHouseGuestFields');
+
+      if (type === 'in_house') {
+        walkBtn.classList.remove('btn-primary');
+        walkBtn.classList.add('btn-outline-primary');
+        houseBtn.classList.remove('btn-outline-primary');
+        houseBtn.classList.add('btn-primary');
+        walkFields.style.display = 'none';
+        houseFields.style.display = '';
+        document.getElementById('posModalTitle').innerHTML = '<i class="fa fa-bed mr-2"></i> In-house Guest Order';
+        document.getElementById('inHouseGuestSearch').focus();
+      } else {
+        houseBtn.classList.remove('btn-primary');
+        houseBtn.classList.add('btn-outline-primary');
+        walkBtn.classList.remove('btn-outline-primary');
+        walkBtn.classList.add('btn-primary');
+        houseFields.style.display = 'none';
+        walkFields.style.display = '';
+        clearSelectedInHouseGuest();
+        if (!window.currentDayServiceId) {
+          document.getElementById('posModalTitle').innerHTML = '<i class="fa fa-shopping-cart mr-2"></i> New Walk-in Order';
+        }
+      }
+    }
+
+    function searchInHouseGuests() {
+      clearTimeout(inHouseSearchTimer);
+      const q = (document.getElementById('inHouseGuestSearch').value || '').trim();
+      const resultsEl = document.getElementById('inHouseGuestResults');
+
+      if (q.length < 1) {
+        resultsEl.style.display = 'none';
+        resultsEl.innerHTML = '';
+        return;
+      }
+
+      inHouseSearchTimer = setTimeout(async () => {
+        try {
+          const url = `{{ route('bar-keeper.in-house-guests') }}?q=${encodeURIComponent(q)}`;
+          const response = await fetch(url, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+          });
+          const data = await response.json();
+          const guests = data.guests || [];
+
+          if (!guests.length) {
+            resultsEl.innerHTML = '<div class="p-2 text-muted small">No checked-in guest found</div>';
+            resultsEl.style.display = '';
+            return;
+          }
+
+          window._inHouseGuestCache = window._inHouseGuestCache || {};
+          resultsEl.innerHTML = guests.map(g => {
+            window._inHouseGuestCache[g.id] = g;
+            const safeName = String(g.guest_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return `
+            <button type="button" class="btn btn-light btn-block text-left border-0 rounded-0 py-2 px-3"
+              onclick="selectInHouseGuestById(${Number(g.id)})">
+              <strong>${safeName}</strong>
+              <span class="badge badge-primary ml-1">Room ${g.room_number}</span>
+            </button>`;
+          }).join('');
+          resultsEl.style.display = '';
+        } catch (e) {
+          console.error(e);
+          resultsEl.innerHTML = '<div class="p-2 text-danger small">Search failed</div>';
+          resultsEl.style.display = '';
+        }
+      }, 300);
+    }
+
+    function selectInHouseGuestById(bookingId) {
+      const guest = (window._inHouseGuestCache || {})[bookingId];
+      if (!guest) return;
+      selectedInHouseBooking = guest;
+      document.getElementById('selectedGuestName').innerText = guest.guest_name;
+      document.getElementById('selectedGuestRoom').innerText = guest.room_number;
+      document.getElementById('selectedInHouseGuest').style.display = '';
+      document.getElementById('inHouseGuestResults').style.display = 'none';
+      document.getElementById('inHouseGuestSearch').value = '';
+      document.getElementById('walkInGuestName').value = guest.guest_name + ' (Rm ' + guest.room_number + ')';
+      document.getElementById('posModalTitle').innerHTML =
+        `<i class="fa fa-bed mr-2"></i> ${guest.guest_name} — Room ${guest.room_number}`;
+    }
+
+    function clearSelectedInHouseGuest() {
+      selectedInHouseBooking = null;
+      const box = document.getElementById('selectedInHouseGuest');
+      if (box) box.style.display = 'none';
+      const results = document.getElementById('inHouseGuestResults');
+      if (results) {
+        results.style.display = 'none';
+        results.innerHTML = '';
+      }
+      const search = document.getElementById('inHouseGuestSearch');
+      if (search) search.value = '';
+    }
 
     function showFoodBuilderModal(baseName) {
       const sides = foodBasesData[baseName];
@@ -1221,6 +1538,8 @@
     function openWalkInModal(residentRoom = null, residentName = null, dayServiceId = null) {
       $('#walkInModal').modal('show');
       posCart = [];
+      clearSelectedInHouseGuest();
+      setPosGuestType('walk_in');
 
       // Reset inputs
       document.getElementById('walkInGuestName').value = residentName || '';
@@ -1233,7 +1552,7 @@
         document.getElementById('posModalTitle').innerText = 'Record Usage: ' + residentName;
         document.getElementById('btnConfirmSale').innerHTML = '<i class="fa fa-print mr-1"></i> <strong>PLACE ORDER & PRINT DOCKET</strong>';
       } else {
-        document.getElementById('posModalTitle').innerText = 'New Walk-in Order';
+        document.getElementById('posModalTitle').innerHTML = '<i class="fa fa-shopping-cart mr-2"></i> New Order';
         document.getElementById('btnConfirmSale').innerHTML = '<i class="fa fa-print mr-1"></i> <strong>PLACE ORDER & PRINT DOCKET</strong>';
       }
 
@@ -1429,7 +1748,7 @@
                       <div class="divider"></div>
                       <div class="center total">TOTAL : ${orderTotal.toLocaleString()} TZS</div>
                       <div class="divider"></div>
-                      <div class="center footer">-- Tafadhali andaa haraka --</div>
+                      <div class="center footer">-- Please prepare quickly --</div>
                     </body></html>`;
 
       // Create hidden iframe for printing
@@ -1498,17 +1817,82 @@
     async function processWalkInCheckout() {
       const now = new Date();
       const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-      const guestName = document.getElementById('walkInGuestName').value.trim() || 'Walk-in (' + timeStr + ')';
+      const isInHouse = posGuestType === 'in_house';
 
-      const confirm = await Swal.fire({
-        title: "Confirm Sale?",
-        text: `Record order for ${guestName}?`,
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonText: "Yes, Record Sale"
-      });
+      if (isInHouse && !selectedInHouseBooking) {
+        await Swal.fire('Select Guest', 'Search and select an in-house guest registered at reception.', 'warning');
+        return;
+      }
 
-      if (!confirm.isConfirmed) return;
+      const guestName = isInHouse
+        ? `${selectedInHouseBooking.guest_name} (Rm ${selectedInHouseBooking.room_number})`
+        : (document.getElementById('walkInGuestName').value.trim() || ('Walk-in (' + timeStr + ')'));
+
+      // Ensure docket uses the resolved guest name
+      document.getElementById('walkInGuestName').value = guestName;
+
+      let paymentTiming = 'later';
+      let paymentMethod = null;
+
+      if (isInHouse) {
+        const payChoice = await Swal.fire({
+          title: 'How will they pay?',
+          html: `
+            <p class="mb-3"><strong>${selectedInHouseBooking.guest_name}</strong> — Room ${selectedInHouseBooking.room_number}</p>
+            <div class="text-left">
+              <label class="d-block p-2 border rounded mb-2" style="cursor:pointer;">
+                <input type="radio" name="posPayChoice" value="now" checked class="mr-2">
+                <strong>Pay now at counter</strong>
+                <div class="small text-muted ml-4">Cash / M-Pesa / Card here at the restaurant</div>
+              </label>
+              <label class="d-block p-2 border rounded" style="cursor:pointer;">
+                <input type="radio" name="posPayChoice" value="reception" class="mr-2">
+                <strong>Pay at reception</strong>
+                <div class="small text-muted ml-4">The bill will appear on the guest's room bill</div>
+              </label>
+            </div>
+          `,
+          showCancelButton: true,
+          confirmButtonText: 'Continue',
+          preConfirm: () => {
+            const chosen = document.querySelector('input[name="posPayChoice"]:checked');
+            return chosen ? chosen.value : 'now';
+          }
+        });
+
+        if (!payChoice.isConfirmed) return;
+
+        if (payChoice.value === 'reception') {
+          paymentTiming = 'room_charge';
+          paymentMethod = 'room_charge';
+        } else {
+          const methodChoice = await Swal.fire({
+            title: 'Payment Method',
+            input: 'select',
+            inputOptions: {
+              cash: 'Cash',
+              mpesa: 'M-Pesa',
+              card: 'Card',
+              bank_transfer: 'Bank Transfer'
+            },
+            inputValue: 'cash',
+            showCancelButton: true,
+            confirmButtonText: 'Record Payment'
+          });
+          if (!methodChoice.isConfirmed) return;
+          paymentTiming = 'immediate';
+          paymentMethod = methodChoice.value;
+        }
+      } else {
+        const confirm = await Swal.fire({
+          title: 'Confirm Sale?',
+          text: `Record order for ${guestName}?`,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: 'Yes, Record Sale'
+        });
+        if (!confirm.isConfirmed) return;
+      }
 
       // Print docket automatically
       printKitchenDocket();
@@ -1520,7 +1904,7 @@
       });
 
       let successCount = 0;
-      let lastError = "An unknown error occurred.";
+      let lastError = 'An unknown error occurred.';
 
       for (const item of posCart) {
         const payload = {
@@ -1528,11 +1912,12 @@
           product_id: item.pid,
           product_variant_id: item.vid,
           quantity: item.qty,
-          is_walk_in: 1,
-          walk_in_name: guestName,
           day_service_id: window.currentDayServiceId || null,
-          payment_timing: 'later',
+          payment_timing: paymentTiming,
           item_name: item.name,
+          on_behalf_shift_id: (window.proxyCounterShiftId
+            || (document.getElementById('proxyCounterShift') && document.getElementById('proxyCounterShift').value)
+            || null),
           service_specific_data: {
             food_id: item.foodId,
             item_name: item.name,
@@ -1541,6 +1926,15 @@
             selling_method: item.unit || 'pic'
           }
         };
+
+        if (isInHouse) {
+          payload.is_walk_in = 0;
+          payload.booking_id = selectedInHouseBooking.id;
+          if (paymentMethod) payload.payment_method = paymentMethod;
+        } else {
+          payload.is_walk_in = 1;
+          payload.walk_in_name = guestName;
+        }
 
         try {
           const response = await fetch("{{ route('customer.services.request') }}", {
@@ -1558,9 +1952,9 @@
           } else {
             lastError = res.message;
             if (res.errors) {
-              lastError += ": " + JSON.stringify(res.errors);
+              lastError += ': ' + JSON.stringify(res.errors);
             }
-            console.error("Item failed:", item.name, res);
+            console.error('Item failed:', item.name, res);
           }
         } catch (e) {
           console.error(e);
@@ -1569,19 +1963,25 @@
       }
 
       if (successCount === posCart.length) {
+        let msg = 'Order recorded successfully!';
+        if (isInHouse && paymentTiming === 'room_charge') {
+          msg = 'Order charged to room. Reception will see it on the guest bill.';
+        } else if (isInHouse && paymentTiming === 'immediate') {
+          msg = 'Order recorded and paid at counter.';
+        }
         await Swal.fire({
-          title: "Success!",
-          text: "Walk-in sale recorded successfully!",
-          icon: "success",
-          timer: 2000,
+          title: 'Success!',
+          text: msg,
+          icon: 'success',
+          timer: 2200,
           showConfirmButton: false
         });
         window.location.reload();
       } else {
         await Swal.fire({
-          title: "Error",
-          text: "Some items failed to process. Reason: " + lastError,
-          icon: "error"
+          title: 'Error',
+          text: 'Some items failed to process. Reason: ' + lastError,
+          icon: 'error'
         });
       }
     }
@@ -1728,9 +2128,9 @@
         text: "Are you sure you want to cancel '" + itemName + "'? This will return items to stock.",
         icon: "warning",
         input: 'textarea',
-        inputPlaceholder: 'Ingiza sababu ya ku-cancel order hapa (Mandatory)...',
+        inputPlaceholder: 'Enter the reason for cancelling this order (required)...',
         inputAttributes: {
-          'aria-label': 'Sababu ya ku-cancel'
+          'aria-label': 'Cancellation reason'
         },
         showCancelButton: true,
         confirmButtonColor: "#dc3545",
@@ -1739,7 +2139,7 @@
         cancelButtonText: "No, Keep It",
         preConfirm: (reason) => {
           if (!reason || reason.trim().length < 5) {
-            Swal.showValidationMessage(`Tafadhali ingiza sababu yenye maana (angalau herufi 5)`);
+            Swal.showValidationMessage(`Please enter a meaningful reason (at least 5 characters)`);
           }
           return reason;
         }
@@ -1983,13 +2383,13 @@
             $('#shiftSummaryLoading').hide();
             $('#shiftSummaryContent').show();
           } else {
-            Swal.fire("Error", data.message || "Imeshindwa kupata muhtasari wa shift.", "error");
+            Swal.fire("Error", data.message || "Failed to load shift summary.", "error");
             $('#shiftClosureModal').modal('hide');
           }
         })
         .catch(err => {
           console.error(err);
-          Swal.fire("Error", "Kuna tatizo la mtandao.", "error");
+          Swal.fire("Error", "A network error occurred.", "error");
           $('#shiftClosureModal').modal('hide');
         });
     }
@@ -2004,10 +2404,10 @@
       const unpaidGuests = Array.isArray(report.unpaid_guests) ? report.unpaid_guests : [];
       const itemRows = items.length
         ? items.map((item, i) => `
-    <tr>
+    <tr${item.from_prior_debt ? ' style="background:#fff8e6;"' : ''}>
       <td class="center">${i + 1}</td>
       <td>${item.time || '—'}</td>
-      <td>${item.item || 'Item'}</td>
+      <td>${item.item || 'Item'}${item.from_prior_debt ? '<div style="font-size:10px;color:#856404;font-weight:700;">PAID FROM PRIOR DEBT</div>' : ''}</td>
       <td>${item.guest || '—'}</td>
       <td class="center">${qty(item.qty)}</td>
       <td>${item.payment || '—'}</td>
@@ -2077,6 +2477,7 @@
     <tr><th>Difference</th><td>${money(report.difference)} TZS</td></tr>
     <tr><th>Unpaid guests</th><td>${report.unpaid_guest_count || 0}</td></tr>
     <tr><th>Unpaid total</th><td>${money(report.unpaid_total)} TZS</td></tr>
+    <tr><th>Prior debt collected</th><td>${money(report.debt_collections_total)} TZS (${report.debt_collections_count || 0})</td></tr>
   </table>
   <h2>Items Sold</h2>
   <table class="items">
@@ -2162,14 +2563,14 @@
 
     function openShift() {
       Swal.fire({
-        title: "Fungua Shift Leo?",
-        text: "Hii itarekodi muda wako wa kuingia sasa hivi.",
+        title: "Open shift for today?",
+        text: "This will record your clock-in time now.",
         icon: "question",
         showCancelButton: true,
         confirmButtonColor: "#28a745",
         cancelButtonColor: "#6c757d",
-        confirmButtonText: "Ndiyo, Fungua!",
-        cancelButtonText: "Badae"
+        confirmButtonText: "Yes, open!",
+        cancelButtonText: "Later"
       }).then((result) => {
         if (result.isConfirmed) {
           fetch('{{ route("bar-keeper.open-shift") }}', {
@@ -2190,7 +2591,7 @@
             })
             .catch(err => {
               console.error(err);
-              Swal.fire("Error", "Kuna tatizo limetokea.", "error");
+              Swal.fire("Error", "Something went wrong.", "error");
             });
         }
       });
@@ -2200,7 +2601,7 @@
       e.preventDefault();
       const btn = $('#submitShiftBtn');
       const originalText = btn.html();
-      btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Inatuma...');
+      btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Submitting...');
 
       const formData = new FormData(this);
 
@@ -2257,7 +2658,7 @@
         })
         .catch(err => {
           console.error(err);
-          Swal.fire("Error", "Kuna tatizo limetokea.", "error");
+          Swal.fire("Error", "Something went wrong.", "error");
           btn.prop('disabled', false).html(originalText);
         });
     });

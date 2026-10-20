@@ -815,18 +815,12 @@ class ReceptionController extends Controller
                 // Note: extensionCostTsh is already included in booking->total_price
                 $totalBillTsh = ($booking->total_price) + $totalServiceChargesTsh;
 
-                // Amount paid (Booking deposit + any settled service payments)
-                $amountPaidTsh = ($booking->amount_paid ?? 0);
+                // Booking.amount_paid only (no double-count of paid service lines)
+                $amountPaidTsh = (float) ($booking->amount_paid ?? 0);
 
-                // Add payments for completed/paid services to show correct outstanding balance
-                foreach ($serviceRequests as $sr) {
-                    if ($sr->payment_status === 'paid') {
-                        $amountPaidTsh += $sr->total_price_tsh;
-                    }
-                }
-
-                // Outstanding balance
-                $outstandingBalanceTsh = max(0, $totalBillTsh - $amountPaidTsh);
+                // Outstanding = unpaid service lines (pending + room_charge) + room debt
+                // Matches counter food bill; room_charge is never treated as paid
+                $outstandingBalanceTsh = $booking->computeOutstandingBalanceTsh($serviceRequests, true);
                 $outstandingBalanceUsd = $outstandingBalanceTsh / $bookingExchangeRate;
 
                 // Treat very small amounts (less than $0.05 or 50 TZS) as fully paid (rounding differences)
@@ -1369,29 +1363,16 @@ class ReceptionController extends Controller
         // Note: extensionCostTsh is already included in booking->total_price
         $totalBookingBillTsh = ($booking->total_price) + $totalServiceChargesTsh;
 
-        // Calculate outstanding balance for THIS SPECIFIC payment action
+        // Outstanding must match counter: unpaid service lines = pending + room_charge
         if ($isCorporate) {
             if ($paymentResponsibility === 'self') {
-                // For a self-paying corporate guest, they only owe for services and extensions.
-                // Room is already "paid" or "promised" by company.
-                // Their "portion" of the paid amount is anything above the room price.
-                $roomPriceTsh = $booking->total_price;
-                $currentPaidTsh = ($booking->amount_paid ?? 0);
-
-                // Debt = (Room + Services + Extensions) - CurrentPaid
-                // BUT we only want the guest to see their own debt.
-                // If they haven't paid anything, their debt is just (Services + Extensions).
-                $guestBillTsh = $totalServiceChargesTsh;
-                $guestAlreadyPaidTsh = max(0, $currentPaidTsh - $roomPriceTsh);
-                $outstandingBalanceTsh = max(0, $guestBillTsh - $guestAlreadyPaidTsh);
+                $outstandingBalanceTsh = $booking->computeOutstandingBalanceTsh($serviceRequests, false);
             } else {
                 // If company pays everything, guest owes 0 at reception.
                 $outstandingBalanceTsh = 0;
             }
         } else {
-            // Individual booking - they owe everything
-            $amountPaidTsh = ($booking->amount_paid ?? 0);
-            $outstandingBalanceTsh = max(0, $totalBookingBillTsh - $amountPaidTsh);
+            $outstandingBalanceTsh = $booking->computeOutstandingBalanceTsh($serviceRequests, true);
         }
 
         $outstandingBalanceUsd = $outstandingBalanceTsh / $exchangeRate;
@@ -1423,14 +1404,39 @@ class ReceptionController extends Controller
             $isGuestPortionCleared = $isFullyPaid;
         }
 
-        // Mark services as paid if this payout covers them
-        if ($isCorporate && $paymentResponsibility === 'self' && $isGuestPortionCleared) {
+        // Link payment to the receptionist's active shift (needed before tagging restaurant lines)
+        $activeShiftId = null;
+        $currentStaff = Auth::guard('staff')->user();
+        if ($currentStaff) {
+            $activeShift = \App\Models\ShiftClosure::where('staff_id', $currentStaff->id)
+                ->where('status', 'active')
+                ->first();
+            $activeShiftId = $activeShift?->id;
+        }
+
+        // Mark food/bar services as paid when guest clears their outstanding
+        // (includes pending + room_charge from restaurant counter)
+        if ($isGuestPortionCleared && (!$isCorporate || $paymentResponsibility === 'self')) {
             foreach ($serviceRequests as $sr) {
                 if (($sr->payment_status ?? 'pending') !== 'paid') {
+                    $meta = $sr->withPriorDebtPaymentMeta(null);
+                    // Reception collections are not bar-counter cash; detach from bar shift totals
+                    if (in_array($sr->payment_status, ['pending', 'room_charge'], true)) {
+                        $meta['paid_from_prior_debt'] = true;
+                        $meta['paid_at_reception'] = true;
+                        $meta['original_order_at'] = $meta['original_order_at']
+                            ?? optional($sr->requested_at ?? $sr->created_at)->toDateTimeString();
+                    }
+                    if ($activeShiftId) {
+                        $meta['reception_shift_closure_id'] = (int) $activeShiftId;
+                    }
                     $sr->update([
                         'payment_status' => 'paid',
                         'payment_method' => $request->payment_method,
-                        'completed_at' => $sr->completed_at ?? now()
+                        'completed_at' => $sr->completed_at ?? now(),
+                        'service_specific_data' => $meta,
+                        // Keep shift_closure_id so counter still sees PAID status;
+                        // cash is excluded via paid_at_reception flag.
                     ]);
                 }
             }
@@ -1444,16 +1450,6 @@ class ReceptionController extends Controller
             // If checked out and balance cleared, mark as paid
             $finalPaymentStatus = 'paid';
             $isFullyPaid = true;
-        }
-
-        // Link booking payment to the receptionist's active shift
-        $activeShiftId = null;
-        $currentStaff = Auth::guard('staff')->user();
-        if ($currentStaff) {
-            $activeShift = \App\Models\ShiftClosure::where('staff_id', $currentStaff->id)
-                ->where('status', 'active')
-                ->first();
-            $activeShiftId = $activeShift?->id;
         }
 
         $booking->update([
@@ -1584,16 +1580,29 @@ class ReceptionController extends Controller
         if ($request->payment_method === 'cash') {
             // Mark additional charges as paid with cash
             // Handle corporate vs individual
+            $markReceptionPaid = function ($sr) {
+                if (($sr->payment_status ?? 'pending') === 'paid') {
+                    return;
+                }
+                $meta = $sr->withPriorDebtPaymentMeta(null);
+                if (in_array($sr->payment_status, ['pending', 'room_charge'], true)) {
+                    $meta['paid_from_prior_debt'] = true;
+                    $meta['paid_at_reception'] = true;
+                    $meta['original_order_at'] = $meta['original_order_at']
+                        ?? optional($sr->requested_at ?? $sr->created_at)->toDateTimeString();
+                }
+                $sr->update([
+                    'payment_status' => 'paid',
+                    'payment_method' => 'cash',
+                    'completed_at' => $sr->completed_at ?? now(),
+                    'service_specific_data' => $meta,
+                    // Keep shift link for counter visibility; exclude from counter cash via flag.
+                ]);
+            };
+
             if ($booking->is_corporate_booking) {
-                // Mark services as paid
                 foreach ($serviceRequests as $sr) {
-                    if ($sr->payment_status !== 'paid') {
-                        $sr->update([
-                            'payment_status' => 'paid',
-                            'payment_method' => 'cash',
-                            'completed_at' => now()
-                        ]);
-                    }
+                    $markReceptionPaid($sr);
                 }
 
                 $booking->update([
@@ -1604,7 +1613,10 @@ class ReceptionController extends Controller
                     'total_service_charges_tsh' => ($booking->total_service_charges_tsh ?? 0) + $otherServiceChargesTsh + $transportationChargesTsh,
                 ]);
             } else {
-                // Individual marking
+                foreach ($serviceRequests as $sr) {
+                    $markReceptionPaid($sr);
+                }
+
                 $booking->update([
                     'payment_status' => 'paid',
                     'payment_method' => 'cash',
@@ -2447,43 +2459,37 @@ class ReceptionController extends Controller
             ->where('status', 'active')
             ->first();
 
-        if (!$activeShift) {
-            $unclosedDayServices = collect();
-            $unclosedBookings = collect();
-            $unclosedServices = collect();
-        } else {
-            // 1. Day Services
-            $unclosedDayServices = DayService::where('shift_closure_id', $activeShift->id)
-                ->where('payment_status', 'paid')
-                ->get();
-
-            // 2. Bookings
-            $unclosedBookings = Booking::where('shift_closure_id', $activeShift->id)
-                ->whereIn('payment_status', ['paid', 'partial'])
-                ->get();
-                
-            // 3. Service Requests (POS / Walk-in)
-            $unclosedServices = ServiceRequest::where('shift_closure_id', $activeShift->id)
-                ->where('status', 'completed')
-                ->get();
-        }
+        $breakdown = $activeShift
+            ? $activeShift->receptionCollectionsBreakdown()
+            : [
+                'bookings' => ['count' => 0, 'total' => 0, 'cash' => 0, 'mpesa' => 0, 'other' => 0],
+                'restaurant' => ['count' => 0, 'total' => 0, 'cash' => 0, 'mpesa' => 0, 'other' => 0],
+                'day_services' => ['count' => 0, 'total' => 0, 'cash' => 0, 'mpesa' => 0, 'other' => 0],
+                'other_services' => ['count' => 0, 'total' => 0, 'cash' => 0, 'mpesa' => 0, 'other' => 0],
+                'total_cash' => 0,
+                'total_mpesa' => 0,
+                'total_other' => 0,
+                'grand_total' => 0,
+            ];
 
         $summary = [
-            'day_services_count' => $unclosedDayServices->count(),
-            'day_services_total' => $unclosedDayServices->sum('amount_paid'),
-            'bookings_count' => $unclosedBookings->count(),
-            'bookings_total' => $unclosedBookings->sum('amount_paid'),
-            'services_count' => $unclosedServices->count(),
-            'services_total' => $unclosedServices->sum('total_price_tsh'),
-            'total_cash' => $unclosedDayServices->where('payment_method', 'cash')->sum('amount_paid') + 
-                            $unclosedBookings->where('payment_method', 'cash')->sum('amount_paid') +
-                            $unclosedServices->where('payment_method', 'cash')->sum('total_price_tsh'),
-            'total_mpesa' => $unclosedDayServices->where('payment_method', 'mpesa')->sum('amount_paid') + 
-                             $unclosedBookings->where('payment_method', 'mpesa')->sum('amount_paid') +
-                             $unclosedServices->where('payment_method', 'mpesa')->sum('total_price_tsh'),
-            'total_other' => $unclosedDayServices->whereNotIn('payment_method', ['cash', 'mpesa'])->sum('amount_paid') + 
-                             $unclosedBookings->whereNotIn('payment_method', ['cash', 'mpesa'])->sum('amount_paid') +
-                             $unclosedServices->whereNotIn('payment_method', ['cash', 'mpesa'])->sum('total_price_tsh'),
+            'bookings_count' => $breakdown['bookings']['count'],
+            'bookings_total' => $breakdown['bookings']['total'],
+            'bookings_cash' => $breakdown['bookings']['cash'],
+            'restaurant_count' => $breakdown['restaurant']['count'],
+            'restaurant_total' => $breakdown['restaurant']['total'],
+            'restaurant_cash' => $breakdown['restaurant']['cash'],
+            'day_services_count' => $breakdown['day_services']['count'],
+            'day_services_total' => $breakdown['day_services']['total'],
+            'day_services_cash' => $breakdown['day_services']['cash'],
+            'other_services_count' => $breakdown['other_services']['count'],
+            'other_services_total' => $breakdown['other_services']['total'],
+            'other_services_cash' => $breakdown['other_services']['cash'],
+            'total_cash' => $breakdown['total_cash'],
+            'total_mpesa' => $breakdown['total_mpesa'],
+            'total_other' => $breakdown['total_other'],
+            'grand_total' => $breakdown['grand_total'],
+            'breakdown' => $breakdown,
         ];
 
         return view('dashboard.reception.shift-management', [
@@ -2507,7 +2513,7 @@ class ReceptionController extends Controller
             ->first();
 
         if ($activeShift) {
-            return back()->with('error', 'Ulishafungua shift tayari.');
+            return back()->with('error', 'You already have an open shift.');
         }
 
         ShiftClosure::create([
@@ -2516,7 +2522,7 @@ class ReceptionController extends Controller
             'status' => 'active'
         ]);
 
-        return back()->with('success', 'Shift imefunguliwa vizuri! Kazi njema.');
+        return back()->with('success', 'Shift opened successfully. Good luck!');
     }
 
     /**
@@ -2535,34 +2541,28 @@ class ReceptionController extends Controller
             ->first();
 
         if (!$activeShift) {
-            return back()->with('error', 'Huna shift iliyofunguliwa.');
+            return back()->with('error', 'You do not have an open shift.');
         }
 
-        // Get all unclosed paid sales for this receptionist
-        $unclosedDayServices = DayService::where('shift_closure_id', $activeShift->id)
-            ->where('payment_status', 'paid')
-            ->get();
-
-        $unclosedBookings = Booking::where('shift_closure_id', $activeShift->id)
-            ->whereIn('payment_status', ['paid', 'partial'])
-            ->get();
-            
-        $unclosedServices = ServiceRequest::where('shift_closure_id', $activeShift->id)
-            ->where('status', 'completed')
-            ->get();
-
-        $totalCash = $unclosedDayServices->where('payment_method', 'cash')->sum('amount_paid') + 
-                    $unclosedBookings->where('payment_method', 'cash')->sum('amount_paid') +
-                    $unclosedServices->where('payment_method', 'cash')->sum('total_price_tsh');
-        
-        $totalMpesa = $unclosedDayServices->where('payment_method', 'mpesa')->sum('amount_paid') + 
-                     $unclosedBookings->where('payment_method', 'mpesa')->sum('amount_paid') +
-                     $unclosedServices->where('payment_method', 'mpesa')->sum('total_price_tsh');
-        
-        $totalOther = ($unclosedDayServices->sum('amount_paid') + $unclosedBookings->sum('amount_paid') + $unclosedServices->sum('total_price_tsh')) - ($totalCash + $totalMpesa);
+        $breakdown = $activeShift->receptionCollectionsBreakdown();
+        $totalCash = (float) $breakdown['total_cash'];
+        $totalMpesa = (float) $breakdown['total_mpesa'];
+        $totalOther = (float) $breakdown['total_other'];
 
         $amountSubmitted = (float) $request->amount_submitted;
         $difference = $amountSubmitted - $totalCash;
+
+        $breakdownNote = sprintf(
+            "Breakdown — Bookings: %s | Restaurant: %s | Day services: %s | Other: %s (Cash %s / M-Pesa %s / Other %s)",
+            number_format($breakdown['bookings']['total'], 0),
+            number_format($breakdown['restaurant']['total'], 0),
+            number_format($breakdown['day_services']['total'], 0),
+            number_format($breakdown['other_services']['total'], 0),
+            number_format($totalCash, 0),
+            number_format($totalMpesa, 0),
+            number_format($totalOther, 0)
+        );
+        $notes = trim(($request->notes ? $request->notes . "\n" : '') . $breakdownNote);
 
         $activeShift->update([
             'closed_at' => now(),
@@ -2572,12 +2572,12 @@ class ReceptionController extends Controller
             'amount_submitted_tzs' => $amountSubmitted,
             'difference_tzs' => $difference,
             'status' => 'pending_cashier',
-            'notes' => $request->notes
+            'notes' => $notes,
         ]);
 
         // No need to update the records, they are already linked to this shift_closure_id!
 
-        return back()->with('success', 'Shift imefungwa vizuri. Tafadhali kabidhi hela kwa Cashier.');
+        return back()->with('success', 'Shift closed successfully. Please hand over the cash to the Cashier.');
     }
 
     /**

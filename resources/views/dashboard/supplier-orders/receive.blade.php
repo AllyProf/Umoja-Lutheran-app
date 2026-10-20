@@ -33,7 +33,7 @@
                     <div class="alert alert-info">
                         <i class="fa fa-info-circle"></i>
                         Weka idadi halisi ya <strong>Packages iliyopokelewa</strong> (e.g., Crates, Cartons).
-                        Mfumo utaongeza moja kwa moja kwenye stoo ukizingatia ratio (chupa kwa kila crate).
+                        The system will add stock automatically using the package ratio (bottles per crate).
                     </div>
 
                     <form action="{{ route('supplier-orders.process-receive', $supplierOrder->id) }}" method="POST">
@@ -80,7 +80,7 @@
                                                 @else
                                                     <select name="items[{{ $item->id }}][product_variant_id]"
                                                         class="form-control form-control-sm variant-select" required>
-                                                        <option value="">-- Chagua Bidhaa --</option>
+                                                        <option value="">-- Select Product --</option>
                                                         @foreach($products as $p)
                                                             @foreach($p->variants as $v)
                                                                 <option value="{{ $v->id }}" data-per-pkg="{{ $v->items_per_package ?: 1 }}"
@@ -101,7 +101,7 @@
                                                         1 {{ $purchasingUnit }} = {{ $itemsPerPkg }} {{ $receivingUnit }}
                                                     </span>
                                                 @else
-                                                    <span class="pkg-info text-muted small">Chagua bidhaa kwanza</span>
+                                                    <span class="pkg-info text-muted small">Select a product first</span>
                                                 @endif
                                             </td>
                                             <td style="width: 140px;">
@@ -189,7 +189,7 @@
                     $calcBottles.html(`<span class="text-success font-weight-bold">${(qty * perPkg).toLocaleString()} ${receivingUnit}</span>`);
                 } else {
                     $qtyInput.prop('disabled', true).css('background', '#eee');
-                    $pkgInfo.html('<span class="text-muted small">Chagua bidhaa kwanza</span>');
+                    $pkgInfo.html('<span class="text-muted small">Select a product first</span>');
                     $pkgLabel.text('Package');
                     $calcBottles.html('<span class="text-muted">—</span>');
                 }
@@ -214,13 +214,13 @@
                 });
 
                 if (!allLinked) {
-                    Swal.fire({ icon: 'error', title: 'Oops!', text: 'Chagua bidhaa iliyosajiliwa kwa kila item kwanza!' });
+                    Swal.fire({ icon: 'error', title: 'Oops!', text: 'Select a registered product for every item first!' });
                     return;
                 }
 
                 Swal.fire({
                     title: 'Confirm Receipt?',
-                    text: 'Hii itaongeza stock kwenye mfumo. Endelea?',
+                    text: 'This will add stock to the system. Continue?',
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonColor: '#28a745',

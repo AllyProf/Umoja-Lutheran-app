@@ -35,6 +35,8 @@ class AuthController extends Controller
                 return redirect()->route('super_admin.dashboard');
             } elseif ($userRole === 'manager') {
                 return redirect()->route('admin.dashboard');
+            } elseif ($userRole === 'restaurant_manager' || $userRole === 'assistant_manager') {
+                return redirect()->route('bar-keeper.order-summary');
             } elseif ($userRole === 'reception') {
                 return redirect()->route('reception.dashboard');
             } elseif ($userRole === 'bar_keeper') {
@@ -49,6 +51,8 @@ class AuthController extends Controller
                 return redirect()->route('storekeeper.dashboard');
             } elseif ($userRole === 'accountant') {
                 return redirect()->route('accountant.dashboard');
+            } elseif ($userRole === 'cashier') {
+                return redirect()->route('cashier.dashboard');
             } elseif ($userRole === 'guest') {
                 return redirect()->route('customer.dashboard');
             }
@@ -268,6 +272,11 @@ class AuthController extends Controller
                     ? $intendedUrl
                     : route('admin.dashboard');
                 return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
+            } elseif ($userRole === 'restaurant_manager' || $userRole === 'assistant_manager') {
+                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
+                    ? $intendedUrl
+                    : route('bar-keeper.order-summary');
+                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
             } elseif ($userRole === 'reception') {
                 $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
                     ? $intendedUrl
@@ -303,10 +312,21 @@ class AuthController extends Controller
                     ? $intendedUrl
                     : route('accountant.dashboard');
                 return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
+            } elseif ($userRole === 'cashier') {
+                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
+                    ? $intendedUrl
+                    : route('cashier.dashboard');
+                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
             } elseif ($userRole === 'guest') {
                 $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
                     ? $intendedUrl
                     : route('customer.dashboard');
+                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
+            } else {
+                // Custom roles: land on order summary if restaurant-related, else admin dashboard fallback via permission
+                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
+                    ? $intendedUrl
+                    : route('bar-keeper.order-summary');
                 return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
             }
         }
@@ -582,6 +602,8 @@ class AuthController extends Controller
                     ? $intendedUrl
                     : route('admin.dashboard');
                 return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
+            } elseif ($userRole === 'restaurant_manager' || $userRole === 'assistant_manager') {
+                return redirect()->route('bar-keeper.order-summary')->with('success', 'Welcome back, ' . $user->name . '!');
             } elseif ($userRole === 'reception') {
                 $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
                     ? $intendedUrl
@@ -617,11 +639,10 @@ class AuthController extends Controller
                     ? $intendedUrl
                     : route('accountant.dashboard');
                 return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
+            } elseif ($userRole === 'cashier') {
+                return redirect()->route('cashier.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
             } else {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('customer.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
+                return redirect()->route('bar-keeper.order-summary')->with('success', 'Welcome back, ' . $user->name . '!');
             }
 
         } catch (\Exception $e) {
@@ -841,6 +862,11 @@ class AuthController extends Controller
                     ? $intendedUrl
                     : route('admin.dashboard');
                 return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
+            } elseif ($normalizedRole === 'restaurantmanager' || $userRole === 'restaurant_manager' || $normalizedRole === 'assistantmanager' || $userRole === 'assistant_manager') {
+                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
+                    ? $intendedUrl
+                    : route('bar-keeper.order-summary');
+                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
             } elseif ($normalizedRole === 'reception' || $userRole === 'reception') {
                 $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
                     ? $intendedUrl
@@ -876,10 +902,15 @@ class AuthController extends Controller
                     ? $intendedUrl
                     : route('accountant.dashboard');
                 return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
+            } elseif ($normalizedRole === 'cashier' || $userRole === 'cashier') {
+                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
+                    ? $intendedUrl
+                    : route('cashier.dashboard');
+                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
             } else {
                 $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
                     ? $intendedUrl
-                    : route('customer.dashboard');
+                    : route('bar-keeper.order-summary');
                 return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
             }
         } catch (\Exception $e) {

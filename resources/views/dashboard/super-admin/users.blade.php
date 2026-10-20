@@ -143,15 +143,13 @@
                   <label for="role">{{ __('Filter by Role') }}</label>
                   <select name="role" id="role" class="form-control">
                     <option value="">{{ __('All Roles') }}</option>
-                    <option value="super_admin" {{ request('role') == 'super_admin' ? 'selected' : '' }}>{{ __('Super Admin') }}</option>
-                    <option value="manager" {{ request('role') == 'manager' ? 'selected' : '' }}>{{ __('Manager') }}</option>
-                    <option value="reception" {{ request('role') == 'reception' ? 'selected' : '' }}>{{ __('Reception') }}</option>
-                    <option value="waiter" {{ request('role') == 'waiter' ? 'selected' : '' }}>{{ __('Waiter') }}</option>
-                    <option value="housekeeper" {{ request('role') == 'housekeeper' ? 'selected' : '' }}>{{ __('Housekeeper') }}</option>
-                    <option value="bar_keeper" {{ request('role') == 'bar_keeper' ? 'selected' : '' }}>{{ __('Counter') }}</option>
-                    <option value="head_chef" {{ request('role') == 'head_chef' ? 'selected' : '' }}>{{ __('Head Chef') }}</option>
-                    <option value="accountant" {{ request('role') == 'accountant' ? 'selected' : '' }}>{{ __('Accountant') }}</option>
-                    <option value="cashier" {{ request('role') == 'cashier' ? 'selected' : '' }}>{{ __('Cashier') }}</option>
+                    @foreach(($filterRoles ?? \App\Models\Role::assignableRoles()) as $filterRole)
+                      @if(!in_array($filterRole->name, ['guest', 'customer'], true))
+                        <option value="{{ $filterRole->name }}" {{ request('role') == $filterRole->name ? 'selected' : '' }}>
+                          {{ $filterRole->display_name ?: ucwords(str_replace('_', ' ', $filterRole->name)) }}
+                        </option>
+                      @endif
+                    @endforeach
                   </select>
                 </div>
               </div>

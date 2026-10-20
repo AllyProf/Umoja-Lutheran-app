@@ -24,6 +24,8 @@ class RolePermissionService
                 return 'super_admin';
             } elseif ($normalizedRole === 'manager' || $rawRole === 'manager') {
                 return 'manager';
+            } elseif ($normalizedRole === 'restaurantmanager' || $rawRole === 'restaurant_manager' || strtolower($rawRole) === 'restaurant manager' || $normalizedRole === 'assistantmanager' || $rawRole === 'assistant_manager') {
+                return 'restaurant_manager';
             } elseif ($normalizedRole === 'reception' || $rawRole === 'reception') {
                 return 'reception';
             } elseif ($normalizedRole === 'headchef' || $rawRole === 'head_chef') {
@@ -38,7 +40,12 @@ class RolePermissionService
                 return 'storekeeper';
             } elseif ($normalizedRole === 'accountant' || $rawRole === 'accountant') {
                 return 'accountant';
+            } elseif ($normalizedRole === 'cashier' || $rawRole === 'cashier') {
+                return 'cashier';
             }
+
+            // Custom roles from Super Admin Roles page
+            return strtolower(str_replace([' ', '-'], '_', trim($rawRole))) ?: null;
         } elseif ($user instanceof Guest) {
             return 'customer';
         }

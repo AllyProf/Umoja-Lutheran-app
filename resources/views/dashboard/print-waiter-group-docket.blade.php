@@ -257,11 +257,13 @@
             </div>
 
             @php
-                $paidAmount = $orders->whereIn('payment_status', ['paid', 'room_charge'])->sum('total_price_tsh');
-                $pendingAmount = $totalAmount - $paidAmount;
+                $paidAmount = $orders->where('payment_status', 'paid')->sum('total_price_tsh');
+                $receptionUnpaid = $orders->where('payment_status', 'room_charge')->sum('total_price_tsh');
+                $counterPending = $orders->where('payment_status', 'pending')->sum('total_price_tsh');
+                $pendingAmount = $counterPending + $receptionUnpaid;
             @endphp
 
-            @if($paidAmount > 0 && $pendingAmount > 0)
+            @if($paidAmount > 0)
                 <div class="info-row"
                     style="color: green; font-weight: bold; justify-content: space-between; font-size: 14px;">
                     <span>PAID:</span>
@@ -269,10 +271,18 @@
                 </div>
             @endif
 
+            @if($receptionUnpaid > 0)
+                <div class="info-row"
+                    style="color: #1e40af; font-weight: bold; justify-content: space-between; font-size: 13px;">
+                    <span>PAY AT RECEPTION:</span>
+                    <span>{{ number_format($receptionUnpaid) }} TZS</span>
+                </div>
+            @endif
+
             @if($pendingAmount > 0)
                 <div class="total-row"
                     style="color: #d35400; border-top: 1px dashed #ccc; padding-top: 5px; margin-top: 5px;">
-                    <span>PENDING:</span>
+                    <span>STILL OWED:</span>
                     <span>{{ number_format($pendingAmount) }} TZS</span>
                 </div>
             @endif

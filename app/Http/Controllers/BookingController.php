@@ -1039,59 +1039,36 @@ class BookingController extends Controller
                 \Log::error('Failed to send check-in notifications to managers/admins: ' . $e->getMessage());
             }
         } elseif ($request->check_in_status === 'checked_out') {
-            // Check if there's outstanding balance before allowing checkout
+            // Check outstanding before checkout — same line-based logic as counter/reception
             $currencyService = new CurrencyExchangeService();
             $exchangeRate = $booking->locked_exchange_rate ?? $currencyService->getUsdToTshRate();
 
-            // Calculate total bill
             $serviceRequests = $booking->serviceRequests()
                 ->whereIn('status', ['approved', 'completed'])
                 ->with('service')
                 ->get();
 
-            $totalServiceChargesTsh = $serviceRequests->sum('total_price_tsh');
+            $isCorporate = $booking->is_corporate_booking ?? false;
+            $paymentResponsibility = $booking->payment_responsibility ?? 'self';
 
-            // Calculate extension cost if extension was approved
-            $extensionCostUsd = 0;
-            if ($booking->extension_status === 'approved' && $booking->original_check_out && $booking->extension_requested_to) {
-                $originalCheckOut = \Carbon\Carbon::parse($booking->original_check_out);
-                $requestedCheckOut = \Carbon\Carbon::parse($booking->extension_requested_to);
-                $extensionNights = $originalCheckOut->diffInDays($requestedCheckOut);
-                if ($extensionNights > 0 && $booking->room) {
-                    $extensionCostUsd = $booking->room->price_per_night * $extensionNights;
-                }
-            }
-            $extensionCostTsh = $extensionCostUsd * $exchangeRate;
-
-            // Total bill
-            // Note: extensionCostTsh is already included in booking->total_price
-            $totalBillTsh = ($booking->total_price * $exchangeRate) + $totalServiceChargesTsh;
-
-            // Amount paid
-            // Amount paid (Booking deposit + any settled service payments)
-            $amountPaidTsh = ($booking->amount_paid ?? 0) * $exchangeRate;
-
-            // Add payments for completed/paid services to show correct outstanding balance
-            foreach ($serviceRequests as $sr) {
-                if ($sr->payment_status === 'paid') {
-                    $amountPaidTsh += $sr->total_price_tsh;
-                }
+            if ($isCorporate && $paymentResponsibility !== 'self') {
+                // Company pays everything — guest owes nothing at checkout gate
+                $outstandingBalanceTsh = 0;
+            } elseif ($isCorporate && $paymentResponsibility === 'self') {
+                $outstandingBalanceTsh = $booking->computeOutstandingBalanceTsh($serviceRequests, false);
+            } else {
+                $outstandingBalanceTsh = $booking->computeOutstandingBalanceTsh($serviceRequests, true);
             }
 
-            // Outstanding balance
-            $outstandingBalanceTsh = max(0, $totalBillTsh - $amountPaidTsh);
             $outstandingBalanceUsd = $outstandingBalanceTsh / $exchangeRate;
 
-            // Treat very small amounts (less than $0.05 or 50 TZS) as fully paid (rounding differences)
             $minOutstandingThresholdUsd = 0.05;
             $minOutstandingThresholdTsh = 50;
             if ($outstandingBalanceUsd < $minOutstandingThresholdUsd || $outstandingBalanceTsh < $minOutstandingThresholdTsh) {
-                // Negligible amount, treat as fully paid
                 $outstandingBalanceTsh = 0;
                 $outstandingBalanceUsd = 0;
             }
 
-            // If there's outstanding balance, prevent checkout
             if ($outstandingBalanceTsh >= $minOutstandingThresholdTsh || $outstandingBalanceUsd >= $minOutstandingThresholdUsd) {
                 return response()->json([
                     'success' => false,

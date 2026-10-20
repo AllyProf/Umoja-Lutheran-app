@@ -29,32 +29,7 @@ class EmergencyAuthController extends Controller
         // If user is already logged in, redirect to dashboard
         $user = Auth::guard('staff')->user() ?? Auth::guard('guest')->user();
         if ($user) {
-            $userRole = $user->role ?? 'guest';
-
-            // Redirect based on user role
-            if ($userRole === 'super_admin') {
-                return redirect()->route('super_admin.dashboard');
-            } elseif ($userRole === 'manager') {
-                return redirect()->route('admin.dashboard');
-            } elseif ($userRole === 'reception') {
-                return redirect()->route('reception.dashboard');
-            } elseif ($userRole === 'bar_keeper') {
-                return redirect()->route('bar-keeper.dashboard');
-            } elseif ($userRole === 'housekeeper') {
-                return redirect()->route('housekeeper.dashboard');
-            } elseif ($userRole === 'head_chef') {
-                return redirect()->route('chef-master.dashboard');
-            } elseif ($userRole === 'waiter') {
-                return redirect()->route('waiter.dashboard');
-            } elseif ($userRole === 'storekeeper') {
-                return redirect()->route('storekeeper.dashboard');
-            } elseif ($userRole === 'accountant') {
-                return redirect()->route('accountant.dashboard');
-            } elseif ($userRole === 'cashier') {
-                return redirect()->route('cashier.dashboard');
-            } elseif ($userRole === 'guest') {
-                return redirect()->route('customer.dashboard');
-            }
+            return redirect()->route($this->dashboardRouteForRole($user->role ?? 'guest'));
         }
 
         return view('dashboard.page-login', ['role' => $role]);
@@ -264,63 +239,13 @@ class EmergencyAuthController extends Controller
                 'user_agent' => $request->userAgent(),
             ]);
 
-            // Redirect based on user role
-            if ($userRole === 'super_admin') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('super_admin.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'manager') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('admin.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'reception') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('reception.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'bar_keeper') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('bar-keeper.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'housekeeper') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('housekeeper.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'head_chef') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('chef-master.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'waiter') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('waiter.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'storekeeper') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('storekeeper.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'accountant') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('accountant.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'cashier') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('cashier.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'guest') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('customer.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            }
+            $homeRoute = $this->dashboardRouteForRole($userRole);
+            $homeUrl = route($homeRoute);
+            $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
+                ? $intendedUrl
+                : $homeUrl;
+
+            return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
         }
     }
 
@@ -590,30 +515,9 @@ class EmergencyAuthController extends Controller
             // Get user role for dashboard redirect
             $userRole = $user->role ?? 'guest';
 
-            // Redirect based on user role
-            if ($userRole === 'super_admin') {
-                return redirect()->route('super_admin.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'manager') {
-                return redirect()->route('admin.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'reception') {
-                return redirect()->route('reception.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'bar_keeper') {
-                return redirect()->route('bar-keeper.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'housekeeper') {
-                return redirect()->route('housekeeper.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'head_chef') {
-                return redirect()->route('chef-master.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'waiter') {
-                return redirect()->route('waiter.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'storekeeper') {
-                return redirect()->route('storekeeper.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'accountant') {
-                return redirect()->route('accountant.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($userRole === 'cashier') {
-                return redirect()->route('cashier.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
-            } else {
-                return redirect()->route('customer.dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
-            }
+            return redirect()
+                ->route($this->dashboardRouteForRole($userRole))
+                ->with('success', 'Welcome back, ' . $user->name . '!');
 
         } catch (\Throwable $e) {
             \Log::channel('daily')->error('Login error (Throwable)', [
@@ -823,58 +727,13 @@ class EmergencyAuthController extends Controller
                 'user_agent' => $request->userAgent(),
             ]);
 
-            // Redirect based on user role
-            if ($normalizedRole === 'superadmin' || $userRole === 'super_admin' || strtolower($userRole) === 'super admin') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('super_admin.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($normalizedRole === 'manager' || $userRole === 'manager') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('admin.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($normalizedRole === 'reception' || $userRole === 'reception') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('reception.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($normalizedRole === 'barkeeper' || $normalizedRole === 'barkeepr' || $userRole === 'bar_keeper' || strtolower($userRole) === 'bar keeper' || strtolower($userRole) === 'bartender') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('bar-keeper.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($normalizedRole === 'housekeeper' || $userRole === 'housekeeper') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('housekeeper.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($normalizedRole === 'headchef' || $normalizedRole === 'head_chef') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('chef-master.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($normalizedRole === 'waiter') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('waiter.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($normalizedRole === 'storekeeper' || $userRole === 'storekeeper') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('storekeeper.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } elseif ($normalizedRole === 'accountant' || $userRole === 'accountant') {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('accountant.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            } else {
-                $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
-                    ? $intendedUrl
-                    : route('customer.dashboard');
-                return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
-            }
+            $homeRoute = $this->dashboardRouteForRole($userRole);
+            $homeUrl = route($homeRoute);
+            $redirectUrl = $intendedUrl && in_array($intendedUrl, $validDashboardRoutes)
+                ? $intendedUrl
+                : $homeUrl;
+
+            return redirect($redirectUrl)->with('success', 'Welcome back, ' . $user->name . '!');
         } catch (\Exception $e) {
             \Log::error('OTP verification error', [
                 'error' => $e->getMessage(),
@@ -1048,6 +907,57 @@ class EmergencyAuthController extends Controller
                 'message' => 'An error occurred while sending the verification code.'
             ];
         }
+    }
+
+    /**
+     * Named dashboard route for a staff/guest role after login.
+     * Custom / restaurant assistant roles must NEVER fall through to customer.dashboard (403).
+     */
+    protected function dashboardRouteForRole(?string $userRole): string
+    {
+        $role = strtolower(str_replace([' ', '-'], '_', trim((string) $userRole)));
+        $normalized = str_replace('_', '', $role);
+
+        if ($role === 'super_admin' || $normalized === 'superadmin') {
+            return 'super_admin.dashboard';
+        }
+        if ($role === 'manager') {
+            return 'admin.dashboard';
+        }
+        if (in_array($role, ['restaurant_manager', 'assistant_manager'], true)
+            || in_array($normalized, ['restaurantmanager', 'assistantmanager'], true)) {
+            return 'bar-keeper.order-summary';
+        }
+        if ($role === 'reception') {
+            return 'reception.dashboard';
+        }
+        if (in_array($role, ['bar_keeper', 'barkeeper', 'bartender'], true) || $normalized === 'barkeeper') {
+            return 'bar-keeper.dashboard';
+        }
+        if ($role === 'housekeeper') {
+            return 'housekeeper.dashboard';
+        }
+        if ($role === 'head_chef' || $normalized === 'headchef') {
+            return 'chef-master.dashboard';
+        }
+        if ($role === 'waiter') {
+            return 'waiter.dashboard';
+        }
+        if ($role === 'storekeeper') {
+            return 'storekeeper.dashboard';
+        }
+        if ($role === 'accountant') {
+            return 'accountant.dashboard';
+        }
+        if ($role === 'cashier') {
+            return 'cashier.dashboard';
+        }
+        if (in_array($role, ['guest', 'customer'], true)) {
+            return 'customer.dashboard';
+        }
+
+        // Any other staff role created in Super Admin → Roles
+        return 'bar-keeper.order-summary';
     }
 
     /**

@@ -303,10 +303,5 @@
             }
         });
     }
-
-    // Auto refresh every 30 seconds
-    setTimeout(function() {
-        window.location.reload();
-    }, 30000);
 </script>
 @endsection

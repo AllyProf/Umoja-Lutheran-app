@@ -37,6 +37,9 @@
                             <th>Opened</th>
                             <th>Closed</th>
                             <th>System cash</th>
+                            @if($type === 'reception')
+                            <th>Breakdown</th>
+                            @endif
                             <th>Brought to you</th>
                             <th>Difference</th>
                             <th>Notes</th>
@@ -50,6 +53,18 @@
                             <td>{{ optional($handover->opened_at)->format('d M, H:i') ?? '-' }}</td>
                             <td>{{ optional($handover->closed_at)->format('d M, H:i') ?? '-' }}</td>
                             <td>TZS {{ number_format($handover->total_cash_tzs) }}</td>
+                            @if($type === 'reception')
+                            <td style="min-width:180px;">
+                                @php $bd = $handover->reception_breakdown ?? null; @endphp
+                                @if($bd)
+                                    <small class="d-block">Bookings: <strong>{{ number_format($bd['bookings']['cash']) }}</strong> cash</small>
+                                    <small class="d-block">Restaurant: <strong>{{ number_format($bd['restaurant']['cash']) }}</strong> cash</small>
+                                    <small class="d-block text-muted">Day svc: {{ number_format($bd['day_services']['cash']) }} · Other: {{ number_format($bd['other_services']['cash']) }}</small>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                            @endif
                             <td class="font-weight-bold text-primary">TZS {{ number_format($handover->amount_submitted_tzs) }}</td>
                             <td>
                                 @if($handover->difference_tzs > 0)
@@ -60,7 +75,7 @@
                                     <span class="text-muted">0</span>
                                 @endif
                             </td>
-                            <td><small>{{ $handover->notes }}</small></td>
+                            <td><small>{{ \Illuminate\Support\Str::limit($handover->notes, 80) }}</small></td>
                             <td>
                                 <div class="btn-group">
                                     <form action="{{ route('cashier.shift-handovers.acknowledge', $handover->id) }}" method="POST">
@@ -72,12 +87,15 @@
                                     <a href="{{ route('cashier.shift-handovers.sales', $handover->id) }}" class="btn btn-sm btn-info ml-1">
                                         <i class="fa fa-list"></i> View sales
                                     </a>
+                                    <a href="{{ route('cashier.shift-reports.pdf', $handover->id) }}" class="btn btn-sm btn-danger ml-1" target="_blank" title="Print shift report">
+                                        <i class="fa fa-print"></i> Print
+                                    </a>
                                 </div>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="text-center text-muted">Nothing waiting. It appears here when someone closes a shift.</td>
+                            <td colspan="{{ $type === 'reception' ? 9 : 8 }}" class="text-center text-muted">Nothing waiting. It appears here when someone closes a shift.</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -101,6 +119,9 @@
                             <th>Closed</th>
                             <th>Name</th>
                             <th>You received</th>
+                            @if($type === 'reception')
+                            <th>Breakdown (cash)</th>
+                            @endif
                             <th>Next</th>
                         </tr>
                     </thead>
@@ -110,13 +131,26 @@
                             <td>{{ optional($item->closed_at)->format('d M Y, H:i') ?? '-' }}</td>
                             <td>{{ $item->staff->name ?? '-' }}</td>
                             <td>TZS {{ number_format($item->amount_submitted_tzs) }}</td>
+                            @if($type === 'reception')
                             <td>
+                                @php $bd = $item->reception_breakdown ?? null; @endphp
+                                @if($bd)
+                                    <small>B {{ number_format($bd['bookings']['cash']) }} · R {{ number_format($bd['restaurant']['cash']) }} · D {{ number_format($bd['day_services']['cash']) }}</small>
+                                @else
+                                    —
+                                @endif
+                            </td>
+                            @endif
+                            <td class="text-nowrap">
+                                <a href="{{ route('cashier.shift-reports.pdf', $item->id) }}" class="btn btn-xs btn-outline-danger" target="_blank">
+                                    <i class="fa fa-print"></i> Print
+                                </a>
                                 <a href="{{ route('cashier.accountant.handovers') }}" class="btn btn-xs btn-primary">Send to Accountant</a>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="4" class="text-center text-muted">You have not received any cash on this list yet.</td>
+                            <td colspan="{{ $type === 'reception' ? 5 : 4 }}" class="text-center text-muted">You have not received any cash on this list yet.</td>
                         </tr>
                         @endforelse
                     </tbody>

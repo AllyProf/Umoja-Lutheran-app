@@ -9,6 +9,7 @@ use App\Models\Booking;
 use App\Models\User;
 use App\Services\CurrencyExchangeService;
 use App\Services\NotificationService;
+use App\Support\CounterShiftContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -62,7 +63,7 @@ class ServiceRequestController extends Controller
         try {
             try {
                 $request->validate([
-                    'booking_id' => 'required_without:is_walk_in|exists:bookings,id',
+                    'booking_id' => 'nullable|exists:bookings,id',
                     'is_walk_in' => 'nullable|boolean',
                     'walk_in_name' => 'nullable|string|max:255',
                     'service_id' => 'required',
@@ -76,7 +77,8 @@ class ServiceRequestController extends Controller
                     'service_specific_data' => 'nullable|array',
                     'item_name' => 'nullable|string', // For custom named items
                     'day_service_id' => 'nullable|exists:day_services,id',
-                    'payment_timing' => 'nullable|string|in:immediate,later',
+                    'payment_timing' => 'nullable|string|in:immediate,later,room_charge',
+                    'payment_method' => 'nullable|string|max:50',
                 ]);
             } catch (\Illuminate\Validation\ValidationException $e) {
                 return response()->json([
@@ -95,18 +97,41 @@ class ServiceRequestController extends Controller
                 ], 401);
             }
 
-            // Verify booking belongs to logged-in customer (unless it's a walk-in by staff)
-            $booking = null;
-            if (!$request->is_walk_in) {
-                $booking = Booking::where('id', $request->booking_id)
-                    ->where('guest_email', $user->email)
-                    ->first();
+            $isStaffUser = Auth::guard('staff')->check();
+            $isWalkInRequest = $request->boolean('is_walk_in');
 
-                if (!$booking) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Booking not found or does not belong to you.',
-                    ], 404);
+            if (!$isWalkInRequest && !$request->booking_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Booking is required for in-house guest orders.',
+                ], 422);
+            }
+
+            // Verify booking: guests must own it; staff may attach any checked-in guest
+            $booking = null;
+            if (!$isWalkInRequest) {
+                if ($isStaffUser) {
+                    $booking = Booking::where('id', $request->booking_id)
+                        ->where('check_in_status', 'checked_in')
+                        ->first();
+
+                    if (!$booking) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Checked-in booking not found.',
+                        ], 404);
+                    }
+                } else {
+                    $booking = Booking::where('id', $request->booking_id)
+                        ->where('guest_email', $user->email)
+                        ->first();
+
+                    if (!$booking) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Booking not found or does not belong to you.',
+                        ], 404);
+                    }
                 }
             }
 
@@ -140,13 +165,19 @@ class ServiceRequestController extends Controller
             $isGenericFood = $service && $service->name === 'Generic Food Order';
 
             // --- Shift Validation for Staff ---
+            // Restaurant manager may sell under a selected counter shift (no personal shift).
             if (Auth::guard('staff')->check() && ($isGenericBar || $isGenericFood || ($service && in_array($service->category, ['alcoholic_beverage', 'non_alcoholic_beverage', 'water', 'juices', 'energy_drinks', 'soft_drinks', 'beers', 'wines', 'spirits', 'cocktails', 'drinks', 'liquor', 'food', 'restaurant', 'traditional', 'bites', 'snacks', 'chai', 'fruit_salad'])))) {
-                $staffId = Auth::guard('staff')->id();
-                $activeShift = ShiftClosure::where('staff_id', $staffId)->where('status', 'active')->exists();
-                if (!$activeShift) {
+                $staffUser = Auth::guard('staff')->user();
+                $requestedProxyShiftId = $request->integer('on_behalf_shift_id') ?: null;
+                $operatingShift = CounterShiftContext::resolveOperatingShift($staffUser, $requestedProxyShiftId);
+                if (!$operatingShift) {
+                    $message = CounterShiftContext::isProxySeller($staffUser)
+                        ? 'Please select a counter with an open shift on the Dashboard first (Counter POS).'
+                        : 'You do not have an open shift. Please open a shift first on the Dashboard.';
+
                     return response()->json([
                         'success' => false,
-                        'message' => 'Huna shift iliyofunguliwa. Tafadhali fungua shift kwanza kwenye Dashboard.'
+                        'message' => $message,
                     ], 403);
                 }
             }
@@ -314,14 +345,16 @@ class ServiceRequestController extends Controller
                 }
             }
 
-            // Create service request - walk-ins can be immediate or later
-            $isWalkIn = $request->input('is_walk_in', false);
-            $paymentTiming = $request->input('payment_timing', 'immediate'); // immediate or later
+            // Create service request - walk-ins / staff POS can be immediate, later, or room_charge
+            $isWalkIn = $isWalkInRequest;
+            $paymentTiming = $request->input('payment_timing', 'immediate'); // immediate, later, or room_charge
             $dayServiceId = $request->input('day_service_id');
+            $paymentMethod = $request->input('payment_method');
 
             // Determine status and payment status
             $status = 'pending';
             $paymentStatus = 'pending';
+            $isStaffPosForBooking = $isStaffUser && !$isWalkIn && $booking;
 
             if ($isWalkIn) {
                 if ($dayServiceId) {
@@ -333,17 +366,55 @@ class ServiceRequestController extends Controller
                     $status = ($paymentTiming === 'later' ? 'approved' : 'completed');
                     $paymentStatus = ($paymentTiming === 'later' ? 'pending' : 'paid');
                 }
+            } elseif ($isStaffPosForBooking) {
+                // Bar/restaurant counter order for checked-in in-house guest
+                if ($paymentTiming === 'room_charge') {
+                    $status = 'completed';
+                    $paymentStatus = 'room_charge';
+                    $paymentMethod = $paymentMethod ?: 'room_charge';
+                } elseif ($paymentTiming === 'immediate') {
+                    $status = 'completed';
+                    $paymentStatus = 'paid';
+                    $paymentMethod = $paymentMethod ?: 'cash';
+                } else {
+                    // Pay later at counter — still billed to booking so reception can see it unpaid
+                    $status = 'approved';
+                    $paymentStatus = 'pending';
+                }
             }
 
-            // Link to active shift if paid immediately
+            // Link to active shift when staff POS completes/serves the order
+            // Restaurant manager uses a selected counter shift (no personal shift)
             $activeShiftId = null;
-            if ($isWalkIn && ($paymentTiming === 'immediate' || $dayServiceId) && Auth::guard('staff')->check()) {
-                $staffId = Auth::guard('staff')->id();
-                $activeShift = \App\Models\ShiftClosure::where('staff_id', $staffId)
-                    ->where('status', 'active')
-                    ->first();
-                $activeShiftId = $activeShift?->id;
+            $saleOwnerId = null;
+            $placementMeta = [];
+            $placementNote = '';
+            $shouldAttachShift = $isStaffUser && (
+                ($isWalkIn && ($paymentTiming === 'immediate' || $dayServiceId || $paymentTiming === 'later'))
+                || ($isStaffPosForBooking && in_array($paymentTiming, ['immediate', 'room_charge', 'later'], true))
+            );
+            if ($shouldAttachShift) {
+                $staffUser = Auth::guard('staff')->user();
+                $requestedProxyShiftId = $request->integer('on_behalf_shift_id') ?: null;
+                $activeShift = CounterShiftContext::resolveOperatingShift($staffUser, $requestedProxyShiftId);
+
+                if (!$activeShift) {
+                    $msg = CounterShiftContext::isProxySeller($staffUser)
+                        ? 'Please select a counter with an open shift before selling.'
+                        : 'You do not have an open shift. Please open a shift first.';
+
+                    return response()->json(['success' => false, 'message' => $msg], 403);
+                }
+
+                $activeShiftId = $activeShift->id;
+                $saleOwnerId = CounterShiftContext::saleOwnerStaffId($staffUser, $activeShift);
+                $placementMeta = CounterShiftContext::proxyPlacementMeta($staffUser, $activeShift);
+                $placementNote = CounterShiftContext::proxyPlacementNote($staffUser, $activeShift);
             }
+
+            $markApprovedNow = $isWalkIn || $isStaffPosForBooking;
+            $markCompletedNow = ($isWalkIn && ($paymentTiming === 'immediate' || $dayServiceId))
+                || ($isStaffPosForBooking && in_array($paymentTiming, ['immediate', 'room_charge'], true));
 
             $serviceRequest = ServiceRequest::create([
                 'booking_id' => $isWalkIn ? null : $booking->id,
@@ -353,24 +424,41 @@ class ServiceRequestController extends Controller
                     'adult_quantity' => $adultQuantity,
                     'child_quantity' => $childQuantity,
                     'item_name' => $itemName // Store the actual name for orders
-                ]),
+                ], $placementMeta),
                 'quantity' => $quantity,
                 'unit_price_tsh' => $unitPrice,
                 'total_price_tsh' => $totalPrice,
                 'status' => $status,
                 'payment_status' => $paymentStatus,
+                'payment_method' => $paymentMethod,
                 'is_walk_in' => $isWalkIn,
                 'walk_in_name' => $request->walk_in_name,
                 'day_service_id' => $dayServiceId,
                 'requested_at' => now(),
-                'approved_at' => $isWalkIn ? now() : null,
-                'approved_by' => $isWalkIn ? Auth::guard('staff')->id() : null,
-                'completed_at' => ($isWalkIn && ($paymentTiming === 'immediate' || $dayServiceId)) ? now() : null,
+                'approved_at' => $markApprovedNow ? now() : null,
+                // Sale owner = counter staff (so it appears on that counter's shift)
+                'approved_by' => $markApprovedNow ? ($saleOwnerId ?? Auth::guard('staff')->id()) : null,
+                'completed_at' => $markCompletedNow ? now() : null,
                 'shift_closure_id' => $activeShiftId,
+                'reception_notes' => $placementNote ? ltrim($placementNote, ' |') : null,
             ]);
 
-            // Create notification for service request
-            if (!$isWalkIn) {
+            // Record cash/card payment against booking when staff takes payment at counter
+            if ($isStaffPosForBooking && $paymentTiming === 'immediate' && $booking) {
+                $newAmountPaid = ($booking->amount_paid ?? 0) + $totalPrice;
+                $serviceTotalTsh = $booking->serviceRequests()
+                    ->whereIn('status', ['approved', 'completed'])
+                    ->sum('total_price_tsh');
+                $roomTotalTsh = $booking->total_price ?? 0;
+                $totalBillTsh = $roomTotalTsh + $serviceTotalTsh;
+                $booking->update([
+                    'amount_paid' => $newAmountPaid,
+                    'payment_status' => ($newAmountPaid >= ($totalBillTsh - 50)) ? 'paid' : 'partial',
+                ]);
+            }
+
+            // Create notification for guest-initiated requests (skip staff POS counter orders)
+            if (!$isWalkIn && !$isStaffPosForBooking) {
                 try {
                     $notificationService = new NotificationService();
                     $notificationService->createServiceRequestNotification($serviceRequest->load(['booking.room', 'service']));
@@ -383,7 +471,7 @@ class ServiceRequestController extends Controller
             }
 
             // Send email notification (send immediately)
-            if (!$isWalkIn && isset($booking->guest_email)) {
+            if (!$isWalkIn && !$isStaffPosForBooking && isset($booking->guest_email)) {
                 try {
                     // Check if guest has notifications enabled
                     $guest = \App\Models\Guest::where('email', $booking->guest_email)->first();
@@ -866,9 +954,9 @@ class ServiceRequestController extends Controller
                 $totalCollected += $other->total_price_tsh;
             }
         } elseif ($serviceRequest->booking_id) {
-            // Also settle all other pending items for this room booking
+            // Also settle other unpaid / room-charge items for this room booking
             $others = ServiceRequest::where('booking_id', $serviceRequest->booking_id)
-                ->where('payment_status', 'pending')
+                ->whereIn('payment_status', ['pending', 'room_charge'])
                 ->where('id', '!=', $serviceRequest->id)
                 ->get();
 
@@ -878,6 +966,7 @@ class ServiceRequestController extends Controller
             }
         }
 
+        $activeShift = null;
         $activeShiftId = null;
         if (Auth::guard('staff')->check()) {
             $staffId = Auth::guard('staff')->id();
@@ -889,6 +978,19 @@ class ServiceRequestController extends Controller
 
         // Apply settlement to all identified items
         foreach ($itemsToSettle as $item) {
+            $meta = $isRoomCharge
+                ? (is_array($item->service_specific_data) ? $item->service_specific_data : [])
+                : $item->withPriorDebtPaymentMeta($activeShift);
+
+            $notes = (string) ($item->reception_notes ?? '');
+            if (!$isRoomCharge && !empty($meta['paid_from_prior_debt'])) {
+                $orig = $meta['original_order_at'] ?? optional($item->requested_at)->toDateTimeString();
+                $tag = ' | Paid from prior debt (order: ' . $orig . ')';
+                if (!str_contains($notes, 'Paid from prior debt')) {
+                    $notes .= $tag;
+                }
+            }
+
             $item->update([
                 'payment_status' => $isRoomCharge ? 'room_charge' : 'paid',
                 'payment_method' => $request->payment_method,
@@ -896,6 +998,8 @@ class ServiceRequestController extends Controller
                 'status' => 'completed',
                 'completed_at' => now(),
                 'shift_closure_id' => $activeShiftId ?? $item->shift_closure_id,
+                'service_specific_data' => $meta,
+                'reception_notes' => $notes ?: $item->reception_notes,
             ]);
         }
 
@@ -1051,27 +1155,18 @@ class ServiceRequestController extends Controller
             $originalNights = $booking->check_in->diffInDays($booking->check_out);
 
             // For self-paid responsibility, the guest is responsible for ALL services
-            // even if they were charged to the room (payment_method = room_charge)
+            // even if they were charged to the room (payment_status = room_charge)
             $selfPaidServiceRequests = $serviceRequests;
             $totalServiceChargesTsh = $selfPaidServiceRequests->sum('total_price_tsh');
 
             // Calculate total bill (only services, no room charges)
             $totalBillTsh = $totalServiceChargesTsh;
 
-            // Calculate amount paid (only from service payments, not room payments)
-            // For self-paid services, amount_paid in booking might include room payments
-            // So we need to calculate from service requests instead
-            $amountPaidUsd = 0;
-            $amountPaidTsh = 0;
-            foreach ($selfPaidServiceRequests as $sr) {
-                if ($sr->payment_status === 'paid') {
-                    $amountPaidTsh += $sr->total_price_tsh;
-                }
-            }
+            $amountPaidTsh = $booking->paidServiceChargesTsh($selfPaidServiceRequests);
             $amountPaidUsd = $amountPaidTsh > 0 ? $amountPaidTsh / $exchangeRate : 0;
 
-            // Calculate outstanding balance
-            $outstandingBalanceTsh = max(0, $totalBillTsh - $amountPaidTsh);
+            // Line-based unpaid (pending + room_charge) — matches counter
+            $outstandingBalanceTsh = $booking->computeOutstandingBalanceTsh($selfPaidServiceRequests, false);
         } elseif ($isStaffViewingCorporate) {
             // Staff viewing corporate booking - show company pays for rooms
             // Only show what guest owes (services if self-paid, nothing if company-paid)
@@ -1084,17 +1179,12 @@ class ServiceRequestController extends Controller
                 $extensionNights = 0;
                 $originalNights = $booking->check_in->diffInDays($booking->check_out);
 
-                // Only count unpaid self-paid service requests
-                $unpaidServiceRequests = $serviceRequests->filter(function ($sr) {
-                    $paymentMethod = $sr->payment_method ?? null;
-                    $paymentStatus = $sr->payment_status ?? 'pending';
-                    return $paymentMethod !== 'room_charge' && $paymentStatus !== 'paid';
-                });
-                $totalServiceChargesTsh = $unpaidServiceRequests->sum('total_price_tsh');
+                // Guest owes unpaid services (pending + room_charge) — same as counter
+                $totalServiceChargesTsh = $booking->unpaidServiceChargesTsh($serviceRequests);
                 $totalBillTsh = $totalServiceChargesTsh;
                 $amountPaidUsd = 0;
                 $amountPaidTsh = 0;
-                $outstandingBalanceTsh = max(0, $totalBillTsh - $amountPaidTsh);
+                $outstandingBalanceTsh = $booking->computeOutstandingBalanceTsh($serviceRequests, false);
             } else {
                 // Company pays everything - guest owes nothing
                 $roomPriceTsh = 0;
@@ -1148,19 +1238,13 @@ class ServiceRequestController extends Controller
             // Calculate total bill (room + extension + services) — amounts already in TSh
             $totalBillTsh = $roomPriceTsh + $extensionCostTsh + $totalServiceChargesTsh;
 
-            // Calculate amount paid (Booking deposit/payment + any settled service payments)
+            // Display amount paid from booking only (do not double-count paid service lines)
             $amountPaidUsd = $booking->amount_paid ?? 0;
-            $amountPaidTsh = $amountPaidUsd;
+            $amountPaidTsh = (float) $amountPaidUsd;
 
-            // Add payments for completed/paid services
-            foreach ($serviceRequests as $sr) {
-                if ($sr->payment_status === 'paid') {
-                    $amountPaidTsh += $sr->total_price_tsh;
-                }
-            }
-
-            // Calculate outstanding balance
-            $outstandingBalanceTsh = max(0, $totalBillTsh - $amountPaidTsh);
+            // Outstanding must match counter: unpaid = pending + room_charge lines
+            // (partial reception payments on amount_paid must not hide open room_charge rows)
+            $outstandingBalanceTsh = $booking->computeOutstandingBalanceTsh($serviceRequests, true);
         }
 
         // Update booking with total bill

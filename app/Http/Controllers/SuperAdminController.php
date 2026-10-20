@@ -368,6 +368,7 @@ class SuperAdminController extends Controller
             'userRole' => 'Super Administrator',
             'users' => $users,
             'roleCounts' => $roleCounts,
+            'filterRoles' => Role::assignableRoles(),
             'filters' => $request->only(['role', 'search', 'tab']),
             'activeTab' => $activeTab,
         ]);
@@ -378,7 +379,7 @@ class SuperAdminController extends Controller
      */
     public function createUser()
     {
-        $roles = Role::where('is_system', false)->orWhereIn('name', ['manager', 'reception', 'guest', 'waiter', 'cashier'])->get();
+        $roles = Role::assignableRoles();
 
         return view('dashboard.super-admin.user-form', [
             'role' => 'super_admin',
@@ -399,7 +400,7 @@ class SuperAdminController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email',
             'phone' => 'required|string|max:20',
-            'role' => 'required|string|in:super_admin,manager,reception,guest,bar_keeper,head_chef,housekeeper,waiter,storekeeper,accountant,cashier',
+            'role' => 'required|string|exists:roles,name',
             'is_active' => 'boolean',
         ];
 
@@ -411,6 +412,7 @@ class SuperAdminController extends Controller
         }
 
         $validated = $request->validate($rules);
+        $validated['role'] = strtolower(str_replace([' ', '-'], '_', trim($validated['role'])));
 
         // Determine which table to check for unique email
         $emailExists = Staff::where('email', $validated['email'])->exists() || Guest::where('email', $validated['email'])->exists();
@@ -429,8 +431,8 @@ class SuperAdminController extends Controller
             ? ($validated['password'] ?? $defaultPassword)
             : $defaultPassword;
 
-        // Create Staff or Guest based on role
-        if (in_array($validated['role'], ['super_admin', 'manager', 'reception', 'bar_keeper', 'head_chef', 'housekeeper', 'waiter', 'storekeeper', 'accountant', 'cashier'])) {
+        // Create Staff or Guest based on role (any role in roles table except guest/customer)
+        if (Role::isStaffRoleName($validated['role'])) {
             $user = Staff::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
@@ -515,7 +517,7 @@ class SuperAdminController extends Controller
             'user_id' => $user->id,
             'role' => $role,
             'email_sent' => true,
-            'sms_sent' => in_array($role, ['super_admin', 'manager', 'reception', 'bar_keeper', 'head_chef', 'housekeeper', 'waiter', 'storekeeper', 'accountant', 'cashier']),
+            'sms_sent' => Role::isStaffRoleName($role),
         ]);
 
         return redirect()->route('super_admin.users')->with('success', 'User created successfully. Welcome credentials have been sent.');
@@ -545,7 +547,7 @@ class SuperAdminController extends Controller
             return redirect()->route('super_admin.users')->with('error', 'Cannot edit other super admin accounts.');
         }
 
-        $roles = Role::where('is_system', false)->orWhereIn('name', ['manager', 'reception', 'guest', 'cashier'])->get();
+        $roles = Role::assignableRoles();
 
         return view('dashboard.super-admin.user-form', [
             'role' => 'super_admin',
@@ -597,7 +599,7 @@ class SuperAdminController extends Controller
         // Email uniqueness check
         if ($userType === 'staff') {
             $rules['email'] = 'required|email|unique:staffs,email,' . $user->id . '|unique:guests,email';
-            $rules['role'] = 'required|string|in:super_admin,manager,reception,bar_keeper,head_chef,housekeeper,waiter,storekeeper,accountant,cashier';
+            $rules['role'] = 'required|string|exists:roles,name';
         } else {
             $rules['email'] = 'required|email|unique:guests,email,' . $user->id . '|unique:staffs,email';
         }
@@ -607,6 +609,10 @@ class SuperAdminController extends Controller
         $oldValues = $user->only(['name', 'email', 'phone', 'is_active']);
         if ($userType === 'staff') {
             $oldValues['role'] = $user->role;
+            $validated['role'] = strtolower(str_replace([' ', '-'], '_', trim($validated['role'])));
+            if (!Role::isStaffRoleName($validated['role'])) {
+                return back()->withErrors(['role' => 'Guest roles cannot be assigned to staff accounts.'])->withInput();
+            }
         }
 
         $user->name = $validated['name'];
@@ -1009,12 +1015,21 @@ class SuperAdminController extends Controller
             'description' => 'nullable|string',
         ]);
 
+        // Keep role keys consistent with staff.role / route middleware (snake_case)
+        $validated['name'] = strtolower(str_replace([' ', '-'], '_', trim($validated['name'])));
+        $validated['slug'] = $validated['name'];
+        $validated['is_system'] = false;
+
+        if (Role::where('name', $validated['name'])->exists()) {
+            return back()->withErrors(['name' => 'A role with this name already exists.'])->withInput();
+        }
+
         $role = Role::create($validated);
 
         ActivityLog::log('created', $role, "Created role: {$role->name}");
         SystemLog::log('info', "Role created: {$role->name}", 'role_management');
 
-        return redirect()->route('super_admin.roles')->with('success', 'Role created successfully.');
+        return redirect()->route('super_admin.roles')->with('success', 'Role created successfully. You can now assign it when creating/editing a user.');
     }
 
     /**

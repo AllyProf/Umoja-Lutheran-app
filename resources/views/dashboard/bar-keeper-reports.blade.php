@@ -369,9 +369,6 @@
 <div class="receipt-report-container">
     <!-- Header -->
     <div class="receipt-report-header">
-        <div class="logo-container">
-            <img src="{{ asset('dashboard_assets/images/Logo.png') }}" alt="Umoja Lutheran Hostel Logo">
-        </div>
         <h1>Umoja Lutheran Hostel</h1>
         <div style="line-height: 1.6;">
             <p><strong>Location:</strong> Sokoine Road - Moshi, Kilimanjaro - Tanzania</p>
@@ -439,7 +436,7 @@
                     $eventRev = isset($ceremonyUsage) ? $ceremonyUsage->sum('total_price_tsh') : 0;
                 @endphp
                 <div class="receipt-info-row">
-                    <span class="receipt-info-label">Bottles Sold:</span>
+                    <span class="receipt-info-label">Units Sold:</span>
                     <span class="receipt-info-value" style="color: #28a745;"><strong>{{ number_format($totalSoldQty + $eventQty) }} Units</strong></span>
                 </div>
                 <div class="receipt-info-row">
@@ -450,101 +447,53 @@
                     <span class="receipt-info-label">Total Revenue:</span>
                     <span class="receipt-info-value" style="color: #940000; font-size: 16px;"><strong>{{ number_format($totalRev + $eventRev) }} TZS</strong></span>
                 </div>
+                <div class="receipt-info-row">
+                    <span class="receipt-info-label">Unpaid Orders:</span>
+                    <span class="receipt-info-value" style="color: #dc3545;"><strong>{{ number_format(($unpaidOrders ?? collect())->count()) }} ({{ number_format($unpaidTotal ?? 0) }} TZS)</strong></span>
+                </div>
                 <div class="receipt-info-row" style="margin-top: 5px;">
-                    <span class="receipt-info-label">Inventory Items:</span>
-                    <span class="receipt-info-value text-muted"><strong>{{ collect($reportData)->count() }} Tracks</strong></span>
+                    <span class="receipt-info-label">Shifts:</span>
+                    <span class="receipt-info-value text-muted"><strong>{{ ($periodShifts ?? collect())->count() }}</strong></span>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- 1. Stock Movements -->
+
+    <!-- 1. Shift Times -->
     <div class="receipt-info-section">
-        <h3>1. Counter Stock Movements</h3>
+        <h3>1. Shift Times</h3>
         <table class="receipt-details-table">
             <thead>
                 <tr>
-                    <th style="width: 40px;">Img</th>
-                    <th style="text-align: left;">Drink Item / Variant</th>
-                    <th>Expire</th>
-                    <th>Opening</th>
-                    <th>Inn</th>
-                    <th>Sold</th>
-                    <th>Rev. (Bottle)</th>
-                    <th>Rev. (Actual)</th>
-                    <th>Potential (All)</th>
-                    <th>Stock Value</th>
-                    <th>Profit Potential</th>
-                    <th style="text-align: right;">Balance</th>
+                    <th style="width: 40px;">#</th>
+                    <th style="text-align: left;">Counter</th>
+                    <th style="text-align: left;">Opening Time</th>
+                    <th style="text-align: left;">Closing Time</th>
+                    <th style="text-align: center;">Duration</th>
+                    <th style="text-align: center;">Status</th>
                 </tr>
             </thead>
             <tbody>
-                @php 
-                    $groupedReport = collect($reportData)->groupBy(function($item) {
-                        return match($item->category) {
-                            'alcoholic_beverage' => 'Beers & Beverages',
-                            'beers' => 'Beers',
-                            'spirits' => 'Spirits & Liquor',
-                            'whiske' => 'Whiskey',
-                            'wine' => 'Wines',
-                            'water' => 'Water & Soft Drinks',
-                            'juices' => 'Juices & Fresh Drinks',
-                            'energy_drinks' => 'Energy Drinks',
-                            'non_alcoholic_beverage' => 'Soft Drinks',
-                            default => ucfirst(str_replace('_', ' ', $item->category ?? 'Other'))
-                        };
-                    });
-                @endphp
-
-                @foreach($groupedReport as $category => $items)
-                <tr class="category-row">
-                    <td colspan="11"><strong>{{ $category }}</strong></td>
-                    <td style="text-align: right;"><small>{{ $items->count() }} items</small></td>
-                </tr>
-                @foreach($items as $item)
+                @forelse(($periodShifts ?? []) as $i => $shift)
                 <tr>
-                    <td style="text-align: center; padding: 2px;">
-                        @if($item->image)
-                            <img src="{{ Storage::url($item->image) }}" class="rounded shadow-sm" style="width: 30px; height: 30px; object-fit: cover; border: 1px solid #ddd;">
+                    <td style="text-align: center;">{{ $i + 1 }}</td>
+                    <td><strong>{{ $shift->staff_name }}</strong></td>
+                    <td>{{ $shift->opened_at ? $shift->opened_at->format('d M Y H:i') : '—' }}</td>
+                    <td>{{ $shift->closed_at ? $shift->closed_at->format('d M Y H:i') : 'Still open' }}</td>
+                    <td style="text-align: center;"><strong>{{ $shift->duration }}</strong></td>
+                    <td style="text-align: center;">
+                        @if($shift->status === 'active')
+                            <span class="status-badge" style="color: #28a745; border: 1px solid #28a745;">OPEN</span>
                         @else
-                            <div class="rounded bg-light d-flex align-items-center justify-content-center" style="width: 30px; height: 30px; border: 1px solid #eee;">
-                                <i class="fa fa-glass text-muted" style="font-size: 10px;"></i>
-                            </div>
+                            <span class="status-badge" style="color: #6c757d; border: 1px solid #6c757d;">CLOSED</span>
                         @endif
                     </td>
-                    <td style="padding-left: 10px;">
-                        {{ $item->name }}
-                        @if($item->closing_stock <= 0)
-                            <span class="status-badge" style="color: #dc3545;">[OUT]</span>
-                        @elseif($item->closing_stock < 5)
-                            <span class="status-badge" style="color: #ffc107;">[LOW]</span>
-                        @endif
-                    </td>
-                    <td style="text-align: center; color: #666;">{{ $item->expiry_date }}</td>
-                    <td style="text-align: center;">{{ number_format($item->opening_stock, 1) }}</td>
-                    <td style="text-align: center; color: #007bff;">{{ number_format($item->received, 1) }}</td>
-                    <td style="text-align: center; color: #dc3545;">
-                        @php
-                            $soldVal = $item->sold;
-                            $ratio = $item->servings_per_pic ?? 1;
-                            $totalGlasses = round($soldVal * $ratio);
-                        @endphp
-                        @if($ratio > 1 && $soldVal > 0)
-                            {{ $totalGlasses }} gls
-                            <br><small class="text-muted">({{ number_format($soldVal, 1) }} Pic)</small>
-                        @else
-                            {{ number_format($soldVal, 1) }}
-                        @endif
-                    </td>
-                    <td style="text-align: center;">{{ number_format($item->expected_revenue) }}</td>
-                    <td style="text-align: center; font-weight: bold; color: #28a745;">{{ number_format($item->actual_revenue) }}</td>
-                    <td style="text-align: center; color: #940000;">{{ number_format($item->max_potential_revenue) }}</td>
-                    <td style="text-align: center; color: #666;">{{ number_format($item->stock_value) }}</td>
-                    <td style="text-align: center; font-weight: bold; color: #17a2b8;">{{ number_format($item->profit_potential) }}</td>
-                    <td style="text-align: right; background-color: #f8f9fa;"><strong>{{ number_format($item->closing_stock, 1) }}</strong></td>
                 </tr>
-                @endforeach
-                @endforeach
+                @empty
+                <tr>
+                    <td colspan="6" class="text-center" style="padding: 20px;">No shifts found for this period.</td>
+                </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
@@ -618,11 +567,62 @@
             </tbody>
         </table>
     </div>
+
+    <!-- 3. Unpaid Orders -->
+    <div class="receipt-info-section">
+        <h3>3. Unpaid Orders
+            @if(($unpaidOrders ?? collect())->count() > 0)
+                <span style="font-size: 12px; font-weight: normal; color: #dc3545;">
+                    — {{ count($unpaidGuests ?? []) }} guest(s), {{ number_format($unpaidTotal ?? 0) }} TZS due
+                </span>
+            @endif
+        </h3>
+        <table class="receipt-details-table">
+            <thead>
+                <tr>
+                    <th style="width: 40px;">#</th>
+                    <th style="text-align: left;">Guest / Room</th>
+                    <th style="text-align: left;">Items</th>
+                    <th style="text-align: center; width: 70px;">Orders</th>
+                    <th style="text-align: right; width: 120px;">Amount Due</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse(($unpaidGuests ?? []) as $i => $guest)
+                <tr>
+                    <td style="text-align: center;">{{ $i + 1 }}</td>
+                    <td><strong>{{ $guest['guest'] }}</strong></td>
+                    <td>
+                        @foreach(($guest['items'] ?? []) as $item)
+                            <div style="font-size: 12px; margin-bottom: 2px;">
+                                <span class="text-muted">{{ $item['time'] ?? '' }}</span>
+                                {{ $item['item'] ?? 'Item' }} ×{{ $item['qty'] ?? 0 }}
+                                — {{ number_format($item['amount'] ?? 0) }}
+                            </div>
+                        @endforeach
+                    </td>
+                    <td style="text-align: center;">{{ $guest['orders'] }}</td>
+                    <td style="text-align: right; font-weight: bold; color: #dc3545;">{{ number_format($guest['amount']) }} TZS</td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="5" class="text-center" style="padding: 20px;">No unpaid orders for this period.</td>
+                </tr>
+                @endforelse
+                @if(!empty($unpaidGuests))
+                <tr class="total-row" style="background-color: #fff5f5;">
+                    <td colspan="4" style="text-align: right; font-size: 14px;"><strong>TOTAL UNPAID:</strong></td>
+                    <td style="text-align: right; color: #dc3545; font-size: 16px;"><strong>{{ number_format($unpaidTotal ?? 0) }} TZS</strong></td>
+                </tr>
+                @endif
+            </tbody>
+        </table>
+    </div>
     
-    <!-- 3. Ceremony / Event Consumption -->
+    <!-- 4. Ceremony / Event Consumption -->
     @if(isset($ceremonyUsage) && $ceremonyUsage->count() > 0)
     <div class="receipt-info-section">
-        <h3>3. Ceremony / Event Consumption</h3>
+        <h3>4. Ceremony / Event Consumption</h3>
         <table class="receipt-details-table">
             <thead>
                 <tr>
@@ -698,11 +698,10 @@
     @endif
 
     @php
-        $totalMaxPotential = collect($reportData)->sum('max_potential_revenue');
         $totalActual = isset($ceremonyUsage) ? ($totalRev + $ceremonyUsage->sum('total_price_tsh')) : $totalRev;
     @endphp
 
-    <!-- 4. Global Financial Summary -->
+    <!-- 5. Global Financial Summary -->
     <div class="receipt-info-section" style="margin-top: 40px; background-color: #f8f9fa; border: 1px solid #ddd; padding: 20px;">
         <h3 style="border-bottom: none; margin-bottom: 20px; text-align: center; color: #333;">DAILY FINANCIAL SUMMARY</h3>
         
@@ -721,19 +720,10 @@
                 <span style="font-size: 11px; color: #28a745; text-transform: uppercase; font-weight: bold;">TOTAL REVENUE</span><br>
                 <strong style="font-size: 20px; color: #28a745;">{{ number_format($totalActual) }} TZS</strong>
             </div>
-            <div style="font-size: 20px; color: #999;">/</div>
-            <div style="text-align: center; border: 2px solid #940000; padding: 10px 15px; background: #fff; border-radius: 5px; min-width: 180px;">
-                <span style="font-size: 11px; color: #940000; text-transform: uppercase; font-weight: bold;">POTENTIAL (FULL STOCK)</span><br>
-                <strong style="font-size: 20px; color: #940000;">{{ number_format($totalMaxPotential) }} TZS</strong>
+            <div style="text-align: center; border: 2px solid #dc3545; padding: 10px 15px; background: #fff; border-radius: 5px; min-width: 160px;">
+                <span style="font-size: 11px; color: #dc3545; text-transform: uppercase; font-weight: bold;">UNPAID DUE</span><br>
+                <strong style="font-size: 18px; color: #dc3545;">{{ number_format($unpaidTotal ?? 0) }} TZS</strong>
             </div>
-        </div>
-        
-        <div style="text-align: center; margin-top: 20px;">
-            <small class="text-muted">
-                Revenue Achievement: 
-                <strong>{{ $totalMaxPotential > 0 ? number_format(($totalActual / $totalMaxPotential) * 100, 1) : 0 }}%</strong> 
-                of total stock value
-            </small>
         </div>
     </div>
     

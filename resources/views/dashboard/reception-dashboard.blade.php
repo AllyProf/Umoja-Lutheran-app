@@ -73,13 +73,13 @@
         <div>
             @if($activeShift)
                 <a href="{{ route('reception.shift-management') }}" class="shift-btn shift-btn-close shadow-sm">
-                    <i class="fa fa-power-off"></i> FUNGA HESABU
+                    <i class="fa fa-power-off"></i> CLOSE SHIFT
                 </a>
             @else
                 <form action="{{ route('reception.shift.open') }}" method="POST">
                     @csrf
                     <button type="submit" class="shift-btn shift-btn-open shadow-sm">
-                        <i class="fa fa-play-circle fa-lg"></i> FUNGUA HESABU
+                        <i class="fa fa-play-circle fa-lg"></i> OPEN SHIFT
                     </button>
                 </form>
             @endif

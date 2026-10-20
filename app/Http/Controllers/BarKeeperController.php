@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\StockTransfer;
 use App\Models\ServiceRequest;
 use App\Models\ShiftClosure;
+use App\Support\CounterShiftContext;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -47,11 +48,17 @@ class BarKeeperController extends Controller
                 $query->where('status', 'pending')
                     // OR approved orders waiting to be served
                     ->orWhere('status', 'approved')
-                    // OR completed orders that haven't been paid yet (walk-ins)
+                    // OR completed orders unpaid at counter
                     ->orWhere(function ($q) {
-                    $q->where('status', 'completed')
-                        ->where('payment_status', 'pending');
-                });
+                        $q->where('status', 'completed')
+                            ->where('payment_status', 'pending');
+                    })
+                    // OR room charges still unpaid at reception (not paid yet)
+                    ->orWhere(function ($q) {
+                        $q->where('status', 'completed')
+                            ->where('payment_status', 'room_charge');
+                    });
+                // Note: paid_at_reception orders are excluded — once paid they leave this list
             })
             ->orderBy('requested_at', 'desc')
             ->get();
@@ -72,12 +79,15 @@ class BarKeeperController extends Controller
 
         $totalPendingOrders = $pendingOrders->count();
 
-        $staffId = Auth::guard('staff')->id();
-        $activeShift = ShiftClosure::where('staff_id', $staffId)
-            ->where('status', 'active')
-            ->first();
+        $isProxySeller = CounterShiftContext::isProxySeller($user);
+        $activeCounterShifts = $isProxySeller ? CounterShiftContext::activeCounterShifts() : collect();
+        $activeShift = CounterShiftContext::resolveOperatingShift($user);
+        $staffId = $activeShift
+            ? (int) CounterShiftContext::saleOwnerStaffId($user, $activeShift)
+            : (int) Auth::guard('staff')->id();
 
         // Completed/paid sales for verification — current shift when open, otherwise today
+        // Exclude reception-paid room bills (cash goes via reception → cashier, not counter)
         $completedSalesQuery = \App\Models\ServiceRequest::with(['booking.room', 'service'])
             ->where(function ($q) use ($barCategories) {
                 $q->whereHas('service', function ($query) use ($barCategories) {
@@ -86,10 +96,14 @@ class BarKeeperController extends Controller
             })
             ->where('status', 'completed')
             ->where('payment_status', 'paid')
-            ->where('approved_by', $user->id);
+            ->where(function ($q) {
+                $q->whereNull('service_specific_data->paid_at_reception')
+                    ->orWhere('service_specific_data->paid_at_reception', false);
+            })
+            ->where('approved_by', $staffId);
 
         if ($activeShift) {
-            $this->scopeSalesForShift($completedSalesQuery, (int) $staffId, $activeShift);
+            $this->scopeSalesForShift($completedSalesQuery, $staffId, $activeShift);
         } else {
             $completedSalesQuery->whereDate('completed_at', now()->toDateString());
         }
@@ -124,6 +138,10 @@ class BarKeeperController extends Controller
             $todayRevenue = (float) $this->scopeSalesForShift(
                 ServiceRequest::where('payment_status', 'paid')
                     ->where('status', 'completed')
+                    ->where(function ($q) {
+                        $q->whereNull('service_specific_data->paid_at_reception')
+                            ->orWhere('service_specific_data->paid_at_reception', false);
+                    })
                     ->where(function ($q) use ($barCategories) {
                         $q->whereHas('service', fn ($query) => $query->whereIn('category', $barCategories))
                             ->orWhereIn('service_id', [3, 4]);
@@ -344,7 +362,7 @@ class BarKeeperController extends Controller
             $drinks[] = $foodCard;
         }
 
-        $role = 'bar_keeper';
+        $role = CounterShiftContext::isProxySeller($user) ? 'restaurant_manager' : 'bar_keeper';
 
         $barService = \App\Models\Service::where('name', 'Generic Bar Order')->first();
         $foodService = \App\Models\Service::where('name', 'Generic Food Order')->first();
@@ -364,6 +382,8 @@ class BarKeeperController extends Controller
             'totalPendingOrders',
             'todayRevenue',
             'activeShift',
+            'isProxySeller',
+            'activeCounterShifts',
             'drinks',
             'foodBases',
             'activeCeremonies',
@@ -371,6 +391,38 @@ class BarKeeperController extends Controller
             'barServiceId',
             'foodServiceId'
         ));
+    }
+
+    /**
+     * Restaurant manager selects which open counter shift to sell under.
+     */
+    public function selectProxyShift(Request $request)
+    {
+        $user = Auth::guard('staff')->user();
+        if (!CounterShiftContext::isProxySeller($user)) {
+            return response()->json(['success' => false, 'message' => 'Not allowed.'], 403);
+        }
+
+        $request->validate([
+            'shift_id' => 'required|integer|exists:shift_closures,id',
+        ]);
+
+        $shift = CounterShiftContext::resolveOperatingShift($user, (int) $request->shift_id);
+        if (!$shift) {
+            return response()->json([
+                'success' => false,
+                'message' => 'That shift does not exist or is not an active counter shift.',
+            ], 422);
+        }
+
+        session([CounterShiftContext::SESSION_KEY => $shift->id]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'You are now selling on behalf of ' . ($shift->staff->name ?? 'Counter') . '.',
+            'shift_id' => $shift->id,
+            'counter_name' => $shift->staff->name ?? 'Counter',
+        ]);
     }
 
     /**
@@ -664,10 +716,60 @@ class BarKeeperController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // 4. Unpaid orders for the same period
+        $isManager = CounterShiftContext::canSeeAllCounterOrders($user);
+        $unpaidOrders = $this->fetchUnpaidOrdersForPeriod($user, $isManager, $startDate, $endDate);
+        $unpaidGuests = $this->groupUnpaidGuests($unpaidOrders);
+        $unpaidTotal = (float) $unpaidOrders->sum('total_price_tsh');
+
+        // 5. Shift opening / closing / duration for the period
+        $periodShifts = ShiftClosure::with('staff')
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('opened_at', [$startDate, $endDate])
+                    ->orWhereBetween('closed_at', [$startDate, $endDate])
+                    ->orWhere(function ($q2) use ($startDate, $endDate) {
+                        $q2->where('status', 'active')
+                            ->where('opened_at', '<=', $endDate)
+                            ->where(function ($q3) use ($startDate) {
+                                $q3->whereNull('closed_at')
+                                    ->orWhere('closed_at', '>=', $startDate);
+                            });
+                    });
+            })
+            ->when(!$isManager, fn ($q) => $q->where('staff_id', $user->id))
+            ->when($isManager, function ($q) {
+                $q->whereHas('staff', fn ($s) => $s->where('role', 'bar_keeper'));
+            })
+            ->orderByDesc('opened_at')
+            ->get()
+            ->map(function ($shift) {
+                $openedAt = $shift->opened_at ?? $shift->created_at;
+                $closedAt = $shift->status === 'active' ? null : $shift->closed_at;
+                $endForDuration = $closedAt ?? now();
+                $mins = ($openedAt && $endForDuration) ? $openedAt->diffInMinutes($endForDuration) : 0;
+                $hours = intdiv($mins, 60);
+                $rem = $mins % 60;
+                $duration = $hours > 0
+                    ? ($hours . 'h' . ($rem ? ' ' . $rem . 'm' : ''))
+                    : ($rem . 'm');
+
+                return (object) [
+                    'staff_name' => $shift->staff->name ?? 'Counter',
+                    'status' => $shift->status,
+                    'opened_at' => $openedAt,
+                    'closed_at' => $closedAt,
+                    'duration' => $duration,
+                ];
+            });
+
         return view('dashboard.bar-keeper-reports', compact(
             'reportData',
             'salesData',
             'ceremonyUsage',
+            'unpaidGuests',
+            'unpaidOrders',
+            'unpaidTotal',
+            'periodShifts',
             'date',
             'startDate',
             'endDate',
@@ -680,10 +782,13 @@ class BarKeeperController extends Controller
      */
     public function completeOrder(Request $request, \App\Models\ServiceRequest $serviceRequest)
     {
-        $staffId = Auth::guard('staff')->id();
-        $activeShift = ShiftClosure::where('staff_id', $staffId)->where('status', 'active')->first();
+        $user = Auth::guard('staff')->user();
+        $activeShift = CounterShiftContext::resolveOperatingShift($user);
         if (!$activeShift) {
-            return response()->json(['success' => false, 'message' => 'Huna shift iliyofunguliwa. Tafadhali fungua shift kwanza.'], 403);
+            $msg = CounterShiftContext::isProxySeller($user)
+                ? 'Please select a counter with an open shift first.'
+                : 'You do not have an open shift. Please open a shift first.';
+            return response()->json(['success' => false, 'message' => $msg], 403);
         }
 
         $request->validate([
@@ -691,24 +796,38 @@ class BarKeeperController extends Controller
             'payment_reference' => 'nullable|string|max:255',
         ]);
 
-        $user = Auth::guard('staff')->user();
+        $saleOwnerId = CounterShiftContext::saleOwnerStaffId($user, $activeShift);
 
         try {
             \DB::beginTransaction();
 
             // 1. Mark status as completed
             $isRoomCharge = $request->payment_method === 'room_charge';
+            $meta = $isRoomCharge
+                ? (is_array($serviceRequest->service_specific_data) ? $serviceRequest->service_specific_data : [])
+                : $serviceRequest->withPriorDebtPaymentMeta($activeShift);
+            $meta = CounterShiftContext::proxyPlacementMeta($user, $activeShift, is_array($meta) ? $meta : []);
+
+            $notes = (string) ($serviceRequest->reception_notes ?? '');
+            $notes .= " | Served by {$user->name} (" . ucfirst(str_replace('_', ' ', $request->payment_method)) . ")"
+                . ($request->payment_reference ? " Ref: {$request->payment_reference}" : '');
+            $notes .= CounterShiftContext::proxyPlacementNote($user, $activeShift);
+            if (!$isRoomCharge && !empty($meta['paid_from_prior_debt']) && !str_contains($notes, 'Paid from prior debt')) {
+                $orig = $meta['original_order_at'] ?? optional($serviceRequest->requested_at)->toDateTimeString();
+                $notes .= ' | Paid from prior debt (order: ' . $orig . ')';
+            }
 
             $serviceRequest->update([
                 'status' => 'completed',
                 'completed_at' => now(),
-                'approved_by' => $user->id,
+                'approved_by' => $saleOwnerId,
                 'approved_at' => now(), // Auto-approve when completed by bar keeper
                 'payment_status' => $isRoomCharge ? 'room_charge' : 'paid',
                 'payment_method' => $request->payment_method,
                 'payment_reference' => $request->payment_reference,
                 'shift_closure_id' => $activeShift->id,
-                'reception_notes' => $serviceRequest->reception_notes . " | Served by {$user->name} (" . ucfirst(str_replace('_', ' ', $request->payment_method)) . ")" . ($request->payment_reference ? " Ref: {$request->payment_reference}" : ""),
+                'service_specific_data' => $meta,
+                'reception_notes' => $notes,
             ]);
 
             // 2. Handle Payment for Residents (Booking-based) — amounts are TSh only
@@ -764,22 +883,34 @@ class BarKeeperController extends Controller
      */
     public function serveOrder(Request $request, \App\Models\ServiceRequest $serviceRequest)
     {
-        $staffId = Auth::guard('staff')->id();
-        $activeShift = ShiftClosure::where('staff_id', $staffId)->where('status', 'active')->exists();
+        $user = Auth::guard('staff')->user();
+        $activeShift = CounterShiftContext::resolveOperatingShift($user);
         if (!$activeShift) {
-            return response()->json(['success' => false, 'message' => 'Huna shift iliyofunguliwa. Tafadhali fungua shift kwanza.'], 403);
+            $msg = CounterShiftContext::isProxySeller($user)
+                ? 'Please select a counter with an open shift first.'
+                : 'You do not have an open shift. Please open a shift first.';
+            return response()->json(['success' => false, 'message' => $msg], 403);
         }
 
-        $user = Auth::guard('staff')->user();
+        $saleOwnerId = CounterShiftContext::saleOwnerStaffId($user, $activeShift);
+        $meta = CounterShiftContext::proxyPlacementMeta(
+            $user,
+            $activeShift,
+            is_array($serviceRequest->service_specific_data) ? $serviceRequest->service_specific_data : []
+        );
 
         try {
             $serviceRequest->update([
                 'status' => 'completed', // Moved from Pending to Completed (Taken out of queue)
                 'completed_at' => now(),
-                'approved_by' => $user->id,
+                'approved_by' => $saleOwnerId,
                 'approved_at' => now(),
                 'payment_status' => 'pending', // Explicitly Pending Payment
-                'reception_notes' => $serviceRequest->reception_notes . " | Served by {$user->name} (Pending Payment)",
+                'shift_closure_id' => $activeShift->id,
+                'service_specific_data' => $meta,
+                'reception_notes' => $serviceRequest->reception_notes
+                    . " | Served by {$user->name} (Pending Payment)"
+                    . CounterShiftContext::proxyPlacementNote($user, $activeShift),
             ]);
 
             return response()->json([
@@ -813,7 +944,7 @@ class BarKeeperController extends Controller
 
             // 1. Verify if already completed or cancelled
             if ($serviceRequest->status === 'cancelled') {
-                return response()->json(['success' => false, 'message' => 'Hii order tayari ilishafutwa (cancelled).'], 422);
+                return response()->json(['success' => false, 'message' => 'This order has already been cancelled.'], 422);
             }
 
             // Record old status for logging/notes
@@ -837,7 +968,7 @@ class BarKeeperController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Order imefutwa (Cancelled) mafanikio na stock imerekebishwa.',
+                'message' => 'Order cancelled successfully and stock has been adjusted.',
             ]);
 
         } catch (\Exception $e) {
@@ -891,7 +1022,7 @@ class BarKeeperController extends Controller
     public function orderSummary(Request $request)
     {
         $user = Auth::guard('staff')->user();
-        $isManager = in_array(strtolower($user->role ?? ''), ['manager', 'super_admin']);
+        $isManager = CounterShiftContext::canSeeAllCounterOrders($user);
 
         $period = $this->resolveOrderSummaryPeriod($request);
         $dateType = $period['dateType'];
@@ -954,13 +1085,19 @@ class BarKeeperController extends Controller
             return "{$minutes}m";
         };
 
+        $counterStaffScope = function ($q) {
+            $q->where(function ($inner) {
+                $inner->where('role', 'bar_keeper')
+                    ->orWhere('role', 'LIKE', '%bar%')
+                    ->orWhere('role', 'LIKE', '%counter%');
+            });
+        };
+
         // Live shifts (always current — never mix with a past weekly/monthly period)
         $liveShifts = ShiftClosure::with('staff')
             ->where('status', 'active')
             ->when(!$isManager, fn ($q) => $q->where('staff_id', $user->id))
-            ->when($isManager, function ($q) {
-                $q->whereHas('staff', fn ($s) => $s->where('role', 'bar_keeper'));
-            })
+            ->when($isManager, fn ($q) => $q->whereHas('staff', $counterStaffScope))
             ->orderByDesc('id')
             ->get();
 
@@ -971,9 +1108,7 @@ class BarKeeperController extends Controller
                     ->orWhereBetween('closed_at', [$startDate, $endDate]);
             })
             ->when(!$isManager, fn ($q) => $q->where('staff_id', $user->id))
-            ->when($isManager, function ($q) {
-                $q->whereHas('staff', fn ($s) => $s->where('role', 'bar_keeper'));
-            })
+            ->when($isManager, fn ($q) => $q->whereHas('staff', $counterStaffScope))
             ->orderByDesc('id')
             ->get();
 
@@ -981,6 +1116,9 @@ class BarKeeperController extends Controller
             $openedAt = $shift->opened_at ?? $shift->created_at;
             $closedAt = $isLive ? null : $shift->closed_at;
             $durationTo = $isLive ? now() : $closedAt;
+            $counterPaid = $orders->filter(fn ($o) => $o->countsAsCounterCash());
+            $receptionUnpaid = $orders->where('payment_status', 'room_charge');
+            $receptionPaid = $orders->filter(fn ($o) => $o->wasPaidAtReception());
 
             return [
                 'counter_id'      => (int) $shift->staff_id,
@@ -992,9 +1130,12 @@ class BarKeeperController extends Controller
                 'closed_at'       => $closedAt,
                 'duration_label'  => $formatDuration($openedAt, $durationTo),
                 'total_orders'    => $orders->count(),
-                'total_revenue'   => (float) $orders->sum('total_price_tsh'),
-                'paid_revenue'    => (float) $orders->where('payment_status', 'paid')->sum('total_price_tsh'),
-                'pending_revenue' => (float) $orders->where('payment_status', 'pending')->sum('total_price_tsh'),
+                'total_revenue'   => (float) $counterPaid->sum('total_price_tsh')
+                    + (float) $orders->whereIn('payment_status', ['pending', 'room_charge'])->sum('total_price_tsh'),
+                'paid_revenue'    => (float) $counterPaid->sum('total_price_tsh'),
+                'pending_revenue' => (float) $orders->whereIn('payment_status', ['pending', 'room_charge'])->sum('total_price_tsh'),
+                'reception_unpaid'=> (float) $receptionUnpaid->sum('total_price_tsh'),
+                'reception_paid'  => (float) $receptionPaid->sum('total_price_tsh'),
                 'orders'          => $orders->values(),
             ];
         };
@@ -1068,9 +1209,12 @@ class BarKeeperController extends Controller
                 'closed_at'       => null,
                 'duration_label'  => null,
                 'total_orders'    => $group->count(),
-                'total_revenue'   => (float) $group->sum('total_price_tsh'),
-                'paid_revenue'    => (float) $group->where('payment_status', 'paid')->sum('total_price_tsh'),
-                'pending_revenue' => (float) $group->where('payment_status', 'pending')->sum('total_price_tsh'),
+                'total_revenue'   => (float) $group->filter(fn ($o) => $o->countsAsCounterCash())->sum('total_price_tsh')
+                    + (float) $group->whereIn('payment_status', ['pending', 'room_charge'])->sum('total_price_tsh'),
+                'paid_revenue'    => (float) $group->filter(fn ($o) => $o->countsAsCounterCash())->sum('total_price_tsh'),
+                'pending_revenue' => (float) $group->whereIn('payment_status', ['pending', 'room_charge'])->sum('total_price_tsh'),
+                'reception_unpaid'=> (float) $group->where('payment_status', 'room_charge')->sum('total_price_tsh'),
+                'reception_paid'  => (float) $group->filter(fn ($o) => $o->wasPaidAtReception())->sum('total_price_tsh'),
                 'orders'          => $group->values(),
                 'is_orphan'       => true,
             ];
@@ -1081,8 +1225,8 @@ class BarKeeperController extends Controller
         // ── Summary stats (period only — live is separate) ──
         $summary = [
             'total_sold'      => $soldOrders->count(),
-            'total_revenue'   => $soldOrders->sum('total_price_tsh'),
-            'paid_revenue'    => $soldOrders->where('payment_status', 'paid')->sum('total_price_tsh'),
+            'total_revenue'   => $soldOrders->filter(fn ($o) => $o->countsAsCounterCash())->sum('total_price_tsh'),
+            'paid_revenue'    => $soldOrders->filter(fn ($o) => $o->countsAsCounterCash())->sum('total_price_tsh'),
             'pending_revenue' => $unpaidOrders->sum('total_price_tsh'),
             'unpaid_guests'   => count($unpaidGuests),
             'total_cancelled' => $cancelledOrders->count(),
@@ -1101,7 +1245,7 @@ class BarKeeperController extends Controller
     public function downloadUnpaidReport(Request $request)
     {
         $user = Auth::guard('staff')->user();
-        $isManager = in_array(strtolower($user->role ?? ''), ['manager', 'super_admin']);
+        $isManager = CounterShiftContext::canSeeAllCounterOrders($user);
 
         $period = $this->resolveOrderSummaryPeriod($request);
         $unpaidOrders = $this->fetchUnpaidOrdersForPeriod($user, $isManager, $period['startDate'], $period['endDate']);
@@ -1124,6 +1268,288 @@ class BarKeeperController extends Controller
         $filename = 'unpaid-guests-' . $period['startDate']->format('Ymd') . '-' . $period['endDate']->format('Ymd') . '.pdf';
 
         return Pdf::loadView('dashboard.print-unpaid-guests-report', compact('report'))
+            ->download($filename);
+    }
+
+    /**
+     * Search checked-in (in-house) guests for restaurant/bar POS.
+     */
+    public function searchInHouseGuests(Request $request)
+    {
+        $q = trim((string) $request->get('q', ''));
+
+        $bookings = \App\Models\Booking::with('room')
+            ->where('check_in_status', 'checked_in')
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($inner) use ($q) {
+                    $inner->where('guest_name', 'like', "%{$q}%")
+                        ->orWhere('first_name', 'like', "%{$q}%")
+                        ->orWhere('last_name', 'like', "%{$q}%")
+                        ->orWhere('main_guest_name', 'like', "%{$q}%")
+                        ->orWhere('guest_phone', 'like', "%{$q}%")
+                        ->orWhere('booking_reference', 'like', "%{$q}%")
+                        ->orWhereHas('room', function ($roomQ) use ($q) {
+                            $roomQ->where('room_number', 'like', "%{$q}%");
+                        });
+                });
+            })
+            ->orderBy('guest_name')
+            ->limit(20)
+            ->get()
+            ->map(function ($b) {
+                $name = $b->guest_name
+                    ?: trim(($b->first_name ?? '') . ' ' . ($b->last_name ?? ''))
+                    ?: ($b->main_guest_name ?? 'Guest');
+
+                return [
+                    'id' => $b->id,
+                    'guest_name' => $name,
+                    'room_number' => $b->room->room_number ?? 'N/A',
+                    'booking_reference' => $b->booking_reference,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'guests' => $bookings,
+        ]);
+    }
+
+    /**
+     * Debt Management — all unpaid counter guests/orders.
+     */
+    public function debtManagement(Request $request)
+    {
+        $user = Auth::guard('staff')->user();
+        $canSeeAll = CounterShiftContext::canSeeAllCounterOrders($user);
+        $search = trim((string) $request->get('q', ''));
+
+        $unpaidOrders = $this->fetchAllUnpaidOrders($user, $canSeeAll);
+        $shiftCache = [];
+
+        if ($search !== '') {
+            $needle = mb_strtolower($search);
+            $unpaidOrders = $unpaidOrders->filter(function ($order) use ($needle, &$shiftCache) {
+                $guest = mb_strtolower($this->guestLabelForSale($order));
+                $item = mb_strtolower((string) (
+                    data_get($order->service_specific_data, 'item_name')
+                    ?? $order->service->name
+                    ?? ''
+                ));
+                $walkIn = mb_strtolower((string) ($order->walk_in_name ?? ''));
+                $room = mb_strtolower((string) ($order->booking->room->room_number ?? ''));
+                $shiftInfo = $this->shiftInfoForOrder($order, $shiftCache);
+                $shiftName = mb_strtolower((string) ($shiftInfo['staff_name'] ?? ''));
+
+                return str_contains($guest, $needle)
+                    || str_contains($item, $needle)
+                    || str_contains($walkIn, $needle)
+                    || str_contains($room, $needle)
+                    || str_contains($shiftName, $needle);
+            })->values();
+        }
+
+        $debtors = $unpaidOrders->groupBy(fn ($sale) => $this->guestKeyForSale($sale))
+            ->map(function ($rows) use (&$shiftCache) {
+                $first = $rows->first();
+                $items = $rows->sortBy(fn ($o) => $o->completed_at ?? $o->requested_at)->values()->map(function ($sale) use (&$shiftCache) {
+                    $shiftInfo = $this->shiftInfoForOrder($sale, $shiftCache);
+
+                    return [
+                        'id' => $sale->id,
+                        'time' => optional($sale->completed_at ?? $sale->requested_at)->format('d M Y H:i'),
+                        'item' => data_get($sale->service_specific_data, 'item_name')
+                            ?? $sale->service->name
+                            ?? 'Item',
+                        'qty' => (float) $sale->quantity,
+                        'amount' => (float) $sale->total_price_tsh,
+                        'served_by' => $sale->approvedBy->name ?? '—',
+                        'is_walk_in' => (bool) $sale->is_walk_in,
+                        'shift_staff' => $shiftInfo['staff_name'] ?? ($sale->approvedBy->name ?? '—'),
+                        'shift_label' => $shiftInfo['label'] ?? 'Unknown shift',
+                        'shift_status' => $shiftInfo['status'] ?? null,
+                    ];
+                })->all();
+
+                $shiftLabels = collect($items)->pluck('shift_label')->unique()->filter()->values()->all();
+
+                return [
+                    'guest' => $this->guestLabelForSale($first),
+                    'orders' => $rows->count(),
+                    'qty' => (float) $rows->sum('quantity'),
+                    'amount' => (float) $rows->sum('total_price_tsh'),
+                    'oldest_at' => $rows->min(fn ($o) => $o->completed_at ?? $o->requested_at),
+                    'shift_labels' => $shiftLabels,
+                    'items' => $items,
+                ];
+            })
+            ->sortByDesc('amount')
+            ->values();
+
+        $summary = [
+            'debtors' => $debtors->count(),
+            'orders' => $unpaidOrders->count(),
+            'total_due' => (float) $unpaidOrders->sum('total_price_tsh'),
+        ];
+
+        $isManager = $canSeeAll;
+
+        return view('dashboard.bar-keeper-debts', compact(
+            'debtors',
+            'summary',
+            'isManager',
+            'search'
+        ));
+    }
+
+    /**
+     * Combined period PDF (daily / weekly / monthly) — one file for all shifts.
+     */
+    public function downloadPeriodReport(Request $request)
+    {
+        $user = Auth::guard('staff')->user();
+        $isManager = CounterShiftContext::canSeeAllCounterOrders($user);
+
+        $period = $this->resolveOrderSummaryPeriod($request);
+        $startDate = $period['startDate'];
+        $endDate = $period['endDate'];
+        $dateType = $period['dateType'];
+        $barCategories = $this->barOrderCategories();
+
+        $soldQuery = ServiceRequest::with(['service', 'booking.room', 'approvedBy'])
+            ->where(function ($q) use ($barCategories) {
+                $q->whereHas('service', fn ($sq) => $sq->whereIn('category', $barCategories))
+                    ->orWhereIn('service_id', [3, 4]);
+            })
+            ->where('status', 'completed')
+            ->whereBetween('completed_at', [$startDate, $endDate]);
+
+        if (!$isManager) {
+            $soldQuery->where('approved_by', $user->id);
+        }
+
+        $soldOrders = $soldQuery->orderBy('completed_at')->get();
+        $paidOrders = $soldOrders->where('payment_status', 'paid')->values();
+
+        $unpaidOrders = $this->fetchUnpaidOrdersForPeriod($user, $isManager, $startDate, $endDate);
+        $unpaidGuests = $this->groupUnpaidGuests($unpaidOrders);
+
+        $cancelledQuery = ServiceRequest::with(['service', 'booking.room', 'cancelledBy'])
+            ->where(function ($q) use ($barCategories) {
+                $q->whereHas('service', fn ($sq) => $sq->whereIn('category', $barCategories))
+                    ->orWhereIn('service_id', [3, 4]);
+            })
+            ->where('status', 'cancelled')
+            ->whereBetween('cancelled_at', [$startDate, $endDate]);
+
+        if (!$isManager) {
+            $cancelledQuery->where('cancelled_by', $user->id);
+        }
+
+        $cancelledOrders = $cancelledQuery->orderBy('cancelled_at')->get();
+
+        $periodShifts = ShiftClosure::with('staff')
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('opened_at', [$startDate, $endDate])
+                    ->orWhereBetween('closed_at', [$startDate, $endDate]);
+            })
+            ->when(!$isManager, fn ($q) => $q->where('staff_id', $user->id))
+            ->when($isManager, function ($q) {
+                $q->whereHas('staff', function ($s) {
+                    $s->where(function ($inner) {
+                        $inner->where('role', 'bar_keeper')
+                            ->orWhere('role', 'LIKE', '%bar%')
+                            ->orWhere('role', 'LIKE', '%counter%');
+                    });
+                });
+            })
+            ->orderBy('opened_at')
+            ->get()
+            ->map(function ($shift) {
+                $openedAt = $shift->opened_at ?? $shift->created_at;
+                $closedAt = $shift->status === 'active' ? null : $shift->closed_at;
+                $endForDuration = $closedAt ?? now();
+                $mins = ($openedAt && $endForDuration) ? $openedAt->diffInMinutes($endForDuration) : 0;
+                $totalSales = (float) $shift->total_cash_tzs + (float) $shift->total_mpesa_tzs + (float) $shift->total_other_tzs;
+
+                return [
+                    'staff_name' => $shift->staff->name ?? 'Counter',
+                    'status' => $shift->status,
+                    'opened_at' => $openedAt?->format('d M Y H:i'),
+                    'closed_at' => $closedAt?->format('d M Y H:i'),
+                    'duration' => $this->formatShiftDuration($mins),
+                    'total_sales' => $totalSales,
+                    'cash' => (float) $shift->total_cash_tzs,
+                    'mpesa' => (float) $shift->total_mpesa_tzs,
+                    'other' => (float) $shift->total_other_tzs,
+                ];
+            })
+            ->values()
+            ->all();
+
+        $paidRevenue = (float) $paidOrders->sum('total_price_tsh');
+        $pendingRevenue = (float) $unpaidOrders->sum('total_price_tsh');
+        $totalCash = (float) collect($periodShifts)->sum('cash');
+        $totalMpesa = (float) collect($periodShifts)->sum('mpesa');
+        $totalOther = (float) collect($periodShifts)->sum('other');
+
+        if ($totalCash + $totalMpesa + $totalOther <= 0 && $paidOrders->isNotEmpty()) {
+            $totalCash = (float) $paidOrders->filter(fn ($o) => strtolower((string) $o->payment_method) === 'cash')->sum('total_price_tsh');
+            $totalMpesa = (float) $paidOrders->filter(fn ($o) => in_array(strtolower((string) $o->payment_method), ['mpesa', 'm-pesa', 'mobile_money'], true))->sum('total_price_tsh');
+            $totalOther = max(0, $paidRevenue - $totalCash - $totalMpesa);
+        }
+
+        $periodTitles = [
+            'daily' => 'DAILY COUNTER SALES SHEET',
+            'weekly' => 'WEEKLY COUNTER SALES SUMMARY',
+            'monthly' => 'MONTHLY COUNTER SALES SUMMARY',
+        ];
+
+        $report = [
+            'title' => $periodTitles[$dateType] ?? 'PERIOD COUNTER SALES REPORT',
+            'period_label' => ucfirst($dateType),
+            'range_label' => $startDate->format('d M Y') . ($startDate->isSameDay($endDate) ? '' : ' – ' . $endDate->format('d M Y')),
+            'start_date' => $startDate->format('F d, Y'),
+            'end_date' => $endDate->format('F d, Y'),
+            'is_manager' => $isManager,
+            'staff_name' => $user->name ?? 'Counter',
+            'generated_by' => $user->name ?? 'Staff',
+            'shift_count' => count($periodShifts),
+            'shifts' => $periodShifts,
+            'order_count' => $paidOrders->count(),
+            'guest_count' => $this->countShiftGuests($paidOrders),
+            'total_sales' => $paidRevenue,
+            'total_cash' => $totalCash,
+            'total_mpesa' => $totalMpesa,
+            'total_other' => $totalOther,
+            'unpaid_total' => $pendingRevenue,
+            'unpaid_guest_count' => count($unpaidGuests),
+            'unpaid_order_count' => $unpaidOrders->count(),
+            'debt_collections_total' => (float) $paidOrders->filter(fn ($o) => $o->wasPaidFromPriorDebt())->sum('total_price_tsh'),
+            'debt_collections_count' => $paidOrders->filter(fn ($o) => $o->wasPaidFromPriorDebt())->count(),
+            'cancelled_count' => $cancelledOrders->count(),
+            'cancelled_value' => (float) $cancelledOrders->sum('total_price_tsh'),
+            'items' => $this->mapShiftSaleItems($paidOrders),
+            'unpaid_guests' => $unpaidGuests,
+            'cancelled_items' => $cancelledOrders->map(function ($order) {
+                return [
+                    'time' => optional($order->cancelled_at)->format('d M H:i'),
+                    'item' => data_get($order->service_specific_data, 'item_name')
+                        ?? $order->service->name
+                        ?? 'Item',
+                    'guest' => $this->guestLabelForSale($order),
+                    'qty' => (float) $order->quantity,
+                    'amount' => (float) $order->total_price_tsh,
+                    'reason' => $order->cancellation_reason ?: '—',
+                    'by' => $order->cancelledBy->name ?? '—',
+                ];
+            })->values()->all(),
+        ];
+
+        $filename = 'period-report-' . $dateType . '-' . $startDate->format('Ymd') . '-' . $endDate->format('Ymd') . '.pdf';
+
+        return Pdf::loadView('dashboard.print-period-sales-report', compact('report'))
+            ->setPaper('a4', 'portrait')
             ->download($filename);
     }
 
@@ -1170,7 +1596,7 @@ class BarKeeperController extends Controller
                 $q->whereHas('service', fn ($sq) => $sq->whereIn('category', $barCategories))
                     ->orWhereIn('service_id', [3, 4]);
             })
-            ->where('payment_status', 'pending')
+            ->whereIn('payment_status', ['pending', 'room_charge'])
             ->whereNotIn('status', ['cancelled'])
             ->where(function ($q) use ($startDate, $endDate) {
                 $q->whereBetween('completed_at', [$startDate, $endDate])
@@ -1185,6 +1611,98 @@ class BarKeeperController extends Controller
         }
 
         return $query->orderByDesc('completed_at')->orderByDesc('requested_at')->get();
+    }
+
+    /**
+     * All unpaid counter orders (no date limit) for Debt Management.
+     */
+    private function fetchAllUnpaidOrders($user, bool $canSeeAll)
+    {
+        $barCategories = $this->barOrderCategories();
+
+        $query = ServiceRequest::with(['service', 'booking.room', 'approvedBy', 'shiftClosure.staff'])
+            ->where(function ($q) use ($barCategories) {
+                $q->whereHas('service', fn ($sq) => $sq->whereIn('category', $barCategories))
+                    ->orWhereIn('service_id', [3, 4]);
+            })
+            ->whereIn('payment_status', ['pending', 'room_charge'])
+            ->whereNotIn('status', ['cancelled']);
+
+        if (!$canSeeAll) {
+            $query->where('approved_by', $user->id);
+        }
+
+        return $query->orderByDesc('completed_at')->orderByDesc('requested_at')->get();
+    }
+
+    /**
+     * Resolve which counter shift an unpaid order belongs to.
+     */
+    private function shiftInfoForOrder($order, array &$cache = []): array
+    {
+        $cacheKey = 'order:' . $order->id;
+        if (isset($cache[$cacheKey])) {
+            return $cache[$cacheKey];
+        }
+
+        $shift = $order->shiftClosure;
+        if (!$shift && $order->approved_by) {
+            $at = $order->completed_at ?? $order->requested_at ?? now();
+            $staffCacheKey = 'staff:' . $order->approved_by . ':' . optional($at)->format('YmdHi');
+            if (isset($cache[$staffCacheKey])) {
+                $shift = $cache[$staffCacheKey];
+            } else {
+                $shift = ShiftClosure::with('staff')
+                    ->where('staff_id', $order->approved_by)
+                    ->where('opened_at', '<=', $at)
+                    ->where(function ($q) use ($at) {
+                        $q->whereNull('closed_at')
+                            ->orWhere('closed_at', '>=', $at);
+                    })
+                    ->orderByDesc('id')
+                    ->first();
+
+                // Fallback: nearest closed shift of that staff around order time
+                if (!$shift) {
+                    $shift = ShiftClosure::with('staff')
+                        ->where('staff_id', $order->approved_by)
+                        ->whereNotNull('closed_at')
+                        ->where('opened_at', '<=', $at)
+                        ->orderByDesc('closed_at')
+                        ->first();
+                }
+
+                $cache[$staffCacheKey] = $shift;
+            }
+        }
+
+        if (!$shift) {
+            $info = [
+                'staff_name' => $order->approvedBy->name ?? null,
+                'label' => $order->approvedBy
+                    ? ('Shift for ' . $order->approvedBy->name . ' (unknown)')
+                    : 'Unknown shift',
+                'status' => null,
+            ];
+            $cache[$cacheKey] = $info;
+            return $info;
+        }
+
+        $opened = $shift->opened_at ?? $shift->created_at;
+        $closed = $shift->closed_at;
+        $staffName = $shift->staff->name ?? ($order->approvedBy->name ?? 'Counter');
+        $openLabel = $opened ? $opened->format('d M H:i') : '—';
+        $closeLabel = $closed ? $closed->format('d M H:i') : 'still open';
+        $status = $shift->status === 'active' ? 'OPEN' : 'CLOSED';
+
+        $info = [
+            'staff_name' => $staffName,
+            'label' => "Shift for {$staffName} ({$openLabel} – {$closeLabel})",
+            'status' => $status,
+        ];
+        $cache[$cacheKey] = $info;
+
+        return $info;
     }
 
     /**
@@ -1219,7 +1737,7 @@ class BarKeeperController extends Controller
     {
         $user = Auth::guard('staff')->user();
         $role = strtolower($user->role ?? 'bar_keeper');
-        $isManager = $role === 'manager';
+        $isManager = in_array($role, ['manager', 'restaurant_manager', 'super_admin'], true);
 
         // 1. Fetch Key Data
         // ----------------------------------------
@@ -1814,7 +2332,7 @@ class BarKeeperController extends Controller
         if (!$activeShift) {
             return response()->json([
                 'success' => false,
-                'message' => 'Huna shift iliyofunguliwa.',
+                'message' => 'You do not have an open shift.',
                 'summary' => [
                     'total_cash' => 0,
                     'total_mpesa' => 0,
@@ -1906,7 +2424,12 @@ class BarKeeperController extends Controller
     private function paidSalesForShift(int $staffId, ShiftClosure $shift)
     {
         return $this->scopeSalesForShift(
-            ServiceRequest::with(['booking.room', 'service'])->where('payment_status', 'paid'),
+            ServiceRequest::with(['booking.room', 'service'])
+                ->where('payment_status', 'paid')
+                ->where(function ($q) {
+                    $q->whereNull('service_specific_data->paid_at_reception')
+                        ->orWhere('service_specific_data->paid_at_reception', false);
+                }),
             $staffId,
             $shift
         )->get();
@@ -1947,13 +2470,24 @@ class BarKeeperController extends Controller
         return $unpaidOrders->groupBy(fn ($sale) => $this->guestKeyForSale($sale))
             ->map(function ($rows) {
                 $first = $rows->first();
+                $payAtReception = $rows->contains(fn ($o) => $o->payment_status === 'room_charge');
+                $allReception = $rows->every(fn ($o) => $o->payment_status === 'room_charge');
 
                 return [
                     'guest' => $this->guestLabelForSale($first),
                     'orders' => $rows->count(),
                     'qty' => (float) $rows->sum('quantity'),
                     'amount' => (float) $rows->sum('total_price_tsh'),
+                    'pay_at_reception' => $payAtReception,
+                    'all_reception' => $allReception,
+                    'payment_label' => $allReception
+                        ? 'Pay at Reception'
+                        : ($payAtReception ? 'Mixed (Counter + Reception)' : 'Unpaid at Counter'),
                     'items' => $rows->map(function ($sale) {
+                        $payStatus = $sale->payment_status === 'room_charge'
+                            ? 'pay_at_reception'
+                            : ($sale->payment_status === 'paid' ? 'paid' : 'unpaid');
+
                         return [
                             'time' => optional($sale->completed_at ?? $sale->requested_at)->format('H:i'),
                             'item' => data_get($sale->service_specific_data, 'item_name')
@@ -1962,6 +2496,8 @@ class BarKeeperController extends Controller
                             'qty' => (float) $sale->quantity,
                             'amount' => (float) $sale->total_price_tsh,
                             'status' => $sale->status,
+                            'payment_status' => $sale->payment_status,
+                            'pay_status' => $payStatus,
                         ];
                     })->values()->all(),
                 ];
@@ -1977,7 +2513,7 @@ class BarKeeperController extends Controller
         $closedAt = $shift->closed_at ?? now();
 
         return ServiceRequest::with(['booking.room', 'service'])
-            ->where('payment_status', 'pending')
+            ->whereIn('payment_status', ['pending', 'room_charge'])
             ->whereNotIn('status', ['cancelled'])
             ->where('approved_by', $staffId)
             ->where(function ($q) use ($openedAt, $closedAt) {
@@ -1998,6 +2534,16 @@ class BarKeeperController extends Controller
     private function mapShiftSaleItems($shiftSales, string $paymentFallback = 'other'): array
     {
         return $shiftSales->sortBy(fn ($s) => $s->completed_at ?? $s->requested_at)->values()->map(function ($sale) use ($paymentFallback) {
+            $fromDebt = $sale->wasPaidFromPriorDebt();
+            $paymentLabel = $sale->payment_status === 'pending'
+                ? 'Unpaid'
+                : ucfirst(str_replace('_', ' ', (string) ($sale->payment_method ?: $paymentFallback)));
+            if ($fromDebt && $sale->payment_status === 'paid') {
+                $paymentLabel .= ' (from prior debt)';
+            }
+
+            $originalOrderAt = data_get($sale->service_specific_data, 'original_order_at');
+
             return [
                 'time' => optional($sale->completed_at ?? $sale->requested_at)->format('H:i'),
                 'item' => data_get($sale->service_specific_data, 'item_name')
@@ -2005,10 +2551,10 @@ class BarKeeperController extends Controller
                     ?? 'Item',
                 'guest' => $this->guestLabelForSale($sale),
                 'qty' => (float) $sale->quantity,
-                'payment' => $sale->payment_status === 'pending'
-                    ? 'Unpaid'
-                    : ucfirst(str_replace('_', ' ', (string) ($sale->payment_method ?: $paymentFallback))),
+                'payment' => $paymentLabel,
                 'amount' => (float) $sale->total_price_tsh,
+                'from_prior_debt' => $fromDebt,
+                'original_order_at' => $originalOrderAt,
             ];
         })->all();
     }
@@ -2021,6 +2567,10 @@ class BarKeeperController extends Controller
             ->where('approved_by', $staffId)
             ->whereNull('shift_closure_id')
             ->where('completed_at', '>=', $openedAt)
+            ->where(function ($q) {
+                $q->whereNull('service_specific_data->paid_at_reception')
+                    ->orWhere('service_specific_data->paid_at_reception', false);
+            })
             ->update(['shift_closure_id' => $shift->id]);
     }
 
@@ -2051,6 +2601,14 @@ class BarKeeperController extends Controller
      */
     public function openShift(Request $request)
     {
+        $user = Auth::guard('staff')->user();
+        if (CounterShiftContext::isProxySeller($user)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Restaurant Manager has no personal shift. Select a counter with an open shift to sell on their behalf.',
+            ], 403);
+        }
+
         $staffId = Auth::guard('staff')->id();
 
         // Check if there is already an active shift
@@ -2061,7 +2619,7 @@ class BarKeeperController extends Controller
         if ($activeShift) {
             return response()->json([
                 'success' => false,
-                'message' => 'Ulishafungua shift tayari. Muda wa kuanza: ' . $activeShift->opened_at->format('H:i')
+                'message' => 'You already have an open shift. Started at: ' . $activeShift->opened_at->format('H:i')
             ], 400);
         }
 
@@ -2077,7 +2635,7 @@ class BarKeeperController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Shift imefunguliwa vizuri! Kazi njema.',
+            'message' => 'Shift opened successfully. Good luck!',
             'shift' => $shift
         ]);
     }
@@ -2087,6 +2645,14 @@ class BarKeeperController extends Controller
      */
     public function closeShift(Request $request)
     {
+        $user = Auth::guard('staff')->user();
+        if (CounterShiftContext::isProxySeller($user)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Restaurant Manager has no personal shift to close. The counter closes their own shift.',
+            ], 403);
+        }
+
         $request->validate([
             'amount_submitted' => 'required|numeric|min:0',
             'notes' => 'nullable|string'
@@ -2102,7 +2668,7 @@ class BarKeeperController extends Controller
         if (!$activeShift) {
             return response()->json([
                 'success' => false,
-                'message' => 'Huna shift iliyofunguliwa. Tafadhali fungua shift kwanza.'
+                'message' => 'You do not have an open shift. Please open a shift first.'
             ], 400);
         }
 
@@ -2114,6 +2680,9 @@ class BarKeeperController extends Controller
         $totalOther = (float) $shiftSales->whereNotIn('payment_method', ['cash', 'mpesa'])->sum('total_price_tsh');
         $totalSales = $totalCash + $totalMpesa + $totalOther;
         $totalGuests = $this->countShiftGuests($shiftSales);
+        $debtCollections = $shiftSales->filter(fn ($s) => $s->wasPaidFromPriorDebt());
+        $debtCollectionsTotal = (float) $debtCollections->sum('total_price_tsh');
+        $debtCollectionsCount = $debtCollections->count();
 
         $amountSubmitted = (float) $request->amount_submitted;
         $difference = $amountSubmitted - $totalCash;
@@ -2141,7 +2710,7 @@ class BarKeeperController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Shift imefungwa vizuri. Tafadhali kabidhi hela kwa Cashier.',
+            'message' => 'Shift closed successfully. Please hand over the cash to the Cashier.',
             'closure' => $activeShift,
             'download_url' => route('bar-keeper.shifts.report', $activeShift->id, false),
             'report' => [
@@ -2158,6 +2727,8 @@ class BarKeeperController extends Controller
                 'amount_submitted' => $amountSubmitted,
                 'difference' => $difference,
                 'items' => $this->mapShiftSaleItems($shiftSales),
+                'debt_collections_total' => $debtCollectionsTotal,
+                'debt_collections_count' => $debtCollectionsCount,
                 'unpaid_guests' => $unpaidGuests,
                 'unpaid_items' => $this->mapShiftSaleItems($unpaidOrders),
                 'unpaid_total' => (float) $unpaidOrders->sum('total_price_tsh'),
@@ -2172,17 +2743,17 @@ class BarKeeperController extends Controller
     public function downloadShiftReport(ShiftClosure $shift)
     {
         $user = Auth::guard('staff')->user();
-        $role = strtolower($user->role ?? '');
+        $role = strtolower(str_replace([' ', '-'], '_', trim((string) ($user->role ?? ''))));
 
         $canView = ((int) $shift->staff_id === (int) $user->id)
-            || in_array($role, ['manager', 'super_admin', 'cashier', 'accountant'], true);
+            || in_array($role, ['manager', 'super_admin', 'admin', 'cashier', 'accountant', 'bar_keeper', 'restaurant_manager'], true);
 
         if (!$canView) {
             abort(403, 'You cannot download this shift report.');
         }
 
         if ($shift->status === 'active' || !$shift->closed_at) {
-            return back()->with('error', 'Shift bado haijafungwa. Ripoti inapatikana baada ya kufunga.');
+            return back()->with('error', 'Shift is not closed yet. The report is available after closing.');
         }
 
         $openedAt = $shift->opened_at ?? $shift->created_at;
@@ -2193,14 +2764,34 @@ class BarKeeperController extends Controller
         $shiftSales = ServiceRequest::with(['booking.room', 'service'])
             ->where('shift_closure_id', $shift->id)
             ->where('payment_status', 'paid')
+            ->where(function ($q) {
+                $q->whereNull('service_specific_data->paid_at_reception')
+                    ->orWhere('service_specific_data->paid_at_reception', false);
+            })
             ->orderBy('completed_at')
             ->get();
 
-        $unpaidOrders = $this->unpaidOrdersForShift((int) $shift->staff_id, $shift);
-        $unpaidGuests = $this->groupUnpaidGuests($unpaidOrders);
+        $shift->loadMissing('staff');
+        $staffRole = strtolower((string) ($shift->staff->role ?? ''));
+        $isReceptionShift = in_array($staffRole, ['reception', 'receptionist', 'manager'], true);
+
+        $receptionBreakdown = null;
+        if ($isReceptionShift) {
+            $receptionBreakdown = $shift->receptionCollectionsBreakdown();
+            unset($receptionBreakdown['restaurant_orders']);
+            $unpaidOrders = collect();
+            $unpaidGuests = [];
+            $debtCollections = collect();
+        } else {
+            $unpaidOrders = $this->unpaidOrdersForShift((int) $shift->staff_id, $shift);
+            $unpaidGuests = $this->groupUnpaidGuests($unpaidOrders);
+            $debtCollections = $shiftSales->filter(fn ($s) => $s->wasPaidFromPriorDebt());
+        }
 
         $report = [
+            'shift_id' => $shift->id,
             'staff_name' => $shift->staff->name ?? 'Counter',
+            'shift_type' => $isReceptionShift ? 'reception' : 'counter',
             'opened_at' => $openedAt?->format('d M Y H:i'),
             'closed_at' => $closedAt?->format('d M Y H:i'),
             'duration_label' => $this->formatShiftDuration($durationMinutes),
@@ -2213,15 +2804,17 @@ class BarKeeperController extends Controller
             'amount_submitted' => (float) $shift->amount_submitted_tzs,
             'difference' => (float) $shift->difference_tzs,
             'items' => $this->mapShiftSaleItems($shiftSales),
+            'debt_collections_total' => (float) $debtCollections->sum('total_price_tsh'),
+            'debt_collections_count' => $debtCollections->count(),
             'unpaid_guests' => $unpaidGuests,
             'unpaid_items' => $this->mapShiftSaleItems($unpaidOrders),
             'unpaid_total' => (float) $unpaidOrders->sum('total_price_tsh'),
             'unpaid_guest_count' => count($unpaidGuests),
+            'reception_breakdown' => $receptionBreakdown,
         ];
 
         $filename = 'shift-report-' . $shift->id . '-' . ($closedAt?->format('Ymd-Hi') ?? 'report') . '.pdf';
 
-        $shift->loadMissing('staff');
         $report['staff_name'] = $shift->staff->name ?? $report['staff_name'];
 
         return Pdf::loadView('dashboard.print-shift-close-report', compact('report'))
@@ -2236,7 +2829,7 @@ class BarKeeperController extends Controller
         $manager = Auth::guard('staff')->user();
         $role = strtolower($manager->role ?? '');
 
-        if (!in_array($role, ['manager', 'super_admin'], true)) {
+        if (!in_array($role, ['manager', 'super_admin', 'restaurant_manager'], true)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Only manager can force-close a shift.',
@@ -2246,7 +2839,7 @@ class BarKeeperController extends Controller
         if ($shift->status !== 'active') {
             return response()->json([
                 'success' => false,
-                'message' => 'Shift hii tayari imefungwa.',
+                'message' => 'This shift is already closed.',
             ], 400);
         }
 
@@ -2288,7 +2881,7 @@ class BarKeeperController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Shift ya counter imefungwa na manager.',
+            'message' => 'Counter shift has been closed by the manager.',
             'closure' => $shift->fresh('staff'),
             'summary' => [
                 'total_cash' => $totalCash,

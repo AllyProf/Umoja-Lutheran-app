@@ -235,7 +235,7 @@ Route::prefix('manager')->group(function () {
 
 // Kitchen & Food Management (Accessible by Manager & Head Chef)
 // This group is at the top level (no /manager prefix)
-Route::prefix('restaurant/food')->middleware(['check.auth', 'role:manager,head_chef,super_admin,storekeeper,accountant'])->group(function () {
+Route::prefix('restaurant/food')->middleware(['check.auth', 'role:manager,head_chef,super_admin,storekeeper,accountant,restaurant_manager'])->group(function () {
     Route::get('/orders', [\App\Http\Controllers\KitchenOrderController::class, 'index'])->name('admin.restaurants.kitchen.orders');
     Route::get('/orders/history', [\App\Http\Controllers\KitchenOrderController::class, 'history'])->name('admin.restaurants.kitchen.orders.history');
     Route::post('/orders/{serviceRequest}/preparing', [\App\Http\Controllers\KitchenOrderController::class, 'startPreparation'])->name('admin.restaurants.kitchen.orders.preparing');
@@ -246,7 +246,7 @@ Route::prefix('restaurant/food')->middleware(['check.auth', 'role:manager,head_c
 
 // Re-open Manager Dashboard Routes
 Route::prefix('manager')->group(function () {
-    Route::middleware(['check.auth', 'role:manager,head_chef,super_admin,storekeeper,accountant,bar_keeper'])->group(function () {
+    Route::middleware(['check.auth', 'role:manager,head_chef,super_admin,storekeeper,accountant,restaurant_manager,bar_keeper'])->group(function () {
 
         // Restaurant Reports
         Route::get('/restaurant-reports', [App\Http\Controllers\AdminController::class, 'restaurantReports'])->name('admin.restaurants.reports');
@@ -423,7 +423,7 @@ Route::prefix('manager')->group(function () {
         Route::get('/extension-requests', [\App\Http\Controllers\AdminController::class, 'extensionRequests'])->name('admin.extension-requests');
     });
 
-    // Strictly Manager Only Routes
+    // Strictly Manager Only Routes (hotel / reception — not restaurant assistant)
     Route::middleware(['check.auth', 'role:manager,super_admin'])->group(function () {
         // Hotel Settings
         Route::get('/settings/hotel', [\App\Http\Controllers\AdminController::class, 'hotelSettings'])->name('admin.settings.hotel');
@@ -755,7 +755,7 @@ Route::prefix('bar-keeper')->group(function () {
     })->name('bar-keeper.login.post');
 
     // Protected routes (require authentication)
-    Route::middleware(['check.auth', 'role:bar_keeper,manager'])->group(function () {
+    Route::middleware(['check.auth', 'role:bar_keeper,manager,restaurant_manager,assistant_manager'])->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\BarKeeperController::class, 'dashboard'])->name('bar-keeper.dashboard');
 
         Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'show'])->name('bar-keeper.profile');
@@ -770,18 +770,25 @@ Route::prefix('bar-keeper')->group(function () {
         Route::get('/shift-summary', [\App\Http\Controllers\BarKeeperController::class, 'getShiftSummary'])->name('bar-keeper.shift-summary');
         Route::post('/open-shift', [\App\Http\Controllers\BarKeeperController::class, 'openShift'])->name('bar-keeper.open-shift');
         Route::post('/close-shift', [\App\Http\Controllers\BarKeeperController::class, 'closeShift'])->name('bar-keeper.close-shift');
-        Route::get('/shifts/{shift}/report', [\App\Http\Controllers\BarKeeperController::class, 'downloadShiftReport'])->name('bar-keeper.shifts.report');
+        Route::post('/proxy-shift', [\App\Http\Controllers\BarKeeperController::class, 'selectProxyShift'])->name('bar-keeper.proxy-shift');
         Route::post('/shifts/{shift}/force-close', [\App\Http\Controllers\BarKeeperController::class, 'forceCloseShift'])
-            ->middleware('role:manager,super_admin')
+            ->middleware('role:manager,super_admin,restaurant_manager')
             ->name('bar-keeper.shifts.force-close');
 
         // Available with or without an open shift
         Route::get('/order-summary', [\App\Http\Controllers\BarKeeperController::class, 'orderSummary'])->name('bar-keeper.order-summary');
         Route::get('/order-summary/unpaid-report', [\App\Http\Controllers\BarKeeperController::class, 'downloadUnpaidReport'])
             ->name('bar-keeper.order-summary.unpaid-report');
+        Route::get('/order-summary/period-report', [\App\Http\Controllers\BarKeeperController::class, 'downloadPeriodReport'])
+            ->name('bar-keeper.order-summary.period-report');
+        Route::get('/debts', [\App\Http\Controllers\BarKeeperController::class, 'debtManagement'])->name('bar-keeper.debts');
+        Route::get('/reports', [\App\Http\Controllers\BarKeeperController::class, 'reports'])->name('bar-keeper.reports');
 
         // Bar Keeper Actions (Require Active Shift)
         Route::middleware(['active.shift'])->group(function () {
+            Route::get('/in-house-guests', [\App\Http\Controllers\BarKeeperController::class, 'searchInHouseGuests'])
+                ->name('bar-keeper.in-house-guests');
+
             // Complete a Guest Order (Service Request)
             Route::put('/orders/{serviceRequest}/complete', [\App\Http\Controllers\BarKeeperController::class, 'completeOrder'])->name('bar-keeper.orders.complete');
 
@@ -802,9 +809,6 @@ Route::prefix('bar-keeper')->group(function () {
             Route::post('/orders/{serviceRequest}/cancel', [\App\Http\Controllers\BarKeeperController::class, 'cancelOrder'])->name('bar-keeper.orders.cancel');
             Route::get('/orders/{serviceRequest}/print-docket', [\App\Http\Controllers\BarKeeperController::class, 'printDocket'])->name('bar-keeper.orders.print-docket');
             Route::get('/orders/print-group', [\App\Http\Controllers\BarKeeperController::class, 'printGroupDocket'])->name('bar-keeper.orders.print-group');
-
-            // Reports
-            Route::get('/reports', [\App\Http\Controllers\BarKeeperController::class, 'reports'])->name('bar-keeper.reports');
 
             // Product Management (Read Only for Bar Keeper)
             Route::get('/products', [\App\Http\Controllers\ProductController::class, 'index'])->name('bar-keeper.products.index');
@@ -832,6 +836,12 @@ Route::prefix('bar-keeper')->group(function () {
         Route::get('/day-services/{dayService}/docket', [\App\Http\Controllers\DayServiceController::class, 'docket'])->name('bar-keeper.day-services.docket');
         Route::post('/day-services/{dayService}/payment', [\App\Http\Controllers\DayServiceController::class, 'processPayment'])->name('bar-keeper.day-services.payment');
         Route::get('/day-services/{dayService}/receipt', [\App\Http\Controllers\DayServiceController::class, 'downloadReceipt'])->name('bar-keeper.day-services.receipt');
+    });
+
+    // Shift PDF — readable by counter, manager, cashier, accountant (not locked to bar_keeper-only group)
+    Route::middleware(['check.auth', 'role:bar_keeper,manager,restaurant_manager,cashier,accountant,admin,super_admin'])->group(function () {
+        Route::get('/shifts/{shift}/report', [\App\Http\Controllers\BarKeeperController::class, 'downloadShiftReport'])
+            ->name('bar-keeper.shifts.report');
     });
 });
 
@@ -865,7 +875,7 @@ Route::prefix('customer')->group(function () {
     });
 
     // Public/Shared Service Request Routes (accessible by guests and staff)
-    Route::middleware(['check.auth', 'role:customer,waiter,bar_keeper,manager,receptionist,head_chef'])->group(function () {
+    Route::middleware(['check.auth', 'role:customer,waiter,bar_keeper,manager,receptionist,head_chef,cashier,super_admin,restaurant_manager'])->group(function () {
         Route::get('/services/available', [\App\Http\Controllers\ServiceRequestController::class, 'getAvailableServices'])->name('customer.services.available');
         Route::post('/services/request', [\App\Http\Controllers\ServiceRequestController::class, 'requestService'])->name('customer.services.request');
         Route::post('/ceremonies/settle-usage', [\App\Http\Controllers\ServiceRequestController::class, 'settleCeremonyUsage'])->name('ceremonies.settle-usage');
@@ -917,7 +927,7 @@ Route::prefix('chef-master')->group(function () {
     })->name('chef-master.login');
 
     // Protected routes (require authentication)
-    Route::middleware(['check.auth', 'role:head_chef,manager,super_admin'])->group(function () {
+    Route::middleware(['check.auth', 'role:head_chef,manager,super_admin,restaurant_manager'])->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\KitchenController::class, 'dashboard'])->name('chef-master.dashboard');
 
         Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'show'])->name('chef-master.profile');
@@ -1053,12 +1063,23 @@ Route::middleware(['auth:staff', 'role:accountant,manager,super_admin'])->prefix
 // Cashier Role Routes
 Route::middleware(['auth:staff', 'role:cashier,manager,super_admin'])->prefix('cashier')->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\CashierController::class, 'dashboard'])->name('cashier.dashboard');
+    Route::get('/debts', [\App\Http\Controllers\BarKeeperController::class, 'debtManagement'])->name('cashier.debts');
+    Route::get('/order-summary', [\App\Http\Controllers\BarKeeperController::class, 'orderSummary'])->name('cashier.order-summary');
+    Route::get('/order-summary/unpaid-report', [\App\Http\Controllers\BarKeeperController::class, 'downloadUnpaidReport'])
+        ->name('cashier.order-summary.unpaid-report');
+    Route::get('/order-summary/period-report', [\App\Http\Controllers\BarKeeperController::class, 'downloadPeriodReport'])
+        ->name('cashier.order-summary.period-report');
     Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'show'])->name('cashier.profile');
 
     // Shift Handovers (from Counter/Restaurant)
     Route::get('/shift-handovers', [\App\Http\Controllers\CashierController::class, 'shiftHandovers'])->name('cashier.shift-handovers');
     Route::get('/shift-handovers/{shiftClosure}/sales', [\App\Http\Controllers\CashierController::class, 'viewShiftSales'])->name('cashier.shift-handovers.sales');
     Route::post('/shift-handovers/{shiftClosure}/acknowledge', [\App\Http\Controllers\CashierController::class, 'acknowledgeShiftClosure'])->name('cashier.shift-handovers.acknowledge');
+
+    // Closed shift reports + PDF print
+    Route::get('/shift-reports', [\App\Http\Controllers\CashierController::class, 'shiftReports'])->name('cashier.shift-reports');
+    Route::get('/shift-reports/{shiftClosure}/pdf', [\App\Http\Controllers\CashierController::class, 'downloadShiftReport'])
+        ->name('cashier.shift-reports.pdf');
 
     // Reception Revenue Collections
     Route::get('/reception/collections', [\App\Http\Controllers\CashierController::class, 'receptionCollections'])->name('cashier.reception.collections');

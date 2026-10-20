@@ -49,17 +49,48 @@
                         <td class="text-right"><b>TZS {{ number_format($shiftClosure->difference_tzs) }}</b></td>
                     </tr>
                 </table>
+
+                @if(!empty($breakdown))
+                <hr>
+                <h5 class="mb-2">Cash by source</h5>
+                <table class="table table-sm table-bordered mb-0">
+                    <tr>
+                        <td>Room Bookings</td>
+                        <td class="text-right">{{ number_format($breakdown['bookings']['cash']) }}</td>
+                    </tr>
+                    <tr>
+                        <td>Restaurant / Bar</td>
+                        <td class="text-right">{{ number_format($breakdown['restaurant']['cash']) }}</td>
+                    </tr>
+                    <tr>
+                        <td>Day Services</td>
+                        <td class="text-right">{{ number_format($breakdown['day_services']['cash']) }}</td>
+                    </tr>
+                    <tr>
+                        <td>Other Services</td>
+                        <td class="text-right">{{ number_format($breakdown['other_services']['cash']) }}</td>
+                    </tr>
+                    <tr class="table-active">
+                        <th>Total cash</th>
+                        <th class="text-right">{{ number_format($breakdown['total_cash']) }}</th>
+                    </tr>
+                </table>
+                @endif
             </div>
-            @if($shiftClosure->status === 'pending_cashier')
             <div class="tile-footer">
+                <a href="{{ route('cashier.shift-reports.pdf', $shiftClosure->id) }}"
+                   class="btn btn-danger btn-block mb-2" target="_blank">
+                    <i class="fa fa-print"></i> Print Shift Report (PDF)
+                </a>
+                @if($shiftClosure->status === 'pending_cashier')
                 <form action="{{ route('cashier.shift-handovers.acknowledge', $shiftClosure->id) }}" method="POST">
                     @csrf
                     <button type="submit" class="btn btn-success btn-block" onclick="return confirm('Collect TZS {{ number_format($shiftClosure->amount_submitted_tzs) }}?')">
                         <i class="fa fa-check"></i> Mark as Collected
                     </button>
                 </form>
+                @endif
             </div>
-            @endif
         </div>
     </div>
 
@@ -67,6 +98,59 @@
         <div class="tile">
             @if($shiftClosure->staff->role === 'reception' || $shiftClosure->staff->role === 'manager')
                 <h3 class="tile-title">Reception Revenue Breakdown</h3>
+
+                @if(!empty($breakdown))
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered table-sm">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Source</th>
+                                <th class="text-right">Cash</th>
+                                <th class="text-right">M-Pesa</th>
+                                <th class="text-right">Other</th>
+                                <th class="text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Room Bookings</strong></td>
+                                <td class="text-right">{{ number_format($breakdown['bookings']['cash']) }}</td>
+                                <td class="text-right">{{ number_format($breakdown['bookings']['mpesa']) }}</td>
+                                <td class="text-right">{{ number_format($breakdown['bookings']['other']) }}</td>
+                                <td class="text-right font-weight-bold">{{ number_format($breakdown['bookings']['total']) }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Restaurant / Bar</strong></td>
+                                <td class="text-right">{{ number_format($breakdown['restaurant']['cash']) }}</td>
+                                <td class="text-right">{{ number_format($breakdown['restaurant']['mpesa']) }}</td>
+                                <td class="text-right">{{ number_format($breakdown['restaurant']['other']) }}</td>
+                                <td class="text-right font-weight-bold">{{ number_format($breakdown['restaurant']['total']) }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Day Services</strong></td>
+                                <td class="text-right">{{ number_format($breakdown['day_services']['cash']) }}</td>
+                                <td class="text-right">{{ number_format($breakdown['day_services']['mpesa']) }}</td>
+                                <td class="text-right">{{ number_format($breakdown['day_services']['other']) }}</td>
+                                <td class="text-right font-weight-bold">{{ number_format($breakdown['day_services']['total']) }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Other Services</strong></td>
+                                <td class="text-right">{{ number_format($breakdown['other_services']['cash']) }}</td>
+                                <td class="text-right">{{ number_format($breakdown['other_services']['mpesa']) }}</td>
+                                <td class="text-right">{{ number_format($breakdown['other_services']['other']) }}</td>
+                                <td class="text-right font-weight-bold">{{ number_format($breakdown['other_services']['total']) }}</td>
+                            </tr>
+                            <tr class="table-active">
+                                <td><strong>TOTAL</strong></td>
+                                <td class="text-right text-success font-weight-bold">{{ number_format($breakdown['total_cash']) }}</td>
+                                <td class="text-right text-info font-weight-bold">{{ number_format($breakdown['total_mpesa']) }}</td>
+                                <td class="text-right font-weight-bold">{{ number_format($breakdown['total_other']) }}</td>
+                                <td class="text-right font-weight-bold">{{ number_format($breakdown['grand_total']) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                @endif
                 
                 @if($bookings->count() > 0)
                 <h5>Room Bookings</h5>
@@ -77,7 +161,7 @@
                                 <th>Guest</th>
                                 <th>Room</th>
                                 <th>Paid At</th>
-                                <th>Amount</th>
+                                <th>Amount Paid</th>
                                 <th>Method</th>
                             </tr>
                         </thead>
@@ -96,9 +180,40 @@
                 </div>
                 @endif
 
+                @if(($restaurantOrders ?? collect())->count() > 0)
+                <h5>Restaurant / Bar (paid at reception)</h5>
+                <div class="table-responsive mb-4">
+                    <table class="table table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Guest / Room</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($restaurantOrders as $order)
+                            <tr>
+                                <td>{{ $order->service->service_name ?? 'Order' }}</td>
+                                <td>
+                                    {{ $order->booking->guest_name ?? 'Guest' }}
+                                    @if($order->booking?->room)
+                                        <small class="text-muted">(Rm {{ $order->booking->room->room_number }})</small>
+                                    @endif
+                                </td>
+                                <td>TZS {{ number_format($order->total_price_tsh) }}</td>
+                                <td><span class="badge badge-secondary">{{ ucfirst($order->payment_method) }}</span></td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @endif
+
                 @if($dayServices->count() > 0)
                 <h5>Day Services (Parking, Garden, etc.)</h5>
-                <div class="table-responsive">
+                <div class="table-responsive mb-4">
                     <table class="table table-hover table-sm">
                         <thead>
                             <tr>
@@ -134,8 +249,32 @@
                     </table>
                 </div>
                 @endif
+
+                @if(($sales ?? collect())->count() > 0)
+                <h5>Other Services</h5>
+                <div class="table-responsive mb-4">
+                    <table class="table table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($sales as $sale)
+                            <tr>
+                                <td>{{ $sale->service->service_name ?? 'Service' }}</td>
+                                <td>TZS {{ number_format($sale->total_price_tsh) }}</td>
+                                <td><span class="badge badge-secondary">{{ ucfirst($sale->payment_method) }}</span></td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @endif
                 
-                @if($bookings->count() == 0 && $dayServices->count() == 0)
+                @if($bookings->count() == 0 && $dayServices->count() == 0 && ($restaurantOrders ?? collect())->count() == 0 && ($sales ?? collect())->count() == 0)
                     <p class="text-center text-muted">No itemized sales found for this reception shift.</p>
                 @endif
 

@@ -1228,6 +1228,8 @@
                     $displayRole = 'super_admin';
                   } elseif ($normalizedRole === 'manager' || $rawRoleLower === 'manager') {
                     $displayRole = 'manager';
+                  } elseif ($normalizedRole === 'restaurantmanager' || $rawRoleLower === 'restaurant_manager' || $rawRoleLower === 'restaurant manager' || $normalizedRole === 'assistantmanager') {
+                    $displayRole = 'restaurant_manager';
                   } elseif ($normalizedRole === 'reception' || $rawRoleLower === 'reception') {
                     $displayRole = 'reception';
                   } elseif ($normalizedRole === 'barkeeper' || $normalizedRole === 'barkeepr' || $rawRoleLower === 'bar_keeper' || $rawRoleLower === 'bar keeper' || $rawRoleLower === 'bartender') {
@@ -1244,6 +1246,8 @@
                     $displayRole = 'accountant';
                   } elseif ($normalizedRole === 'cashier' || strtolower($rawRole) === 'cashier') {
                     $displayRole = 'cashier';
+                  } else {
+                    $displayRole = strtolower(str_replace([' ', '-'], '_', trim($rawRole)));
                   }
                 } elseif ($currentAuthUser instanceof \App\Models\Guest) {
                   $displayRole = 'customer';
@@ -1261,8 +1265,10 @@
                 echo 'Super Admin';
               } elseif ($displayRole === 'cashier') {
                 echo 'Cashier';
+              } elseif ($displayRole === 'restaurant_manager' || $displayRole === 'assistant_manager') {
+                echo 'Restaurant Manager';
               } else {
-                echo ucfirst($displayRole ?: 'Manager');
+                echo ucwords(str_replace('_', ' ', $displayRole ?: 'Manager'));
               }
             @endphp
           </p>
@@ -1287,6 +1293,8 @@
                 $sessionRole = 'super_admin';
               } elseif ($normalizedRole === 'manager' || $rawRole === 'manager') {
                 $sessionRole = 'manager';
+              } elseif ($normalizedRole === 'restaurantmanager' || $rawRole === 'restaurant_manager' || strtolower($rawRole) === 'restaurant manager' || $normalizedRole === 'assistantmanager' || $rawRole === 'assistant_manager') {
+                $sessionRole = 'restaurant_manager';
               } elseif ($normalizedRole === 'reception' || $rawRole === 'reception') {
                 $sessionRole = 'reception';
               } elseif ($normalizedRole === 'barkeeper' || $normalizedRole === 'barkeepr' || $rawRole === 'bar_keeper' || strtolower($rawRole) === 'bar keeper' || strtolower($rawRole) === 'bartender') {
@@ -1303,6 +1311,8 @@
                 $sessionRole = 'accountant';
               } elseif ($normalizedRole === 'cashier' || $rawRole === 'cashier') {
                 $sessionRole = 'cashier';
+              } else {
+                $sessionRole = strtolower(str_replace([' ', '-'], '_', trim($rawRole)));
               }
             } elseif ($currentAuthUser instanceof \App\Models\Guest) {
               $sessionRole = 'customer';
@@ -1322,6 +1332,9 @@
           } elseif ($sidebarUserRole === 'manager') {
             $sidebarRole = 'manager';
             $sidebarFile = 'dashboard.partials.sidebar-admin';
+          } elseif ($sidebarUserRole === 'restaurant_manager' || $sidebarUserRole === 'assistant_manager') {
+            $sidebarRole = 'restaurant_manager';
+            $sidebarFile = 'dashboard.partials.sidebar-restaurant-manager';
           } elseif ($sidebarUserRole === 'reception') {
             $sidebarRole = 'reception';
             $sidebarFile = 'dashboard.partials.sidebar-reception';
@@ -1350,30 +1363,16 @@
             $sidebarRole = 'customer';
             $sidebarFile = 'dashboard.partials.sidebar-customer';
           } else {
-            // Fallback: no sidebar if role cannot be determined
-            $sidebarRole = null;
-            $sidebarFile = null;
+            // Custom roles: try restaurant manager sidebar if no dedicated file
+            $sidebarRole = $sidebarUserRole;
+            $customSidebar = 'dashboard.partials.sidebar-' . str_replace('_', '-', (string) $sidebarUserRole);
+            $sidebarFile = view()->exists($customSidebar)
+                ? $customSidebar
+                : 'dashboard.partials.sidebar-restaurant-manager';
           }
         @endphp
-        @php
-          // Only swap to the dedicated Reports sidebar on the Reports module pages.
-          // Do NOT treat operational pages like day-services/reports or bar-keeper/reports
-          // as reports pages — those should keep the normal manager sidebar.
-          $isReportsPage = (
-              str_contains($activePage, 'manager/reports') ||
-              str_contains($activePage, 'admin/reports') ||
-              str_contains($activePage, 'restaurant-reports')
-            ) && in_array($sidebarUserRole, ['manager', 'super_admin'], true);
-        @endphp
-        
-        @if($isReportsPage)
-          {{-- Show Reports Sidebar --}}
-          @include('dashboard.reports.partials.sidebar-reports', [
-            'activePage' => $activePage,
-            'currentUser' => $currentUser,
-          ])
-        @elseif($sidebarFile && view()->exists($sidebarFile))
-          {{-- Show Regular Sidebar --}}
+        @if($sidebarFile && view()->exists($sidebarFile))
+          {{-- Always show the role sidebar; report links live on Reports Dashboard --}}
           @include($sidebarFile, [
             'activePage' => $activePage,
             'currentUser' => $currentUser,
@@ -1470,6 +1469,7 @@
     <main class="app-content">
       @yield('content')
     </main>
+    @include('dashboard.partials.user-guide')
     <!-- Essential javascripts for application to work-->
     <script src="{{ asset('dashboard_assets/js/jquery-3.2.1.min.js') }}"></script>
     <script src="{{ asset('dashboard_assets/js/popper.min.js') }}"></script>

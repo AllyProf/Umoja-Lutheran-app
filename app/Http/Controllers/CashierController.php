@@ -79,6 +79,15 @@ class CashierController extends Controller
         
         $handovers = $query->orderByDesc('closed_at')->paginate(15)->appends($request->only('type'));
 
+        if ($type === 'reception') {
+            $handovers->getCollection()->transform(function (ShiftClosure $shift) {
+                $bd = $shift->receptionCollectionsBreakdown();
+                unset($bd['restaurant_orders']);
+                $shift->reception_breakdown = $bd;
+                return $shift;
+            });
+        }
+
         $historyQuery = ShiftClosure::with(['staff', 'receiver'])
             ->where('status', 'received');
             
@@ -95,6 +104,15 @@ class CashierController extends Controller
         }
         
         $history = $historyQuery->orderByDesc('closed_at')->limit(10)->get();
+
+        if ($type === 'reception') {
+            $history->transform(function (ShiftClosure $shift) {
+                $bd = $shift->receptionCollectionsBreakdown();
+                unset($bd['restaurant_orders']);
+                $shift->reception_breakdown = $bd;
+                return $shift;
+            });
+        }
 
         return view('dashboard.cashier.shift-handovers', [
             'handovers' => $handovers,
@@ -148,10 +166,24 @@ class CashierController extends Controller
         $dayServices = collect();
         $bookings    = collect();
 
+        $breakdown = null;
+        $restaurantOrders = collect();
+
         if ($staff->role === 'reception' || $staff->role === 'manager') {
-            // For reception, get day services and bookings
+            $breakdown = $shiftClosure->receptionCollectionsBreakdown();
+            $restaurantOrders = $breakdown['restaurant_orders'] ?? collect();
+            unset($breakdown['restaurant_orders']);
+
             $dayServices = DayService::where('shift_closure_id', $shiftClosure->id)->get();
             $bookings    = Booking::with('room')->where('shift_closure_id', $shiftClosure->id)->get();
+            $sales       = ServiceRequest::with(['booking.room', 'service'])
+                ->where('shift_closure_id', $shiftClosure->id)
+                ->where('payment_status', 'paid')
+                ->where(function ($q) {
+                    $q->whereNull('service_specific_data->paid_at_reception')
+                        ->orWhere('service_specific_data->paid_at_reception', false);
+                })
+                ->get();
         } else {
             // For counter (bar/restaurant), get service requests
             $sales = ServiceRequest::with(['booking.room', 'service'])
@@ -164,6 +196,8 @@ class CashierController extends Controller
             'sales'        => $sales,
             'dayServices'  => $dayServices,
             'bookings'     => $bookings,
+            'breakdown'    => $breakdown,
+            'restaurantOrders' => $restaurantOrders,
             'role'         => 'cashier',
             'userName'     => Auth::guard('staff')->user()->name ?? 'Cashier',
             'userRole'     => 'Cashier',
@@ -348,6 +382,68 @@ class CashierController extends Controller
         }
 
         return back()->with('info', "No uncollected paid revenue found for " . Carbon::parse($date)->format('M d, Y') . ".");
+    }
+
+    /**
+     * All closed shift reports — cashier can view and print any closed shift.
+     */
+    public function shiftReports(Request $request)
+    {
+        $source = $request->get('source', 'all'); // all | counter | reception
+        $status = $request->get('status', 'all');
+        $q = trim((string) $request->get('q', ''));
+
+        $query = ShiftClosure::with(['staff', 'receiver'])
+            ->whereNotNull('closed_at')
+            ->where('status', '!=', 'active');
+
+        if ($source === 'reception') {
+            $query->whereHas('staff', fn ($s) => $s->where('role', 'reception'));
+        } elseif ($source === 'counter') {
+            $query->whereHas('staff', function ($s) {
+                $s->where(function ($inner) {
+                    $inner->where('role', 'like', '%bar%')->orWhere('role', 'like', '%counter%');
+                });
+            });
+        }
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        if ($q !== '') {
+            $query->whereHas('staff', fn ($s) => $s->where('name', 'like', "%{$q}%"));
+        }
+
+        $shifts = $query->orderByDesc('closed_at')->paginate(20)->appends($request->query());
+
+        $statsQuery = ShiftClosure::whereNotNull('closed_at')->where('status', '!=', 'active');
+        $stats = [
+            'total_closed' => (clone $statsQuery)->count(),
+            'pending_cashier' => (clone $statsQuery)->where('status', 'pending_cashier')->count(),
+            'received' => (clone $statsQuery)->where('status', 'received')->count(),
+            'with_accountant' => (clone $statsQuery)->whereIn('status', ['pending_accountant', 'finalized', 'verified'])->count(),
+            'cash_today' => (clone $statsQuery)->whereDate('closed_at', today())->sum('amount_submitted_tzs'),
+        ];
+
+        return view('dashboard.cashier.shift-reports', [
+            'shifts' => $shifts,
+            'stats' => $stats,
+            'source' => $source,
+            'status' => $status,
+            'q' => $q,
+            'role' => 'cashier',
+            'userName' => Auth::guard('staff')->user()->name ?? 'Cashier',
+            'userRole' => 'Cashier',
+        ]);
+    }
+
+    /**
+     * Download / print closed shift PDF (same report as counter).
+     */
+    public function downloadShiftReport(ShiftClosure $shiftClosure)
+    {
+        return app(BarKeeperController::class)->downloadShiftReport($shiftClosure);
     }
 
     /**
