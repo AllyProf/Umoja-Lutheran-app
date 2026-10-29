@@ -208,7 +208,7 @@
             </div>
 
             <div class="d-flex justify-content-center mt-4">
-                {{ $products->appends(request()->query())->links() }}
+                @include('dashboard.partials.bootstrap-pagination', ['paginator' => $products])
             </div>
         @else
             <div class="text-center py-5 bg-light rounded shadow-sm">

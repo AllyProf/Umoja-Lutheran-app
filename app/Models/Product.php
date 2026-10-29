@@ -14,6 +14,7 @@ class Product extends Model
         'image',
         'description',
         'type',
+        'usage',
         'is_active',
         'is_returnable',
     ];

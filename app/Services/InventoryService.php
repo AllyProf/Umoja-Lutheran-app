@@ -96,6 +96,48 @@ class InventoryService
     }
 
     /**
+     * Debit housekeeping inventory when a returnable item is returned to the store.
+     */
+    public function returnFromHousekeepingInventory($name, $quantity, $unit, $staffId, $notes, $variant = null)
+    {
+        if ($quantity <= 0) {
+            return null;
+        }
+
+        if ($variant && in_array(strtolower($unit), ['crates', 'crate', 'carton', 'packages', 'package'])) {
+            $itemsPerPackage = $variant->items_per_package ?? 1;
+            $quantity *= $itemsPerPackage;
+            $unit = $variant->measurement ?: 'pcs';
+        }
+
+        $inventoryItem = HousekeepingInventoryItem::where('name', $name)->first();
+        if (!$inventoryItem) {
+            // Try product name only (without variant suffix)
+            $baseName = $variant?->product?->name;
+            if ($baseName) {
+                $inventoryItem = HousekeepingInventoryItem::where('name', $baseName)->first();
+            }
+        }
+
+        if (!$inventoryItem) {
+            return null;
+        }
+
+        $inventoryItem->current_stock = max(0, (float) $inventoryItem->current_stock - (float) $quantity);
+        $inventoryItem->save();
+
+        // Enum allows: supply, consumption, adjustment, transfer
+        // "transfer" = stock leaving housekeeping (e.g. returned to store)
+        return InventoryStockMovement::create([
+            'inventory_item_id' => $inventoryItem->id,
+            'movement_type' => 'transfer',
+            'quantity' => $quantity,
+            'performed_by' => $staffId,
+            'notes' => $notes,
+        ]);
+    }
+
+    /**
      * Create a bar transfer from a received item
      */
     public function createBarTransfer($name, $quantity, $unit, $price, $cost, $staffId, $expiryDate, $variant)

@@ -130,7 +130,7 @@
                         </table>
                     </div>
                     <div class="d-flex justify-content-center mt-3">
-                        {{ $requests->appends(request()->query())->links() }}
+                        @include('dashboard.partials.bootstrap-pagination', ['paginator' => $requests])
                     </div>
                 @else
                     <div class="text-center py-5">

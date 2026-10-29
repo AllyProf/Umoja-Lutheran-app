@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Booking;
 use App\Models\ShoppingList;
 use App\Models\ShoppingListItem;
 use App\Models\PurchaseRequest;
+use App\Models\ServiceRequest;
 use App\Models\StockReceipt;
+use App\Models\LocalPurchaseOrder;
+use App\Services\CurrencyExchangeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,12 +21,104 @@ class AccountantController extends Controller
      */
     public function dashboard()
     {
+        $exchangeRate = 1;
+        try {
+            $exchangeRate = (new CurrencyExchangeService())->getUsdToTshRate() ?: 1;
+        } catch (\Exception $e) {
+            // keep TZS-only default
+        }
+
+        // Revenue: bookings + restaurant/service sales + day services (TZS)
+        $bookingRevenue = Booking::whereIn('payment_status', ['paid', 'partial'])
+            ->whereNotNull('amount_paid')
+            ->where('amount_paid', '>', 0)
+            ->get()
+            ->sum(function ($booking) use ($exchangeRate) {
+                return ($booking->amount_paid ?? 0) * ($booking->locked_exchange_rate ?? $exchangeRate);
+            });
+
+        $serviceRevenue = ServiceRequest::where('status', 'completed')->sum('total_price_tsh');
+
+        $dayServiceRevenue = \App\Models\DayService::where('payment_status', 'paid')
+            ->get()
+            ->sum(function ($s) use ($exchangeRate) {
+                $amount = $s->amount_paid ?? $s->amount ?? 0;
+                return $s->guest_type === 'tanzanian'
+                    ? $amount
+                    : ($amount * ($s->exchange_rate ?? $exchangeRate));
+            });
+
+        $totalRevenue = (float) $bookingRevenue + (float) $serviceRevenue + (float) $dayServiceRevenue;
+
+        // Expenditure: actual purchase costs only (after receive / record purchase).
+        // Paying the storekeeper is an advance — it must NOT reduce net income yet.
+        $shoppingExpenditure = (float) ShoppingList::whereIn('status', ['purchased', 'completed'])
+            ->sum('total_actual_cost');
+
+        // LPO direct receives: qty_received × unit_price on budget items
+        $lpoExpenditure = (float) (DB::table('local_purchase_order_items')
+            ->selectRaw('COALESCE(SUM(COALESCE(qty_received, 0) * COALESCE(unit_price, 0)), 0) as total')
+            ->value('total') ?? 0);
+
+        $totalExpenditure = $shoppingExpenditure + $lpoExpenditure;
+        $netIncome = $totalRevenue - $totalExpenditure;
+
+        $monthStart = now()->startOfMonth()->toDateString();
+        $monthBookingRevenue = Booking::whereIn('payment_status', ['paid', 'partial'])
+            ->whereNotNull('amount_paid')
+            ->where('amount_paid', '>', 0)
+            ->where(function ($q) use ($monthStart) {
+                $q->where('paid_at', '>=', $monthStart)
+                    ->orWhere(function ($sub) use ($monthStart) {
+                        $sub->whereNull('paid_at')->where('created_at', '>=', $monthStart);
+                    });
+            })
+            ->get()
+            ->sum(function ($booking) use ($exchangeRate) {
+                return ($booking->amount_paid ?? 0) * ($booking->locked_exchange_rate ?? $exchangeRate);
+            });
+        $monthServiceRevenue = ServiceRequest::where('status', 'completed')
+            ->where('completed_at', '>=', $monthStart)
+            ->sum('total_price_tsh');
+        $monthDayServiceRevenue = \App\Models\DayService::where('payment_status', 'paid')
+            ->where(function ($q) use ($monthStart) {
+                $q->where('paid_at', '>=', $monthStart)
+                    ->orWhere(function ($sub) use ($monthStart) {
+                        $sub->whereNull('paid_at')->where('service_date', '>=', $monthStart);
+                    });
+            })
+            ->get()
+            ->sum(function ($s) use ($exchangeRate) {
+                $amount = $s->amount_paid ?? $s->amount ?? 0;
+                return $s->guest_type === 'tanzanian'
+                    ? $amount
+                    : ($amount * ($s->exchange_rate ?? $exchangeRate));
+            });
+        $monthRevenue = (float) $monthBookingRevenue + (float) $monthServiceRevenue + (float) $monthDayServiceRevenue;
+        $monthShoppingExpenditure = (float) ShoppingList::whereIn('status', ['purchased', 'completed'])
+            ->where('updated_at', '>=', $monthStart)
+            ->sum('total_actual_cost');
+        $monthLpoExpenditure = (float) (DB::table('local_purchase_order_items')
+            ->where('updated_at', '>=', $monthStart)
+            ->selectRaw('COALESCE(SUM(COALESCE(qty_received, 0) * COALESCE(unit_price, 0)), 0) as total')
+            ->value('total') ?? 0);
+        $monthExpenditure = $monthShoppingExpenditure + $monthLpoExpenditure;
+
         $stats = [
+            'total_revenue' => $totalRevenue,
+            'total_expenditure' => $totalExpenditure,
+            'net_income' => $netIncome,
+            'month_revenue' => $monthRevenue,
+            'month_expenditure' => $monthExpenditure,
+            'month_net_income' => $monthRevenue - $monthExpenditure,
             'pending_approval' => ShoppingList::where('status', 'pending')->count(),
             'checked_lists' => ShoppingList::where('status', 'accountant_checked')->count(),
-            'approved_lists' => ShoppingList::where('status', 'approved')->count(),
-            'ready_lists' => ShoppingList::where('status', 'ready_for_purchase')->count(),
+            'approved_lists' => ShoppingList::where('status', 'approved')->count()
+                + LocalPurchaseOrder::where('status', 'verified_by_manager')->count(),
+            'ready_lists' => ShoppingList::where('status', 'ready_for_purchase')->count()
+                + LocalPurchaseOrder::where('status', 'funds_disbursed')->count(),
             'purchased_lists' => ShoppingList::where('status', 'purchased')->count(),
+            'pending_lpo' => LocalPurchaseOrder::where('status', 'sent_to_accountant')->count(),
             'total_spent' => ShoppingList::where('status', 'completed')->sum('total_actual_cost'),
             'total_day_services_revenue' => \App\Models\DayService::where('payment_status', 'paid')
                 ->whereDate('service_date', now()->toDateString())
@@ -48,7 +144,70 @@ class AccountantController extends Controller
             ->limit(5)
             ->get();
 
-        return view('dashboard.accountant.dashboard', compact('stats', 'pendingLists', 'recentLists'));
+        $pendingLpos = LocalPurchaseOrder::with('storekeeper')
+            ->where('status', 'sent_to_accountant')
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        return view('dashboard.accountant.dashboard', compact('stats', 'pendingLists', 'recentLists', 'pendingLpos'));
+    }
+
+    /**
+     * Badge counts for accountant sidebar
+     */
+    public function pendingCounts()
+    {
+        return response()->json([
+            'lpo' => LocalPurchaseOrder::where('status', 'sent_to_accountant')->count(),
+            'purchase_lists' => ShoppingList::where('status', 'pending')->count(),
+            'emergency' => PurchaseRequest::where('is_emergency', true)
+                ->whereIn('status', ['pending', 'approved', 'on_list'])
+                ->count(),
+            'to_pay' => ShoppingList::where('status', 'approved')->count()
+                + LocalPurchaseOrder::where('status', 'verified_by_manager')->count(),
+        ]);
+    }
+
+    /**
+     * Pay storekeeper after manager approval (shopping lists + LPOs)
+     */
+    public function payStorekeeper(Request $request)
+    {
+        $shoppingLists = ShoppingList::with('items')
+            ->where('status', 'approved')
+            ->latest()
+            ->paginate(15, ['*'], 'lists_page')
+            ->withQueryString();
+
+        $lpos = LocalPurchaseOrder::with(['storekeeper', 'manager'])
+            ->where('status', 'verified_by_manager')
+            ->latest()
+            ->paginate(15, ['*'], 'lpo_page')
+            ->withQueryString();
+
+        return view('dashboard.accountant.pay-storekeeper', compact('shoppingLists', 'lpos'));
+    }
+
+    /**
+     * Emergency purchase orders from the storekeeper
+     */
+    public function emergencyOrders(Request $request)
+    {
+        $tab = $request->get('tab', 'active');
+
+        $query = PurchaseRequest::with(['requestedBy', 'approvedBy'])
+            ->where('is_emergency', true);
+
+        if ($tab === 'done') {
+            $query->whereIn('status', ['purchased', 'completed', 'received', 'rejected']);
+        } else {
+            $query->whereIn('status', ['pending', 'approved', 'on_list']);
+        }
+
+        $orders = $query->latest()->paginate(20)->appends($request->query());
+
+        return view('dashboard.accountant.emergency-orders', compact('orders', 'tab'));
     }
 
     /**
@@ -456,11 +615,13 @@ class AccountantController extends Controller
     public function cashierCollections(Request $request)
     {
         $tab = $request->get('tab', 'pending');
+        $category = $request->get('category', 'restaurant'); // restaurant | reception
 
         $shifts = \App\Models\ShiftClosure::with(['staff', 'receiver'])
             ->where('status', $tab === 'pending' ? 'pending_accountant' : 'finalized')
             ->orderByDesc('updated_at')
-            ->paginate(15, ['*'], 'shifts_page');
+            ->paginate(15, ['*'], 'shifts_page')
+            ->appends($request->query());
 
         // 1. Day Service Revenue by Date
         $dsQuery = \App\Models\DayService::select(
@@ -524,7 +685,7 @@ class AccountantController extends Controller
             ['path' => $request->url(), 'query' => $request->query(), 'pageName' => 'days_page']
         );
 
-        return view('dashboard.accountant.cashier-collections', compact('shifts', 'dayServices', 'tab'));
+        return view('dashboard.accountant.cashier-collections', compact('shifts', 'dayServices', 'tab', 'category'));
     }
 
     /**

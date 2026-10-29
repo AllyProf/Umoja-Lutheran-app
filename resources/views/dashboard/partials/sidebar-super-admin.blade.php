@@ -86,9 +86,42 @@
 <li><a class="app-menu__item {{ str_contains($activePage, 'supplier-orders') ? 'active' : '' }}"
     href="{{ route('supplier-orders.index') }}"><i class="app-menu__icon fa fa-truck"></i><span
       class="app-menu__label">Weekly Supplier Orders</span></a></li>
-<li><a class="app-menu__item {{ str_contains($activePage, 'lpo') ? 'active' : '' }}" href="{{ route('lpo.index') }}"><i
-      class="app-menu__icon fa fa-file-text"></i><span class="app-menu__label">Local Purchase Orders (LPO)</span></a>
+@php
+  $pendingLpoManagerCount = \App\Models\LocalPurchaseOrder::where('status', 'sent_to_manager')->count();
+@endphp
+<li>
+  <a class="app-menu__item {{ str_contains($activePage, 'lpo') ? 'active' : '' }}"
+    href="{{ route('lpo.index', ['tab' => 'review']) }}">
+    <i class="app-menu__icon fa fa-file-text"></i>
+    <span class="app-menu__label">Local Purchase Orders (LPO)</span>
+    <span class="badge badge-danger badge-pill ml-auto" id="badge-lpo-pending"
+      style="{{ $pendingLpoManagerCount > 0 ? '' : 'display:none;' }}">
+      {{ $pendingLpoManagerCount > 99 ? '99+' : $pendingLpoManagerCount }}
+    </span>
+  </a>
 </li>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    function fetchLpoPendingCount() {
+      fetch(@json(route('lpo.pending-count')))
+        .then(r => r.json())
+        .then(data => {
+          const badge = document.getElementById('badge-lpo-pending');
+          if (!badge) return;
+          const count = parseInt(data.count || 0, 10);
+          if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = 'inline-block';
+          } else {
+            badge.style.display = 'none';
+          }
+        })
+        .catch(() => {});
+    }
+    fetchLpoPendingCount();
+    setInterval(fetchLpoPendingCount, 30000);
+  });
+</script>
 
 {{-- ============================================ --}}
 {{-- SYSTEM MONITORING --}}

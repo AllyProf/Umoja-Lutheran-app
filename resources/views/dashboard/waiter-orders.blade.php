@@ -31,10 +31,11 @@
                     <tbody>
                         @php
                           $groupedOrders = $orders->groupBy(function($item) {
+                              $day = optional($item->requested_at ?? $item->created_at)->toDateString() ?: 'nodate';
                               if ($item->is_walk_in) {
-                                  return 'w_' . ($item->walk_in_name ?? 'General');
+                                  return 'w_' . $day . '_' . ($item->walk_in_name ?? 'General');
                               }
-                              return 'b_' . ($item->booking_id ?? 'unknown');
+                              return 'b_' . $day . '_' . ($item->booking_id ?? 'unknown');
                           });
                         @endphp
 

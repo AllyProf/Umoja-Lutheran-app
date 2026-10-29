@@ -16,6 +16,7 @@ class LocalPurchaseOrder extends Model
         'accountant_id',
         'manager_id',
         'notes',
+        'rejection_reason',
     ];
 
     protected $casts = [

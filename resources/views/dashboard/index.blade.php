@@ -17,7 +17,20 @@
   $recentBookings = $recentBookings ?? collect();
   $revenueData = $revenueData ?? [];
   $bookingStatusData = $bookingStatusData ?? [];
+  $pendingLpos = $pendingLpos ?? collect();
 @endphp
+
+@if(($stats['pending_lpo'] ?? 0) > 0)
+  <div class="alert alert-danger shadow-sm d-flex align-items-center justify-content-between flex-wrap mb-3">
+    <div>
+      <strong><i class="fa fa-bell"></i> {{ $stats['pending_lpo'] }} LPO budget{{ $stats['pending_lpo'] === 1 ? '' : 's' }} awaiting your verification</strong>
+      <div class="small mb-0">Accountant accepted these budgets — open and verify them.</div>
+    </div>
+    <a href="{{ route('lpo.index', ['tab' => 'review']) }}" class="btn btn-sm btn-light text-danger font-weight-bold mt-2 mt-md-0">
+      Verify LPO now
+    </a>
+  </div>
+@endif
 
 <!-- Main Statistics Cards (4 Cards Only) -->
 <div class="row mb-3">
@@ -340,6 +353,54 @@
     </div>
   </div>
 </div>
+
+<!-- Pending LPO Verification -->
+@if(isset($pendingLpos) && $pendingLpos->count() > 0)
+<div class="row mt-3">
+    <div class="col-md-12">
+        <div class="tile border-danger" style="border-top: 3px solid #dc3545;">
+            <div class="tile-title-w-btn">
+                <h3 class="title text-danger"><i class="fa fa-file-text"></i> LPO Budgets Waiting Verification</h3>
+                <p>
+                    <a class="btn btn-danger icon-btn" href="{{ route('lpo.index', ['tab' => 'review']) }}">
+                        <i class="fa fa-list"></i> Review All
+                    </a>
+                </p>
+            </div>
+            <div class="tile-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>LPO</th>
+                                <th>Period</th>
+                                <th>Created By</th>
+                                <th class="text-right">Budget</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($pendingLpos as $lpo)
+                                <tr class="table-warning">
+                                    <td><strong>#{{ $lpo->id }}</strong></td>
+                                    <td>{{ $lpo->start_date->format('d M Y') }} – {{ $lpo->end_date->format('d M Y') }}</td>
+                                    <td>{{ $lpo->storekeeper->name ?? 'Storekeeper' }}</td>
+                                    <td class="text-right">TZS {{ number_format($lpo->total_amount) }}</td>
+                                    <td class="text-center">
+                                        <a href="{{ route('lpo.show', $lpo->id) }}" class="btn btn-sm btn-danger">
+                                            <i class="fa fa-check-circle"></i> Verify
+                                        </a>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 
 <!-- Pending Internal Requests Table -->
 @if(isset($pendingStockRequests) && $pendingStockRequests->count() > 0)

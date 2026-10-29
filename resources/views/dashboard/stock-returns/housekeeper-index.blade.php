@@ -48,7 +48,7 @@
                                         <td class="text-center">
                                             @if($item->quantity_held > 0)
                                                 <span class="badge badge-success"
-                                                    style="font-size:1rem;">{{ $item->quantity_held }}</span>
+                                                    style="font-size:1rem;">{{ $item->quantity_held_display ?? (int) round($item->quantity_held) }}</span>
                                             @else
                                                 <span class="text-muted">—</span>
                                             @endif
@@ -56,7 +56,7 @@
                                         <td class="text-center">
                                             @if($item->quantity_pending_return > 0)
                                                 <span class="badge badge-warning"
-                                                    style="font-size:1rem;">{{ $item->quantity_pending_return }}</span>
+                                                    style="font-size:1rem;">{{ $item->quantity_pending_display ?? (int) round($item->quantity_pending_return) }}</span>
                                             @else
                                                 <span class="text-muted">—</span>
                                             @endif
@@ -65,7 +65,7 @@
                                         <td class="text-center">
                                             @if($item->quantity_held > 0)
                                                 <button class="btn btn-sm btn-outline-info"
-                                                    onclick="openReturnModal({{ $item->product_variant_id }}, '{{ addslashes($item->productVariant->product->name ?? '') }}', {{ $item->quantity_held }}, '{{ $item->unit }}')">
+                                                    onclick="openReturnModal({{ $item->product_variant_id }}, '{{ addslashes($item->productVariant->product->name ?? '') }}', {{ (int) round($item->quantity_held) }}, '{{ addslashes($item->unit) }}')">
                                                     <i class="fa fa-undo"></i> Return
                                                 </button>
                                             @else
@@ -81,7 +81,8 @@
                     <div class="text-center py-5">
                         <i class="fa fa-check-circle fa-4x text-success mb-3" style="opacity:0.5;"></i>
                         <h5 class="text-muted">No returnable items currently held.</h5>
-                        <p class="text-muted">All items have been returned or are consumables.</p>
+                        <p class="text-muted mb-1">Items appear here after the storekeeper issues returnable tools (broom, mop, etc.).</p>
+                        <p class="text-muted small">Ask store/manager to tick <strong>Returnable to store after use</strong> when registering the item.</p>
                     </div>
                 @endif
             </div>
@@ -95,7 +96,7 @@
                     <div class="d-flex justify-content-between align-items-center border-bottom py-2">
                         <div>
                             <strong>{{ $ret->productVariant->product->name ?? '—' }}</strong>
-                            <br><small class="text-muted">{{ $ret->quantity }} {{ $ret->unit }} &bull;
+                            <br><small class="text-muted">{{ $ret->display_quantity ?? $ret->quantity }} {{ $ret->display_unit ?? $ret->unit }} &bull;
                                 {{ $ret->created_at->format('d M H:i') }}</small>
                         </div>
                         <span class="badge badge-{{ $ret->status_color }}">{{ $ret->status_label }}</span>
@@ -178,7 +179,11 @@
             fetch('{{ route("stock-returns.store") }}', {
                 method: 'POST',
                 body: formData,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
             }).then(r => r.json()).then(data => {
                 if (data.success) {
                     swal({ title: 'Success!', text: data.message, type: 'success' }, () => location.reload());

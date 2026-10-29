@@ -77,7 +77,7 @@
           </div>
 
           <div class="d-flex justify-content-center mt-3">
-            {{ $stockReceipts->appends(request()->query())->links('pagination::bootstrap-4') }}
+            @include('dashboard.partials.bootstrap-pagination', ['paginator' => $stockReceipts])
           </div>
         @else
           <div class="text-center" style="padding: 50px;">

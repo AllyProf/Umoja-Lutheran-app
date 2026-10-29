@@ -29,33 +29,109 @@ class StockRequestController extends Controller
     public function index(Request $request)
     {
         $user = Auth::guard('staff')->user();
+
+        // Normalize legacy drink/food filters into restaurant
+        $type = $request->get('type');
+        if (in_array($type, ['drink', 'food'], true)) {
+            $type = 'restaurant';
+        }
+        if (!in_array($type, ['restaurant', 'housekeeping'], true)) {
+            $type = null;
+        }
+
         $query = StockRequest::with(['requester', 'productVariant.product', 'accountant', 'manager', 'storekeeper']);
 
         // Filter based on role
-        if ($user->role === 'bar_keeper' || $user->role === 'bar keeper' || $user->role === 'head_chef' || $user->role === 'housekeeper') {
+        if (in_array($user->role, ['bar_keeper', 'bar keeper', 'head_chef', 'housekeeper'], true)) {
             $query->where('requested_by', $user->id);
-        } elseif ($user->role === 'accountant') {
-            // Accountants see all (primarily beverages)
         } elseif ($user->role === 'storekeeper') {
             $query->whereIn('status', ['approved', 'completed']);
         }
-        // Managers and super_admin see everything
-        if ($request->has('type')) {
-            $type = $request->type;
-            $query->whereHas('productVariant.product', function ($q) use ($type) {
-                if ($type === 'drink') {
-                    $q->whereIn('category', ['alcoholic_beverage', 'non_alcoholic_beverage', 'water', 'juices', 'energy_drinks', 'drinks', 'beverage']);
-                } elseif ($type === 'food') {
-                    $q->whereIn('category', ['food', 'meat_poultry', 'seafood', 'vegetables', 'dairy', 'pantry_baking', 'spices_herbs', 'oils_fats', 'kitchen', 'snacks']);
-                } elseif ($type === 'housekeeping') {
-                    $q->whereIn('category', ['cleaning_supplies', 'linens', 'housekeeping']);
-                }
-            });
+        // Managers, accountant, and super_admin see everything
+
+        $this->applyDepartmentFilter($query, $type);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
         }
 
-        $stockRequests = $query->orderBy('batch_id', 'desc')->orderBy('created_at', 'desc')->paginate(25);
+        $stockRequests = $query->orderByDesc('batch_id')
+            ->orderByDesc('created_at')
+            ->paginate(20)
+            ->withQueryString();
 
-        return view('dashboard.stock-requests.index', compact('stockRequests'));
+        // Status counts for filter tabs (same role/type scope, ignore status filter)
+        $countQuery = StockRequest::query();
+        if (in_array($user->role, ['bar_keeper', 'bar keeper', 'head_chef', 'housekeeper'], true)) {
+            $countQuery->where('requested_by', $user->id);
+        } elseif ($user->role === 'storekeeper') {
+            $countQuery->whereIn('status', ['approved', 'completed']);
+        }
+        $this->applyDepartmentFilter($countQuery, $type);
+
+        $statusCounts = [
+            'all' => (clone $countQuery)->count(),
+            'pending_manager' => (clone $countQuery)->where('status', 'pending_manager')->count(),
+            'pending_accountant' => (clone $countQuery)->where('status', 'pending_accountant')->count(),
+            'approved' => (clone $countQuery)->where('status', 'approved')->count(),
+            'completed' => (clone $countQuery)->where('status', 'completed')->count(),
+            'rejected' => (clone $countQuery)->where('status', 'rejected')->count(),
+        ];
+
+        // Manual distributes (storekeeper direct issue — no department request)
+        $manualQuery = \App\Models\StockTransfer::with(['product', 'productVariant', 'transferredBy', 'receivedBy'])
+            ->where('notes', 'like', '%Direct issue to%');
+
+        if ($type === 'restaurant') {
+            $manualQuery->where('notes', 'like', '%Direct issue to restaurant%');
+        } elseif ($type === 'housekeeping') {
+            $manualQuery->where('notes', 'like', '%Direct issue to housekeeping%');
+        }
+
+        $manualTransfers = $manualQuery->orderByDesc('transfer_date')
+            ->orderByDesc('id')
+            ->paginate(15, ['*'], 'manual_page')
+            ->withQueryString();
+
+        return view('dashboard.stock-requests.index', compact(
+            'stockRequests',
+            'statusCounts',
+            'manualTransfers',
+            'type'
+        ));
+    }
+
+    /**
+     * Scope stock requests to Restaurant (bar + kitchen) or Housekeeping.
+     */
+    protected function applyDepartmentFilter($query, ?string $type): void
+    {
+        if ($type === 'restaurant') {
+            $query->where(function ($q) {
+                $q->whereHas('requester', function ($rq) {
+                    $rq->where(function ($roleQ) {
+                        foreach (['bar_keeper', 'bar keeper', 'bartender', 'head_chef', 'head chef', 'chef'] as $role) {
+                            $roleQ->orWhereRaw('LOWER(TRIM(role)) = ?', [strtolower($role)]);
+                        }
+                    });
+                })->orWhereHas('productVariant.product', function ($pq) {
+                    $pq->whereIn('category', [
+                        'alcoholic_beverage', 'non_alcoholic_beverage', 'water', 'juices', 'energy_drinks',
+                        'drinks', 'beverage', 'food', 'meat_poultry', 'seafood', 'vegetables', 'dairy',
+                        'pantry_baking', 'spices_herbs', 'oils_fats', 'kitchen', 'snacks',
+                    ])->orWhereIn('type', ['drink', 'food', 'kitchen']);
+                });
+            });
+        } elseif ($type === 'housekeeping') {
+            $query->where(function ($q) {
+                $q->whereHas('requester', function ($rq) {
+                    $rq->whereRaw('LOWER(TRIM(role)) = ?', ['housekeeper']);
+                })->orWhereHas('productVariant.product', function ($pq) {
+                    $pq->whereIn('category', ['cleaning_supplies', 'linens', 'housekeeping'])
+                        ->orWhere('type', 'housekeeping');
+                });
+            });
+        }
     }
 
     /**
@@ -573,5 +649,17 @@ class StockRequestController extends Controller
         }
 
         return view('dashboard.stock-requests.batch_print', compact('stockRequests', 'batchId'));
+    }
+
+    /**
+     * Lightweight pending counts for sidebar badges / polls.
+     */
+    public function pendingCounts()
+    {
+        return response()->json([
+            'pending_accountant' => StockRequest::where('status', 'pending_accountant')->count(),
+            'pending_manager' => StockRequest::where('status', 'pending_manager')->count(),
+            'approved' => StockRequest::where('status', 'approved')->count(),
+        ]);
     }
 }

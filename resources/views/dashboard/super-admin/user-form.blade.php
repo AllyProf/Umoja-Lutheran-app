@@ -6,10 +6,16 @@
     <h1><i class="fa fa-user"></i> {{ $user ? __('Edit User') : __('Create New User') }}</h1>
     <p>{{ $user ? __('Update user information') : __('Add a new user to the system') }}</p>
   </div>
+  @php
+    $dashboardRoute = $dashboardRoute ?? 'super_admin.dashboard';
+    $usersIndexRoute = $usersIndexRoute ?? 'super_admin.users';
+    $usersStoreRoute = $usersStoreRoute ?? 'super_admin.users.store';
+    $usersUpdateRoute = $usersUpdateRoute ?? 'super_admin.users.update';
+  @endphp
   <ul class="app-breadcrumb breadcrumb">
     <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
-    <li class="breadcrumb-item"><a href="{{ route('super_admin.dashboard') }}">{{ __('Dashboard') }}</a></li>
-    <li class="breadcrumb-item"><a href="{{ route('super_admin.users') }}">{{ __('Users') }}</a></li>
+    <li class="breadcrumb-item"><a href="{{ route($dashboardRoute) }}">{{ __('Dashboard') }}</a></li>
+    <li class="breadcrumb-item"><a href="{{ route($usersIndexRoute) }}">{{ __('Users') }}</a></li>
     <li class="breadcrumb-item"><a href="#">{{ $user ? __('Edit') : __('Create') }}</a></li>
   </ul>
 </div>
@@ -19,7 +25,7 @@
     <div class="tile">
       <h3 class="tile-title">{{ $user ? __('Edit User') : __('Create New User') }}</h3>
       <div class="tile-body">
-        <form action="{{ $user ? route('super_admin.users.update', $user->id) : route('super_admin.users.store') }}"
+        <form action="{{ $user ? route($usersUpdateRoute, $user->id) : route($usersStoreRoute) }}"
               method="POST">
           @csrf
           @if($user)
@@ -139,7 +145,7 @@
             <button type="submit" class="btn btn-primary">
               <i class="fa fa-save"></i> {{ $user ? __('Update User') : __('Create User') }}
             </button>
-            <a href="{{ route('super_admin.users') }}" class="btn btn-secondary">
+            <a href="{{ route($usersIndexRoute) }}" class="btn btn-secondary">
               <i class="fa fa-times"></i> {{ __('Cancel') }}
             </a>
           </div>

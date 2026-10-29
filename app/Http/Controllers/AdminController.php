@@ -13,9 +13,18 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\StockTransfer;
 use App\Models\StockReceipt;
+use App\Models\Staff;
+use App\Models\Guest;
+use App\Models\Role;
+use App\Models\ActivityLog;
+use App\Models\SystemLog;
 use App\Services\CurrencyExchangeService;
+use App\Services\SmsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
 
 class AdminController extends Controller
@@ -223,6 +232,9 @@ class AdminController extends Controller
                 // Shopping List approvals
                 'pending_shopping_approvals' => \App\Models\ShoppingList::where('status', 'accountant_checked')->count(),
 
+                // LPO budgets awaiting manager verification
+                'pending_lpo' => \App\Models\LocalPurchaseOrder::where('status', 'sent_to_manager')->count(),
+
                 // Extension requests
                 'pending_extensions' => Booking::where('extension_status', 'pending')->count(),
 
@@ -272,6 +284,13 @@ class AdminController extends Controller
             $pendingStockRequests = \App\Models\StockRequest::where('status', 'pending_manager')
                 ->with(['requester', 'productVariant.product'])
                 ->latest()
+                ->get();
+
+            // LPO budgets awaiting manager verification
+            $pendingLpos = \App\Models\LocalPurchaseOrder::with('storekeeper')
+                ->where('status', 'sent_to_manager')
+                ->latest()
+                ->limit(5)
                 ->get();
 
             // Revenue chart data (last 6 months) - in TZS
@@ -325,6 +344,7 @@ class AdminController extends Controller
                 'revenueData' => $revenueData,
                 'bookingStatusData' => $bookingStatusData,
                 'pendingStockRequests' => $pendingStockRequests,
+                'pendingLpos' => $pendingLpos,
             ]);
         } catch (\Exception $e) {
             \Log::error('Admin dashboard error', [
@@ -499,6 +519,168 @@ class AdminController extends Controller
             'tab' => $tab,
             'filters' => $request->only(['search_employee', 'search_customer']),
         ]);
+    }
+
+    /**
+     * Roles a manager may assign (not super_admin).
+     */
+    protected function managerAssignableRoles()
+    {
+        return Role::assignableRoles()->filter(function ($role) {
+            $name = strtolower(str_replace([' ', '-'], '_', trim($role->name)));
+            return $name !== 'super_admin';
+        })->values();
+    }
+
+    /**
+     * Show create user form (manager)
+     */
+    public function createUser()
+    {
+        return view('dashboard.super-admin.user-form', [
+            'role' => 'manager',
+            'userName' => auth()->guard('staff')->user()->name ?? 'Manager',
+            'userRole' => 'Manager',
+            'user' => null,
+            'roles' => $this->managerAssignableRoles(),
+            'usersIndexRoute' => 'admin.users',
+            'usersStoreRoute' => 'admin.users.store',
+            'usersUpdateRoute' => null,
+            'dashboardRoute' => 'admin.dashboard',
+        ]);
+    }
+
+    /**
+     * Store new user (manager)
+     */
+    public function storeUser(Request $request, SmsService $smsService)
+    {
+        $allowedRoles = $this->managerAssignableRoles()->pluck('name')->map(function ($name) {
+            return strtolower(str_replace([' ', '-'], '_', trim($name)));
+        })->all();
+
+        $rules = [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email',
+            'phone' => 'required|string|max:20',
+            'role' => 'required|string|exists:roles,name',
+            'is_active' => 'boolean',
+        ];
+        if ($request->filled('password')) {
+            $rules['password'] = 'string|min:8|confirmed';
+        }
+
+        $validated = $request->validate($rules);
+        $validated['role'] = strtolower(str_replace([' ', '-'], '_', trim($validated['role'])));
+
+        if ($validated['role'] === 'super_admin' || !in_array($validated['role'], $allowedRoles, true)) {
+            return back()->withErrors(['role' => 'You are not allowed to assign that role.'])->withInput();
+        }
+
+        $emailExists = Staff::where('email', $validated['email'])->exists()
+            || Guest::where('email', $validated['email'])->exists();
+        if ($emailExists) {
+            return back()->withErrors(['email' => 'The email has already been taken.'])->withInput();
+        }
+
+        $nameParts = explode(' ', trim($validated['name']));
+        $firstName = !empty($nameParts[0]) ? $nameParts[0] : $validated['name'];
+        $defaultPassword = strtoupper($firstName);
+        $password = $request->filled('password') ? $validated['password'] : $defaultPassword;
+
+        if (Role::isStaffRoleName($validated['role'])) {
+            $user = Staff::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+                'password' => Hash::make($password),
+                'role' => $validated['role'],
+                'is_active' => $request->has('is_active') ? (bool) $request->is_active : true,
+            ]);
+
+            try {
+                Mail::to($user->email)->send(new \App\Mail\StaffWelcomeMail($user, $defaultPassword, $validated['role']));
+            } catch (\Exception $e) {
+                Log::error('Failed to send staff welcome email', ['error' => $e->getMessage()]);
+            }
+
+            try {
+                $roleName = ucwords(str_replace('_', ' ', $user->role));
+                $smsMessage = "Hello {$user->name}, your Umoja Lutheran account has been created as {$roleName}. Username: {$user->email}, Password: {$defaultPassword}. Change your password upon login.";
+                $smsService->sendSms($user->phone, $smsMessage, 'sms_user_welcome');
+            } catch (\Exception $e) {
+                Log::error('Failed to send staff welcome SMS', ['error' => $e->getMessage()]);
+            }
+        } else {
+            $user = Guest::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+                'password' => Hash::make($password),
+                'is_active' => $request->has('is_active') ? (bool) $request->is_active : true,
+            ]);
+
+            try {
+                Mail::to($user->email)->send(new \App\Mail\WelcomeMail($user, $defaultPassword));
+            } catch (\Exception $e) {
+                Log::error('Failed to send guest welcome email', ['error' => $e->getMessage()]);
+            }
+        }
+
+        ActivityLog::log('created', $user, "Manager created user: {$user->name} ({$user->email}) with role: {$validated['role']}");
+        SystemLog::log('info', "User created by manager: {$user->name} ({$user->email})", 'user_management', [
+            'user_id' => $user->id,
+            'role' => $validated['role'],
+        ]);
+
+        return redirect()->route('admin.users', ['tab' => 'employees'])
+            ->with('success', 'User created successfully. Welcome credentials have been sent.');
+    }
+
+    /**
+     * Delete user (manager) — cannot delete super admins or self
+     */
+    public function deleteUser($id)
+    {
+        $user = Staff::find($id);
+        $userType = 'staff';
+        if (!$user) {
+            $user = Guest::find($id);
+            $userType = 'guest';
+        }
+
+        if (!$user) {
+            return redirect()->route('admin.users')->with('error', 'User not found.');
+        }
+
+        if ($userType === 'staff' && method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+            return redirect()->route('admin.users')->with('error', 'Cannot delete super admin accounts.');
+        }
+
+        $authUser = auth()->guard('staff')->user();
+        if ($authUser && $userType === 'staff' && (int) $user->id === (int) $authUser->id) {
+            return redirect()->route('admin.users')->with('error', 'Cannot delete your own account.');
+        }
+
+        if ($userType === 'staff') {
+            $targetRole = strtolower(str_replace([' ', '-'], '_', trim($user->role ?? '')));
+            if ($targetRole === 'super_admin') {
+                return redirect()->route('admin.users')->with('error', 'Cannot delete super admin accounts.');
+            }
+        }
+
+        $userName = $user->name;
+        $userEmail = $user->email;
+
+        ActivityLog::log('deleted', null, "Manager deleted user: {$userName} ({$userEmail})");
+        SystemLog::log('warning', "User deleted by manager: {$userName} ({$userEmail})", 'user_management', [
+            'user_id' => $user->id,
+        ]);
+
+        $user->delete();
+
+        return redirect()->route('admin.users', ['tab' => 'employees'])
+            ->with('success', 'User deleted successfully.');
     }
 
     /**

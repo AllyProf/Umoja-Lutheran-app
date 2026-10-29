@@ -19,11 +19,19 @@
                 <div class="tile-title-w-btn">
                     <h3 class="title">All Shopping Lists</h3>
                     <div class="btn-group">
-                        <a class="btn btn-success icon-btn"
-                            href="{{ route('admin.restaurants.shopping-list.purchased-items') }}">
-                            <i class="fa fa-shopping-cart"></i> View Purchased Items
-                        </a>
-                        <a class="btn btn-primary icon-btn" href="{{ route('admin.restaurants.shopping-list.create') }}">
+                        @php
+                            $isStorekeeper = auth()->guard('staff')->user()->role === 'storekeeper';
+                            $createListRoute = $isStorekeeper
+                                ? route('storekeeper.shopping-list.create')
+                                : route('admin.restaurants.shopping-list.create');
+                        @endphp
+                        @unless($isStorekeeper)
+                            <a class="btn btn-success icon-btn"
+                                href="{{ route('admin.restaurants.shopping-list.purchased-items') }}">
+                                <i class="fa fa-shopping-cart"></i> View Purchased Items
+                            </a>
+                        @endunless
+                        <a class="btn btn-primary icon-btn" href="{{ $createListRoute }}">
                             <i class="fa fa-plus"></i> Create New List
                         </a>
                     </div>

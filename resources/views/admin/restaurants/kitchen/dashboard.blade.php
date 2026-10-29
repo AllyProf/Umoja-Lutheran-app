@@ -94,14 +94,19 @@
           <tbody>
             @php
               $groupedOrders = $pendingOrders->groupBy(function($item) {
-                  return $item->is_walk_in ? 'w_' . ($item->walk_in_name ?? 'General') : 'b_' . ($item->booking_id ?? 'unknown');
+                  $day = optional($item->requested_at ?? $item->created_at)->toDateString() ?: 'nodate';
+                  return $item->is_walk_in
+                      ? 'w_' . $day . '_' . ($item->walk_in_name ?? 'General')
+                      : 'b_' . $day . '_' . ($item->booking_id ?? 'unknown');
               });
             @endphp
 
             @foreach($groupedOrders as $groupKey => $orders)
               @php
                 $first = $orders->first();
-                $guestTotal = $orders->where('payment_status', 'pending')->sum('total_price_tsh');
+                $pendingLines = $orders->where('payment_status', 'pending');
+                $guestTotal = $pendingLines->sum('total_price_tsh');
+                $pendingIds = $pendingLines->pluck('id')->values();
                 // Use the most recent request time for the group
                 $latestRequest = $orders->sortByDesc('requested_at')->first()->requested_at;
                 
@@ -206,7 +211,9 @@
                     @endif
 
                     @if($first->payment_status === 'pending')
-                        <button class="btn btn-sm btn-outline-success mb-1" onclick="openPaymentModal({{ $first->id }}, {{ $guestTotal }}, '{{ addslashes($first->walk_in_name ?? $first->booking->room->room_number ?? '') }}', {{ $first->is_walk_in ? 1 : 0 }})" title="Record Total Payment">
+                        <button class="btn btn-sm btn-outline-success mb-1"
+                          onclick='openPaymentModal({{ $first->id }}, {{ $guestTotal }}, @json($first->walk_in_name ?? $first->booking->room->room_number ?? ""), {{ $first->is_walk_in ? 1 : 0 }}, @json($pendingIds))'
+                          title="Record Total Payment">
                           <i class="fa fa-money"></i> PAY: {{ number_format($guestTotal) }}
                         </button>
                     @endif
@@ -499,6 +506,7 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="paymentOrderId">
+                <input type="hidden" id="paymentOrderIds" value="[]">
                 <p class="h4 text-center mb-4">Amount: <span id="paymentAmountDisplay" class="font-weight-bold text-primary"></span></p>
                 
                 <div class="form-group">
@@ -696,7 +704,10 @@ function filterItems() {
 }
 
 async function processWalkInCheckout() {
-    const guestName = document.getElementById('walkInGuestName').value.trim() || 'General Walk-in';
+    const now = new Date();
+    const timeStr = now.toTimeString().slice(0, 5);
+    const guestName = document.getElementById('walkInGuestName').value.trim()
+        || ('Walk-in ' + now.toISOString().slice(0, 10) + ' ' + timeStr + ' #' + Math.random().toString(36).slice(2, 6));
     const specialNotes = document.getElementById('walkInSpecialNotes').value.trim();
     
     const confirm = await Swal.fire({
@@ -900,8 +911,9 @@ function startPreparingDashboard(orderId, itemName) {
     });
 }
 
-function openPaymentModal(orderId, amount, guestName = '', isWalkIn = 0) {
+function openPaymentModal(orderId, amount, guestName = '', isWalkIn = 0, orderIds = []) {
     document.getElementById('paymentOrderId').value = orderId;
+    document.getElementById('paymentOrderIds').value = JSON.stringify(Array.isArray(orderIds) && orderIds.length ? orderIds : [orderId]);
     
     let displayAmount = Number(amount).toLocaleString() + ' TZS';
     if (guestName) {
@@ -974,7 +986,16 @@ function settlePOSPayment(orderId, method, reference = '') {
                 },
                 body: JSON.stringify({
                     payment_method: method,
-                    payment_reference: reference
+                    payment_reference: reference,
+                    order_ids: (function () {
+                        try {
+                            const raw = document.getElementById('paymentOrderIds')?.value || '[]';
+                            const parsed = JSON.parse(raw);
+                            return Array.isArray(parsed) ? parsed : [orderId];
+                        } catch (e) {
+                            return [orderId];
+                        }
+                    })()
                 })
             })
             .then(response => response.json())

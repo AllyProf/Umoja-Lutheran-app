@@ -41,9 +41,11 @@
                                 @php
                                     $badgeClass = match ($lpo->status) {
                                         'pending' => 'badge-warning',
+                                        'rejected' => 'badge-danger',
                                         'sent_to_accountant' => 'badge-info',
                                         'sent_to_manager' => 'badge-primary',
-                                        'verified_by_manager' => 'badge-success',
+                                        'verified_by_manager' => 'badge-warning',
+                                        'funds_disbursed' => 'badge-success',
                                         'closed' => 'badge-dark',
                                         'cancelled' => 'badge-danger',
                                         default => 'badge-secondary'
@@ -56,7 +58,19 @@
                             <th>Created By:</th>
                             <td>{{ $lpo->storekeeper->name ?? 'N/A' }}</td>
                         </tr>
+                        @if($lpo->accountant)
+                            <tr>
+                                <th>Accountant:</th>
+                                <td>{{ $lpo->accountant->name }}</td>
+                            </tr>
+                        @endif
                     </table>
+                    @if($lpo->status === 'rejected' && $lpo->rejection_reason)
+                        <div class="alert alert-danger mt-3 mb-0">
+                            <strong><i class="fa fa-undo"></i> Returned by accountant</strong><br>
+                            <small>{{ $lpo->rejection_reason }}</small>
+                        </div>
+                    @endif
                     @if($lpo->notes)
                         <div class="bg-light p-2 mt-3 border rounded">
                             <strong>Budget Notes:</strong><br>
@@ -65,34 +79,78 @@
                     @endif
                 </div>
                 <div class="tile-footer border-top pt-3 mt-4">
-                    @if($lpo->status === 'pending' && auth()->guard('staff')->user()->role === 'storekeeper')
-                        <a href="{{ route('lpo.edit', $lpo->id) }}" class="btn btn-primary btn-block mb-2"><i class="fa fa-edit"></i> Edit Items</a>
-                        <form action="{{ route('lpo.send', $lpo->id) }}" method="POST">
+                    @php $role = strtolower(auth()->guard('staff')->user()->role ?? ''); @endphp
+
+                    {{-- Storekeeper: edit & (re)send --}}
+                    @if(in_array($lpo->status, ['pending', 'rejected']) && in_array($role, ['storekeeper', 'super_admin']))
+                        <a href="{{ route('lpo.edit', $lpo->id) }}" class="btn btn-primary btn-block mb-2">
+                            <i class="fa fa-edit"></i>
+                            {{ $lpo->status === 'rejected' ? 'Revise Items' : 'Edit Items' }}
+                        </a>
+                        <form action="{{ route('lpo.send', $lpo->id) }}" method="POST"
+                            onsubmit="return confirm('Send this budget to the accountant for review?');">
                             @csrf
-                            <button type="submit" class="btn btn-success btn-block"><i class="fa fa-paper-plane"></i> Send to Accountant</button>
+                            <button type="submit" class="btn btn-success btn-block">
+                                <i class="fa fa-paper-plane"></i>
+                                {{ $lpo->status === 'rejected' ? 'Resend to Accountant' : 'Send to Accountant' }}
+                            </button>
                         </form>
                     @endif
 
-                    @if($lpo->status === 'sent_to_accountant' && auth()->guard('staff')->user()->role === 'accountant')
-                        <form action="{{ route('lpo.send-to-manager', $lpo->id) }}" method="POST">
+                    {{-- Accountant review: adjust / accept / reject --}}
+                    @if($lpo->status === 'sent_to_accountant' && in_array($role, ['accountant', 'super_admin', 'manager']))
+                        <div class="alert alert-info small py-2">
+                            Review this budget. Adjust amounts if needed, then Accept or Reject.
+                        </div>
+                        <a href="{{ route('lpo.edit', $lpo->id) }}" class="btn btn-warning btn-block mb-2">
+                            <i class="fa fa-sliders"></i> Adjust Budget
+                        </a>
+                        <form action="{{ route('lpo.send-to-manager', $lpo->id) }}" method="POST" class="mb-2"
+                            onsubmit="return confirm('Accept this budget and send it to the manager?');">
                             @csrf
-                            <button type="submit" class="btn btn-primary btn-block mb-2"><i class="fa fa-share"></i> Send to Manager</button>
+                            <button type="submit" class="btn btn-success btn-block">
+                                <i class="fa fa-check"></i> Accept &amp; Send to Manager
+                            </button>
                         </form>
+                        <button type="button" class="btn btn-outline-danger btn-block" data-toggle="modal" data-target="#rejectLpoModal">
+                            <i class="fa fa-times"></i> Reject &amp; Return to Storekeeper
+                        </button>
                     @endif
 
                     @if($lpo->status === 'sent_to_manager' && in_array(auth()->guard('staff')->user()->role, ['manager', 'super_admin']))
                         <button type="button" class="btn btn-success btn-block" onclick="$('#verifyLpoModal').modal('show')"><i class="fa fa-check-circle"></i> Verify Budget</button>
                     @endif
 
-                    @if($lpo->status === 'verified_by_manager' && auth()->guard('staff')->user()->role === 'accountant')
+                    @if($lpo->status === 'verified_by_manager' && in_array($role, ['accountant', 'super_admin', 'manager']))
+                        <div class="alert alert-warning small py-2">
+                            Manager verified this budget. Disburse funds so the storekeeper can purchase.
+                        </div>
+                        <form action="{{ route('lpo.disburse', $lpo->id) }}" method="POST" class="mb-2"
+                            onsubmit="return confirm('Disburse TZS {{ number_format($lpo->total_amount) }} to the storekeeper?');">
+                            @csrf
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fa fa-money"></i> Pay Storekeeper
+                            </button>
+                        </form>
+                    @endif
+
+                    @if($lpo->status === 'funds_disbursed' && in_array($role, ['accountant', 'super_admin']))
+                        <div class="alert alert-success small py-2">
+                            Funds paid. Storekeeper can now purchase / receive items.
+                        </div>
                         <form action="{{ route('lpo.close', $lpo->id) }}" method="POST">
                             @csrf
                             <button type="submit" class="btn btn-dark btn-block"><i class="fa fa-lock"></i> Close Budget</button>
                         </form>
                     @endif
 
-                    @if(in_array($lpo->status, ['verified_by_manager', 'closed']) && in_array(auth()->guard('staff')->user()->role, ['storekeeper', 'super_admin']))
-                        <a href="{{ route('lpo.receive', $lpo->id) }}" class="btn btn-warning btn-block mt-2">
+                    @if(in_array($lpo->status, ['funds_disbursed', 'closed']) && in_array($role, ['storekeeper', 'super_admin', 'manager']))
+                        @php
+                            $receiveRoute = $role === 'storekeeper'
+                                ? route('storekeeper.stock-receipts.create', ['source' => 'lpo', 'lpo_id' => $lpo->id])
+                                : route('admin.stock-receipts.create', ['source' => 'lpo', 'lpo_id' => $lpo->id]);
+                        @endphp
+                        <a href="{{ $receiveRoute }}" class="btn btn-warning btn-block mt-2">
                             <i class="fa fa-inbox"></i> Receive Items into Inventory
                         </a>
                     @endif
@@ -230,7 +288,34 @@
         </div>
     </div>
 
-    <!-- Verify Modal -->
+    <!-- Accountant Reject Modal -->
+    <div class="modal fade" id="rejectLpoModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <form action="{{ route('lpo.reject', $lpo->id) }}" method="POST">
+                @csrf
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">Reject LPO Budget</h5>
+                        <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>This budget will be returned to the storekeeper for revision.</p>
+                        <div class="form-group mb-0">
+                            <label class="font-weight-bold">Reason for rejection <span class="text-danger">*</span></label>
+                            <textarea name="rejection_reason" class="form-control" rows="4" required
+                                placeholder="e.g. Reduce cooking oil qty, prices look high, missing items..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Reject &amp; Return</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Manager Verify Modal -->
     <div class="modal fade" id="verifyLpoModal" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <form action="{{ route('lpo.manager-verify', $lpo->id) }}" method="POST">

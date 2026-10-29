@@ -15,6 +15,7 @@ class KitchenOrderController extends Controller
      */
     public function index()
     {
+        $today = now()->toDateString();
         $pendingOrders = ServiceRequest::with(['booking.room', 'service'])
             ->where(function($query) {
                 // Include Generic Food Order (4), Restaurant Food Order (48), and categories
@@ -31,6 +32,10 @@ class KitchenOrderController extends Controller
                     $sub->where('status', 'completed')
                         ->whereIn('payment_status', ['pending', 'unpaid']);
                 });
+            })
+            ->where(function ($q) use ($today) {
+                $q->whereDate('requested_at', $today)
+                    ->orWhereDate('created_at', $today);
             })
             ->orderBy('requested_at', 'desc')
             ->get();

@@ -214,10 +214,11 @@
               <tbody>
                 @php
                   $groupedOrders = $pendingOrders->groupBy(function ($item) {
+                    $day = optional($item->requested_at ?? $item->created_at)->toDateString() ?: 'nodate';
                     if ($item->is_walk_in) {
-                      return 'w_' . ($item->walk_in_name ?? 'General');
+                      return 'w_' . $day . '_' . ($item->walk_in_name ?? 'General');
                     }
-                    return 'b_' . ($item->booking_id ?? 'unknown');
+                    return 'b_' . $day . '_' . ($item->booking_id ?? 'unknown');
                   });
                 @endphp
 
@@ -387,7 +388,7 @@
 
                         @if($guestTotal > 0)
                           <button class="btn btn-success btn-lg btn-block shadow-sm {{ !$activeShift ? 'disabled' : '' }}" {{ !$activeShift ? 'disabled' : '' }}
-                            onclick="openPaymentModal({{ $first->id }}, {{ $guestTotal }}, {{ $first->is_walk_in ? 1 : 0 }})">
+                            onclick='openPaymentModal({{ $first->id }}, {{ $guestTotal }}, {{ $first->is_walk_in ? 1 : 0 }}, @json($counterPending->pluck("id")->values()) )'>
                             <i class="fa fa-money"></i> PAY: {{ number_format($guestTotal) }}
                           </button>
                         @elseif($receptionTotal > 0)
@@ -1106,6 +1107,7 @@
         </div>
         <div class="modal-body">
           <input type="hidden" id="paymentOrderId">
+          <input type="hidden" id="paymentOrderIds" value="[]">
           <p class="h4 text-center mb-4">Amount: <span id="paymentAmountDisplay"
               class="font-weight-bold text-primary"></span></p>
 
@@ -1826,7 +1828,7 @@
 
       const guestName = isInHouse
         ? `${selectedInHouseBooking.guest_name} (Rm ${selectedInHouseBooking.room_number})`
-        : (document.getElementById('walkInGuestName').value.trim() || ('Walk-in (' + timeStr + ')'));
+        : (document.getElementById('walkInGuestName').value.trim() || ('Walk-in ' + new Date().toISOString().slice(0, 10) + ' ' + timeStr + ' #' + Math.random().toString(36).slice(2, 6)));
 
       // Ensure docket uses the resolved guest name
       document.getElementById('walkInGuestName').value = guestName;
@@ -1986,8 +1988,9 @@
       }
     }
 
-    function openPaymentModal(orderId, amount, isWalkIn = 0) {
+    function openPaymentModal(orderId, amount, isWalkIn = 0, orderIds = []) {
       document.getElementById('paymentOrderId').value = orderId;
+      document.getElementById('paymentOrderIds').value = JSON.stringify(Array.isArray(orderIds) && orderIds.length ? orderIds : [orderId]);
       document.getElementById('paymentAmountDisplay').innerText = amount.toLocaleString() + ' TZS';
 
       const methodSelect = document.getElementById('paymentMethod');
@@ -2057,7 +2060,16 @@
             },
             body: JSON.stringify({
               payment_method: method,
-              payment_reference: reference
+              payment_reference: reference,
+              order_ids: (function () {
+                try {
+                  const raw = document.getElementById('paymentOrderIds')?.value || '[]';
+                  const parsed = JSON.parse(raw);
+                  return Array.isArray(parsed) ? parsed : [orderId];
+                } catch (e) {
+                  return [orderId];
+                }
+              })()
             })
           })
             .then(response => response.json())

@@ -90,13 +90,24 @@ class KitchenController extends Controller
         // Clear session data after retrieving
         session()->forget(['shopping_list_prefill_items', 'shopping_list_prefill_name', 'shopping_list_prefill_date', 'purchase_requests_for_shopping_list']);
 
-        // Get active LPOs
-        $lpos = \App\Models\LocalPurchaseOrder::whereIn('status', ['verified_by_manager', 'closed'])
-            ->with('items')
+        // Open LPO budgets available to attach to a purchase list
+        // (pending → sent_to_accountant → sent_to_manager → verified_by_manager)
+        $lpos = \App\Models\LocalPurchaseOrder::whereIn('status', [
+                'pending',
+                'sent_to_accountant',
+                'sent_to_manager',
+                'verified_by_manager',
+            ])
+            ->with(['items.productVariant.product'])
             ->latest()
             ->get();
 
-        return view('admin.restaurants.shopping_list.create', compact('products', 'prefillItems', 'prefillName', 'prefillDate', 'purchaseRequestIds', 'lpos'));
+        $role = strtolower(Auth::guard('staff')->user()->role ?? '');
+        $view = $role === 'storekeeper'
+            ? 'dashboard.storekeeper.shopping-list-create'
+            : 'admin.restaurants.shopping_list.create';
+
+        return view($view, compact('products', 'prefillItems', 'prefillName', 'prefillDate', 'purchaseRequestIds', 'lpos'));
     }
 
     public function store(Request $request)
@@ -190,7 +201,14 @@ class KitchenController extends Controller
             }
 
             DB::commit();
-            return redirect()->route('admin.restaurants.shopping-list.index')->with('success', 'Shopping List created successfully');
+
+            $role = strtolower(Auth::guard('staff')->user()->role ?? '');
+            $indexRoute = $role === 'storekeeper'
+                ? 'storekeeper.shopping-list.index'
+                : 'admin.restaurants.shopping-list.index';
+
+            return redirect()->route($indexRoute)
+                ->with('success', 'Purchase list created and sent for accountant review.');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Error creating list: ' . $e->getMessage())->withInput();
@@ -234,8 +252,13 @@ class KitchenController extends Controller
             ->orderBy('name')
             ->get();
 
-        // Get active LPOs
-        $lpos = \App\Models\LocalPurchaseOrder::whereIn('status', ['verified_by_manager', 'closed'])
+        // Open LPO budgets available to attach to a purchase list
+        $lpos = \App\Models\LocalPurchaseOrder::whereIn('status', [
+                'pending',
+                'sent_to_accountant',
+                'sent_to_manager',
+                'verified_by_manager',
+            ])
             ->with('items')
             ->latest()
             ->get();
@@ -847,6 +870,8 @@ class KitchenController extends Controller
         // Get Pending Food Orders (Service Requests)
         $foodCategories = ['food', 'restaurant'];
 
+        // Current kitchen/counter board = TODAY only (old unpaid debts stay on Debts page)
+        $today = now()->toDateString();
         $pendingOrders = \App\Models\ServiceRequest::with(['booking.room', 'service'])
             ->where(function ($q) use ($foodCategories) {
                 // Filter by category OR explicit ID (Generic Food Order)
@@ -862,6 +887,10 @@ class KitchenController extends Controller
                     $sub->where('status', 'completed')
                         ->whereIn('payment_status', ['pending', 'unpaid']);
                 });
+            })
+            ->where(function ($q) use ($today) {
+                $q->whereDate('requested_at', $today)
+                    ->orWhereDate('created_at', $today);
             })
             ->orderBy('requested_at', 'desc')
             ->get();

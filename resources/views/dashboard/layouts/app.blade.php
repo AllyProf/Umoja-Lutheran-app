@@ -1086,10 +1086,10 @@
                 {{ __('You have no new notifications.') }}
               @endif
             </li>
-            <div class="app-notification__content">
+            <div class="app-notification__content" id="notificationList">
               @if(isset($notifications) && $notifications->count() > 0)
                 @foreach($notifications as $notification)
-                  <li>
+                  <li data-notification-id="{{ $notification->id }}">
                     <a class="app-notification__item" href="{{ $notification->link ?? '#' }}" onclick="return markNotificationAsRead(event, {{ $notification->id }}, '{{ $notification->link ?? '' }}')">
                       <span class="app-notification__icon">
                         <span class="fa-stack fa-lg">
@@ -1104,13 +1104,15 @@
                     </a>
                   </li>
                 @endforeach
+              @else
+                <li class="app-notification__empty px-3 py-4 text-center text-muted" id="notificationEmptyState">
+                  <small>{{ __('No unread notifications.') }}</small>
+                </li>
               @endif
             </div>
-            @if(isset($unreadNotificationCount) && $unreadNotificationCount > 0)
-              <li class="app-notification__footer">
-                <a href="javascript:;" onclick="markAllNotificationsAsRead()">{{ __('Mark all as read') }}</a>
-              </li>
-            @endif
+            <li class="app-notification__footer" id="notificationMarkAllFooter" @if(!isset($unreadNotificationCount) || $unreadNotificationCount < 1) style="display:none" @endif>
+              <a href="javascript:;" onclick="markAllNotificationsAsRead()">{{ __('Mark all as read') }}</a>
+            </li>
           </ul>
         </li>
         <!-- Theme toggle (Light / Dark) -->
@@ -1713,111 +1715,140 @@
       }
     </script>
     <script>
+      function getCsrfToken() {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+      }
+
+      function notificationFetchHeaders() {
+        return {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': getCsrfToken()
+        };
+      }
+
+      function getUnreadBadgeCount() {
+        const badge = document.querySelector('.notification-badge');
+        if (!badge) return 0;
+        return parseInt(badge.textContent.trim().replace('+', ''), 10) || 0;
+      }
+
+      function setUnreadBadgeCount(count) {
+        const notificationLink = document.querySelector('.app-nav__item[aria-label="{{ __('Show notifications') }}"]')
+          || document.querySelector('.app-nav__item[data-toggle="dropdown"]');
+        let badge = document.querySelector('.notification-badge');
+
+        if (count > 0) {
+          if (!badge && notificationLink) {
+            badge = document.createElement('span');
+            badge.className = 'badge badge-danger notification-badge';
+            notificationLink.appendChild(badge);
+          }
+          if (badge) {
+            badge.textContent = count > 99 ? '99+' : String(count);
+          }
+        } else if (badge) {
+          badge.remove();
+        }
+
+        const footer = document.getElementById('notificationMarkAllFooter');
+        if (footer) {
+          footer.style.display = count > 0 ? '' : 'none';
+        }
+
+        updateNotificationTitle(count);
+      }
+
+      function ensureNotificationEmptyState() {
+        const list = document.getElementById('notificationList');
+        if (!list) return;
+        const remaining = list.querySelectorAll('li[data-notification-id]');
+        if (remaining.length === 0 && !list.querySelector('#notificationEmptyState')) {
+          list.innerHTML = `<li class="app-notification__empty px-3 py-4 text-center text-muted" id="notificationEmptyState"><small>{{ __('No unread notifications.') }}</small></li>`;
+        }
+      }
+
+      function clearAllNotificationItems() {
+        const list = document.getElementById('notificationList');
+        if (list) {
+          list.innerHTML = `<li class="app-notification__empty px-3 py-4 text-center text-muted" id="notificationEmptyState"><small>{{ __('No unread notifications.') }}</small></li>`;
+        }
+        setUnreadBadgeCount(0);
+      }
+
       function markNotificationAsRead(event, notificationId, url) {
         if (event) event.preventDefault();
-        
-        // If we have a URL, navigate to it immediately (optimistic navigation)
-        // We trigger the validation in background
+
         const hasUrl = url && url !== 'javascript:;' && url !== '#';
-        
+
         fetch(`/notifications/${notificationId}/read`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-          }
-        }).catch(function(err) { console.error('Error marking read:', err); });
-        
-        if (hasUrl) {
-            window.location.href = url;
-            return false;
-        }
-        
-        // DOM update logic (only relevant if we stay on page)
-        // ... (preserving existing logic for single page app feel if no URL)
+          headers: notificationFetchHeaders(),
+          credentials: 'same-origin'
+        }).catch(function (err) { console.error('Error marking read:', err); });
 
-          // Update badge count
-          const badge = document.querySelector('.notification-badge');
-          if (badge) {
-            const currentText = badge.textContent.trim();
-            const count = parseInt(currentText.replace('+', '')) - 1;
-            if (count > 0) {
-              badge.textContent = count > 99 ? '99+' : count;
-            } else {
-              badge.remove();
-            }
-          }
-          // Remove the notification from the dropdown
-          const notificationItem = document.querySelector(`a[onclick*="${notificationId}"]`)?.closest('li');
-          if (notificationItem) {
-            notificationItem.remove();
-          }
-          // Update notification title
-          updateNotificationTitle();
-          // Dismiss toast if it exists
+        // Optimistic UI update
+        const notificationItem = document.querySelector(`li[data-notification-id="${notificationId}"]`);
+        if (notificationItem) {
+          notificationItem.remove();
+        }
+        setUnreadBadgeCount(Math.max(0, getUnreadBadgeCount() - 1));
+        ensureNotificationEmptyState();
+        if (typeof dismissToast === 'function') {
           dismissToast(notificationId);
+        }
+
+        if (hasUrl) {
+          window.location.href = url;
+        }
+        return false;
       }
-      
-      function updateNotificationTitle() {
-        const badge = document.querySelector('.notification-badge');
+
+      function updateNotificationTitle(count) {
         const title = document.querySelector('.app-notification__title');
-        if (title) {
-          const count = badge ? parseInt(badge.textContent.trim().replace('+', '')) : 0;
-          if (count > 0) {
-            title.innerHTML = {{ json_encode(__('You have')) }} + ` ${count} ` + {{ json_encode(__('new')) }} + ` ${count === 1 ? {{ json_encode(__('notification')) }} : {{ json_encode(__('notifications')) }}}.`;
-          } else {
-            title.innerHTML = {{ json_encode(__('You have no new notifications.')) }};
-          }
+        if (!title) return;
+        const unread = typeof count === 'number' ? count : getUnreadBadgeCount();
+        if (unread > 0) {
+          title.innerHTML = {{ json_encode(__('You have')) }} + ` ${unread} ` + {{ json_encode(__('new')) }} + ` ${unread === 1 ? {{ json_encode(__('notification')) }} : {{ json_encode(__('notifications')) }}}.`;
+        } else {
+          title.innerHTML = {{ json_encode(__('You have no new notifications.')) }};
         }
       }
-      
-      // Ensure notification badge is visible on page load
-      document.addEventListener('DOMContentLoaded', function() {
-        const badge = document.querySelector('.notification-badge');
-        const unreadCount = {{ $unreadNotificationCount ?? 0 }};
-        if (unreadCount > 0 && !badge) {
-          // Badge should exist but doesn't - recreate it
-          const notificationLink = document.querySelector('.app-nav__item[data-toggle="dropdown"]');
-          if (notificationLink) {
-            const newBadge = document.createElement('span');
-            newBadge.className = 'badge badge-danger notification-badge';
-            newBadge.style.cssText = '';
-            newBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
-            notificationLink.appendChild(newBadge);
-          }
-        }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        const unreadCount = {{ (int) ($unreadNotificationCount ?? 0) }};
+        setUnreadBadgeCount(unreadCount);
       });
 
       function markAllNotificationsAsRead() {
+        // Clear UI immediately so old items do not linger
+        clearAllNotificationItems();
+
         fetch('/notifications/mark-all-read', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-          }
-        }).then(() => {
-          location.reload();
-        });
+          headers: notificationFetchHeaders(),
+          credentials: 'same-origin'
+        })
+          .then(function (response) {
+            if (!response.ok) {
+              throw new Error('Failed to mark notifications as read');
+            }
+            return response.json();
+          })
+          .then(function () {
+            clearAllNotificationItems();
+          })
+          .catch(function (err) {
+            console.error(err);
+            // Reload to resync if the request failed
+            location.reload();
+          });
       }
 
       function incrementNotificationBadge(count = 1) {
-        const badge = document.querySelector('.notification-badge');
-        if (badge) {
-          const currentCount = parseInt(badge.textContent.trim().replace('+', '')) || 0;
-          const newCount = currentCount + count;
-          badge.textContent = newCount > 99 ? '99+' : newCount;
-          updateNotificationTitle();
-        } else {
-          const notificationLink = document.querySelector('.app-nav__item[data-toggle="dropdown"]');
-          if (notificationLink) {
-            const newBadge = document.createElement('span');
-            newBadge.className = 'badge badge-danger notification-badge';
-            newBadge.style.cssText = '';
-            newBadge.textContent = count > 99 ? '99+' : count;
-            notificationLink.appendChild(newBadge);
-            updateNotificationTitle();
-          }
-        }
+        setUnreadBadgeCount(getUnreadBadgeCount() + (count || 1));
       }
 
       // Toast Notification System for Action Required Notifications
@@ -2008,29 +2039,11 @@
               });
             }
             
-            // Update badge count using the unread_count from response (always if success)
+            // Keep badge in sync with server unread count
             if (typeof data.unread_count !== 'undefined') {
-              const unreadCount = data.unread_count;
-              const badge = document.querySelector('.notification-badge');
-              
-              if (unreadCount > 0) {
-                if (badge) {
-                  badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
-                } else {
-                  // Create badge if it doesn't exist
-                  const notificationLink = document.querySelector('.app-nav__item[data-toggle="dropdown"]');
-                  if (notificationLink) {
-                    const newBadge = document.createElement('span');
-                    newBadge.className = 'badge badge-danger notification-badge';
-                    newBadge.style.cssText = '';
-                    newBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
-                    notificationLink.appendChild(newBadge);
-                  }
-                }
-                updateNotificationTitle();
-              } else if (badge) {
-                badge.remove();
-                updateNotificationTitle();
+              setUnreadBadgeCount(data.unread_count);
+              if (data.unread_count === 0) {
+                clearAllNotificationItems();
               }
             }
           }

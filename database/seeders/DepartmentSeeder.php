@@ -17,21 +17,33 @@ class DepartmentSeeder extends Seeder
     {
         $departments = [
             [
-                'name' => 'Bar Department',
-                'code' => 'bar',
-                'description' => 'Handles all beverages, spirits, wines, and bar supplies.',
+                'name' => 'Restaurant',
+                'code' => 'restaurant',
+                'description' => 'Restaurant department — food and drinks combined.',
                 'is_active' => true,
             ],
             [
-                'name' => 'Kitchen Department',
-                'code' => 'kitchen',
-                'description' => 'Handles all food processing, ingredients, and kitchen supplies.',
-                'is_active' => true,
-            ],
-            [
-                'name' => 'Housekeeping Department',
+                'name' => 'Housekeeping',
                 'code' => 'housekeeping',
-                'description' => 'Handles guest room supplies, cleaning equipment, and linens.',
+                'description' => 'Housekeeping — cleaning, linens, and amenities.',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Shared',
+                'code' => 'shared',
+                'description' => 'Items shared across Restaurant and Housekeeping.',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Bar',
+                'code' => 'bar',
+                'description' => 'Bar section — drinks (linked under Restaurant).',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Kitchen',
+                'code' => 'kitchen',
+                'description' => 'Kitchen section — food (linked under Restaurant).',
                 'is_active' => true,
             ],
         ];

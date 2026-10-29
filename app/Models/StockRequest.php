@@ -16,6 +16,7 @@ class StockRequest extends Model
         'batch_reference',
         'product_variant_id',
         'quantity',
+        'quantity_issued',
         'unit',
         'status',
         'accountant_id',

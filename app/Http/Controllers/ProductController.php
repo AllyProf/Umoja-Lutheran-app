@@ -21,7 +21,7 @@ class ProductController extends Controller
         $user = Auth::guard('staff')->user();
         $role = strtolower($user->role ?? 'manager');
 
-        $query = Product::with(['supplier', 'variants']);
+        $query = Product::with(['supplier', 'variants', 'departments']);
 
         // Bar Keeper only sees bar products (drinks)
         if ($role === 'bar_keeper') {
@@ -72,7 +72,7 @@ class ProductController extends Controller
         $totalCategories = $statsQuery->distinct()->count('category');
         $activeItems = $statsQuery->where('is_active', true)->count();
 
-        $products = $query->paginate(200);
+        $products = $query->paginate(24)->withQueryString();
 
         $summaryStats = [
             'brands' => $totalBrands,
@@ -107,99 +107,70 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
+        // Prefer item_name from simplified form
+        if ($request->filled('item_name')) {
+            $request->merge([
+                'name' => $request->item_name,
+                'variants' => collect($request->input('variants', []))->map(function ($variant) use ($request) {
+                    $variant['name'] = $variant['name'] ?? $request->item_name;
+                    return $variant;
+                })->all(),
+            ]);
+        }
+
         $validated = $request->validate([
-            'name' => 'required|string|max:255', // Brand Name
+            'name' => 'required|string|max:255',
             'category' => 'required|string',
+            'usage' => 'required|in:internal,for_sale',
             'description' => 'nullable|string',
             'type' => 'nullable|string',
 
-            // Variants Validation
             'variants' => 'required|array|min:1',
             'variants.*.name' => 'required|string|max:255',
-            'variants.*.measurement' => 'nullable|string',
-            'variants.*.unit' => 'nullable|string', // ml, l, etc.
-            'variants.*.selling_method' => 'nullable|in:pic,glass,mixed',
-            'variants.*.image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'variants.*.receiving_unit' => 'required|string|max:50',
+            'variants.*.purchasing_unit' => 'nullable|string|max:50',
+            'variants.*.selling_unit' => 'nullable|string|max:50',
+            'variants.*.items_per_package' => 'nullable|numeric|min:0.01',
+            'variants.*.buying_price' => 'required|numeric|min:0',
             'variants.*.selling_price_per_pic' => 'nullable|numeric|min:0',
             'variants.*.selling_price_per_serving' => 'nullable|numeric|min:0',
+            'variants.*.image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
 
-            // Configuration checks
-            'variants.*.servings' => 'nullable|integer|min:1',
-
-            // Departments Integration
             'departments' => 'nullable|array',
             'departments.*' => 'exists:departments,id',
             'department_categories' => 'nullable|array',
         ]);
 
-        $user = Auth::guard('staff')->user();
-        $role = $user->role;
-        $isBarKeeper = ($role === 'bar_keeper' || $role === 'barkeeper');
+        if ($validated['usage'] === 'for_sale') {
+            $request->validate([
+                'variants.*.selling_unit' => 'required|string|max:50',
+                'variants.*.selling_price_per_pic' => 'required|numeric|min:0',
+            ]);
+        }
 
         DB::beginTransaction();
         try {
-            // Determine valid type (drink, food, housekeeping)
-            $foodCategories = ['chakula', 'food', 'meat_poultry', 'seafood', 'pantry', 'dairy', 'baking', 'vegetables', 'spices', 'sauces', 'bakery', 'pantry_baking', 'spices_herbs', 'oils_fats', 'snacks', 'kitchen'];
-            $beverageCategories = ['vinywaji', 'spirits', 'wines', 'alcoholic_beverage', 'non_alcoholic_beverage', 'energy_drinks', 'juices', 'water', 'hot_beverages', 'cocktails', 'soda', 'soft_drinks'];
-            $housekeepingCategories = ['housekeeping', 'cleaning_supplies', 'linens', 'amenities'];
+            $type = $this->resolveProductType($validated['category'], $validated['type'] ?? null);
 
-            if (in_array($validated['category'], $foodCategories)) {
-                $type = 'food';
-            } elseif (in_array($validated['category'], $beverageCategories)) {
-                $type = 'drink';
-            } elseif (in_array($validated['category'], $housekeepingCategories)) {
-                $type = 'housekeeping';
-            } else {
-                $type = $validated['category'] === 'general' ? 'general' : ($validated['type'] ?? 'general');
-            }
+            // Simplified form: one product, one variant
+            $variantData = $request->variants[0];
+            $product = Product::create([
+                'name' => $variantData['name'] ?? $validated['name'],
+                'category' => $validated['category'],
+                'description' => $validated['description'] ?? null,
+                'type' => $type,
+                'usage' => $validated['usage'],
+                'is_returnable' => $request->boolean('is_returnable'),
+                'is_active' => true,
+            ]);
 
-            // 1. Logic for Bulk vs Grouped Registration
-            // For Food and Housekeeping, we usually want separate products for each row.
-            // For Drinks, we group them as variants of one brand.
-            $isGrouped = ($type === 'drink');
-
-            if (!$isGrouped) {
-                // BULK REGISTRATION (Separate Products)
-                foreach ($request->variants as $index => $variantData) {
-                    // Create a separate product for each row
-                    $product = Product::create([
-                        'name' => $variantData['name'] ?? $validated['name'],
-                        'category' => $validated['category'],
-                        'description' => $validated['description'],
-                        'type' => $type,
-                        'is_returnable' => $request->boolean('is_returnable'),
-                        'is_active' => true,
-                    ]);
-
-                    // Create precisely one variant for this product
-                    $this->createItemVariant($product, $variantData, $type, 0);
-
-                    // Attach departments to this specific product
-                    $this->attachDepartments($product, $request);
-                }
-            } else {
-                // GROUPED REGISTRATION (One Product, Many Variants - for Drinks)
-                $product = Product::create([
-                    'name' => $validated['name'],
-                    'category' => $validated['category'],
-                    'description' => $validated['description'],
-                    'type' => $type,
-                    'is_returnable' => $request->boolean('is_returnable'),
-                    'is_active' => true,
-                ]);
-
-                foreach ($request->variants as $index => $variantData) {
-                    $this->createItemVariant($product, $variantData, $type, $index);
-                }
-
-                $this->attachDepartments($product, $request);
-            }
+            $this->createItemVariant($product, $variantData, $type, 0, $validated['usage']);
+            $this->attachDepartments($product, $request);
 
             DB::commit();
 
-            $routePrefix = $isBarKeeper ? 'bar-keeper' : 'admin';
-            return redirect()->route($routePrefix . '.products.index')
-                ->with('success', 'Items registered successfully!');
+            return redirect()->route($this->getRoutePrefix() . '.products.index')
+                ->with('success', 'Product registered successfully!');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -208,13 +179,40 @@ class ProductController extends Controller
     }
 
     /**
+     * Resolve product type from category
+     */
+    private function resolveProductType(string $category, ?string $fallback = null): string
+    {
+        $foodCategories = ['chakula', 'food', 'meat_poultry', 'seafood', 'pantry', 'dairy', 'baking', 'vegetables', 'spices', 'sauces', 'bakery', 'pantry_baking', 'spices_herbs', 'oils_fats', 'snacks', 'kitchen'];
+        $beverageCategories = ['vinywaji', 'spirits', 'wines', 'alcoholic_beverage', 'non_alcoholic_beverage', 'energy_drinks', 'juices', 'water', 'hot_beverages', 'cocktails', 'soda', 'soft_drinks'];
+        $housekeepingCategories = ['housekeeping', 'cleaning_supplies', 'linens', 'amenities'];
+
+        if ($category === 'restaurant') {
+            return 'restaurant';
+        }
+        if (in_array($category, $foodCategories)) {
+            return 'food';
+        }
+        if (in_array($category, $beverageCategories)) {
+            return 'drink';
+        }
+        if (in_array($category, $housekeepingCategories)) {
+            return 'housekeeping';
+        }
+
+        return $category === 'general' ? 'general' : ($fallback ?? 'general');
+    }
+
+    /**
      * Helper to create a product variant
      */
-    private function createItemVariant($product, $variantData, $type, $index)
+    private function createItemVariant($product, $variantData, $type, $index, string $usage = 'for_sale')
     {
-        // Default to selling as a whole unit
-        $canSellPic = true;
-        $canSellServing = $type === 'drink' && !empty($variantData['selling_price_per_serving']);
+        $forSale = $usage === 'for_sale';
+        $receivingUnit = $variantData['receiving_unit'] ?? 'Pcs';
+        $sellingUnit = $forSale
+            ? ($variantData['selling_unit'] ?? $receivingUnit)
+            : $receivingUnit;
 
         $imagePath = null;
         if (isset($variantData['image']) && $variantData['image'] instanceof \Illuminate\Http\UploadedFile) {
@@ -228,14 +226,14 @@ class ProductController extends Controller
                 ? ($variantData['measurement'] . ' ' . $variantData['unit'])
                 : ($variantData['measurement'] ?? $variantData['unit'] ?? null),
             'image' => $imagePath,
-            'purchasing_unit' => $variantData['purchasing_unit'] ?? null,
-            'receiving_unit' => $variantData['receiving_unit'] ?? null,
+            'purchasing_unit' => $variantData['purchasing_unit'] ?? $receivingUnit,
+            'receiving_unit' => $receivingUnit,
             'items_per_package' => $variantData['items_per_package'] ?? 1,
-            'can_sell_as_pic' => $canSellPic,
-            'can_sell_as_serving' => $canSellServing,
-            'selling_unit' => $canSellServing ? (($variantData['unit'] ?? '') === 'ml' ? 'glass' : 'serving') : 'pic',
+            'can_sell_as_pic' => $forSale,
+            'can_sell_as_serving' => $forSale && in_array(strtolower($sellingUnit), ['glass', 'shot', 'tot', 'serving']),
+            'selling_unit' => $sellingUnit,
             'servings_per_pic' => $variantData['servings'] ?? 1,
-            'selling_price_per_pic' => $variantData['selling_price_per_pic'] ?? 0,
+            'selling_price_per_pic' => $forSale ? ($variantData['selling_price_per_pic'] ?? 0) : 0,
             'selling_price_per_serving' => $variantData['selling_price_per_serving'] ?? 0,
             'buying_price' => $variantData['buying_price'] ?? 0,
             'display_order' => $index,
@@ -299,110 +297,98 @@ class ProductController extends Controller
      */
     public function update(Request $request, Product $product)
     {
+        if ($request->filled('item_name')) {
+            $request->merge([
+                'name' => $request->item_name,
+                'variants' => collect($request->input('variants', []))->map(function ($variant) use ($request) {
+                    $variant['name'] = $variant['name'] ?? $request->item_name;
+                    return $variant;
+                })->all(),
+            ]);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'supplier_id' => 'nullable|exists:suppliers,id',
             'category' => 'required|string',
+            'usage' => 'required|in:internal,for_sale',
             'description' => 'nullable|string',
             'variants' => 'required|array|min:1',
             'variants.*.id' => 'nullable|exists:product_variants,id',
             'variants.*.name' => 'required|string|max:255',
-            'variants.*.measurement' => 'nullable|string',
-            'variants.*.unit' => 'nullable|string', // ml, l
-            'variants.*.selling_method' => 'nullable|in:pic,glass,mixed',
-            'variants.*.image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'variants.*.servings' => 'nullable|integer|min:1',
+            'variants.*.receiving_unit' => 'required|string|max:50',
+            'variants.*.purchasing_unit' => 'nullable|string|max:50',
+            'variants.*.selling_unit' => 'nullable|string|max:50',
+            'variants.*.items_per_package' => 'nullable|numeric|min:0.01',
+            'variants.*.buying_price' => 'required|numeric|min:0',
             'variants.*.selling_price_per_pic' => 'nullable|numeric|min:0',
             'variants.*.selling_price_per_serving' => 'nullable|numeric|min:0',
-
-            // Departments Integration
+            'variants.*.image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'departments' => 'nullable|array',
             'departments.*' => 'exists:departments,id',
             'department_categories' => 'nullable|array',
         ]);
 
+        if ($validated['usage'] === 'for_sale') {
+            $request->validate([
+                'variants.*.selling_unit' => 'required|string|max:50',
+                'variants.*.selling_price_per_pic' => 'required|numeric|min:0',
+            ]);
+        }
+
         DB::beginTransaction();
         try {
-            // Determine type
-            $foodCategories = ['chakula', 'food', 'meat_poultry', 'seafood', 'pantry', 'dairy', 'baking', 'vegetables', 'spices', 'sauces', 'bakery', 'pantry_baking', 'spices_herbs', 'oils_fats', 'snacks', 'kitchen'];
-            $beverageCategories = ['vinywaji', 'spirits', 'wines', 'non_alcoholic_beverage', 'alcoholic_beverage', 'energy_drinks', 'juices', 'water', 'hot_beverages', 'cocktails', 'soda', 'soft_drinks'];
-            $housekeepingCategories = ['housekeeping', 'cleaning_supplies', 'linens', 'amenities'];
+            $type = $this->resolveProductType($validated['category'], $request->input('type'));
+            $usage = $validated['usage'];
+            $forSale = $usage === 'for_sale';
 
-            if (in_array($validated['category'], $foodCategories)) {
-                $type = 'food';
-            } elseif (in_array($validated['category'], $beverageCategories)) {
-                $type = 'drink';
-            } elseif (in_array($validated['category'], $housekeepingCategories)) {
-                $type = 'housekeeping';
-            } else {
-                $type = $validated['type'] ?? 'general';
-            }
-
-            // Update Parent Product
             $product->update([
                 'name' => $validated['name'],
                 'category' => $validated['category'],
-                'description' => $validated['description'],
+                'description' => $validated['description'] ?? null,
                 'type' => $type,
+                'usage' => $usage,
                 'is_returnable' => $request->boolean('is_returnable'),
                 'supplier_id' => $validated['supplier_id'] ?? null,
             ]);
 
-            // Update or create variants
-            $existingVariantIds = [];
             foreach ($request->variants as $index => $variantData) {
-                // Determine selling flags
-                $method = $variantData['selling_method'] ?? 'pic';
-
-                $canSellPic = in_array($method, ['pic', 'mixed']);
-                $canSellServing = in_array($method, ['glass', 'mixed']) && $type !== 'food';
+                $receivingUnit = $variantData['receiving_unit'] ?? 'Pcs';
+                $sellingUnit = $forSale
+                    ? ($variantData['selling_unit'] ?? $receivingUnit)
+                    : $receivingUnit;
 
                 $data = [
                     'variant_name' => $variantData['name'],
-                    'measurement' => isset($variantData['measurement']) && isset($variantData['unit'])
-                        ? ($variantData['measurement'] . ' ' . $variantData['unit'])
-                        : ($variantData['measurement'] ?? $variantData['unit'] ?? null),
-
-                    // Box/Crate/Unit Configurations
-                    'purchasing_unit' => $variantData['purchasing_unit'] ?? null,
-                    'receiving_unit' => $variantData['receiving_unit'] ?? null,
+                    'purchasing_unit' => $variantData['purchasing_unit'] ?? $receivingUnit,
+                    'receiving_unit' => $receivingUnit,
                     'items_per_package' => $variantData['items_per_package'] ?? 1,
-
-                    'can_sell_as_pic' => $canSellPic,
-                    'can_sell_as_serving' => $canSellServing,
-                    'selling_unit' => $canSellServing ? (($variantData['unit'] ?? '') === 'ml' ? 'glass' : 'serving') : 'pic',
-                    'servings_per_pic' => $variantData['servings'] ?? 1,
-                    'selling_price_per_pic' => $variantData['selling_price_per_pic'] ?? 0,
+                    'can_sell_as_pic' => $forSale,
+                    'can_sell_as_serving' => $forSale && in_array(strtolower($sellingUnit), ['glass', 'shot', 'tot', 'serving']),
+                    'selling_unit' => $sellingUnit,
+                    'selling_price_per_pic' => $forSale ? ($variantData['selling_price_per_pic'] ?? 0) : 0,
                     'selling_price_per_serving' => $variantData['selling_price_per_serving'] ?? 0,
+                    'buying_price' => $variantData['buying_price'] ?? 0,
                     'display_order' => $index,
                 ];
 
-                // Handle Image
                 if (isset($variantData['image']) && $variantData['image'] instanceof \Illuminate\Http\UploadedFile) {
                     $data['image'] = $variantData['image']->store('products/variants', 'public');
                 }
 
-                if (isset($variantData['id'])) {
-                    // Update existing
+                if (!empty($variantData['id'])) {
                     $variant = ProductVariant::find($variantData['id']);
                     if ($variant && $variant->product_id === $product->id) {
                         $variant->update($data);
-                        $existingVariantIds[] = $variant->id;
                     }
                 } else {
-                    // Create new
-                    $variant = ProductVariant::create(array_merge($data, ['product_id' => $product->id, 'is_active' => true]));
-                    $existingVariantIds[] = $variant->id;
+                    ProductVariant::create(array_merge($data, [
+                        'product_id' => $product->id,
+                        'is_active' => true,
+                    ]));
                 }
             }
 
-            // Delete removed variants
-            // Note: Be careful with deletions if stock exists. For now, we allow it but in production prevent if constraint.
-            // Ideally we should check if they can be deleted.
-            // $product->variants()->whereNotIn('id', $existingVariantIds)->delete(); 
-            // Commented out deletion to prevent accidental data loss until better UI is in place
-
-            // Sync Departments and their Category Overrides
             if (isset($request->departments) && is_array($request->departments)) {
                 $attachments = [];
                 foreach ($request->departments as $deptId) {
@@ -417,7 +403,7 @@ class ProductController extends Controller
 
             DB::commit();
 
-            return redirect()->route($this->getRoutePrefix() . '.products.index', ['type' => $product->type])
+            return redirect()->route($this->getRoutePrefix() . '.products.index')
                 ->with('success', 'Product updated successfully!');
 
         } catch (\Exception $e) {
@@ -446,17 +432,23 @@ class ProductController extends Controller
             $hasHistory = true;
         }
 
-        // 3. Check if variants are used in any significant tables
+        // 3. Check if variants are used in stock request / transfer / return tables
+        // Note: purchase_requests has no product_variant_id (text item_name only)
         if (!$hasHistory && !empty($variantIds)) {
-            // Check Stock Requests
             if (
                 \DB::table('stock_requests')->whereIn('product_variant_id', $variantIds)->exists() ||
                 \DB::table('stock_transfers')->whereIn('product_variant_id', $variantIds)->exists() ||
-                \DB::table('stock_returns')->whereIn('product_variant_id', $variantIds)->exists() ||
-                \DB::table('purchase_requests')->whereIn('product_variant_id', $variantIds)->exists()
+                \DB::table('stock_returns')->whereIn('product_variant_id', $variantIds)->exists()
             ) {
                 $hasHistory = true;
             }
+        }
+
+        // 4. Soft link: purchase requests by matching product name
+        if (!$hasHistory && $product->name) {
+            $hasHistory = \DB::table('purchase_requests')
+                ->where('item_name', $product->name)
+                ->exists();
         }
 
         if ($hasHistory) {

@@ -279,7 +279,7 @@ $routePrefix = request()->is('bar-keeper*') ? 'bar-keeper' : 'admin';
       </div>
       
       <div class="d-flex justify-content-center mt-4">
-        {{ $products->appends(request()->input())->links() }}
+        @include('dashboard.partials.bootstrap-pagination', ['paginator' => $products])
       </div>
       @else
       <div class="text-center py-5">

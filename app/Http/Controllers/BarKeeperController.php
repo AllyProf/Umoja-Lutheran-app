@@ -37,6 +37,9 @@ class BarKeeperController extends Controller
 
         $barCategories = ['drinks', 'non_alcoholic_beverage', 'water', 'juices', 'energy_drinks', 'hot_beverages', 'food', 'restaurant', 'traditional', 'bites', 'snacks', 'chai', 'fruit_salad', 'soft_drinks', 'beers', 'wines', 'spirits', 'cocktails', 'liquor', 'breakfast', 'lunch', 'dinner', 'supplies', 'equipment', 'sauces'];
 
+        // Counter "current orders" = TODAY only.
+        // Older unpaid walk-ins must NOT mix into today's bill (use Debts page).
+        $today = now()->toDateString();
         $pendingOrders = \App\Models\ServiceRequest::with(['booking.room', 'service'])
             ->where(function ($q) use ($barCategories) {
                 $q->whereHas('service', function ($query) use ($barCategories) {
@@ -59,6 +62,10 @@ class BarKeeperController extends Controller
                             ->where('payment_status', 'room_charge');
                     });
                 // Note: paid_at_reception orders are excluded — once paid they leave this list
+            })
+            ->where(function ($q) use ($today) {
+                $q->whereDate('requested_at', $today)
+                    ->orWhereDate('created_at', $today);
             })
             ->orderBy('requested_at', 'desc')
             ->get();

@@ -256,18 +256,27 @@ class PurchaseRequestController extends Controller
     public function createEmergency()
     {
         $staff = Auth::guard('staff')->user();
-
-        // Define route prefix based on role
-        $routePrefix = 'housekeeper'; // default
         $normalizedRole = strtolower(str_replace([' ', '_'], '', trim($staff->role ?? '')));
+
+        // Storekeeper gets the simplified emergency workflow
+        if ($normalizedRole === 'storekeeper') {
+            $recentEmergencies = PurchaseRequest::where('requested_by', $staff->id)
+                ->where('is_emergency', true)
+                ->latest()
+                ->limit(5)
+                ->get();
+
+            return view('dashboard.storekeeper.emergency-purchase', compact('staff', 'recentEmergencies'));
+        }
+
+        // Legacy form for other roles
+        $routePrefix = 'housekeeper';
         if ($normalizedRole === 'reception') {
             $routePrefix = 'reception';
-        } elseif (in_array($normalizedRole, ['barkeeper', 'bartender', 'bar_keeper', 'bar keeper'])) {
+        } elseif (in_array($normalizedRole, ['barkeeper', 'bartender'])) {
             $routePrefix = 'bar-keeper';
-        } elseif (in_array($normalizedRole, ['headchef', 'head_chef', 'head chef', 'chef'])) {
+        } elseif (in_array($normalizedRole, ['headchef', 'chef'])) {
             $routePrefix = 'chef-master';
-        } elseif (in_array($normalizedRole, ['storekeeper', 'store_keeper'])) {
-            $routePrefix = 'store-keeper';
         } elseif (in_array($normalizedRole, ['manager', 'superadmin'])) {
             $routePrefix = 'admin';
         }
@@ -276,20 +285,94 @@ class PurchaseRequestController extends Controller
     }
 
     /**
-     * Store emergency purchase request
+     * Store emergency purchase request (supports single item or items[] batch)
      */
     public function storeEmergency(Request $request)
     {
+        $staff = Auth::guard('staff')->user();
+
+        // Multi-item payload from simplified storekeeper form
+        if ($request->has('items') && is_array($request->items)) {
+            $request->validate([
+                'reason' => 'required|string|max:1000',
+                'items' => 'required|array|min:1',
+                'items.*.item_name' => 'required|string|max:255',
+                'items.*.department' => 'required|in:restaurant,housekeeping,shared',
+                'items.*.quantity' => 'required|numeric|min:0.01',
+                'items.*.unit' => 'required|string|max:50',
+                'items.*.estimated_cost' => 'nullable|numeric|min:0',
+            ]);
+
+            $created = [];
+            $sharedReason = trim($request->reason);
+
+            DB::beginTransaction();
+            try {
+                foreach ($request->items as $row) {
+                    $name = trim($row['item_name'] ?? '');
+                    $qty = (float) ($row['quantity'] ?? 0);
+                    if ($name === '' || $qty <= 0) {
+                        continue;
+                    }
+
+                    $department = $row['department'] ?? 'restaurant';
+                    $category = match ($department) {
+                        'housekeeping' => 'housekeeping',
+                        'shared' => 'general',
+                        default => 'restaurant',
+                    };
+
+                    $created[] = PurchaseRequest::create([
+                        'requested_by' => $staff->id,
+                        'item_name' => $name,
+                        'category' => $category,
+                        'quantity' => $qty,
+                        'unit' => $row['unit'],
+                        'reason' => $sharedReason,
+                        'estimated_cost' => $row['estimated_cost'] ?? null,
+                        'priority' => 'urgent',
+                        'is_emergency' => true,
+                        'status' => 'pending',
+                    ]);
+                }
+
+                if (empty($created)) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Add at least one item with a name and quantity.',
+                    ], 422);
+                }
+
+                DB::commit();
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Could not save emergency request: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            $this->notifyManagersOfEmergency($staff, $created);
+
+            return response()->json([
+                'success' => true,
+                'message' => count($created) . ' emergency item' . (count($created) === 1 ? '' : 's')
+                    . ' submitted. Managers have been notified.',
+                'count' => count($created),
+                'redirect' => route('storekeeper.purchase-requests.my'),
+            ]);
+        }
+
+        // Legacy single-item payload
         $request->validate([
             'item_name' => 'required|string|max:255',
             'category' => 'nullable|string|max:255',
             'quantity' => 'required|numeric|min:0.01',
             'unit' => 'required|string|max:50',
-            'reason' => 'required|string|max:1000', // Required for emergencies
+            'reason' => 'required|string|max:1000',
             'estimated_cost' => 'nullable|numeric|min:0',
         ]);
-
-        $staff = Auth::guard('staff')->user();
 
         $purchaseRequest = PurchaseRequest::create([
             'requested_by' => $staff->id,
@@ -299,37 +382,53 @@ class PurchaseRequestController extends Controller
             'unit' => $request->unit,
             'reason' => $request->reason,
             'estimated_cost' => $request->estimated_cost,
-            'priority' => 'urgent', // Always urgent
-            'is_emergency' => true, // Flag as emergency
+            'priority' => 'urgent',
+            'is_emergency' => true,
             'status' => 'pending',
         ]);
 
-        // Send SMS to managers
-        try {
-            $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
-                ->where('is_active', true)
-                ->get();
-
-            foreach ($managersAndAdmins as $manager) {
-                if ($manager->phone) {
-                    try {
-                        $smsService = app(\App\Services\SmsService::class);
-                        $smsMessage = "🚨 EMERGENCY: {$staff->name} requested {$request->quantity} {$request->unit} of '{$request->item_name}'. Cost Est: " . ($request->estimated_cost ?? 'N/A');
-                        $smsService->sendSms($manager->phone, $smsMessage, 'sms_purchase_request');
-                    } catch (\Exception $e) {
-                        \Log::error("Failed to send emergency purchase SMS to manager: " . $e->getMessage());
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            \Log::error('Failed to retrieve managers for emergency SMS: ' . $e->getMessage());
-        }
+        $this->notifyManagersOfEmergency($staff, [$purchaseRequest]);
 
         return response()->json([
             'success' => true,
             'message' => 'Emergency purchase request submitted successfully! Managers have been notified.',
             'request' => $purchaseRequest,
         ]);
+    }
+
+    /**
+     * SMS managers about emergency purchase request(s)
+     */
+    protected function notifyManagersOfEmergency($staff, array $requests): void
+    {
+        try {
+            $managersAndAdmins = \App\Models\Staff::whereIn('role', ['manager', 'super_admin'])
+                ->where('is_active', true)
+                ->get();
+
+            $summary = collect($requests)->map(function ($req) {
+                return "{$req->quantity} {$req->unit} {$req->item_name}";
+            })->take(3)->implode(', ');
+
+            if (count($requests) > 3) {
+                $summary .= ' +' . (count($requests) - 3) . ' more';
+            }
+
+            foreach ($managersAndAdmins as $manager) {
+                if (!$manager->phone) {
+                    continue;
+                }
+                try {
+                    $smsService = app(\App\Services\SmsService::class);
+                    $smsMessage = "EMERGENCY: {$staff->name} needs {$summary}. Please review.";
+                    $smsService->sendSms($manager->phone, $smsMessage, 'sms_purchase_request');
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send emergency purchase SMS to manager: ' . $e->getMessage());
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to retrieve managers for emergency SMS: ' . $e->getMessage());
+        }
     }
 
     /**

@@ -12,8 +12,63 @@
         </ul>
     </div>
 
-    <!-- Statistics Cards -->
+    @if(($stats['pending_lpo'] ?? 0) > 0)
+        <div class="alert alert-danger shadow-sm d-flex align-items-center justify-content-between flex-wrap">
+            <div>
+                <strong><i class="fa fa-bell"></i> {{ $stats['pending_lpo'] }} LPO budget{{ $stats['pending_lpo'] === 1 ? '' : 's' }} awaiting your review</strong>
+                <div class="small mb-0">Storekeeper sent a budget — accept, adjust, or reject it.</div>
+            </div>
+            <a href="{{ route('lpo.index', ['tab' => 'review']) }}" class="btn btn-sm btn-light text-danger font-weight-bold mt-2 mt-md-0">
+                Open LPO review
+            </a>
+        </div>
+    @endif
+
+    <!-- Financial Summary -->
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <div class="widget-small primary coloured-icon">
+                <i class="icon fa fa-line-chart fa-3x"></i>
+                <div class="info">
+                    <h4>Total Revenue</h4>
+                    <p><b>TZS {{ number_format($stats['total_revenue'] ?? 0, 0) }}</b></p>
+                    <small class="text-muted">This month: TZS {{ number_format($stats['month_revenue'] ?? 0, 0) }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="widget-small danger coloured-icon">
+                <i class="icon fa fa-shopping-cart fa-3x"></i>
+                <div class="info">
+                    <h4>Total Expenditure</h4>
+                    <p><b>TZS {{ number_format($stats['total_expenditure'] ?? 0, 0) }}</b></p>
+                    <small class="text-muted">This month: TZS {{ number_format($stats['month_expenditure'] ?? 0, 0) }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="widget-small {{ ($stats['net_income'] ?? 0) >= 0 ? 'success' : 'warning' }} coloured-icon">
+                <i class="icon fa fa-balance-scale fa-3x"></i>
+                <div class="info">
+                    <h4>Net Income</h4>
+                    <p><b>TZS {{ number_format($stats['net_income'] ?? 0, 0) }}</b></p>
+                    <small class="text-muted">This month: TZS {{ number_format($stats['month_net_income'] ?? 0, 0) }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Operational Statistics -->
     <div class="row">
+        <div class="col-md-3">
+            <div class="widget-small danger coloured-icon">
+                <i class="icon fa fa-file-text fa-3x"></i>
+                <div class="info">
+                    <h4>LPO to Review</h4>
+                    <p><b>{{ $stats['pending_lpo'] ?? 0 }}</b></p>
+                </div>
+            </div>
+        </div>
         <div class="col-md-3">
             <div class="widget-small primary coloured-icon">
                 <i class="icon fa fa-clock-o fa-3x"></i>
@@ -24,13 +79,15 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="widget-small info coloured-icon">
-                <i class="icon fa fa-check-circle fa-3x"></i>
-                <div class="info">
-                    <h4>Pay Now</h4>
-                    <p><b>{{ $stats['approved_lists'] }}</b></p>
+            <a href="{{ route('accountant.pay-storekeeper') }}" style="text-decoration:none;color:inherit;">
+                <div class="widget-small info coloured-icon">
+                    <i class="icon fa fa-check-circle fa-3x"></i>
+                    <div class="info">
+                        <h4>Pay Now</h4>
+                        <p><b>{{ $stats['approved_lists'] }}</b></p>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-3">
             <div class="widget-small warning coloured-icon">
@@ -41,29 +98,58 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="widget-small success coloured-icon">
-                <i class="icon fa fa-shopping-bag fa-3x"></i>
-                <div class="info">
-                    <h4>Purchased</h4>
-                    <p><b>{{ $stats['purchased_lists'] }}</b></p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="widget-small info coloured-icon" style="background-color: #f8f9fa;">
-                <i class="icon fa fa-car fa-3x bg-success"></i>
-                <div class="info">
-                    <h4>Today's Day Services</h4>
-                    <p><b>TZS {{ number_format($stats['total_day_services_revenue']) }}</b></p>
-                </div>
-            </div>
-        </div>
     </div>
 
     <div class="row">
+        <!-- Pending LPO Reviews -->
+        <div class="col-md-6 mb-4">
+            <div class="tile">
+                <div class="tile-title-w-btn">
+                    <h3 class="title"><i class="fa fa-file-text mr-2 text-danger"></i> LPO Awaiting Review</h3>
+                    <a href="{{ route('lpo.index', ['tab' => 'review']) }}" class="btn btn-sm btn-danger">Review</a>
+                </div>
+
+                @if(isset($pendingLpos) && $pendingLpos->count() > 0)
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>LPO</th>
+                                    <th>Period</th>
+                                    <th>Budget</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($pendingLpos as $lpo)
+                                    <tr class="table-warning">
+                                        <td>
+                                            <strong>#{{ $lpo->id }}</strong>
+                                            <div class="small text-muted">{{ $lpo->storekeeper->name ?? 'Storekeeper' }}</div>
+                                        </td>
+                                        <td class="small">
+                                            {{ $lpo->start_date->format('d M') }} – {{ $lpo->end_date->format('d M') }}
+                                        </td>
+                                        <td>TZS {{ number_format($lpo->total_amount) }}</td>
+                                        <td>
+                                            <a href="{{ route('lpo.show', $lpo->id) }}" class="btn btn-xs btn-danger">Open</a>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="text-center py-4">
+                        <i class="fa fa-check-circle fa-3x text-success mb-2"></i>
+                        <p class="text-muted mb-0">No LPO budgets waiting.</p>
+                    </div>
+                @endif
+            </div>
+        </div>
+
         <!-- Pending Shopping Lists -->
-        <div class="col-md-6">
+        <div class="col-md-6 mb-4">
             <div class="tile">
                 <div class="tile-title-w-btn">
                     <h3 class="title"><i class="fa fa-hourglass-half mr-2"></i> Awaiting Approval</h3>

@@ -23,7 +23,10 @@ class AppServiceProvider extends ServiceProvider
 {
     public function boot()
     {
+        // Bootstrap 4 pagination (Vali Admin / dashboard theme)
         Paginator::useBootstrapFour();
+        Paginator::defaultView('pagination::bootstrap-4');
+        Paginator::defaultSimpleView('pagination::simple-bootstrap-4');
 
         // Only force HTTPS if APP_URL uses HTTPS and we're in production
         // This prevents CSRF token mismatch when site is accessed via HTTP
@@ -189,13 +192,13 @@ class AppServiceProvider extends ServiceProvider
             $user = Auth::guard('staff')->user() ?? Auth::guard('guest')->user();
 
             if ($user) {
-                // Get recent notifications (last 10)
+                // Bell dropdown: unread only (so "Mark all as read" clears the list)
                 $notifications = Notification::forUser($user)
+                    ->unread()
                     ->orderBy('created_at', 'desc')
                     ->limit(10)
                     ->get();
 
-                // Get unread count
                 $unreadNotificationCount = Notification::forUser($user)
                     ->unread()
                     ->count();

@@ -1,638 +1,492 @@
 @extends('dashboard.layouts.app')
 
 @section('content')
-    @php
-        $isEdit = isset($product);
-        $userRole = strtolower(Auth::guard('staff')->user()->role ?? 'manager');
-        $routePrefix = ($userRole === 'bar_keeper' || $userRole === 'barkeeper' || $userRole === 'bartender') ? 'bar-keeper' : 'admin';
+@php
+    $isEdit = isset($product);
+    $userRole = strtolower($role ?? Auth::guard('staff')->user()->role ?? 'manager');
 
-        // If explicitly passed role variable is available, use it to refine
-        if (isset($role)) {
-            if ($role === 'bar_keeper' || $role === 'barkeeper')
-                $routePrefix = 'bar-keeper';
-            elseif ($role === 'manager' || $role === 'admin')
-                $routePrefix = 'admin';
+    if (in_array($userRole, ['bar_keeper', 'barkeeper', 'bartender'])) {
+        $routePrefix = 'bar-keeper';
+    } elseif ($userRole === 'storekeeper') {
+        $routePrefix = 'storekeeper';
+    } else {
+        $routePrefix = 'admin';
+    }
+
+    $title = $isEdit ? 'Edit Product' : 'Register Product';
+    $action = $isEdit
+        ? route($routePrefix . '.products.update', $product->id)
+        : route($routePrefix . '.products.store');
+    $indexRoute = route($routePrefix . '.products.index');
+
+    $selectedCategory = old('category', $product->category ?? '');
+    $selectedUsage = old('usage', $product->usage ?? 'for_sale');
+    $variant = $isEdit ? $product->variants->first() : null;
+
+    $unitOptions = ['Pcs', 'Bottle', 'Carton', 'Crate', 'Box', 'Pack', 'Bag', 'Kg', 'Grams', 'Litres', 'ml', 'Glass', 'Shot', 'Dozen', 'Packet', 'Bundle', 'Bunch', 'Tray', 'Sado', 'Debe', 'Bucket', 'Kiroba'];
+
+    // Normalize legacy selling units (glass/pic/serving) to Pcs
+    $normalizedSellingUnit = old('variants.0.selling_unit', $variant->selling_unit ?? 'Pcs');
+    if (in_array(strtolower((string) $normalizedSellingUnit), ['glass', 'pic', 'serving', 'tot', 'shot', 'cocktail'])) {
+        $normalizedSellingUnit = 'Pcs';
+    }
+
+    $selectedDeptGroup = old('department_group', '');
+    if (!$selectedDeptGroup && $isEdit) {
+        $deptCodes = collect($product->departments ?? [])->pluck('code')->filter()->map(fn ($c) => strtolower($c))->all();
+        if (in_array('shared', $deptCodes) || count(array_intersect($deptCodes, ['bar', 'kitchen', 'housekeeping'])) >= 3) {
+            $selectedDeptGroup = 'shared';
+        } elseif (in_array('housekeeping', $deptCodes) || $selectedCategory === 'housekeeping') {
+            $selectedDeptGroup = 'housekeeping';
+        } else {
+            $selectedDeptGroup = 'restaurant';
         }
+    }
+    if (!$selectedDeptGroup && $selectedCategory) {
+        $selectedDeptGroup = match ($selectedCategory) {
+            'housekeeping' => 'housekeeping',
+            'general' => 'shared',
+            default => 'restaurant',
+        };
+    }
+@endphp
 
-        $title = $isEdit ? 'Edit Product' : 'Register New Product';
-        $action = $isEdit ? route($routePrefix . '.products.update', $product->id) : route($routePrefix . '.products.store');
-    @endphp
-
-    <div class="app-title">
-        <div>
-            <h1><i class="fa fa-cubes"></i> {{ $title }}</h1>
-            <p>{{ $isEdit ? 'Update product and packaging details' : 'Register a new product and its packaging/sizes' }}</p>
-        </div>
-        <ul class="app-breadcrumb breadcrumb">
-            <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
-            <li class="breadcrumb-item"><a href="{{ route($routePrefix . '.products.index') }}">Products</a></li>
-            <li class="breadcrumb-item active"><a href="#">{{ $title }}</a></li>
-        </ul>
+<div class="app-title">
+    <div>
+        <h1><i class="fa fa-cube"></i> {{ $title }}</h1>
+        <p>{{ $isEdit ? 'Update item details' : 'Register one store item with clear department and usage' }}</p>
     </div>
+    <ul class="app-breadcrumb breadcrumb">
+        <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+        <li class="breadcrumb-item"><a href="{{ $indexRoute }}">Products</a></li>
+        <li class="breadcrumb-item active">{{ $title }}</li>
+    </ul>
+</div>
+
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="fa fa-exclamation-circle mr-1"></i> {{ session('error') }}
+        <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+    </div>
+@endif
+
+<form action="{{ $action }}" method="POST" id="productForm">
+    @csrf
+    @if($isEdit)
+        @method('PUT')
+    @endif
 
     <div class="row justify-content-center">
-        <div class="col-md-11">
-            <form action="{{ $action }}" method="POST" enctype="multipart/form-data" id="productForm">
-                @csrf
-                @if($isEdit)
-                    @method('PUT')
-                @endif
+        <div class="col-lg-8">
+            <div class="tile shadow-sm mb-4">
+                <h3 class="tile-title">Item details</h3>
 
-                <!-- 1. Brand / Family Details -->
-                <div class="card shadow-sm mb-4 border-top-primary">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0"><i class="fa fa-tag text-primary mr-2"></i> Product Information</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="form-group mb-0">
-                                    <label class="control-label font-weight-bold text-uppercase small text-primary">1.
-                                        Select Category <span class="text-danger">*</span></label>
-                                    <div class="d-flex align-items-center">
-                                        <select
-                                            class="form-control form-control-lg border-primary shadow-sm mr-3 @error('category') is-invalid @enderror"
-                                            name="category" id="categorySelect" required onchange="checkFoodCategory()"
-                                            style="flex: 1;">
-                                            <option value="">Select Category (Drink / Food / Housekeeping)</option>
-                                            <option value="vinywaji" {{ (old('category', $product->category ?? '') == 'vinywaji') ? 'selected' : '' }}>Drinks</option>
-                                            <option value="chakula" {{ (old('category', $product->category ?? '') == 'chakula') ? 'selected' : '' }}>Food</option>
-                                            <option value="housekeeping" {{ (old('category', $product->category ?? '') == 'housekeeping') ? 'selected' : '' }}>Housekeeping</option>
-                                            <option value="general">General / Shared</option>
-                                        </select>
-                                        <div class="custom-control custom-switch">
-                                            <input type="checkbox" class="custom-control-input" id="showManualDept"
-                                                onchange="checkFoodCategory()">
-                                            <label
-                                                class="custom-control-label small font-weight-bold text-muted text-uppercase"
-                                                for="showManualDept">Manual Departments</label>
-                                        </div>
-                                    </div>
-                                    @error('category') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                                </div>
-                            </div>
-                            <!-- Bulk name placeholder for controller -->
-                            <input type="hidden" name="name" value="Bulk Registration">
-                            <div class="col-md-12" id="returnableSection" style="display: none;">
-                                <div class="form-group">
-                                    <div class="custom-control custom-checkbox">
-                                        <input type="checkbox" class="custom-control-input" id="is_returnable"
-                                            name="is_returnable" value="1" {{ old('is_returnable', $product->is_returnable ?? false) ? 'checked' : '' }}>
-                                        <label class="custom-control-label font-weight-bold" for="is_returnable">
-                                            <i class="fa fa-undo text-info"></i> Is Returnable?
-                                            <span class="text-muted small ml-1">(Check if this item is used and then
-                                                returned to store, e.g. Brooms, Linens)</span>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <label class="control-label">Description</label>
-                                    <textarea class="form-control" name="description" rows="2"
-                                        placeholder="Brief description of this product family...">{{ old('description', $product->description ?? '') }}</textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 2. Pricing & Packaging Details -->
-                <div class="mb-3 d-flex justify-content-between align-items-center">
-                    <h4 class="text-secondary mb-0"><i class="fa fa-money-bill"></i> Pricing & Unit Details</h4>
-                </div>
-
-                <div id="variants-container">
-                    @if($isEdit && $product->variants->count() > 0)
-                        @foreach($product->variants as $index => $variant)
-                            @include('dashboard.partials.variant-form-item', ['index' => $index, 'variant' => $variant])
-                        @endforeach
-                    @else
-                        <div class="alert alert-info text-center shadow-sm" id="no-variants-msg">
-                            <i class="fa fa-info-circle fa-2x mb-2"></i><br>
-                            Start by adding the first variant (e.g. 350ml bottle) below.
-                        </div>
+                <div class="form-group">
+                    <label class="font-weight-bold">Item name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control form-control-lg" name="item_name" id="item_name"
+                        value="{{ old('item_name', $isEdit ? $product->name : '') }}"
+                        placeholder="e.g. Safari Lager 500ml, Sugar, Cleaning soap" required autofocus>
+                    <input type="hidden" name="name" id="productNameField" value="{{ old('name', $isEdit ? $product->name : '') }}">
+                    @if($isEdit && $variant)
+                        <input type="hidden" name="variants[0][id]" value="{{ $variant->id }}">
                     @endif
+                    <input type="hidden" name="variants[0][name]" id="variantNameField" value="{{ old('item_name', $isEdit ? ($variant->variant_name ?? $product->name) : '') }}">
                 </div>
 
-                <div class="text-right mt-3 mb-4">
-                    <button class="btn btn-primary btn-sm shadow-sm rounded-pill px-4" type="button" onclick="addVariant()">
-                        <i class="fa fa-plus-circle"></i> Add another Item
+                <div class="form-group">
+                    <label class="font-weight-bold d-block mb-2">Department <span class="text-danger">*</span></label>
+                    <div class="reg-choice-grid">
+                        <label class="reg-choice {{ $selectedDeptGroup === 'restaurant' ? 'is-selected' : '' }}">
+                            <input type="radio" name="department_group" value="restaurant" required
+                                {{ $selectedDeptGroup === 'restaurant' ? 'checked' : '' }} onchange="onDepartmentChange()">
+                            <strong>Restaurant</strong>
+                            <small>Food & drinks</small>
+                        </label>
+                        <label class="reg-choice {{ $selectedDeptGroup === 'housekeeping' ? 'is-selected' : '' }}">
+                            <input type="radio" name="department_group" value="housekeeping" required
+                                {{ $selectedDeptGroup === 'housekeeping' ? 'checked' : '' }} onchange="onDepartmentChange()">
+                            <strong>Housekeeping</strong>
+                            <small>Cleaning & linens</small>
+                        </label>
+                        <label class="reg-choice {{ $selectedDeptGroup === 'shared' ? 'is-selected' : '' }}">
+                            <input type="radio" name="department_group" value="shared" required
+                                {{ $selectedDeptGroup === 'shared' ? 'checked' : '' }} onchange="onDepartmentChange()">
+                            <strong>Shared</strong>
+                            <small>Restaurant + Housekeeping (e.g. soap)</small>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="alert alert-info py-2" id="sharedHint" style="display:none;">
+                    <i class="fa fa-info-circle mr-1"></i>
+                    <strong>Shared</strong> means this item can be used by both
+                    <strong>Restaurant</strong> and <strong>Housekeeping</strong>
+                    (example: soap for washing in kitchen and rooms).
+                </div>
+
+                <input type="radio" name="category" value="restaurant" id="catRestaurant" style="display:none;"
+                    {{ in_array($selectedCategory, ['restaurant', 'vinywaji', 'chakula']) || $selectedDeptGroup === 'restaurant' ? 'checked' : '' }}>
+                <input type="radio" name="category" value="housekeeping" id="catHousekeeping" style="display:none;"
+                    {{ $selectedCategory === 'housekeeping' ? 'checked' : '' }}>
+                <input type="radio" name="category" value="general" id="catGeneral" style="display:none;"
+                    {{ $selectedCategory === 'general' ? 'checked' : '' }}>
+
+                <div class="form-group">
+                    <label class="font-weight-bold d-block mb-2">Usage <span class="text-danger">*</span></label>
+                    <div class="reg-choice-grid reg-choice-grid-2">
+                        <label class="reg-choice usage-card {{ $selectedUsage === 'internal' ? 'is-selected' : '' }}">
+                            <input type="radio" name="usage" value="internal" required
+                                {{ $selectedUsage === 'internal' ? 'checked' : '' }} onchange="onUsageChange()">
+                            <strong>Internal use</strong>
+                            <small>Store / department use only</small>
+                        </label>
+                        <label class="reg-choice usage-card {{ $selectedUsage === 'for_sale' ? 'is-selected' : '' }}">
+                            <input type="radio" name="usage" value="for_sale" required
+                                {{ $selectedUsage === 'for_sale' ? 'checked' : '' }} onchange="onUsageChange()">
+                            <strong>For sale</strong>
+                            <small>Sold to customers</small>
+                        </label>
+                    </div>
+                </div>
+
+                @php
+                    $isReturnable = (bool) old('is_returnable', $isEdit ? ($product->is_returnable ?? false) : false);
+                @endphp
+                <div class="form-group" id="returnableWrap">
+                    <div class="custom-control custom-checkbox">
+                        <input type="hidden" name="is_returnable" value="0">
+                        <input type="checkbox" class="custom-control-input" id="is_returnable" name="is_returnable"
+                            value="1" {{ $isReturnable ? 'checked' : '' }}>
+                        <label class="custom-control-label font-weight-bold" for="is_returnable">
+                            Returnable to store after use
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-1">
+                        Enable for reusable tools (broom, mop, bucket, etc.). Housekeeping can return them to the storekeeper when finished.
+                    </small>
+                </div>
+            </div>
+
+            <div class="tile shadow-sm mb-4">
+                <h3 class="tile-title">Units & prices</h3>
+
+                <div class="row">
+                    <div class="col-md-6 form-group">
+                        <label class="font-weight-bold">Receiving package / unit <span class="text-danger">*</span></label>
+                        <select class="form-control form-control-lg" name="variants[0][receiving_unit]" id="receiving_unit" required>
+                            @foreach($unitOptions as $unit)
+                                <option value="{{ $unit }}"
+                                    {{ old('variants.0.receiving_unit', $variant->receiving_unit ?? 'Pcs') === $unit ? 'selected' : '' }}>
+                                    {{ $unit }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted">Unit used when receiving into store stock</small>
+                    </div>
+                    <div class="col-md-6 form-group" id="sellingUnitWrap">
+                        <label class="font-weight-bold">Selling package / unit <span class="text-danger">*</span></label>
+                        <select class="form-control form-control-lg" name="variants[0][selling_unit]" id="selling_unit">
+                            @foreach($unitOptions as $unit)
+                                <option value="{{ $unit }}"
+                                    {{ $normalizedSellingUnit === $unit ? 'selected' : '' }}>
+                                    {{ $unit }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted">Unit used when selling this item</small>
+                    </div>
+                </div>
+
+                <div class="row" id="ratioWrap" style="display:none;">
+                    <div class="col-md-6 form-group">
+                        <label class="font-weight-bold">How many selling units in 1 receiving unit?</label>
+                        <input type="number" class="form-control" name="variants[0][items_per_package]" id="items_per_package"
+                            min="0.01" step="any"
+                            value="{{ old('variants.0.items_per_package', $variant->items_per_package ?? 1) }}">
+                        <small class="text-muted">e.g. 24 bottles in 1 carton</small>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 form-group">
+                        <label class="font-weight-bold">Buying price (TZS) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control form-control-lg" name="variants[0][buying_price]"
+                            id="buying_price" min="0" step="0.01" required
+                            value="{{ old('variants.0.buying_price', $variant->buying_price ?? '') }}"
+                            placeholder="Price per receiving unit">
+                    </div>
+                    <div class="col-md-6 form-group" id="sellingPriceWrap">
+                        <label class="font-weight-bold">Selling price (TZS) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control form-control-lg" name="variants[0][selling_price_per_pic]"
+                            id="selling_price" min="0" step="0.01"
+                            value="{{ old('variants.0.selling_price_per_pic', $variant->selling_price_per_pic ?? '') }}"
+                            placeholder="Price per selling unit">
+                    </div>
+                </div>
+
+                {{-- purchasing_unit mirrors receiving for stock compatibility --}}
+                <input type="hidden" name="variants[0][purchasing_unit]" id="purchasing_unit" value="{{ old('variants.0.purchasing_unit', $variant->purchasing_unit ?? 'Pcs') }}">
+            </div>
+
+            {{-- Hidden departments for auto-assign --}}
+            <div id="departmentsCard" style="display:none;">
+                @foreach($departments as $dept)
+                    @php
+                        $isChecked = false;
+                        $assignedCategory = '';
+                        if ($isEdit && $product->departments) {
+                            $pivot = $product->departments->firstWhere('id', $dept->id);
+                            if ($pivot) {
+                                $isChecked = true;
+                                $assignedCategory = $pivot->pivot->category;
+                            }
+                        }
+                    @endphp
+                    <input type="checkbox" class="dept-checkbox" id="dept_{{ $dept->id }}"
+                        name="departments[]" value="{{ $dept->id }}" {{ $isChecked ? 'checked' : '' }}
+                        data-dept-code="{{ $dept->code }}">
+                    <select name="department_categories[{{ $dept->id }}]" id="dept_cat_{{ $dept->id }}">
+                        <option value="">Select...</option>
+                        <option value="beverage" {{ $assignedCategory == 'beverage' ? 'selected' : '' }}>Drinks</option>
+                        <option value="non_alcoholic_beverage" {{ $assignedCategory == 'non_alcoholic_beverage' ? 'selected' : '' }}>Soft Drinks</option>
+                        <option value="food" {{ $assignedCategory == 'food' ? 'selected' : '' }}>Food</option>
+                        <option value="cleaning_supplies" {{ $assignedCategory == 'cleaning_supplies' ? 'selected' : '' }}>Cleaning</option>
+                        <option value="shared" {{ $assignedCategory == 'shared' ? 'selected' : '' }}>Shared</option>
+                        <option value="other" {{ $assignedCategory == 'other' ? 'selected' : '' }}>Other</option>
+                    </select>
+                @endforeach
+            </div>
+
+            <div class="tile shadow-sm mb-5">
+                <div class="d-flex flex-wrap justify-content-between align-items-center" style="gap:10px;">
+                    <a href="{{ $indexRoute }}" class="btn btn-outline-secondary">
+                        <i class="fa fa-arrow-left"></i> Back
+                    </a>
+                    <button type="submit" class="btn btn-success btn-lg px-4">
+                        <i class="fa fa-check"></i> {{ $isEdit ? 'Save Changes' : 'Save Product' }}
                     </button>
                 </div>
-
-                <!-- Hidden Departments Section (Handled automatically) -->
-                <!-- Departments Section -->
-                <div class="card shadow-sm mb-4 border-top-primary mt-4" id="departmentsCard" style="display: none;">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0"><i class="fa fa-sitemap text-primary mr-2"></i> Departments & Placement</h5>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <p class="text-muted small mb-0">Select which departments this product belongs to and assign a
-                            department-specific category.</p>
-                        <button type="button" class="btn btn-outline-info btn-sm" onclick="selectAllDepartments()">
-                            <i class="fa fa-check-square"></i> Mark as Shared (All)
-                        </button>
-                    </div>
-                    <div class="row">
-                        @foreach($departments as $dept)
-                            @php
-                                $isChecked = false;
-                                $assignedCategory = '';
-                                if ($isEdit && $product->departments) {
-                                    $pivot = $product->departments->firstWhere('id', $dept->id);
-                                    if ($pivot) {
-                                        $isChecked = true;
-                                        $assignedCategory = $pivot->pivot->category;
-                                    }
-                                }
-                            @endphp
-                            <div class="col-md-4 mb-3">
-                                <div class="border rounded p-3 {{ $isChecked ? 'bg-light border-primary' : '' }}"
-                                    id="dept-card-{{ $dept->id }}">
-                                    <div class="custom-control custom-checkbox mb-2">
-                                        <input type="checkbox" class="custom-control-input dept-checkbox"
-                                            id="dept_{{ $dept->id }}" name="departments[]" value="{{ $dept->id }}" {{ $isChecked ? 'checked' : '' }} onchange="toggleDeptCategory({{ $dept->id }})">
-                                        <label class="custom-control-label font-weight-bold"
-                                            for="dept_{{ $dept->id }}">{{ $dept->name }}</label>
-                                    </div>
-                                    <div id="dept-category-{{ $dept->id }}"
-                                        style="display: {{ $isChecked ? 'block' : 'none' }};">
-                                        <label class="small text-muted mb-1">Category in {{ $dept->name }}</label>
-                                        <select class="form-control form-control-sm"
-                                            name="department_categories[{{ $dept->id }}]" {{ $isChecked ? 'required' : '' }}>
-                                            <option value="">Select...</option>
-                                            @if($dept->code === 'bar')
-                                                <option value="alcoholic_beverage" {{ $assignedCategory == 'alcoholic_beverage' ? 'selected' : '' }}>Beers / Ciders</option>
-                                                <option value="spirits" {{ $assignedCategory == 'spirits' ? 'selected' : '' }}>
-                                                    Spirits</option>
-                                                <option value="wines" {{ $assignedCategory == 'wines' ? 'selected' : '' }}>Wines
-                                                </option>
-                                                <option value="water" {{ $assignedCategory == 'water' ? 'selected' : '' }}>Water
-                                                </option>
-                                                <option value="non_alcoholic_beverage" {{ $assignedCategory == 'non_alcoholic_beverage' ? 'selected' : '' }}>Soft Drinks
-                                                </option>
-                                                <option value="cleaning_supplies" {{ $assignedCategory == 'cleaning_supplies' ? 'selected' : '' }}>Housekeeping
-                                                </option>
-                                                <option value="juices" {{ $assignedCategory == 'juices' ? 'selected' : '' }}>
-                                                    Juices</option>
-                                            @elseif($dept->code === 'kitchen')
-                                                <option value="food" {{ $assignedCategory == 'food' ? 'selected' : '' }}>General
-                                                    Food</option>
-                                                <option value="meat_poultry" {{ $assignedCategory == 'meat_poultry' ? 'selected' : '' }}>Meat & Poultry</option>
-                                                <option value="seafood" {{ $assignedCategory == 'seafood' ? 'selected' : '' }}>
-                                                    Seafood & Fish</option>
-                                                <option value="vegetables" {{ $assignedCategory == 'vegetables' ? 'selected' : '' }}>
-                                                    Vegetables & Fruits</option>
-                                                <option value="dairy" {{ $assignedCategory == 'dairy' ? 'selected' : '' }}>Dairy &
-                                                    Eggs</option>
-                                                <option value="pantry_baking" {{ $assignedCategory == 'pantry_baking' ? 'selected' : '' }}>Pantry & Baking</option>
-                                                <option value="spices_herbs" {{ $assignedCategory == 'spices_herbs' ? 'selected' : '' }}>Spices & Herbs</option>
-                                                <option value="oils_fats" {{ $assignedCategory == 'oils_fats' ? 'selected' : '' }}>
-                                                    Oils & Fats</option>
-                                            @elseif($dept->code === 'housekeeping')
-                                                <option value="cleaning_supplies" {{ $assignedCategory == 'cleaning_supplies' ? 'selected' : '' }}>Cleaning Supplies</option>
-                                                <option value="linens" {{ $assignedCategory == 'linens' ? 'selected' : '' }}>
-                                                    Linens / Towels</option>
-                                                <option value="amenities" {{ $assignedCategory == 'amenities' ? 'selected' : '' }}>
-                                                    Guest Amenities</option>
-                                            @else
-                                                <option value="other" {{ $assignedCategory == 'other' ? 'selected' : '' }}>Other
-                                                </option>
-                                            @endif
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-        </div>
-
-        <div class="card bg-light border-0 mt-4 mb-5">
-            <div class="card-body text-center">
-                <button class="btn btn-success btn-lg px-5 icon-btn shadow" type="submit">
-                    <i class="fa fa-check-circle"></i> {{ $isEdit ? 'Update Products' : 'Save Products' }}
-                </button>
-                <a class="btn btn-outline-secondary btn-lg ml-3" href="{{ route($routePrefix . '.products.index') }}">
-                    <i class="fa fa-times"></i> Cancel
-                </a>
             </div>
-        </div>
-        </form>
-        <div class="text-center pb-5">
-            <span class="text-muted small">v2.1-beverage-ratio-fix</span>
         </div>
     </div>
-    </div>
+</form>
+@endsection
 
-    <!-- Template for New Variant -->
-    <template id="variant-template">
-        <div class="variant-card card shadow-sm mb-4 border-left-info animate-fade-in">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center py-2 variant-header"
-                style="display: none !important;">
-                <div>
-                    <span class="badge badge-info mr-2">New</span>
-                    <strong class="text-primary">Product Unit Configuration</strong>
-                </div>
-                <button type="button" class="btn btn-outline-danger btn-sm rounded-circle p-1"
-                    style="width: 30px; height: 30px;" onclick="removeVariant(this)" title="Remove">
-                    <i class="fa fa-times"></i>
-                </button>
-            </div>
+@section('scripts')
+<style>
+    .reg-choice-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+    .reg-choice-grid-2 { grid-template-columns: repeat(2, 1fr); }
+    @media (max-width: 576px) {
+        .reg-choice-grid, .reg-choice-grid-2 { grid-template-columns: 1fr; }
+    }
+    .reg-choice {
+        display: block;
+        border: 2px solid #e3e6f0;
+        border-radius: 10px;
+        padding: 14px;
+        cursor: pointer;
+        margin: 0;
+        background: #fff;
+        transition: border-color .15s, background .15s;
+    }
+    .reg-choice input { display: none; }
+    .reg-choice strong { display: block; color: #3a3b45; }
+    .reg-choice small { color: #858796; }
+    .reg-choice:hover { border-color: #4e73df; }
+    .reg-choice.is-selected {
+        border-color: #4e73df;
+        background: #f0f4ff;
+    }
+    .reg-choice.is-selected strong { color: #4e73df; }
+</style>
+<script>
+    function getDepartmentGroup() {
+        const el = document.querySelector('input[name="department_group"]:checked');
+        return el ? el.value : '';
+    }
 
-            <div class="card-body">
-                <div class="row">
-                    <!-- Left Column: Basic Info -->
-                    <div class="col-md-7 border-right">
-                        <div class="form-row">
-                            <div class="col-md-12 form-group variant-name-field">
-                                <label class="small font-weight-bold text-primary text-uppercase">Item Name / Size</label>
-                                <input type="text" class="form-control variant-name-input font-weight-bold"
-                                    name="variants[INDEX][name]" placeholder="e.g. Salt, Sugar 1kg, Soda 500ml" required>
-                                <small class="text-muted">Enter the full name for this specific item.</small>
-                            </div>
+    function getUsage() {
+        const el = document.querySelector('input[name="usage"]:checked');
+        return el ? el.value : 'for_sale';
+    }
 
-                            <div class="registration-units-section bg-light p-3 rounded mb-3"
-                                style="border-left: 4px solid #4e73df;">
-                                <div class="row">
-                                    <div class="col-md-6 form-group">
-                                        <label class="small font-weight-bold text-dark text-uppercase">Purchasing Unit (e.g.
-                                            Crate/Carton)</label>
-                                        <select class="form-control purchasing-unit-select"
-                                            name="variants[INDEX][purchasing_unit]" required>
-                                            <option value="Crate">Crate</option>
-                                            <option value="Carton">Carton</option>
-                                            <option value="Box">Box</option>
-                                            <option value="Pack">Pack</option>
-                                            <option value="Bag">Bag</option>
-                                            <option value="Tray">Tray</option>
-                                            <option value="Sado">Sado</option>
-                                            <option value="Debe">Debe</option>
-                                            <option value="Kiroba">Kiroba</option>
-                                            <option value="Dozen">Dozen</option>
-                                            <option value="Pcs">Piece (Pcs)</option>
-                                            <option value="Kg">Kg</option>
-                                            <option value="Grams">Grams (g)</option>
-                                            <option value="Litres">Litres (L)</option>
-                                            <option value="ml">ml</option>
-                                            <option value="Bucket">Bucket (Ndoo)</option>
-                                            <option value="Bundle">Bundle</option>
-                                            <option value="Packet">Packet</option>
-                                            <option value="Bottle">Bottle</option>
-                                            <option value="Glass">Glass</option>
-                                            <option value="Shot">Shot / Tot</option>
-                                            <option value="Bunch">Bunch</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6 form-group">
-                                        <label class="small font-weight-bold text-dark text-uppercase">Receiving Unit (e.g.
-                                            Bottle/Piece)</label>
-                                        <select class="form-control receiving-unit-select"
-                                            name="variants[INDEX][receiving_unit]" required>
-                                            <option value="Crate">Crate</option>
-                                            <option value="Carton">Carton</option>
-                                            <option value="Box">Box</option>
-                                            <option value="Pack">Pack</option>
-                                            <option value="Bag">Bag</option>
-                                            <option value="Tray">Tray</option>
-                                            <option value="Sado">Sado</option>
-                                            <option value="Debe">Debe</option>
-                                            <option value="Kiroba">Kiroba</option>
-                                            <option value="Dozen">Dozen</option>
-                                            <option value="Pcs">Piece (Pcs)</option>
-                                            <option value="Kg">Kg</option>
-                                            <option value="Grams">Grams (g)</option>
-                                            <option value="Litres">Litres (L)</option>
-                                            <option value="ml">ml</option>
-                                            <option value="Bucket">Bucket (Ndoo)</option>
-                                            <option value="Bundle">Bundle</option>
-                                            <option value="Packet">Packet</option>
-                                            <option value="Bottle">Bottle</option>
-                                            <option value="Glass">Glass</option>
-                                            <option value="Shot">Shot / Tot</option>
-                                            <option value="Bunch">Bunch</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <!-- Ratio (Shown only for Vinywaji) -->
-                                <div class="ratio-entry-section mt-2 border-top pt-2" style="display: none;">
-                                    <label class="small font-weight-bold text-primary text-uppercase">
-                                        Number of <span class="servings-unit-label">Bottle</span>s in 1 <span
-                                            class="purchase-unit-label">Crate</span>
-                                    </label>
-                                    <input type="number" class="form-control items-per-package-input"
-                                        name="variants[INDEX][items_per_package]" value="1" step="any">
-                                </div>
-                            </div>
+    function getCategory() {
+        const group = getDepartmentGroup();
+        if (group === 'restaurant') return 'restaurant';
+        if (group === 'housekeeping') return 'housekeeping';
+        if (group === 'shared') return 'general';
+        if (document.getElementById('catRestaurant')?.checked) return 'restaurant';
+        if (document.getElementById('catHousekeeping')?.checked) return 'housekeeping';
+        if (document.getElementById('catGeneral')?.checked) return 'general';
+        return '';
+    }
 
-                            <!-- Pricing Section -->
-                            <div class="selling-type-section border p-3 rounded">
-                                <div class="row">
-                                    <div class="col-md-4 form-group">
-                                        <label class="small font-weight-bold text-dark text-uppercase">Buying Price</label>
-                                        <input type="number" step="any" class="form-control font-weight-bold"
-                                            name="variants[INDEX][buying_price]" placeholder="TZS (Optional)">
-                                    </div>
-                                    <div class="col-md-4 form-group">
-                                        <label class="small font-weight-bold text-dark text-uppercase">Selling Price</label>
-                                        <input type="number" step="any" class="form-control font-weight-bold text-primary"
-                                            name="variants[INDEX][selling_price_per_pic]" placeholder="TZS (Optional)">
-                                    </div>
-                                    <div class="col-md-4 form-group drink-only-section serving-price-field"
-                                        style="display: none;">
-                                        <label class="small font-weight-bold text-dark text-uppercase">Glass/Shot
-                                            Price</label>
-                                        <input type="number" step="any" class="form-control font-weight-bold text-info"
-                                            name="variants[INDEX][selling_price_per_serving]" placeholder="TZS (Optional)">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    function markSelected(selector) {
+        document.querySelectorAll(selector).forEach(card => {
+            const input = card.querySelector('input');
+            card.classList.toggle('is-selected', !!(input && input.checked));
+        });
+    }
 
-                <!-- Right Column: Image & Pricing -->
-                <div class="col-md-5">
-                    <div class="row h-100">
-                        <!-- Product Image -->
-                        <div class="col-md-12 text-center">
-                            <label class="small font-weight-bold text-muted d-block mb-2">IMAGE (OPTIONAL)</label>
-                            <div class="image-upload-wrapper">
-                                <div class="preview-box mx-auto mb-2 shadow-sm rounded overflow-hidden"
-                                    style="width: 120px; height: 120px; background: #fff; border: 2px dashed #ddd; display: flex; align-items: center; justify-content: center;">
-                                    <img class="img-preview" src="{{ asset('dashboard_assets/img/no-image.png') }}"
-                                        style="max-width: 100%; max-height: 100%; object-fit: contain;">
-                                </div>
-                                <label class="btn btn-sm btn-outline-primary btn-file">
-                                    <i class="fa fa-camera"></i> Change <input type="file" style="display: none;"
-                                        name="variants[INDEX][image]" accept="image/*" onchange="previewVariantImage(this)">
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        </div>
-    </template>
-
-    <style>
-        .border-top-primary {
-            border-top: 5px solid #4e73df !important;
-        }
-
-        .form-control-lg {
-            border-radius: 8px;
-            font-size: 1.1rem;
-        }
-
-        .card {
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        .bg-light {
-            background-color: #f8f9fc !important;
-        }
-
-        .animate-fade-in {
-            animation: fadeIn 0.5s;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
-
-    <script>
-        let variantCount = {{ $isEdit ? $product->variants->count() : 0 }};
-
-        function addVariant() {
-            const container = document.getElementById('variants-container');
-            const template = document.getElementById('variant-template').innerHTML;
-            const newHtml = template.replace(/INDEX/g, variantCount);
-
-            const div = document.createElement('div');
-            div.innerHTML = newHtml;
-            const card = div.firstElementChild;
-            container.appendChild(card);
-
-            variantCount++;
-            const msg = document.getElementById('no-variants-msg');
-            if (msg) msg.style.display = 'none';
-
-            checkFoodCategory();
-        }
-
-        function removeVariant(btn) {
-            if (confirm('Remove this variant?')) {
-                btn.closest('.variant-card').remove();
-            }
-        }
-
-
-        function previewVariantImage(input) {
-            if (input.files && input.files[0]) {
-                var reader = new FileReader();
-                reader.onload = function (e) {
-                    input.closest('.image-upload-wrapper').querySelector('.img-preview').src = e.target.result;
-                }
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        // Auto-update first variant name to 'Standard' if brand is typed and variant is empty
-        document.getElementById('brandNameInput').addEventListener('input', function () {
-            const brandName = this.value;
-            const firstVariantInput = document.querySelector('.variant-name-input');
-            if (firstVariantInput && (firstVariantInput.value.trim() === '' || firstVariantInput.value === 'Standard')) {
-                if (brandName.trim() !== '') {
-                    firstVariantInput.value = 'Standard';
-                } else {
-                    firstVariantInput.value = '';
-                }
-            }
+    function onDepartmentChange() {
+        document.querySelectorAll('input[name="department_group"]').forEach(input => {
+            input.closest('.reg-choice')?.classList.toggle('is-selected', input.checked);
         });
 
-        document.addEventListener('DOMContentLoaded', function () {
-            if (variantCount === 0) {
-                addVariant(); // Add default variant
-            }
-        });
+        const group = getDepartmentGroup();
+        const catRestaurant = document.getElementById('catRestaurant');
+        const catHk = document.getElementById('catHousekeeping');
+        const catGeneral = document.getElementById('catGeneral');
+        const sharedHint = document.getElementById('sharedHint');
 
-        function selectAllDepartments() {
-            document.querySelectorAll('.dept-checkbox').forEach(checkbox => {
-                if (!checkbox.checked) {
-                    checkbox.checked = true;
-                    toggleDeptCategory(checkbox.value);
-                }
-            });
+        catRestaurant.checked = false;
+        catHk.checked = false;
+        catGeneral.checked = false;
+
+        if (group === 'restaurant') {
+            sharedHint.style.display = 'none';
+            catRestaurant.checked = true;
+        } else if (group === 'housekeeping') {
+            sharedHint.style.display = 'none';
+            catHk.checked = true;
+        } else if (group === 'shared') {
+            sharedHint.style.display = 'block';
+            catGeneral.checked = true;
+        } else {
+            sharedHint.style.display = 'none';
         }
 
-        function toggleDeptCategory(deptId) {
-            const checkbox = document.getElementById('dept_' + deptId);
-            const card = document.getElementById('dept-card-' + deptId);
-            const categoryDiv = document.getElementById('dept-category-' + deptId);
-            const select = categoryDiv.querySelector('select');
+        autoAssignDepartments();
+        updateReturnableVisibility();
+        updateRatioVisibility();
+    }
 
-            if (checkbox.checked) {
-                card.classList.add('bg-light', 'border-primary');
-                categoryDiv.style.display = 'block';
-                select.setAttribute('required', 'required');
-            } else {
-                card.classList.remove('bg-light', 'border-primary');
-                categoryDiv.style.display = 'none';
-                select.removeAttribute('required');
-                select.value = ''; // Reset selection
-            }
-
-            checkFoodCategory();
+    function onUsageChange() {
+        markSelected('.usage-card');
+        const forSale = getUsage() === 'for_sale';
+        document.getElementById('sellingUnitWrap').style.display = forSale ? 'block' : 'none';
+        document.getElementById('sellingPriceWrap').style.display = forSale ? 'block' : 'none';
+        document.getElementById('selling_unit').required = forSale;
+        document.getElementById('selling_price').required = forSale;
+        if (!forSale) {
+            document.getElementById('selling_price').value = '';
         }
+        updateReturnableVisibility();
+        updateRatioVisibility();
+    }
 
-        function checkFoodCategory() {
-            const mainCategory = document.getElementById('categorySelect').value;
-            const isBeverage = mainCategory === 'vinywaji';
-            const isChakula = mainCategory === 'chakula';
-            const isHousekeeping = mainCategory === 'housekeeping';
-            const isGeneral = mainCategory === 'general';
-
-            const showManualSwitch = document.getElementById('showManualDept');
-            const showManual = showManualSwitch.checked || isGeneral;
-            const deptCard = document.getElementById('departmentsCard');
-
-            // 1. Show/Hide manual departments card
-            if (deptCard) deptCard.style.display = showManual ? 'block' : 'none';
-
-            // 2. Auto-Department Assignment (Only if NOT manual)
-            if (!showManual) {
-                const deptCheckboxes = document.querySelectorAll('.dept-checkbox');
-                const findDeptByCode = (name) => {
-                    let found = null;
-                    deptCheckboxes.forEach(cb => {
-                        const label = cb.nextElementSibling.textContent.toLowerCase();
-                        if (label.includes(name)) found = cb;
-                    });
-                    return found;
-                };
-
-                const barCb = findDeptByCode('bar');
-                const kitchenCb = findDeptByCode('kitchen');
-                const hkCb = findDeptByCode('housekeeping');
-
-                // Reset all
-                document.querySelectorAll('.dept-checkbox').forEach(cb => {
-                    cb.checked = false;
-                    toggleDeptCategory(cb.value);
-                });
-
-                if (isBeverage && barCb) {
-                    barCb.checked = true;
-                    toggleDeptCategory(barCb.value);
-                    const sel = document.querySelector('select[name="department_categories[' + barCb.value + ']"]');
-                    if (sel) sel.value = 'non_alcoholic_beverage';
-                } else if (isChakula && kitchenCb) {
-                    kitchenCb.checked = true;
-                    toggleDeptCategory(kitchenCb.value);
-                    const sel = document.querySelector('select[name="department_categories[' + kitchenCb.value + ']"]');
-                    if (sel) sel.value = 'food';
-                } else if (isHousekeeping && hkCb) {
-                    hkCb.checked = true;
-                    toggleDeptCategory(hkCb.value);
-                    const sel = document.querySelector('select[name="department_categories[' + hkCb.value + ']"]');
-                    if (sel) sel.value = 'cleaning_supplies';
-                }
-            }
-
-            // 3. Show/Hide Returnable Section
-            const returnableSection = document.getElementById('returnableSection');
-            if (returnableSection) {
-                if (isHousekeeping || isGeneral) {
-                    returnableSection.style.display = 'block';
-                } else {
-                    returnableSection.style.display = 'none';
-                    const retCheckbox = document.getElementById('is_returnable');
-                    if (retCheckbox) retCheckbox.checked = false;
-                }
-            }
-
-            document.querySelectorAll('.variant-card').forEach(card => {
-                const ratioSection = card.querySelector('.ratio-entry-section');
-                const ratioInput = card.querySelector('.items-per-package-input');
-                const servingPriceField = card.querySelector('.serving-price-field');
-                const receivingSelect = card.querySelector('.receiving-unit-select');
-
-                // 1. Ratio ONLY for Beverages (Drinks)
-                if (ratioSection) {
-                    const showManual = document.getElementById('showManualDept').checked;
-                    const deptCard = document.getElementById('departmentsCard');
-
-                    if (showManual || category === 'general') {
-                        deptCard.style.display = 'block';
-                    } else {
-                        deptCard.style.display = 'none';
-                    }
-
-                    if (isBeverage && !showManual) {
-                        ratioSection.style.setProperty('display', 'block', 'important');
-                        if (ratioInput && (ratioInput.value === '1' || ratioInput.value === '')) ratioInput.value = '24';
-                    } else {
-                        ratioSection.style.display = 'none';
-                        if (ratioInput) ratioInput.value = '1';
-                    }
-                }
-
-                // 2. Pricing details based on Category
-                if (isHousekeeping) {
-                    // Hide pricing section if needed? User didn't ask for this, but usually HK items have value
-                    card.querySelectorAll('.drink-only-section').forEach(el => el.style.display = 'none');
-                } else if (isBeverage) {
-                    card.querySelectorAll('.drink-only-section').forEach(el => el.style.setProperty('display', 'block', 'important'));
-                    if (servingPriceField) servingPriceField.style.setProperty('display', 'block', 'important');
-                } else {
-                    // Chakula/Food
-                    card.querySelectorAll('.drink-only-section').forEach(el => el.style.display = 'none');
-                }
-
-                // 3. Update labels dynamically
-                const updateLabels = () => {
-                    const servingLabel = card.querySelector('.servings-unit-label');
-                    const purchaseLabel = card.querySelector('.purchase-unit-label');
-                    const receivingSelect = card.querySelector('.receiving-unit-select');
-                    const purchasingSelect = card.querySelector('.purchasing-unit-select');
-
-                    if (servingLabel && receivingSelect) {
-                        servingLabel.textContent = receivingSelect.value || 'Bottle';
-                    }
-                    if (purchaseLabel && purchasingSelect) {
-                        purchaseLabel.textContent = purchasingSelect.value || 'Crate';
-                    }
-                };
-
-                if (receivingSelect) receivingSelect.addEventListener('change', updateLabels);
-                updateLabels();
-            });
+    function updateReturnableVisibility() {
+        const wrap = document.getElementById('returnableWrap');
+        if (!wrap) return;
+        const show = getDepartmentGroup() === 'housekeeping'
+            || getDepartmentGroup() === 'shared'
+            || getUsage() === 'internal';
+        wrap.style.display = show ? 'block' : 'none';
+        if (!show) {
+            const cb = document.getElementById('is_returnable');
+            if (cb) cb.checked = false;
         }
+    }
 
-        // Attach event listener to all department category selects and receiving units
-        document.querySelectorAll('select[name^="department_categories"], .receiving-unit-select').forEach(select => {
-            select.addEventListener('change', checkFoodCategory);
+    function updateRatioVisibility() {
+        const receive = document.getElementById('receiving_unit').value;
+        const sell = document.getElementById('selling_unit').value;
+        const forSale = getUsage() === 'for_sale';
+        const show = forSale && receive && sell && receive !== sell;
+        document.getElementById('ratioWrap').style.display = show ? 'block' : 'none';
+        if (!show) {
+            document.getElementById('items_per_package').value = 1;
+        } else if (!document.getElementById('items_per_package').value || document.getElementById('items_per_package').value === '1') {
+            // Suggest 24 for carton/crate drink packaging
+            if (['Carton', 'Crate', 'Box', 'Dozen'].includes(receive) && ['Bottle', 'Pcs', 'Glass'].includes(sell)) {
+                document.getElementById('items_per_package').value = receive === 'Dozen' ? 12 : 24;
+            }
+        }
+        document.getElementById('purchasing_unit').value = receive;
+    }
+
+    function autoAssignDepartments() {
+        document.querySelectorAll('.dept-checkbox').forEach(cb => {
+            cb.checked = false;
+            const sel = document.getElementById('dept_cat_' + cb.value);
+            if (sel) sel.value = '';
         });
 
-        // Attach event listener to main category select
-        document.getElementById('categorySelect').addEventListener('change', checkFoodCategory);
+        const findByCode = (code) => Array.from(document.querySelectorAll('.dept-checkbox'))
+            .find(cb => cb.dataset.deptCode === code);
 
-        // Initial check on load for edit mode
-        document.addEventListener('DOMContentLoaded', function () {
-            setTimeout(checkFoodCategory, 500); // Small delay to ensure variants are loaded
-        });
-    </script>
+        const mark = (code, cat) => {
+            const cb = findByCode(code);
+            if (!cb) return;
+            cb.checked = true;
+            const sel = document.getElementById('dept_cat_' + cb.value);
+            if (sel && cat) sel.value = cat;
+        };
+
+        const group = getDepartmentGroup();
+
+        if (group === 'restaurant') {
+            // Restaurant covers both food and drinks — no separate kind
+            mark('restaurant', 'restaurant');
+            mark('bar', 'restaurant');
+            mark('kitchen', 'restaurant');
+        } else if (group === 'housekeeping') {
+            mark('housekeeping', 'cleaning_supplies');
+        } else if (group === 'shared') {
+            mark('shared', 'shared');
+            // Shared items belong to BOTH Restaurant and Housekeeping (e.g. soap for washing)
+            mark('restaurant', 'shared');
+            mark('housekeeping', 'shared');
+            mark('bar', 'shared');
+            mark('kitchen', 'shared');
+        }
+    }
+
+    document.getElementById('item_name').addEventListener('input', function () {
+        document.getElementById('productNameField').value = this.value;
+        document.getElementById('variantNameField').value = this.value;
+    });
+
+    document.getElementById('receiving_unit').addEventListener('change', updateRatioVisibility);
+    document.getElementById('selling_unit').addEventListener('change', updateRatioVisibility);
+
+    document.getElementById('productForm').addEventListener('submit', function (e) {
+        const group = getDepartmentGroup();
+        if (!group) {
+            e.preventDefault();
+            alert('Please select a department.');
+            return;
+        }
+        if (group === 'restaurant') {
+            document.getElementById('catRestaurant').checked = true;
+        } else if (group === 'shared') {
+            document.getElementById('catGeneral').checked = true;
+        } else if (group === 'housekeeping') {
+            document.getElementById('catHousekeeping').checked = true;
+        }
+
+        const name = document.getElementById('item_name').value.trim();
+        document.getElementById('productNameField').value = name;
+        document.getElementById('variantNameField').value = name;
+        document.getElementById('purchasing_unit').value = document.getElementById('receiving_unit').value;
+
+        if (getUsage() === 'internal') {
+            document.getElementById('selling_price').value = 0;
+            // Keep selling_unit equal to receiving for internal
+            document.getElementById('selling_unit').value = document.getElementById('receiving_unit').value;
+        }
+
+        autoAssignDepartments();
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (getDepartmentGroup()) onDepartmentChange();
+        onUsageChange();
+        updateRatioVisibility();
+    });
+</script>
 @endsection

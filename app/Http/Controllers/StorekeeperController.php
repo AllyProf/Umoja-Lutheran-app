@@ -22,16 +22,54 @@ class StorekeeperController extends Controller
     {
         $user = Auth::guard('staff')->user();
 
+        $approvedRequests = \App\Models\StockRequest::where('status', 'approved')->count();
+        $readyToPurchase = ShoppingList::whereIn('status', ['ready_for_purchase', 'purchased'])->count();
+        $pendingLists = ShoppingList::whereIn('status', ['pending', 'accountant_checked', 'approved'])->count();
+
+        // Approximate low-stock: variants with a minimum set and current stock at/below it
+        $lowStockAlerts = 0;
+        $lowStockItems = collect();
+        $variantsWithMin = ProductVariant::with('product')
+            ->where('is_active', true)
+            ->where('minimum_stock_level', '>', 0)
+            ->orderBy('product_id')
+            ->limit(80)
+            ->get();
+
+        foreach ($variantsWithMin as $variant) {
+            $stock = (float) $variant->getCurrentStock();
+            $min = (float) $variant->minimum_stock_level;
+            if ($stock <= $min) {
+                $lowStockAlerts++;
+                if ($lowStockItems->count() < 6) {
+                    $lowStockItems->push([
+                        'name' => ($variant->product->name ?? 'Item')
+                            . ($variant->variant_name && strtolower($variant->variant_name) !== 'standard'
+                                ? ' · ' . $variant->variant_name
+                                : ''),
+                        'stock' => $stock,
+                        'minimum' => $min,
+                        'unit' => $variant->receiving_unit ?: 'pcs',
+                    ]);
+                }
+            }
+        }
+
         $stats = [
-            'total_items' => Product::count(),
-            'low_stock_alerts' => ProductVariant::whereRaw('minimum_stock_level > 0')
-                ->whereExists(function ($query) {
-                    // This logic would need to be refined based on actual stock calculation
-                    // For now, let's just get variants with minimum stock level set
-                })->count(), // Placeholder
-            'pending_requests' => PurchaseRequest::where('status', 'pending')->count(),
-            'active_shopping_lists' => ShoppingList::whereIn('status', ['pending', 'approved', 'on_list'])->count(),
+            'total_items' => Product::where('is_active', true)->count(),
+            'low_stock_alerts' => $lowStockAlerts,
+            'approved_requests' => $approvedRequests,
+            'ready_to_receive' => $readyToPurchase,
+            'pending_lists' => $pendingLists,
+            'today_receipts' => StockReceipt::whereDate('received_date', today())->count(),
+            'today_transfers' => StockTransfer::whereDate('transfer_date', today())->count(),
         ];
+
+        $waitingRequests = \App\Models\StockRequest::with(['requester', 'productVariant.product'])
+            ->where('status', 'approved')
+            ->orderByDesc('updated_at')
+            ->limit(8)
+            ->get();
 
         $recentShoppingLists = ShoppingList::latest()
             ->limit(5)
@@ -42,7 +80,21 @@ class StorekeeperController extends Controller
             ->limit(5)
             ->get();
 
-        return view('dashboard.storekeeper.dashboard', compact('stats', 'recentShoppingLists', 'recentTransfers'));
+        $recentReceipts = StockReceipt::with(['product', 'productVariant', 'supplier'])
+            ->latest('received_date')
+            ->latest('id')
+            ->limit(5)
+            ->get();
+
+        return view('dashboard.storekeeper.dashboard', compact(
+            'user',
+            'stats',
+            'lowStockItems',
+            'waitingRequests',
+            'recentShoppingLists',
+            'recentTransfers',
+            'recentReceipts'
+        ));
     }
 
     /**

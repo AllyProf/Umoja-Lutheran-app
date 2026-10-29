@@ -128,7 +128,7 @@
                         </table>
                     </div>
                     <div class="d-flex justify-content-center mt-3">
-                        {{ $lists->appends(request()->query())->links() }}
+                        @include('dashboard.partials.bootstrap-pagination', ['paginator' => $lists])
                     </div>
                 @else
                     <div class="text-center py-5">

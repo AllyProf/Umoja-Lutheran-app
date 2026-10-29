@@ -58,8 +58,8 @@
                                             <i class="fa fa-user-circle text-info"></i>
                                             {{ $ret->staff->name ?? '—' }}
                                         </td>
-                                        <td class="text-center"><strong class="text-success">{{ $ret->quantity }}</strong></td>
-                                        <td class="text-center"><span class="badge badge-light">{{ $ret->unit }}</span></td>
+                                        <td class="text-center"><strong class="text-success">{{ $ret->display_quantity ?? $ret->quantity }}</strong></td>
+                                        <td class="text-center"><span class="badge badge-light">{{ $ret->display_unit ?? $ret->unit }}</span></td>
                                         <td>
                                             @if($ret->notes)
                                                 <span class="text-muted small">{{ $ret->notes }}</span>
@@ -113,7 +113,7 @@
                                     <tr>
                                         <td>{{ $ret->productVariant->product->name ?? '—' }}</td>
                                         <td>{{ $ret->staff->name ?? '—' }}</td>
-                                        <td class="text-center">{{ $ret->quantity }} {{ $ret->unit }}</td>
+                                        <td class="text-center">{{ $ret->display_quantity ?? $ret->quantity }} {{ $ret->display_unit ?? $ret->unit }}</td>
                                         <td>{{ $ret->receiver->name ?? '—' }}</td>
                                         <td><small>{{ $ret->received_at ? $ret->received_at->format('d M H:i') : '—' }}</small></td>
                                         <td class="text-center">

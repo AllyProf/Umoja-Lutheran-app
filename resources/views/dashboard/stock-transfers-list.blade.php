@@ -82,11 +82,11 @@
                         Bottles/{{ \Illuminate\Support\Str::singular($transfer->productVariant?->packaging_name ?? $transfer->productVariant?->packaging ?? 'Package') }}</small>
                     </td>
                     <td>
-                      {{ number_format($transfer->quantity_transferred) }}
-                      <span
-                        class="text-muted">{{ $transfer->quantity_unit === 'packages' ? ($transfer->productVariant->packaging_name ?? 'packages') : 'bottles' }}</span>
+                      {{ $transfer->formatted_quantity }}
+                      <span class="text-muted">{{ $transfer->quantity_unit_name }}</span>
                       @if($transfer->quantity_unit === 'packages' && $transfer->total_bottles > 0)
-                        <br><small class="text-info">({{ number_format($transfer->total_bottles) }} Bottles)</small>
+                        <br><small class="text-info">({{ number_format($transfer->total_bottles) }}
+                          {{ $transfer->productVariant->receiving_unit ?? 'units' }})</small>
                       @endif
                     </td>
                     <td>{{ $transfer->transferredBy->name ?? 'N/A' }}</td>
@@ -127,7 +127,7 @@
           </div>
 
           <div class="d-flex justify-content-center mt-4">
-            {{ $transfers->links() }}
+            @include('dashboard.partials.bootstrap-pagination', ['paginator' => $transfers])
           </div>
         @else
           <div class="text-center" style="padding: 80px 20px;">
@@ -249,9 +249,10 @@
         .then(data => {
           if (data.success || data.id) {
             const transfer = data.transfer || data;
-            const quantityUnitName = transfer.quantity_unit === 'packages'
-              ? (transfer.product_variant?.packaging_name || transfer.product_variant?.packaging || 'packages')
-              : 'bottles';
+            const quantityUnitName = transfer.quantity_unit_name
+              || (transfer.quantity_unit === 'packages'
+                ? (transfer.product_variant?.packaging_name || transfer.product_variant?.packaging || 'packages')
+                : (transfer.product_variant?.receiving_unit || transfer.quantity_unit || 'Pcs'));
 
             const html = `
               <div class="row">

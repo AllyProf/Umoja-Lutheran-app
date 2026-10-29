@@ -260,9 +260,42 @@
             href="{{ route('supplier-orders.index') }}"><i class="app-menu__icon fa fa-truck"></i><span
                 class="app-menu__label">Weekly Supplier Orders</span></a></li>
 
-    <li><a class="app-menu__item {{ str_contains($activePage, 'lpo') ? 'active' : '' }}" href="{{ route('lpo.index') }}"><i
-                class="app-menu__icon fa fa-file-text"></i><span class="app-menu__label">Local Purchase Orders
-                (LPO)</span></a></li>
+    @php
+        $pendingLpoManagerCount = \App\Models\LocalPurchaseOrder::where('status', 'sent_to_manager')->count();
+    @endphp
+    <li>
+        <a class="app-menu__item {{ str_contains($activePage, 'lpo') ? 'active' : '' }}"
+            href="{{ route('lpo.index', ['tab' => 'review']) }}">
+            <i class="app-menu__icon fa fa-file-text"></i>
+            <span class="app-menu__label">Local Purchase Orders (LPO)</span>
+            <span class="badge badge-danger badge-pill ml-auto" id="badge-lpo-pending"
+                style="{{ $pendingLpoManagerCount > 0 ? '' : 'display:none;' }}">
+                {{ $pendingLpoManagerCount > 99 ? '99+' : $pendingLpoManagerCount }}
+            </span>
+        </a>
+    </li>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            function fetchLpoPendingCount() {
+                fetch(@json(route('lpo.pending-count')))
+                    .then(r => r.json())
+                    .then(data => {
+                        const badge = document.getElementById('badge-lpo-pending');
+                        if (!badge) return;
+                        const count = parseInt(data.count || 0, 10);
+                        if (count > 0) {
+                            badge.textContent = count > 99 ? '99+' : count;
+                            badge.style.display = 'inline-block';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    })
+                    .catch(() => {});
+            }
+            fetchLpoPendingCount();
+            setInterval(fetchLpoPendingCount, 30000);
+        });
+    </script>
 
     <li class="treeview {{ str_contains($activePage, 'stock-requests') ? 'is-expanded' : '' }}">
         <a class="app-menu__item" href="#" data-toggle="treeview">
@@ -274,14 +307,14 @@
             <i class="treeview-indicator fa fa-angle-right"></i>
         </a>
         <ul class="treeview-menu">
-            <li><a class="treeview-item" href="{{ route('stock-requests.index', ['type' => 'drink']) }}"><i
-                        class="fa fa-glass"></i> Counter Requests</a></li>
-            <li><a class="treeview-item" href="{{ route('stock-requests.index', ['type' => 'food']) }}"><i
-                        class="fa fa-cutlery"></i> Chef Request</a></li>
-            <li><a class="treeview-item" href="{{ route('stock-requests.index', ['type' => 'housekeeping']) }}"><i
+            <li><a class="treeview-item {{ !request('type') && str_contains($activePage, 'stock-requests') ? 'active' : '' }}"
+                    href="{{ route('stock-requests.index') }}"><i class="fa fa-list"></i> All</a></li>
+            <li><a class="treeview-item {{ request('type') === 'restaurant' || in_array(request('type'), ['drink', 'food']) ? 'active' : '' }}"
+                    href="{{ route('stock-requests.index', ['type' => 'restaurant']) }}"><i
+                        class="fa fa-cutlery"></i> Restaurant</a></li>
+            <li><a class="treeview-item {{ request('type') === 'housekeeping' ? 'active' : '' }}"
+                    href="{{ route('stock-requests.index', ['type' => 'housekeeping']) }}"><i
                         class="fa fa-bed"></i> Housekeeping</a></li>
-            <li><a class="treeview-item" href="{{ route('stock-requests.index') }}"><i class="fa fa-list"></i> All
-                    Requests</a></li>
         </ul>
     </li>
 

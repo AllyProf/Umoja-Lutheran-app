@@ -195,7 +195,7 @@
                         <tbody>
                             @foreach($restaurantOrders as $order)
                             <tr>
-                                <td>{{ $order->service->service_name ?? 'Order' }}</td>
+                                <td>{{ data_get($order->service_specific_data, 'item_name') ?? $order->service->name ?? 'Order' }}</td>
                                 <td>
                                     {{ $order->booking->guest_name ?? 'Guest' }}
                                     @if($order->booking?->room)
@@ -264,7 +264,7 @@
                         <tbody>
                             @foreach($sales as $sale)
                             <tr>
-                                <td>{{ $sale->service->service_name ?? 'Service' }}</td>
+                                <td>{{ data_get($sale->service_specific_data, 'item_name') ?? $sale->service->name ?? 'Service' }}</td>
                                 <td>TZS {{ number_format($sale->total_price_tsh) }}</td>
                                 <td><span class="badge badge-secondary">{{ ucfirst($sale->payment_method) }}</span></td>
                             </tr>
@@ -297,7 +297,7 @@
                             <tr>
                                 <td>{{ \Carbon\Carbon::parse($sale->completed_at)->format('H:i') }}</td>
                                 <td>
-                                    {{ $sale->service->service_name ?? 'N/A' }}
+                                    {{ data_get($sale->service_specific_data, 'item_name') ?? $sale->service->name ?? 'N/A' }}
                                     @if($sale->booking)
                                         <br><small class="text-muted">Room: {{ $sale->booking->room->room_number }} ({{ $sale->booking->guest_name }})</small>
                                     @endif

@@ -15,17 +15,53 @@ class LocalPurchaseOrderController extends Controller
 {
     public function index(Request $request)
     {
-        $role = Auth::guard('staff')->user()->role;
+        $role = strtolower(Auth::guard('staff')->user()->role ?? '');
         $query = LocalPurchaseOrder::with(['storekeeper', 'accountant', 'manager']);
+        $tab = $request->get('tab', in_array($role, ['accountant', 'manager', 'super_admin'], true) ? 'review' : 'all');
 
         if ($role === 'accountant') {
-            $query->whereIn('status', ['sent_to_accountant', 'sent_to_manager', 'verified_by_manager', 'closed']);
-        } elseif ($role === 'manager' || $role === 'super_admin') {
-            $query->whereIn('status', ['sent_to_manager', 'verified_by_manager', 'closed']);
+            if ($tab === 'review') {
+                $query->where('status', 'sent_to_accountant');
+            } elseif ($tab === 'forwarded') {
+                $query->whereIn('status', ['sent_to_manager', 'verified_by_manager', 'funds_disbursed', 'closed']);
+            } else {
+                $query->whereIn('status', ['sent_to_accountant', 'sent_to_manager', 'verified_by_manager', 'funds_disbursed', 'closed']);
+            }
+            $pendingReviewCount = LocalPurchaseOrder::where('status', 'sent_to_accountant')->count();
+        } elseif (in_array($role, ['manager', 'super_admin'], true)) {
+            if ($tab === 'review') {
+                $query->where('status', 'sent_to_manager');
+            } elseif ($tab === 'verified') {
+                $query->whereIn('status', ['verified_by_manager', 'funds_disbursed', 'closed']);
+            } else {
+                $query->whereIn('status', ['sent_to_manager', 'verified_by_manager', 'funds_disbursed', 'closed']);
+            }
+            $pendingReviewCount = LocalPurchaseOrder::where('status', 'sent_to_manager')->count();
+        } else {
+            $pendingReviewCount = 0;
         }
 
-        $orders = $query->latest()->paginate(20);
-        return view('dashboard.lpo.index', compact('orders', 'role'));
+        $orders = $query->latest()->paginate(20)->withQueryString();
+
+        return view('dashboard.lpo.index', compact('orders', 'role', 'tab', 'pendingReviewCount'));
+    }
+
+    /**
+     * JSON count of LPOs waiting for the current role's action (sidebar badge).
+     */
+    public function pendingCount()
+    {
+        $role = strtolower(Auth::guard('staff')->user()->role ?? '');
+
+        $count = match (true) {
+            in_array($role, ['manager', 'super_admin'], true)
+                => LocalPurchaseOrder::where('status', 'sent_to_manager')->count(),
+            $role === 'accountant'
+                => LocalPurchaseOrder::where('status', 'sent_to_accountant')->count(),
+            default => 0,
+        };
+
+        return response()->json(['count' => $count]);
     }
 
     public function create()
@@ -68,9 +104,12 @@ class LocalPurchaseOrderController extends Controller
 
     public function edit(LocalPurchaseOrder $lpo)
     {
-        if ($lpo->status !== 'pending') {
-            return redirect()->route('lpo.show', $lpo->id)->with('error', 'Only pending LPOs can be edited.');
+        $role = strtolower(Auth::guard('staff')->user()->role ?? '');
+        if (!$this->canEditLpo($lpo, $role)) {
+            return redirect()->route('lpo.show', $lpo->id)
+                ->with('error', 'You cannot edit this LPO in its current status.');
         }
+
         $lpo->load('items');
         $products = Product::active()->with('variants')->orderBy('name')->get();
 
@@ -82,12 +121,13 @@ class LocalPurchaseOrderController extends Controller
             });
         });
 
-        return view('dashboard.lpo.edit', compact('lpo', 'products'));
+        return view('dashboard.lpo.edit', compact('lpo', 'products', 'role'));
     }
 
     public function update(Request $request, LocalPurchaseOrder $lpo)
     {
-        if ($lpo->status !== 'pending') {
+        $role = strtolower(Auth::guard('staff')->user()->role ?? '');
+        if (!$this->canEditLpo($lpo, $role)) {
             return back()->with('error', 'Cannot update LPO in current status.');
         }
 
@@ -108,8 +148,11 @@ class LocalPurchaseOrderController extends Controller
                     continue;
 
                 $totalPrice = $itemData['quantity'] * $itemData['unit_price'];
+                $itemName = preg_replace('/\s*[\(\-·]\s*standard\s*\)?\s*$/i', '', (string) ($itemData['item_name'] ?? ''));
+                $itemName = trim(preg_replace('/\s+/', ' ', $itemName));
+
                 $lpo->items()->create([
-                    'item_name' => $itemData['item_name'],
+                    'item_name' => $itemName,
                     'product_variant_id' => $itemData['product_variant_id'] ?? null,
                     'quantity' => $itemData['quantity'],
                     'unit' => $itemData['unit'] ?? null,
@@ -119,13 +162,23 @@ class LocalPurchaseOrderController extends Controller
                 $totalAmount += $totalPrice;
             }
 
-            $lpo->update([
+            $updates = [
                 'total_amount' => $totalAmount,
                 'notes' => $request->notes ?? $lpo->notes,
-            ]);
+            ];
+
+            // Accountant adjustment keeps status; storekeeper editing a rejected LPO clears rejection text
+            if (in_array($lpo->status, ['rejected', 'pending'], true) && in_array($role, ['storekeeper', 'super_admin'], true)) {
+                $updates['rejection_reason'] = null;
+            }
+
+            $lpo->update($updates);
 
             DB::commit();
-            return redirect()->route('lpo.show', $lpo->id)->with('success', 'LPO Budget items updated.');
+            $msg = $role === 'accountant'
+                ? 'Budget adjusted. You can now Accept or Reject.'
+                : 'LPO Budget items updated.';
+            return redirect()->route('lpo.show', $lpo->id)->with('success', $msg);
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Error: ' . $e->getMessage());
@@ -134,17 +187,82 @@ class LocalPurchaseOrderController extends Controller
 
     public function sendToAccountant(LocalPurchaseOrder $lpo)
     {
-        $lpo->update(['status' => 'sent_to_accountant']);
+        if (!in_array($lpo->status, ['pending', 'rejected'], true)) {
+            return back()->with('error', 'Only pending or rejected LPOs can be sent to the accountant.');
+        }
+
+        if ($lpo->items()->count() === 0) {
+            return back()->with('error', 'Add budget items before sending to the accountant.');
+        }
+
+        $lpo->update([
+            'status' => 'sent_to_accountant',
+            'rejection_reason' => null,
+        ]);
         return redirect()->route('lpo.index')->with('success', 'LPO sent to accountant.');
     }
 
+    /**
+     * Accountant accepts the budget and forwards it to the manager.
+     */
     public function sendToManager(LocalPurchaseOrder $lpo)
     {
+        if ($lpo->status !== 'sent_to_accountant') {
+            return back()->with('error', 'Only LPOs awaiting accountant review can be accepted.');
+        }
+
         $lpo->update([
             'status' => 'sent_to_manager',
             'accountant_id' => Auth::guard('staff')->id(),
+            'rejection_reason' => null,
         ]);
-        return redirect()->route('lpo.index')->with('success', 'LPO sent to manager.');
+        return redirect()->route('lpo.index')->with('success', 'Budget accepted and sent to manager.');
+    }
+
+    /**
+     * Accountant rejects the budget — returns it to the storekeeper for revision.
+     */
+    public function rejectByAccountant(Request $request, LocalPurchaseOrder $lpo)
+    {
+        $role = strtolower(Auth::guard('staff')->user()->role ?? '');
+        if (!in_array($role, ['accountant', 'super_admin', 'manager'], true)) {
+            abort(403, 'Only accountants can reject LPO budgets.');
+        }
+
+        if ($lpo->status !== 'sent_to_accountant') {
+            return back()->with('error', 'Only LPOs awaiting accountant review can be rejected.');
+        }
+
+        $request->validate([
+            'rejection_reason' => 'required|string|max:2000',
+        ]);
+
+        $lpo->update([
+            'status' => 'rejected',
+            'accountant_id' => Auth::guard('staff')->id(),
+            'rejection_reason' => $request->rejection_reason,
+            'notes' => trim(($lpo->notes ? $lpo->notes . "\n" : '') . 'Rejected by accountant: ' . $request->rejection_reason),
+        ]);
+
+        return redirect()->route('lpo.index')
+            ->with('success', 'Budget rejected and returned to the storekeeper.');
+    }
+
+    protected function canEditLpo(LocalPurchaseOrder $lpo, string $role): bool
+    {
+        if (in_array($role, ['super_admin', 'manager'], true) && in_array($lpo->status, ['pending', 'rejected', 'sent_to_accountant'], true)) {
+            return true;
+        }
+
+        if ($role === 'storekeeper' && in_array($lpo->status, ['pending', 'rejected'], true)) {
+            return true;
+        }
+
+        if ($role === 'accountant' && $lpo->status === 'sent_to_accountant') {
+            return true;
+        }
+
+        return false;
     }
 
     public function managerVerify(Request $request, LocalPurchaseOrder $lpo)
@@ -154,23 +272,59 @@ class LocalPurchaseOrderController extends Controller
             'manager_id' => Auth::guard('staff')->id(),
             'notes' => $lpo->notes . ' | VERIFIED: ' . $request->manager_notes,
         ]);
-        return redirect()->route('lpo.index')->with('success', 'LPO verified.');
+        return redirect()->route('lpo.index')->with('success', 'LPO verified. Accountant can now pay the storekeeper.');
+    }
+
+    /**
+     * Accountant pays / disburses the verified LPO budget to the storekeeper.
+     */
+    public function disburseFunds(LocalPurchaseOrder $lpo)
+    {
+        $role = strtolower(Auth::guard('staff')->user()->role ?? '');
+        if (!in_array($role, ['accountant', 'super_admin', 'manager'], true)) {
+            abort(403, 'Only accountants can disburse LPO funds.');
+        }
+
+        if ($lpo->status !== 'verified_by_manager') {
+            return back()->with('error', 'Only manager-verified LPOs can be paid to the storekeeper.');
+        }
+
+        $lpo->update([
+            'status' => 'funds_disbursed',
+            'accountant_id' => $lpo->accountant_id ?: Auth::guard('staff')->id(),
+            'notes' => trim(($lpo->notes ? $lpo->notes . "\n" : '') . 'FUNDS DISBURSED to storekeeper: ' . now()->format('d/m/Y H:i')),
+        ]);
+
+        return redirect()->route('accountant.pay-storekeeper')
+            ->with('success', 'Funds disbursed for LPO #' . $lpo->id . '. Storekeeper can now purchase / receive.');
     }
 
     public function close(LocalPurchaseOrder $lpo)
     {
+        if (!in_array($lpo->status, ['funds_disbursed', 'verified_by_manager'], true)) {
+            return back()->with('error', 'Only paid or verified LPOs can be closed.');
+        }
+
         $lpo->update(['status' => 'closed']);
         return redirect()->route('lpo.index')->with('success', 'LPO closed.');
     }
 
     public function receiveForm(LocalPurchaseOrder $lpo)
     {
-        if (!in_array($lpo->status, ['verified_by_manager', 'closed'])) {
-            return back()->with('error', 'LPO must be verified first.');
+        if (!in_array($lpo->status, ['funds_disbursed', 'closed'])) {
+            return back()->with('error', 'Accountant must pay the storekeeper before items can be received.');
         }
-        $lpo->load(['items.productVariant.product']);
-        $products = Product::active()->orderBy('name')->get();
-        return view('dashboard.lpo.receive', compact('lpo', 'products'));
+
+        // Use the same Receive Stock page as the storekeeper (pre-select this LPO)
+        $role = strtolower(Auth::guard('staff')->user()->role ?? '');
+        $route = $role === 'storekeeper'
+            ? 'storekeeper.stock-receipts.create'
+            : 'admin.stock-receipts.create';
+
+        return redirect()->route($route, [
+            'source' => 'lpo',
+            'lpo_id' => $lpo->id,
+        ]);
     }
 
     public function processReceive(Request $request, LocalPurchaseOrder $lpo)
@@ -178,6 +332,7 @@ class LocalPurchaseOrderController extends Controller
         DB::beginTransaction();
         try {
             $receivedById = Auth::guard('staff')->id();
+            $addedSpend = 0;
             foreach ($lpo->items as $item) {
                 $receivedQty = (float) $request->input("items.{$item->id}.received_qty", 0);
                 if ($receivedQty <= 0)
@@ -197,7 +352,13 @@ class LocalPurchaseOrderController extends Controller
                     ]);
                 }
                 $item->increment('qty_received', $receivedQty);
+                $addedSpend += $receivedQty * (float) $item->unit_price;
             }
+
+            if ($addedSpend > 0) {
+                $lpo->increment('spent_amount', $addedSpend);
+            }
+
             DB::commit();
             return redirect()->route('lpo.show', $lpo->id)->with('success', 'Items received.');
         } catch (\Exception $e) {

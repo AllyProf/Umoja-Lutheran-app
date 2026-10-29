@@ -125,6 +125,9 @@ Route::prefix('manager')->group(function () {
 
         // Users Management (Sensitive)
         Route::get('/users', [\App\Http\Controllers\AdminController::class, 'users'])->name('admin.users');
+        Route::get('/users/create', [\App\Http\Controllers\AdminController::class, 'createUser'])->name('admin.users.create');
+        Route::post('/users', [\App\Http\Controllers\AdminController::class, 'storeUser'])->name('admin.users.store');
+        Route::delete('/users/{id}', [\App\Http\Controllers\AdminController::class, 'deleteUser'])->name('admin.users.delete');
     });
 
     // Shared management routes (accessible by manager and reception)
@@ -282,6 +285,8 @@ Route::prefix('manager')->group(function () {
 
 
         Route::get('/restaurants/stock-receipts/create', [\App\Http\Controllers\StockReceiptController::class, 'create'])->name('admin.stock-receipts.create');
+        Route::get('/restaurants/stock-receipts/source-items', [\App\Http\Controllers\StockReceiptController::class, 'sourceItems'])->name('admin.stock-receipts.source-items');
+        Route::post('/restaurants/stock-receipts/receive-from-source', [\App\Http\Controllers\StockReceiptController::class, 'receiveFromSource'])->name('admin.stock-receipts.receive-from-source');
         Route::post('/restaurants/stock-receipts', [\App\Http\Controllers\StockReceiptController::class, 'store'])->name('admin.stock-receipts.store');
         Route::get('/restaurants/stock-receipts/products/{product}/variants', [\App\Http\Controllers\StockReceiptController::class, 'getProductVariants'])->name('admin.stock-receipts.get-variants');
         Route::post('/restaurants/stock-receipts/calculate', [\App\Http\Controllers\StockReceiptController::class, 'calculateTotals'])->name('admin.stock-receipts.calculate');
@@ -407,6 +412,7 @@ Route::prefix('manager')->group(function () {
 
         // Local Purchase Order (LPO) Routes
         Route::get('/lpo', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'index'])->name('lpo.index');
+        Route::get('/lpo/pending-count', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'pendingCount'])->name('lpo.pending-count');
         Route::get('/lpo/create', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'create'])->name('lpo.create');
         Route::post('/lpo', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'store'])->name('lpo.store');
         Route::get('/lpo/{lpo}', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'show'])->name('lpo.show');
@@ -414,7 +420,9 @@ Route::prefix('manager')->group(function () {
         Route::put('/lpo/{lpo}', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'update'])->name('lpo.update');
         Route::post('/lpo/{lpo}/send', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'sendToAccountant'])->name('lpo.send');
         Route::post('/lpo/{lpo}/send-to-manager', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'sendToManager'])->name('lpo.send-to-manager');
+        Route::post('/lpo/{lpo}/reject', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'rejectByAccountant'])->name('lpo.reject');
         Route::post('/lpo/{lpo}/manager-verify', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'managerVerify'])->name('lpo.manager-verify');
+        Route::post('/lpo/{lpo}/disburse', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'disburseFunds'])->name('lpo.disburse');
         Route::post('/lpo/{lpo}/close', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'close'])->name('lpo.close');
         Route::get('/lpo/{lpo}/receive', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'receiveForm'])->name('lpo.receive');
         Route::post('/lpo/{lpo}/receive', [\App\Http\Controllers\LocalPurchaseOrderController::class, 'processReceive'])->name('lpo.process-receive');
@@ -987,6 +995,8 @@ Route::prefix('storekeeper')->group(function () {
         // Stock Receipts (Receiving items)
         Route::get('/stock-receipts', [\App\Http\Controllers\StockReceiptController::class, 'index'])->name('storekeeper.stock-receipts.index');
         Route::get('/stock-receipts/create', [\App\Http\Controllers\StockReceiptController::class, 'create'])->name('storekeeper.stock-receipts.create');
+        Route::get('/stock-receipts/source-items', [\App\Http\Controllers\StockReceiptController::class, 'sourceItems'])->name('storekeeper.stock-receipts.source-items');
+        Route::post('/stock-receipts/receive-from-source', [\App\Http\Controllers\StockReceiptController::class, 'receiveFromSource'])->name('storekeeper.stock-receipts.receive-from-source');
         Route::post('/stock-receipts', [\App\Http\Controllers\StockReceiptController::class, 'store'])->name('storekeeper.stock-receipts.store');
         Route::get('/stock-receipts/get-variants/{product}', [\App\Http\Controllers\StockReceiptController::class, 'getProductVariants'])->name('storekeeper.stock-receipts.get-variants');
         Route::get('/stock-receipts/{stockReceipt}/download', [\App\Http\Controllers\StockReceiptController::class, 'download'])->name('storekeeper.stock-receipts.download');
@@ -995,6 +1005,7 @@ Route::prefix('storekeeper')->group(function () {
         Route::get('/transfers', [\App\Http\Controllers\StockTransferController::class, 'index'])->name('storekeeper.transfers.index');
         Route::get('/transfers/create', [\App\Http\Controllers\StockTransferController::class, 'create'])->name('storekeeper.transfers.create');
         Route::post('/transfers', [\App\Http\Controllers\StockTransferController::class, 'store'])->name('storekeeper.transfers.store');
+        Route::get('/transfers/{stockTransfer}/download', [\App\Http\Controllers\StockTransferController::class, 'download'])->name('storekeeper.transfers.download');
 
         // Product Management (Registration & Departments)
         Route::get('/products', [\App\Http\Controllers\ProductController::class, 'index'])->name('storekeeper.products.index');
@@ -1040,6 +1051,11 @@ Route::middleware(['auth:staff', 'role:accountant,manager,super_admin'])->prefix
     Route::post('/shopping-lists/{shoppingList}/claim', [\App\Http\Controllers\AccountantController::class, 'claimPurchase'])->name('accountant.shopping-list.claim');
     Route::get('/shopping-lists/{shoppingList}/record-purchase', [\App\Http\Controllers\AccountantController::class, 'recordPurchaseView'])->name('accountant.shopping-list.record-purchase');
     Route::put('/shopping-lists/{shoppingList}/record-purchase', [\App\Http\Controllers\AccountantController::class, 'updatePurchase'])->name('accountant.shopping-list.update-purchase');
+
+    // Emergency orders from storekeeper
+    Route::get('/emergency-orders', [\App\Http\Controllers\AccountantController::class, 'emergencyOrders'])->name('accountant.emergency-orders');
+    Route::get('/pending-counts', [\App\Http\Controllers\AccountantController::class, 'pendingCounts'])->name('accountant.pending-counts');
+    Route::get('/pay-storekeeper', [\App\Http\Controllers\AccountantController::class, 'payStorekeeper'])->name('accountant.pay-storekeeper');
 
     // Payment Verification
     Route::get('/payments', [\App\Http\Controllers\AccountantController::class, 'paymentVerification'])->name('accountant.payments');

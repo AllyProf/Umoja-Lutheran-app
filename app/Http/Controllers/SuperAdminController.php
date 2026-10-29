@@ -387,6 +387,10 @@ class SuperAdminController extends Controller
             'userRole' => 'Super Administrator',
             'user' => null,
             'roles' => $roles,
+            'usersIndexRoute' => 'super_admin.users',
+            'usersStoreRoute' => 'super_admin.users.store',
+            'usersUpdateRoute' => 'super_admin.users.update',
+            'dashboardRoute' => 'super_admin.dashboard',
         ]);
     }
 
@@ -556,6 +560,10 @@ class SuperAdminController extends Controller
             'user' => $user,
             'userType' => $userType,
             'roles' => $roles,
+            'usersIndexRoute' => 'super_admin.users',
+            'usersStoreRoute' => 'super_admin.users.store',
+            'usersUpdateRoute' => 'super_admin.users.update',
+            'dashboardRoute' => 'super_admin.dashboard',
         ]);
     }
 

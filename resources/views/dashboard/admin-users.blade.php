@@ -13,6 +13,19 @@
   </ul>
 </div>
 
+@if(session('success'))
+  <div class="alert alert-success">{{ session('success') }}</div>
+@endif
+@if(session('error'))
+  <div class="alert alert-danger">{{ session('error') }}</div>
+@endif
+
+<div class="mb-3 text-right">
+  <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
+    <i class="fa fa-user-plus"></i> Add New User
+  </a>
+</div>
+
 <!-- Statistics Cards -->
 <div class="row mb-3">
   <div class="col-md-3">
@@ -243,6 +256,9 @@
         <div class="tile">
           <div class="tile-title-w-btn">
             <h3 class="title"><i class="fa fa-user-secret"></i> Employees</h3>
+            <a href="{{ route('admin.users.create') }}" class="btn btn-primary icon-btn">
+              <i class="fa fa-plus"></i> Add User
+            </a>
           </div>
           <div class="tile-body">
             <div class="table-responsive">
@@ -255,10 +271,16 @@
                     <th>Role</th>
                     <th>Registered</th>
                     <th>Status</th>
+                    <th style="width:120px">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   @forelse($employees as $employee)
+                  @php
+                    $userRoleNormalized = strtolower(str_replace([' ', '_'], '', trim($employee->role ?? '')));
+                    $isSuperAdminRow = $employee->role == 'super_admin' || $userRoleNormalized === 'superadmin' || strtolower($employee->role ?? '') === 'super admin';
+                    $isSelf = auth()->guard('staff')->id() === $employee->id;
+                  @endphp
                   <tr class="employee-row"
                       data-employee-name="{{ strtolower($employee->name) }}"
                       data-employee-email="{{ strtolower($employee->email) }}"
@@ -267,12 +289,9 @@
                     <td><strong>{{ $employee->name }}</strong></td>
                     <td>{{ $employee->email }}</td>
                     <td>
-                      @php
-                        $userRoleNormalized = strtolower(str_replace([' ', '_'], '', trim($employee->role ?? '')));
-                      @endphp
                       @if($employee->role == 'manager' || $userRoleNormalized === 'manager')
                         <span class="badge badge-warning"><i class="fa fa-user-tie"></i> Manager</span>
-                      @elseif($employee->role == 'super_admin' || $userRoleNormalized === 'superadmin' || strtolower($employee->role ?? '') === 'super admin')
+                      @elseif($isSuperAdminRow)
                         <span class="badge badge-danger"><i class="fa fa-shield"></i> Super Admin</span>
                       @elseif($employee->role == 'reception' || $userRoleNormalized === 'reception' || strtolower($employee->role ?? '') === 'reception')
                         <span class="badge badge-info"><i class="fa fa-user-md"></i> Reception</span>
@@ -282,12 +301,28 @@
                     </td>
                     <td>{{ $employee->created_at->format('M d, Y') }}</td>
                     <td>
-                      <span class="badge badge-success">Active</span>
+                      <span class="badge badge-{{ ($employee->is_active ?? true) ? 'success' : 'secondary' }}">
+                        {{ ($employee->is_active ?? true) ? 'Active' : 'Inactive' }}
+                      </span>
+                    </td>
+                    <td>
+                      @if(!$isSuperAdminRow && !$isSelf)
+                        <form action="{{ route('admin.users.delete', $employee->id) }}" method="POST" class="d-inline"
+                          onsubmit="return confirm('Delete user {{ addslashes($employee->name) }}? This cannot be undone.');">
+                          @csrf
+                          @method('DELETE')
+                          <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete user">
+                            <i class="fa fa-trash"></i> Delete
+                          </button>
+                        </form>
+                      @else
+                        <span class="text-muted small">—</span>
+                      @endif
                     </td>
                   </tr>
                   @empty
                   <tr>
-                    <td colspan="6" class="text-center">
+                    <td colspan="7" class="text-center">
                       <i class="fa fa-user-secret fa-3x text-muted mb-2"></i>
                       <p>No employees found</p>
                     </td>

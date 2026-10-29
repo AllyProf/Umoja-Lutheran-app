@@ -3,8 +3,20 @@
 @section('content')
     <div class="app-title">
         <div>
-            <h1><i class="fa fa-list-alt"></i> Shopping Lists Management</h1>
-            <p>Approve or monitor shopping lists from the storekeeper</p>
+            <h1><i class="fa fa-list-alt"></i>
+                @if(($tab ?? '') === 'approved')
+                    Pay Storekeeper
+                @else
+                    Purchase Lists
+                @endif
+            </h1>
+            <p>
+                @if(($tab ?? '') === 'approved')
+                    Disburse funds after the manager has approved
+                @else
+                    Review purchase lists from the storekeeper
+                @endif
+            </p>
         </div>
         <ul class="app-breadcrumb breadcrumb">
             <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
@@ -28,7 +40,7 @@
                     <li class="nav-item">
                         <a class="nav-link {{ $tab === 'approved' ? 'active' : '' }}"
                             href="{{ route('accountant.shopping-lists', ['tab' => 'approved']) }}">
-                            Approved (To Pay) <span
+                            Pay Storekeeper <span
                                 class="badge badge-info ml-1">{{ $tab === 'approved' ? $lists->total() : '' }}</span>
                         </a>
                     </li>
@@ -111,9 +123,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="d-flex justify-content-center mt-3">
-                        {{ $lists->appends(request()->query())->links() }}
-                    </div>
+                    @include('dashboard.partials.bootstrap-pagination', ['paginator' => $lists])
                 @else
                     <div class="text-center py-5">
                         <i class="fa fa-check-circle fa-4x text-success mb-3"></i>

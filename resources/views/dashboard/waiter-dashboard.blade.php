@@ -701,7 +701,7 @@
 
                     const now = new Date();
                     const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-                    const finalWalkInName = walkIn || 'Walk-in (' + timeStr + ')';
+                    const finalWalkInName = walkIn || ('Walk-in ' + new Date().toISOString().slice(0, 10) + ' ' + timeStr + ' #' + Math.random().toString(36).slice(2, 6));
 
                     const payload = {
                         _token: "{{ csrf_token() }}",

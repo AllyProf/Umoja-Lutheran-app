@@ -146,13 +146,92 @@ class StockTransfer extends Model
 
     public function getQuantityUnitNameAttribute()
     {
-        return match (strtolower($this->quantity_unit)) {
-            'packages' => $this->productVariant->packaging_name ?? 'Packages',
-            'bottles', 'pic' => 'Bottles',
-            'units' => 'Units',
-            'glass', 'serving' => 'Glass/Serving',
-            default => ucfirst($this->quantity_unit),
-        };
+        $unit = strtolower(trim((string) $this->quantity_unit));
+        $variant = $this->productVariant;
+        $product = $this->relationLoaded('product')
+            ? $this->product
+            : ($variant?->product ?? $this->product);
+        $category = strtolower((string) ($product->category ?? ''));
+        $type = strtolower((string) ($product->type ?? ''));
+
+        $isDrink = in_array($type, ['drink', 'beverage'], true) || in_array($category, [
+            'vinywaji', 'alcoholic_beverage', 'non_alcoholic_beverage', 'water',
+            'juices', 'energy_drinks', 'drinks', 'beverage', 'spirits', 'wines',
+            'hot_beverages', 'soft_drinks', 'beers',
+        ], true);
+
+        if (in_array($unit, ['packages', 'package', 'carton', 'cartons', 'crate', 'crates'], true)) {
+            return $variant->purchasing_unit
+                ?? $variant->packaging_name
+                ?? 'Packages';
+        }
+
+        // Legacy transfers saved "bottles" for every base unit — show real unit for non-drinks
+        if (in_array($unit, ['bottles', 'bottle', 'pic'], true)) {
+            if (!$isDrink) {
+                $label = $variant->receiving_unit
+                    ?? $variant->measurement
+                    ?? null;
+                if ($label && !in_array(strtolower($label), ['bottle', 'bottles', 'pic'], true)) {
+                    return $label;
+                }
+                return 'Pcs';
+            }
+            return 'Bottles';
+        }
+
+        if (in_array($unit, ['pcs', 'pc', 'piece', 'pieces', 'units', 'unit'], true)) {
+            return $variant->receiving_unit ?: 'Pcs';
+        }
+
+        if (in_array($unit, ['glass', 'serving', 'servings'], true)) {
+            return 'Glass/Serving';
+        }
+
+        if ($this->quantity_unit) {
+            return $this->quantity_unit;
+        }
+
+        return $variant->receiving_unit ?: 'Pcs';
+    }
+
+    /**
+     * Whether this transfer quantity should display as a whole number (Pcs, bottles, etc.).
+     */
+    public function usesWholeQuantity(): bool
+    {
+        $candidates = [
+            strtolower(trim((string) $this->quantity_unit_name)),
+            strtolower(trim((string) $this->quantity_unit)),
+            strtolower(trim((string) ($this->productVariant->receiving_unit ?? ''))),
+        ];
+
+        foreach ($candidates as $unit) {
+            if (in_array($unit, [
+                'pcs', 'pc', 'piece', 'pieces', 'unit', 'units',
+                'bottle', 'bottles', 'pic', 'pics',
+                'bucket', 'buckets', 'broom', 'brooms',
+                'dozen', 'tray', 'trays', 'pack', 'packs', 'box', 'boxes',
+            ], true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Formatted quantity for UI: no decimals for Pcs-style units.
+     */
+    public function getFormattedQuantityAttribute(): string
+    {
+        $qty = (float) $this->quantity_transferred;
+        if ($this->usesWholeQuantity()) {
+            return number_format((int) round($qty));
+        }
+
+        $formatted = number_format($qty, 2, '.', ',');
+        return rtrim(rtrim($formatted, '0'), '.');
     }
 
     // Static methods

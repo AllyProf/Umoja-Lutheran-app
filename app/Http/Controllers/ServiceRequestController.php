@@ -347,7 +347,8 @@ class ServiceRequestController extends Controller
 
             // Create service request - walk-ins / staff POS can be immediate, later, or room_charge
             $isWalkIn = $isWalkInRequest;
-            $paymentTiming = $request->input('payment_timing', 'immediate'); // immediate, later, or room_charge
+            // Default to later so orders are not auto-marked paid unless staff explicitly chooses Pay now
+            $paymentTiming = $request->input('payment_timing', 'later'); // immediate, later, or room_charge
             $dayServiceId = $request->input('day_service_id');
             $paymentMethod = $request->input('payment_method');
 
@@ -919,12 +920,18 @@ class ServiceRequestController extends Controller
 
     /**
      * Settle payment for a POS order (Used by Bar Keeper/Chef)
+     *
+     * IMPORTANT: never bulk-pay all historical walk-ins with the same name
+     * (e.g. "Walk-in (09:21)" / "Amani") — that pulled old unpaid lines into
+     * today's shift as paid and corrupted counter records.
      */
     public function settlePayment(Request $request, ServiceRequest $serviceRequest)
     {
         $request->validate([
             'payment_method' => 'required|string',
             'payment_reference' => 'nullable|string',
+            'order_ids' => 'nullable|array',
+            'order_ids.*' => 'integer|exists:service_requests,id',
         ]);
 
         $isRoomCharge = $request->payment_method === 'room_charge';
@@ -937,42 +944,89 @@ class ServiceRequestController extends Controller
             ], 422);
         }
 
-        // Items to settle (start with this one)
-        $itemsToSettle = [$serviceRequest];
-        $totalCollected = $serviceRequest->total_price_tsh;
+        $anchorAt = $serviceRequest->requested_at ?? $serviceRequest->created_at ?? now();
+        $anchorDate = $anchorAt->toDateString();
 
-        // If walk-in, find all other pending items for this name
-        if ($serviceRequest->is_walk_in && $serviceRequest->walk_in_name) {
-            $others = ServiceRequest::where('is_walk_in', true)
-                ->where('walk_in_name', $serviceRequest->walk_in_name)
-                ->where('payment_status', 'pending')
-                ->where('id', '!=', $serviceRequest->id)
+        // Prefer explicit IDs from the UI group (only those pending lines on the bill)
+        $explicitIds = collect($request->input('order_ids', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($explicitIds->isNotEmpty() && !$explicitIds->contains((int) $serviceRequest->id)) {
+            $explicitIds->push((int) $serviceRequest->id);
+        }
+
+        if ($explicitIds->isNotEmpty()) {
+            $itemsToSettle = ServiceRequest::whereIn('id', $explicitIds->all())
+                ->whereIn('payment_status', $isRoomCharge ? ['pending', 'room_charge'] : ['pending'])
                 ->get();
+        } else {
+            // Fallback: only same-day siblings for this guest (never cross-day name match)
+            $itemsToSettle = collect([$serviceRequest]);
 
-            foreach ($others as $other) {
-                $itemsToSettle[] = $other;
-                $totalCollected += $other->total_price_tsh;
-            }
-        } elseif ($serviceRequest->booking_id) {
-            // Also settle other unpaid / room-charge items for this room booking
-            $others = ServiceRequest::where('booking_id', $serviceRequest->booking_id)
-                ->whereIn('payment_status', ['pending', 'room_charge'])
-                ->where('id', '!=', $serviceRequest->id)
-                ->get();
+            if ($serviceRequest->is_walk_in && $serviceRequest->walk_in_name) {
+                $others = ServiceRequest::where('is_walk_in', true)
+                    ->where('walk_in_name', $serviceRequest->walk_in_name)
+                    ->where('payment_status', 'pending')
+                    ->where('id', '!=', $serviceRequest->id)
+                    ->whereDate('requested_at', $anchorDate)
+                    ->get();
 
-            foreach ($others as $other) {
-                $itemsToSettle[] = $other;
-                $totalCollected += $other->total_price_tsh;
+                foreach ($others as $other) {
+                    $itemsToSettle->push($other);
+                }
+            } elseif ($serviceRequest->booking_id) {
+                // In-house: settle only same-day counter pending / room_charge lines for this booking
+                $others = ServiceRequest::where('booking_id', $serviceRequest->booking_id)
+                    ->whereIn('payment_status', ['pending', 'room_charge'])
+                    ->where('id', '!=', $serviceRequest->id)
+                    ->whereDate('requested_at', $anchorDate)
+                    ->get();
+
+                foreach ($others as $other) {
+                    $itemsToSettle->push($other);
+                }
             }
         }
+
+        // De-dupe and drop already-paid / cancelled
+        $itemsToSettle = $itemsToSettle
+            ->unique('id')
+            ->filter(function ($item) use ($isRoomCharge) {
+                if (in_array($item->status, ['cancelled'], true)) {
+                    return false;
+                }
+                if ($isRoomCharge) {
+                    return in_array($item->payment_status, ['pending', 'room_charge'], true);
+                }
+                return $item->payment_status === 'pending';
+            })
+            ->values();
+
+        if ($itemsToSettle->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No unpaid items found to settle for this guest today.',
+            ], 422);
+        }
+
+        $totalCollected = $itemsToSettle->sum(fn ($i) => (float) $i->total_price_tsh);
 
         $activeShift = null;
         $activeShiftId = null;
         if (Auth::guard('staff')->check()) {
-            $staffId = Auth::guard('staff')->id();
-            $activeShift = \App\Models\ShiftClosure::where('staff_id', $staffId)
-                ->where('status', 'active')
-                ->first();
+            $staff = Auth::guard('staff')->user();
+            // Prefer CounterShiftContext when available (restaurant manager proxy)
+            if (class_exists(\App\Support\CounterShiftContext::class)) {
+                $activeShift = \App\Support\CounterShiftContext::resolveOperatingShift($staff);
+            }
+            if (!$activeShift) {
+                $activeShift = \App\Models\ShiftClosure::where('staff_id', $staff->id)
+                    ->where('status', 'active')
+                    ->first();
+            }
             $activeShiftId = $activeShift?->id;
         }
 
@@ -991,13 +1045,20 @@ class ServiceRequestController extends Controller
                 }
             }
 
+            $itemDate = optional($item->requested_at ?? $item->created_at)->toDateString();
+            $isSameDayAsAnchor = $itemDate && $itemDate === $anchorDate;
+            // Only attach current shift for same-day bill lines; keep original shift on prior debt
+            $shiftId = $isSameDayAsAnchor
+                ? ($activeShiftId ?? $item->shift_closure_id)
+                : ($item->shift_closure_id ?? $activeShiftId);
+
             $item->update([
                 'payment_status' => $isRoomCharge ? 'room_charge' : 'paid',
                 'payment_method' => $request->payment_method,
                 'payment_reference' => $request->payment_reference,
                 'status' => 'completed',
                 'completed_at' => now(),
-                'shift_closure_id' => $activeShiftId ?? $item->shift_closure_id,
+                'shift_closure_id' => $shiftId,
                 'service_specific_data' => $meta,
                 'reception_notes' => $notes ?: $item->reception_notes,
             ]);
@@ -1022,8 +1083,8 @@ class ServiceRequestController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Payment recorded and all pending items for this guest settled!',
-            'count' => count($itemsToSettle),
+            'message' => 'Payment recorded for ' . $itemsToSettle->count() . ' item(s) on this bill.',
+            'count' => $itemsToSettle->count(),
             'total' => $totalCollected
         ]);
     }

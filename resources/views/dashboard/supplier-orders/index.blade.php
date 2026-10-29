@@ -114,7 +114,7 @@
                         </table>
                     </div>
                     <div class="mt-3">
-                        {{ $orders->links() }}
+                        @include('dashboard.partials.bootstrap-pagination', ['paginator' => $orders])
                     </div>
                 </div>
             </div>

@@ -343,7 +343,14 @@ class NotificationService
             'completed' => 'info',
         ];
 
-        // Notify the requester
+        // Notify the requester (include role so staff/guest ID overlap cannot hide it)
+        $requesterRole = null;
+        if ($stockRequest->relationLoaded('requester') || $stockRequest->requester) {
+            $requesterRole = $stockRequest->requester->role ?? null;
+        } elseif ($requester) {
+            $requesterRole = optional(\App\Models\Staff::find($requester))->role;
+        }
+
         Notification::create([
             'type' => 'stock_request',
             'title' => 'Stock Request ' . ucfirst($status),
@@ -351,6 +358,7 @@ class NotificationService
             'icon' => $icons[$status] ?? 'fa-info-circle',
             'color' => $colors[$status] ?? 'primary',
             'user_id' => $requester,
+            'role' => $requesterRole,
             'notifiable_id' => $stockRequest->id,
             'notifiable_type' => \App\Models\StockRequest::class,
             'link' => $this->getRelativeUrl('stock-requests.index'),

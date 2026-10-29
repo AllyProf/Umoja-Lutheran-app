@@ -54,8 +54,12 @@ class LocalPurchaseOrderItem extends Model
 
     public function getQtyReceivedAttribute()
     {
-        if (!$this->product_variant_id)
-            return 0;
+        // Direct receives into this LPO item (stock receipt / LPO receive form)
+        $directReceived = (float) ($this->attributes['qty_received'] ?? 0);
+
+        if (!$this->product_variant_id) {
+            return $directReceived;
+        }
 
         // 1. Sum received quantities from Weekly Orders linked to this LPO
         $weeklyReceived = SupplierWeeklyOrderItem::whereHas('supplierWeeklyOrder', function ($query) {
@@ -67,13 +71,17 @@ class LocalPurchaseOrderItem extends Model
             $query->where('lpo_id', $this->lpo_id);
         })->where('product_variant_id', $this->product_variant_id)->where('is_found', true)->sum('purchased_quantity');
 
-        return (float) ($weeklyReceived + $dailyReceived);
+        return (float) ($directReceived + $weeklyReceived + $dailyReceived);
     }
 
     public function getActualSpentAmountAttribute()
     {
-        if (!$this->product_variant_id)
-            return 0;
+        // Direct LPO receives: qty_received column × budget unit price
+        $directSpent = (float) ($this->attributes['qty_received'] ?? 0) * (float) ($this->unit_price ?? 0);
+
+        if (!$this->product_variant_id) {
+            return $directSpent;
+        }
 
         // 1. Weekly Orders Spent (qty_received * unit_price)
         $weeklySpent = SupplierWeeklyOrderItem::whereHas('supplierWeeklyOrder', function ($query) {
@@ -87,7 +95,7 @@ class LocalPurchaseOrderItem extends Model
             $query->where('lpo_id', $this->lpo_id);
         })->where('product_variant_id', $this->product_variant_id)->sum('purchased_cost');
 
-        return (float) ($weeklySpent + $dailySpent);
+        return (float) ($directSpent + $weeklySpent + $dailySpent);
     }
 
     public function getActualBalanceAttribute()
