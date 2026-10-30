@@ -129,11 +129,20 @@ return [
         'notifiable' => \Spatie\Backup\Notifications\Notifiable::class,
 
         'mail' => [
-            'to' => env('BACKUP_NOTIFICATION_EMAIL', 'info@emca.co.tz'),
+            // Empty/invalid .env emails must not break artisan migrate/bootstrap (Spatie validates these on boot)
+            'to' => (static function () {
+                $email = trim((string) env('BACKUP_NOTIFICATION_EMAIL', ''));
+                return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : 'info@emca.co.tz';
+            })(),
 
             'from' => [
-                'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-                'name' => env('MAIL_FROM_NAME', 'Example'),
+                'address' => (static function () {
+                    $email = trim((string) env('MAIL_FROM_ADDRESS', ''));
+                    return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : 'noreply@umoja-lutheran.mauzolink.co.tz';
+                })(),
+                'name' => trim((string) env('MAIL_FROM_NAME', '')) !== ''
+                    ? env('MAIL_FROM_NAME')
+                    : 'Umoja Lutheran',
             ],
         ],
 
