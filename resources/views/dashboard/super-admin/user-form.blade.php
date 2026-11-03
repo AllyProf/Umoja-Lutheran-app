@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updatePasswordRequirements() {
         const selectedRole = roleSelect.value;
-        const isStaff = ['super_admin', 'manager', 'reception', 'bar_keeper', 'head_chef', 'housekeeper', 'waiter', 'storekeeper', 'accountant', 'cashier'].includes(selectedRole);
+        const isStaff = ['super_admin', 'manager', 'restaurant_manager', 'reception', 'bar_keeper', 'head_chef', 'housekeeper', 'waiter', 'counter', 'storekeeper', 'accountant', 'cashier'].includes(selectedRole);
         const isCreating = @json(!$user);
 
         if (isStaff && isCreating) {

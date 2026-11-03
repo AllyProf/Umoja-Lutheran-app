@@ -47,7 +47,8 @@ class CheckRole
                 $userRole = 'head_chef';
             } elseif ($normalizedRole === 'housekeeper' || $rawRoleLower === 'housekeeper') {
                 $userRole = 'housekeeper';
-            } elseif ($normalizedRole === 'waiter' || $rawRoleLower === 'waiter') {
+            } elseif ($normalizedRole === 'waiter' || $rawRoleLower === 'waiter' || $normalizedRole === 'counter' || $rawRoleLower === 'counter') {
+                // Counter is the display name for the legacy waiter role
                 $userRole = 'waiter';
             } elseif ($normalizedRole === 'storekeeper' || $rawRoleLower === 'storekeeper') {
                 $userRole = 'storekeeper';

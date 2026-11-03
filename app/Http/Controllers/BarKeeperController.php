@@ -1632,11 +1632,19 @@ class BarKeeperController extends Controller
                 $q->whereHas('service', fn ($sq) => $sq->whereIn('category', $barCategories))
                     ->orWhereIn('service_id', [3, 4]);
             })
-            ->whereIn('payment_status', ['pending', 'room_charge'])
+            ->whereIn('payment_status', ['pending', 'room_charge', 'unpaid'])
             ->whereNotIn('status', ['cancelled']);
 
         if (!$canSeeAll) {
-            $query->where('approved_by', $user->id);
+            // Own sales OR unpaid sealed onto one of this counter's closed/active shifts
+            $query->where(function ($q) use ($user) {
+                $q->where('approved_by', $user->id)
+                    ->orWhereIn('shift_closure_id', function ($sub) use ($user) {
+                        $sub->select('id')
+                            ->from('shift_closures')
+                            ->where('staff_id', $user->id);
+                    });
+            });
         }
 
         return $query->orderByDesc('completed_at')->orderByDesc('requested_at')->get();
@@ -2520,19 +2528,66 @@ class BarKeeperController extends Controller
         $closedAt = $shift->closed_at ?? now();
 
         return ServiceRequest::with(['booking.room', 'service'])
-            ->whereIn('payment_status', ['pending', 'room_charge'])
+            ->whereIn('payment_status', ['pending', 'room_charge', 'unpaid'])
             ->whereNotIn('status', ['cancelled'])
-            ->where('approved_by', $staffId)
-            ->where(function ($q) use ($openedAt, $closedAt) {
-                $q->whereBetween('completed_at', [$openedAt, $closedAt])
-                    ->orWhere(function ($q2) use ($openedAt, $closedAt) {
-                        $q2->whereNull('completed_at')
-                            ->whereBetween('requested_at', [$openedAt, $closedAt]);
+            ->where(function ($q) use ($staffId, $shift, $openedAt, $closedAt) {
+                // Already linked to this shift
+                $q->where('shift_closure_id', $shift->id)
+                    // Or owned by this counter within the shift window
+                    ->orWhere(function ($q2) use ($staffId, $openedAt, $closedAt) {
+                        $q2->where('approved_by', $staffId)
+                            ->where(function ($q3) use ($openedAt, $closedAt) {
+                                $q3->whereBetween('completed_at', [$openedAt, $closedAt])
+                                    ->orWhere(function ($q4) use ($openedAt, $closedAt) {
+                                        $q4->whereNull('completed_at')
+                                            ->whereBetween('requested_at', [$openedAt, $closedAt]);
+                                    });
+                            });
                     });
             })
             ->orderBy('completed_at')
             ->orderBy('requested_at')
             ->get();
+    }
+
+    /**
+     * Move unpaid counter bills from this shift into Debt Management
+     * by sealing them to the closed shift_closure_id.
+     */
+    private function sealUnpaidToShift(int $staffId, ShiftClosure $shift): int
+    {
+        $openedAt = $shift->opened_at ?? $shift->created_at;
+        $closedAt = $shift->closed_at ?? now();
+
+        $ids = ServiceRequest::whereIn('payment_status', ['pending', 'room_charge', 'unpaid'])
+            ->whereNotIn('status', ['cancelled'])
+            ->where(function ($q) use ($staffId, $shift, $openedAt, $closedAt) {
+                $q->where('shift_closure_id', $shift->id)
+                    ->orWhere(function ($q2) use ($staffId, $openedAt, $closedAt) {
+                        // Owned by this counter, or orphan unpaid (no owner) in the shift window
+                        $q2->where(function ($owner) use ($staffId) {
+                            $owner->where('approved_by', $staffId)
+                                ->orWhereNull('approved_by');
+                        })
+                            ->where(function ($q3) use ($openedAt, $closedAt) {
+                                $q3->whereBetween('completed_at', [$openedAt, $closedAt])
+                                    ->orWhere(function ($q4) use ($openedAt, $closedAt) {
+                                        $q4->whereNull('completed_at')
+                                            ->whereBetween('requested_at', [$openedAt, $closedAt]);
+                                    });
+                            });
+                    });
+            })
+            ->pluck('id');
+
+        if ($ids->isEmpty()) {
+            return 0;
+        }
+
+        ServiceRequest::whereIn('id', $ids)->update(['shift_closure_id' => $shift->id]);
+        ServiceRequest::whereIn('id', $ids)->whereNull('approved_by')->update(['approved_by' => $staffId]);
+
+        return $ids->count();
     }
 
     /**
@@ -2709,16 +2764,23 @@ class BarKeeperController extends Controller
         ]);
 
         $this->sealSalesToShift($staffId, $activeShift);
+        // Explicitly move unpaid bills from this shift into Debt Management
+        $debtsMoved = $this->sealUnpaidToShift($staffId, $activeShift);
 
         $activeShift->refresh();
 
         $unpaidOrders = $this->unpaidOrdersForShift($staffId, $activeShift);
         $unpaidGuests = $this->groupUnpaidGuests($unpaidOrders);
 
+        $debtMsg = $debtsMoved > 0
+            ? " {$debtsMoved} unpaid order(s) moved to Debt Management."
+            : '';
+
         return response()->json([
             'success' => true,
-            'message' => 'Shift closed successfully. Please hand over the cash to the Cashier.',
+            'message' => 'Shift closed successfully. Please hand over the cash to the Cashier.' . $debtMsg,
             'closure' => $activeShift,
+            'debts_moved' => $debtsMoved,
             'download_url' => route('bar-keeper.shifts.report', $activeShift->id, false),
             'report' => [
                 'staff_name' => Auth::guard('staff')->user()->name ?? 'Counter',
@@ -2885,11 +2947,14 @@ class BarKeeperController extends Controller
         ]);
 
         $this->sealSalesToShift($staffId, $shift);
+        $debtsMoved = $this->sealUnpaidToShift($staffId, $shift);
 
         return response()->json([
             'success' => true,
-            'message' => 'Counter shift has been closed by the manager.',
+            'message' => 'Counter shift has been closed by the manager.'
+                . ($debtsMoved > 0 ? " {$debtsMoved} unpaid order(s) moved to Debt Management." : ''),
             'closure' => $shift->fresh('staff'),
+            'debts_moved' => $debtsMoved,
             'summary' => [
                 'total_cash' => $totalCash,
                 'total_mpesa' => $totalMpesa,

@@ -1240,8 +1240,8 @@
                     $displayRole = 'head_chef';
                   } elseif ($normalizedRole === 'housekeeper' || strtolower($rawRole) === 'housekeeper') {
                     $displayRole = 'housekeeper';
-                  } elseif ($normalizedRole === 'waiter' || strtolower($rawRole) === 'waiter') {
-                    $displayRole = 'waiter';
+                  } elseif ($normalizedRole === 'waiter' || strtolower($rawRole) === 'waiter' || $normalizedRole === 'counter' || strtolower($rawRole) === 'counter') {
+                    $displayRole = 'counter';
                   } elseif ($normalizedRole === 'storekeeper' || strtolower($rawRole) === 'storekeeper') {
                     $displayRole = 'storekeeper';
                   } elseif ($normalizedRole === 'accountant' || strtolower($rawRole) === 'accountant') {

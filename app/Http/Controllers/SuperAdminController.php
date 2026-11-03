@@ -911,14 +911,122 @@ class SuperAdminController extends Controller
 
         $userName = $user->name;
         $userEmail = $user->email;
+        $userId = $user->id;
 
-        // Log before deletion
+        try {
+            DB::transaction(function () use ($user, $userType, $authUser) {
+                if ($userType === 'staff') {
+                    $this->detachStaffReferences((int) $user->id, $authUser ? (int) $authUser->id : null);
+                }
+
+                $user->delete();
+            });
+        } catch (\Throwable $e) {
+            Log::warning('Staff hard-delete blocked by related records; deactivating instead', [
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+
+            // Preserve history: deactivate so login is blocked without breaking FKs
+            if ($userType === 'staff' && $user instanceof Staff) {
+                $user->is_active = false;
+                $user->session_token = null;
+                $user->last_session_id = null;
+                // Free the email for reuse while keeping the row for audit/FKs
+                if (!str_ends_with((string) $user->email, '.deleted')) {
+                    $user->email = $user->email . '.deleted.' . $user->id;
+                }
+                $user->save();
+
+                ActivityLog::log('updated', null, "Deactivated user (could not hard-delete): {$userName} ({$userEmail})");
+                SystemLog::log('warning', "User deactivated instead of deleted: {$userName} ({$userEmail})", 'user_management', [
+                    'user_id' => $userId,
+                    'reason' => 'foreign_key_constraint',
+                ]);
+
+                return redirect()->route('super_admin.users')->with(
+                    'success',
+                    'User has related records (stock requests, sales, etc.) so the account was deactivated instead of permanently deleted. They can no longer log in.'
+                );
+            }
+
+            return redirect()->route('super_admin.users')->with(
+                'error',
+                'Could not delete this user because related records still reference them.'
+            );
+        }
+
         ActivityLog::log('deleted', null, "Deleted user: {$userName} ({$userEmail})");
-        SystemLog::log('warning', "User deleted: {$userName} ({$userEmail})", 'user_management', ['user_id' => $user->id]);
-
-        $user->delete();
+        SystemLog::log('warning', "User deleted: {$userName} ({$userEmail})", 'user_management', ['user_id' => $userId]);
 
         return redirect()->route('super_admin.users')->with('success', 'User deleted successfully.');
+    }
+
+    /**
+     * Clear or reassign staff foreign keys so a staff row can be deleted safely.
+     * Required (non-nullable) FKs are reassigned to the acting super admin when possible.
+     */
+    private function detachStaffReferences(int $staffId, ?int $fallbackStaffId = null): void
+    {
+        $nullableSets = [
+            'stock_requests' => ['accountant_id', 'manager_id', 'storekeeper_id'],
+            'stock_transfers' => ['received_by'],
+            'stock_returns' => ['received_by'],
+            'shift_closures' => ['receiver_id'],
+            'service_requests' => ['approved_by', 'cancelled_by'],
+            'purchase_requests' => ['approved_by', 'edited_by'],
+            'room_issues' => ['assigned_to'],
+            'room_cleaning_logs' => ['cleaned_by'],
+            'shopping_lists' => ['purchaser_id'],
+            'day_services' => ['registered_by', 'cashier_id'],
+            'bookings' => ['cashier_id', 'accountant_id'],
+            'supplier_weekly_orders' => ['accountant_id', 'manager_id'],
+            'service_catalog' => ['edited_by'],
+            'kitchen_stock_movements' => ['performed_by'],
+            'local_purchase_orders' => ['accountant_id', 'manager_id'],
+        ];
+
+        foreach ($nullableSets as $table => $columns) {
+            if (!\Schema::hasTable($table)) {
+                continue;
+            }
+            foreach ($columns as $column) {
+                if (!\Schema::hasColumn($table, $column)) {
+                    continue;
+                }
+                DB::table($table)->where($column, $staffId)->update([$column => null]);
+            }
+        }
+
+        // Non-nullable ownership columns: reassign to fallback admin so history stays intact
+        if ($fallbackStaffId && $fallbackStaffId !== $staffId) {
+            $reassignSets = [
+                'stock_requests' => ['requested_by'],
+                'purchase_requests' => ['requested_by'],
+                'purchase_request_templates' => ['created_by'],
+                'stock_receipts' => ['received_by'],
+                'stock_transfers' => ['transferred_by'],
+                'stock_returns' => ['staff_id'],
+                'inventory_stock_movements' => ['performed_by'],
+                'room_issues' => ['reported_by'],
+                'store_announcements' => ['created_by'],
+                'shift_closures' => ['staff_id'],
+                'supplier_weekly_orders' => ['storekeeper_id'],
+                'local_purchase_orders' => ['storekeeper_id'],
+            ];
+
+            foreach ($reassignSets as $table => $columns) {
+                if (!\Schema::hasTable($table)) {
+                    continue;
+                }
+                foreach ($columns as $column) {
+                    if (!\Schema::hasColumn($table, $column)) {
+                        continue;
+                    }
+                    DB::table($table)->where($column, $staffId)->update([$column => $fallbackStaffId]);
+                }
+            }
+        }
     }
 
     /**

@@ -63,10 +63,10 @@ class KitchenOrderController extends Controller
         \Log::info('Kitchen starting preparation', ['order_id' => $serviceRequest->id, 'user_id' => $user->id ?? 'unknown']);
         
         try {
+            // Do not overwrite approved_by — that field is the counter sale owner for shifts/debts
             $serviceRequest->update([
                 'status' => 'preparing',
                 'preparation_started_at' => now(),
-                'approved_by' => $user->id ?? $serviceRequest->approved_by,
                 'approved_at' => $serviceRequest->approved_at ?? now(),
             ]);
 
@@ -87,11 +87,10 @@ class KitchenOrderController extends Controller
         DB::beginTransaction();
         try {
             \Log::info('Kitchen completing order', ['order_id' => $serviceRequest->id, 'user_id' => $user->id ?? 'unknown']);
-            // 1. Mark as completed
+            // 1. Mark as completed — keep counter approved_by for shift/debt ownership
             $updateData = [
                 'status' => 'completed',
                 'completed_at' => now(),
-                'approved_by' => $user->id ?? $serviceRequest->approved_by,
                 'approved_at' => $serviceRequest->approved_at ?? now(),
                 'preparation_started_at' => $serviceRequest->preparation_started_at ?? now(),
                 'reception_notes' => ($serviceRequest->reception_notes ? $serviceRequest->reception_notes . ' | ' : '') . "Completed by Kitchen (" . ($user->name ?? 'Staff') . ")"
@@ -103,7 +102,11 @@ class KitchenOrderController extends Controller
                 $updateData['payment_status'] = $isRoomCharge ? 'room_charge' : 'paid';
                 $updateData['payment_method'] = $request->payment_method;
                 $updateData['payment_reference'] = $request->payment_reference;
-                
+                // Only claim sale ownership when kitchen takes the payment and none was set
+                if (!$serviceRequest->approved_by && $user) {
+                    $updateData['approved_by'] = $user->id;
+                }
+
                 $methodName = strtoupper(str_replace('_', ' ', $request->payment_method));
                 $updateData['reception_notes'] .= " | Paid via $methodName";
             }

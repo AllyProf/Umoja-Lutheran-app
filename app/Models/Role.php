@@ -28,11 +28,22 @@ class Role extends Model
      */
     public static function assignableRoles()
     {
+        // Hide legacy/duplicate role keys so Create User does not list the same job twice
+        $hiddenDuplicates = ['assistant_manager']; // covered by restaurant_manager
+
         return static::query()
+            ->whereNotIn('name', $hiddenDuplicates)
             ->orderByRaw("CASE WHEN name = 'super_admin' THEN 0 WHEN name = 'manager' THEN 1 WHEN name = 'restaurant_manager' THEN 2 ELSE 3 END")
             ->orderBy('display_name')
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->map(function ($role) {
+                // Present waiter as Counter in staff forms
+                if ($role->name === 'waiter') {
+                    $role->display_name = 'Counter';
+                }
+                return $role;
+            });
     }
 
     /**

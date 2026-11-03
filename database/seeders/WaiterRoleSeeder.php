@@ -12,9 +12,12 @@ class WaiterRoleSeeder extends Seeder
     public function run()
     {
         // 1. Create Waiter Role
-        $waiterRole = Role::firstOrCreate(
+        $waiterRole = Role::updateOrCreate(
             ['name' => 'waiter'],
-            ['display_name' => 'Waiter', 'description' => 'Staff responsible for taking guest orders and processing payments.']
+            [
+                'display_name' => 'Counter',
+                'description' => 'Counter staff who take guest orders and process sales at the restaurant/bar counter.',
+            ]
         );
 
         // 2. Create a Test Waiter Account

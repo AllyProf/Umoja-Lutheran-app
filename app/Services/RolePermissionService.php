@@ -32,8 +32,8 @@ class RolePermissionService
                 return 'head_chef';
             } elseif ($normalizedRole === 'housekeeper' || $rawRole === 'housekeeper') {
                 return 'housekeeper';
-            } elseif ($normalizedRole === 'waiter' || $rawRole === 'waiter') {
-                return 'waiter';
+            } elseif ($normalizedRole === 'waiter' || $rawRole === 'waiter' || $normalizedRole === 'counter' || $rawRole === 'counter') {
+                return 'waiter'; // Counter staff (legacy key: waiter)
             } elseif ($normalizedRole === 'barkeeper' || $rawRole === 'bar_keeper') {
                 return 'bar_keeper';
             } elseif ($normalizedRole === 'storekeeper' || $rawRole === 'storekeeper') {

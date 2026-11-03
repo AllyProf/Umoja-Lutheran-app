@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\Service;
 use App\Models\ServiceRequest;
 use App\Models\Staff;
+use App\Support\CounterShiftContext;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -159,9 +160,15 @@ class WaiterController extends Controller
             $user = Auth::guard('staff')->user();
             $createdRequests = [];
 
+            // Link to open counter shift so unpaid bills move to Debt Management on close
+            $activeShift = CounterShiftContext::resolveOperatingShift($user);
+            $saleOwnerId = $activeShift
+                ? CounterShiftContext::saleOwnerStaffId($user, $activeShift)
+                : (int) $user->id;
+
             foreach ($request->items as $item) {
                 // Determine base note
-                $notePrefix = 'POS Order by Waiter: ' . ($user->name ?? 'Staff');
+                $notePrefix = 'POS Order by Counter: ' . ($user->name ?? 'Staff');
                 if ($request->payment_intent === 'now') {
                     $notePrefix .= ' [PAY AT COUNTER]';
                 }
@@ -173,7 +180,10 @@ class WaiterController extends Controller
                     'status' => 'pending',
                     'requested_at' => now(),
                     'reception_notes' => $notePrefix . (isset($item['note']) && $item['note'] ? (' - Msg: ' . $item['note']) : ''),
-                    'payment_status' => 'pending', // Waiters always send as pending for Bar/Chef to settle
+                    'payment_status' => 'pending', // Counter always send as pending for Bar/Chef to settle
+                    'approved_by' => $saleOwnerId,
+                    'approved_at' => now(),
+                    'shift_closure_id' => $activeShift?->id,
                 ];
 
                 // Handle Identity (Booking or Walk-in)

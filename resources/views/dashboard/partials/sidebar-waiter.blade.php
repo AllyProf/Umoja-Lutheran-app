@@ -26,6 +26,13 @@
                 <span class="app-menu__label">Order History</span>
             </a>
         </li>
+        <li>
+            <a class="app-menu__item {{ str_contains(Route::currentRouteName() ?? '', 'debts') ? 'active' : '' }}"
+                href="{{ route('bar-keeper.debts') }}">
+                <i class="app-menu__icon fa fa-handshake-o"></i>
+                <span class="app-menu__label">Debt Management</span>
+            </a>
+        </li>
         <li class="treeview {{ str_contains(Route::currentRouteName(), 'waiter.profile') ? 'is-expanded' : '' }}">
             <a class="app-menu__item" href="#" data-toggle="treeview">
                 <i class="app-menu__icon fa fa-user"></i>
