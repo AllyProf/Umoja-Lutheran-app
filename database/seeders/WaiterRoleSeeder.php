@@ -9,30 +9,36 @@ use Illuminate\Support\Facades\Hash;
 
 class WaiterRoleSeeder extends Seeder
 {
+    /**
+     * Seed Counter role (replaces Waiter / Bar Keeper for this hostel).
+     */
     public function run()
     {
-        // 1. Create Waiter Role
-        $waiterRole = Role::updateOrCreate(
-            ['name' => 'waiter'],
+        Role::updateOrCreate(
+            ['name' => 'counter'],
             [
+                'slug' => 'counter',
                 'display_name' => 'Counter',
-                'description' => 'Counter staff who take guest orders and process sales at the restaurant/bar counter.',
+                'description' => 'Counter staff who open shifts, take orders, and process restaurant/bar sales.',
+                'is_system' => true,
             ]
         );
 
-        // 2. Create a Test Waiter Account
+        // Remove legacy waiter role if still present
+        Role::where('name', 'waiter')->delete();
+
         Staff::firstOrCreate(
-            ['email' => 'waiter@primelandhotel.co.tz'],
+            ['email' => 'counter@umoja.test'],
             [
-                'name' => 'John Waiter',
+                'name' => 'Counter Staff',
                 'password' => Hash::make('password'),
-                'role' => 'waiter',
+                'role' => 'counter',
                 'department' => 'Food & Beverage',
-                'position' => 'Senior Waiter',
+                'position' => 'Counter',
                 'is_active' => true,
             ]
         );
 
-        $this->command->info('Waiter role and test account created successfully.');
+        $this->command->info('Counter role ready (Waiter removed from assignable roles).');
     }
 }

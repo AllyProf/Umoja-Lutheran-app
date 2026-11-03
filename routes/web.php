@@ -763,8 +763,8 @@ Route::prefix('bar-keeper')->group(function () {
     })->name('bar-keeper.login.post');
 
     // Protected routes (require authentication)
-    // waiter = Counter (legacy role key) — same shift/debts flows as bar_keeper
-    Route::middleware(['check.auth', 'role:bar_keeper,waiter,manager,restaurant_manager,assistant_manager'])->group(function () {
+    // Counter (+ legacy waiter/bar_keeper) — CheckRole maps them all to bar_keeper
+    Route::middleware(['check.auth', 'role:bar_keeper,counter,waiter,manager,restaurant_manager,assistant_manager'])->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\BarKeeperController::class, 'dashboard'])->name('bar-keeper.dashboard');
 
         Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'show'])->name('bar-keeper.profile');

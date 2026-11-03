@@ -265,10 +265,7 @@
                           <span class="badge badge-warning"><i class="fa fa-user-tie"></i> {{ __('Manager') }}</span>
                         @elseif($user->role == 'reception' || $userRoleNormalized === 'reception' || strtolower($user->role ?? '') === 'reception')
                           <span class="badge badge-info"><i class="fa fa-user-md"></i> {{ __('Reception') }}</span>
-                        @elseif($user->role == 'waiter' || $userRoleNormalized === 'waiter')
-                          <span class="badge badge-primary" style="background-color: #6f42c1;"><i
-                              class="fa fa-concierge-bell"></i> {{ __('Waiter') }}</span>
-                        @elseif($user->role == 'bar_keeper' || $userRoleNormalized === 'barkeeper')
+                        @elseif($user->role == 'counter' || $userRoleNormalized === 'counter' || $user->role == 'waiter' || $userRoleNormalized === 'waiter' || $user->role == 'bar_keeper' || $userRoleNormalized === 'barkeeper')
                           <span class="badge badge-dark"><i class="fa fa-glass"></i> {{ __('Counter') }}</span>
                         @elseif($user->role == 'head_chef' || $userRoleNormalized === 'headchef')
                           <span class="badge badge-secondary" style="background-color: #e83e8c;"><i class="fa fa-cutlery"></i>

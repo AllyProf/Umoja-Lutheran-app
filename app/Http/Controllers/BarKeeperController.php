@@ -488,7 +488,7 @@ class BarKeeperController extends Controller
         $targetUserIds = [$user->id];
         // Check if user is manager or admin to show consolidated stock
         if (in_array($user->role, ['manager', 'admin'])) {
-            $barKeeperIds = \App\Models\Staff::where('role', 'bar_keeper')->pluck('id')->toArray();
+            $barKeeperIds = \App\Models\Staff::whereIn('role', ['counter', 'bar_keeper', 'waiter'])->pluck('id')->toArray();
             if (!empty($barKeeperIds)) {
                 $targetUserIds = $barKeeperIds;
             }
@@ -745,7 +745,9 @@ class BarKeeperController extends Controller
             })
             ->when(!$isManager, fn ($q) => $q->where('staff_id', $user->id))
             ->when($isManager, function ($q) {
-                $q->whereHas('staff', fn ($s) => $s->where('role', 'bar_keeper'));
+                $q->whereHas('staff', fn ($s) => $s->whereIn('role', ['counter', 'bar_keeper', 'waiter'])
+                    ->orWhere('role', 'LIKE', '%counter%')
+                    ->orWhere('role', 'LIKE', '%bar%'));
             })
             ->orderByDesc('opened_at')
             ->get()
@@ -1094,9 +1096,10 @@ class BarKeeperController extends Controller
 
         $counterStaffScope = function ($q) {
             $q->where(function ($inner) {
-                $inner->where('role', 'bar_keeper')
+                $inner->whereIn('role', ['counter', 'bar_keeper', 'waiter'])
                     ->orWhere('role', 'LIKE', '%bar%')
-                    ->orWhere('role', 'LIKE', '%counter%');
+                    ->orWhere('role', 'LIKE', '%counter%')
+                    ->orWhere('role', 'LIKE', '%waiter%');
             });
         };
 
@@ -1464,9 +1467,10 @@ class BarKeeperController extends Controller
             ->when($isManager, function ($q) {
                 $q->whereHas('staff', function ($s) {
                     $s->where(function ($inner) {
-                        $inner->where('role', 'bar_keeper')
+                        $inner->whereIn('role', ['counter', 'bar_keeper', 'waiter'])
                             ->orWhere('role', 'LIKE', '%bar%')
-                            ->orWhere('role', 'LIKE', '%counter%');
+                            ->orWhere('role', 'LIKE', '%counter%')
+                            ->orWhere('role', 'LIKE', '%waiter%');
                     });
                 });
             })

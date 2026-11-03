@@ -33,7 +33,7 @@ class StoreAnnouncementController extends Controller
     {
         $request->validate([
             'message' => 'required|string|max:500',
-            'target_role' => 'required|in:head_chef,bar_keeper,housekeeper,both,all,reception,cashier,accountant,manager,storekeeper,waiter',
+            'target_role' => 'required|in:head_chef,bar_keeper,counter,housekeeper,both,all,reception,cashier,accountant,manager,storekeeper',
             'expires_at' => 'nullable|date|after:now',
         ]);
 
@@ -124,10 +124,10 @@ class StoreAnnouncementController extends Controller
             });
 
         if ($role === 'both') {
-            $query->whereIn('role', ['head_chef', 'bar_keeper']);
-        } elseif ($role === 'bar_keeper') {
+            $query->whereIn('role', ['head_chef', 'counter', 'bar_keeper', 'waiter']);
+        } elseif (in_array($role, ['bar_keeper', 'counter', 'waiter'], true)) {
             $query->where(function ($q) {
-                $q->where('role', 'bar_keeper')
+                $q->whereIn('role', ['counter', 'bar_keeper', 'waiter'])
                     ->orWhere('role', 'like', '%bar%')
                     ->orWhere('role', 'like', '%counter%');
             });

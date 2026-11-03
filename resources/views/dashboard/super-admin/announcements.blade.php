@@ -5,14 +5,13 @@
     $audiences = [
         'all' => 'All users',
         'reception' => 'Reception',
-        'bar_keeper' => 'Counter',
+        'counter' => 'Counter',
         'cashier' => 'Cashier',
         'accountant' => 'Accountant',
         'manager' => 'Manager',
         'housekeeper' => 'Housekeeper',
         'head_chef' => 'Head Chef',
         'storekeeper' => 'Storekeeper',
-        'waiter' => 'Waiter',
     ];
 @endphp
 <div class="app-title">

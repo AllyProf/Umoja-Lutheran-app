@@ -41,15 +41,23 @@ class CheckRole
                 $userRole = 'restaurant_manager';
             } elseif ($normalizedRole === 'reception' || $rawRoleLower === 'reception') {
                 $userRole = 'reception';
-            } elseif ($normalizedRole === 'barkeeper' || $normalizedRole === 'barkeepr' || $rawRoleLower === 'bar_keeper' || $rawRoleLower === 'bar keeper' || $rawRoleLower === 'bartender') {
+            } elseif (
+                $normalizedRole === 'counter'
+                || $rawRoleLower === 'counter'
+                || $normalizedRole === 'waiter'
+                || $rawRoleLower === 'waiter'
+                || $normalizedRole === 'barkeeper'
+                || $normalizedRole === 'barkeepr'
+                || $rawRoleLower === 'bar_keeper'
+                || $rawRoleLower === 'bar keeper'
+                || $rawRoleLower === 'bartender'
+            ) {
+                // Counter (and legacy waiter/bar_keeper) uses bar-keeper routes/dashboard
                 $userRole = 'bar_keeper';
             } elseif ($normalizedRole === 'headchef' || $rawRoleLower === 'head_chef') {
                 $userRole = 'head_chef';
             } elseif ($normalizedRole === 'housekeeper' || $rawRoleLower === 'housekeeper') {
                 $userRole = 'housekeeper';
-            } elseif ($normalizedRole === 'waiter' || $rawRoleLower === 'waiter' || $normalizedRole === 'counter' || $rawRoleLower === 'counter') {
-                // Counter is the display name for the legacy waiter role
-                $userRole = 'waiter';
             } elseif ($normalizedRole === 'storekeeper' || $rawRoleLower === 'storekeeper') {
                 $userRole = 'storekeeper';
             } elseif ($normalizedRole === 'accountant' || $rawRoleLower === 'accountant') {

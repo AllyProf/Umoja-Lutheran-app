@@ -978,14 +978,18 @@
               $currentRole = 'manager';
             } elseif ($normalizedRole === 'reception' || strtolower($rawRole) === 'reception') {
               $currentRole = 'reception';
-            } elseif ($normalizedRole === 'barkeeper' || $normalizedRole === 'barkeepr' || strtolower($rawRole) === 'bar_keeper' || strtolower($rawRole) === 'bar keeper' || strtolower($rawRole) === 'bartender') {
-              $currentRole = 'bar_keeper';
+            } elseif (
+              $normalizedRole === 'counter' || strtolower($rawRole) === 'counter'
+              || $normalizedRole === 'waiter' || strtolower($rawRole) === 'waiter'
+              || $normalizedRole === 'barkeeper' || $normalizedRole === 'barkeepr'
+              || strtolower($rawRole) === 'bar_keeper' || strtolower($rawRole) === 'bar keeper'
+              || strtolower($rawRole) === 'bartender'
+            ) {
+              $currentRole = 'bar_keeper'; // Counter uses bar-keeper dashboard
             } elseif ($normalizedRole === 'headchef' || strtolower($rawRole) === 'head_chef' || strtolower($rawRole) === 'head chef') {
               $currentRole = 'head_chef';
             } elseif ($normalizedRole === 'housekeeper' || strtolower($rawRole) === 'housekeeper') {
               $currentRole = 'housekeeper';
-            } elseif ($normalizedRole === 'waiter' || strtolower($rawRole) === 'waiter') {
-              $currentRole = 'waiter';
             } elseif ($normalizedRole === 'storekeeper' || strtolower($rawRole) === 'storekeeper') {
               $currentRole = 'storekeeper';
             } elseif ($normalizedRole === 'accountant' || strtolower($rawRole) === 'accountant') {
@@ -1011,8 +1015,6 @@
           $logoRoute = route('housekeeper.dashboard');
         } elseif ($currentRole === 'bar_keeper') {
           $logoRoute = route('bar-keeper.dashboard');
-        } elseif ($currentRole === 'waiter') {
-          $logoRoute = route('waiter.dashboard');
         } elseif ($currentRole === 'storekeeper') {
           $logoRoute = route('storekeeper.dashboard');
         } elseif ($currentRole === 'accountant') {
@@ -1144,15 +1146,12 @@
               } elseif ($headerRole === 'housekeeper') {
                 $profileRoute = route('housekeeper.profile');
                 $logoutRoute = route('housekeeper.logout');
-              } elseif ($headerRole === 'bar_keeper') {
+              } elseif ($headerRole === 'bar_keeper' || $headerRole === 'counter' || $headerRole === 'waiter') {
                 $profileRoute = route('bar-keeper.profile');
                 $logoutRoute = route('bar-keeper.logout');
               } elseif ($headerRole === 'head_chef') {
                 $profileRoute = route('chef-master.profile');
                 $logoutRoute = route('chef-master.logout');
-              } elseif ($headerRole === 'waiter') {
-                $profileRoute = route('waiter.profile');
-                $logoutRoute = route('waiter.logout');
               } elseif ($headerRole === 'storekeeper') {
                 $profileRoute = route('storekeeper.profile');
                 $logoutRoute = route('storekeeper.logout');
@@ -1234,14 +1233,18 @@
                     $displayRole = 'restaurant_manager';
                   } elseif ($normalizedRole === 'reception' || $rawRoleLower === 'reception') {
                     $displayRole = 'reception';
-                  } elseif ($normalizedRole === 'barkeeper' || $normalizedRole === 'barkeepr' || $rawRoleLower === 'bar_keeper' || $rawRoleLower === 'bar keeper' || $rawRoleLower === 'bartender') {
-                    $displayRole = 'bar_keeper';
+                  } elseif (
+                    $normalizedRole === 'counter' || $rawRoleLower === 'counter'
+                    || $normalizedRole === 'waiter' || $rawRoleLower === 'waiter'
+                    || $normalizedRole === 'barkeeper' || $normalizedRole === 'barkeepr'
+                    || $rawRoleLower === 'bar_keeper' || $rawRoleLower === 'bar keeper'
+                    || $rawRoleLower === 'bartender'
+                  ) {
+                    $displayRole = 'bar_keeper'; // shown as Counter
                   } elseif ($normalizedRole === 'headchef' || strtolower($rawRole) === 'head_chef' || strtolower($rawRole) === 'head chef') {
                     $displayRole = 'head_chef';
                   } elseif ($normalizedRole === 'housekeeper' || strtolower($rawRole) === 'housekeeper') {
                     $displayRole = 'housekeeper';
-                  } elseif ($normalizedRole === 'waiter' || strtolower($rawRole) === 'waiter' || $normalizedRole === 'counter' || strtolower($rawRole) === 'counter') {
-                    $displayRole = 'counter';
                   } elseif ($normalizedRole === 'storekeeper' || strtolower($rawRole) === 'storekeeper') {
                     $displayRole = 'storekeeper';
                   } elseif ($normalizedRole === 'accountant' || strtolower($rawRole) === 'accountant') {
@@ -1299,14 +1302,18 @@
                 $sessionRole = 'restaurant_manager';
               } elseif ($normalizedRole === 'reception' || $rawRole === 'reception') {
                 $sessionRole = 'reception';
-              } elseif ($normalizedRole === 'barkeeper' || $normalizedRole === 'barkeepr' || $rawRole === 'bar_keeper' || strtolower($rawRole) === 'bar keeper' || strtolower($rawRole) === 'bartender') {
+              } elseif (
+                $normalizedRole === 'counter' || $rawRole === 'counter'
+                || $normalizedRole === 'waiter' || $rawRole === 'waiter'
+                || $normalizedRole === 'barkeeper' || $normalizedRole === 'barkeepr'
+                || $rawRole === 'bar_keeper' || strtolower($rawRole) === 'bar keeper'
+                || strtolower($rawRole) === 'bartender'
+              ) {
                 $sessionRole = 'bar_keeper';
               } elseif ($normalizedRole === 'headchef' || $rawRole === 'head_chef' || strtolower($rawRole) === 'head chef') {
                 $sessionRole = 'head_chef';
               } elseif ($normalizedRole === 'housekeeper' || $rawRole === 'housekeeper') {
                 $sessionRole = 'housekeeper';
-              } elseif ($normalizedRole === 'waiter' || $rawRole === 'waiter') {
-                $sessionRole = 'waiter';
               } elseif ($normalizedRole === 'storekeeper' || $rawRole === 'storekeeper') {
                 $sessionRole = 'storekeeper';
               } elseif ($normalizedRole === 'accountant' || $rawRole === 'accountant') {
@@ -1340,7 +1347,7 @@
           } elseif ($sidebarUserRole === 'reception') {
             $sidebarRole = 'reception';
             $sidebarFile = 'dashboard.partials.sidebar-reception';
-          } elseif ($sidebarUserRole === 'bar_keeper') {
+          } elseif ($sidebarUserRole === 'bar_keeper' || $sidebarUserRole === 'counter' || $sidebarUserRole === 'waiter') {
             $sidebarRole = 'bar_keeper';
             $sidebarFile = 'dashboard.partials.sidebar-bar-keeper';
           } elseif ($sidebarUserRole === 'head_chef') {
@@ -1349,9 +1356,6 @@
           } elseif ($sidebarUserRole === 'housekeeper') {
             $sidebarRole = 'housekeeper';
             $sidebarFile = 'dashboard.partials.sidebar-housekeeper';
-          } elseif ($sidebarUserRole === 'waiter') {
-            $sidebarRole = 'waiter';
-            $sidebarFile = 'dashboard.partials.sidebar-waiter';
           } elseif ($sidebarUserRole === 'storekeeper') {
             $sidebarRole = 'storekeeper';
             $sidebarFile = 'dashboard.partials.sidebar-storekeeper';

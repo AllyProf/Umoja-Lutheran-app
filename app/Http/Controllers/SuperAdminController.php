@@ -313,7 +313,9 @@ class SuperAdminController extends Controller
                         ->orWhereRaw('LOWER(TRIM(role)) = ?', ['reception'])
                         ->orWhereRaw('LOWER(role) LIKE ?', ['%reception%']);
                 });
-            } elseif ($role === 'manager' || $role === 'waiter' || $role === 'housekeeper' || $role === 'bar_keeper' || $role === 'head_chef' || $role === 'storekeeper' || $role === 'accountant') {
+            } elseif ($role === 'counter' || $role === 'waiter' || $role === 'bar_keeper') {
+                $staffQuery->whereIn('role', ['counter', 'waiter', 'bar_keeper']);
+            } elseif ($role === 'manager' || $role === 'housekeeper' || $role === 'head_chef' || $role === 'storekeeper' || $role === 'accountant') {
                 $staffQuery->where('role', $role);
             }
         }
@@ -355,7 +357,8 @@ class SuperAdminController extends Controller
             'super_admin' => Staff::where('role', 'super_admin')->orWhere('role', 'like', '%Super Admin%')->count(),
             'manager' => Staff::where('role', 'manager')->count(),
             'reception' => Staff::where('role', 'reception')->count(),
-            'waiter' => Staff::where('role', 'waiter')->count(),
+            'counter' => Staff::whereIn('role', ['counter', 'waiter', 'bar_keeper'])->count(),
+            'waiter' => Staff::whereIn('role', ['counter', 'waiter', 'bar_keeper'])->count(), // legacy key for old cards
             'housekeeper' => Staff::where('role', 'housekeeper')->count(),
             'guest' => Guest::count(),
             'total_employees' => isset($totalEmployees) ? $totalEmployees : Staff::count(),

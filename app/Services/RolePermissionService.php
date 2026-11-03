@@ -32,9 +32,18 @@ class RolePermissionService
                 return 'head_chef';
             } elseif ($normalizedRole === 'housekeeper' || $rawRole === 'housekeeper') {
                 return 'housekeeper';
-            } elseif ($normalizedRole === 'waiter' || $rawRole === 'waiter' || $normalizedRole === 'counter' || $rawRole === 'counter') {
-                return 'waiter'; // Counter staff (legacy key: waiter)
-            } elseif ($normalizedRole === 'barkeeper' || $rawRole === 'bar_keeper') {
+            } elseif (
+                $normalizedRole === 'counter'
+                || $rawRole === 'counter'
+                || $normalizedRole === 'waiter'
+                || $rawRole === 'waiter'
+                || $normalizedRole === 'barkeeper'
+                || $normalizedRole === 'barkeepr'
+                || $rawRole === 'bar_keeper'
+                || strtolower((string) $rawRole) === 'bar keeper'
+                || strtolower((string) $rawRole) === 'bartender'
+            ) {
+                // Counter is the live role; waiter/bar_keeper are legacy aliases
                 return 'bar_keeper';
             } elseif ($normalizedRole === 'storekeeper' || $rawRole === 'storekeeper') {
                 return 'storekeeper';

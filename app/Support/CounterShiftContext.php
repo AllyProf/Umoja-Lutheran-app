@@ -54,8 +54,9 @@ class CounterShiftContext
             ->where('status', 'active')
             ->whereHas('staff', function ($q) {
                 $q->where(function ($inner) {
-                    $inner->where('role', 'bar_keeper')
-                        ->orWhere('role', 'waiter') // Counter (legacy role key)
+                    $inner->where('role', 'counter')
+                        ->orWhere('role', 'bar_keeper') // legacy
+                        ->orWhere('role', 'waiter') // legacy
                         ->orWhere('role', 'LIKE', '%bar%')
                         ->orWhere('role', 'LIKE', '%counter%')
                         ->orWhere('role', 'LIKE', '%waiter%');
@@ -103,11 +104,12 @@ class CounterShiftContext
 
         $role = strtolower((string) ($staff->role ?? ''));
 
-        return str_contains($role, 'bar')
-            || str_contains($role, 'counter')
-            || str_contains($role, 'waiter')
+        return $role === 'counter'
             || $role === 'bar_keeper'
-            || $role === 'waiter';
+            || $role === 'waiter'
+            || str_contains($role, 'bar')
+            || str_contains($role, 'counter')
+            || str_contains($role, 'waiter');
     }
 
     /**

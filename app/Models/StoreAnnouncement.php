@@ -45,6 +45,14 @@ class StoreAnnouncement extends Model
      */
     public function scopeForRole($query, $role)
     {
-        return $query->whereIn('target_role', [$role, 'both', 'all']);
+        $normalized = strtolower(str_replace([' ', '-'], '_', trim((string) $role)));
+        $targets = [$normalized, 'both', 'all'];
+
+        // Counter staff also see notices aimed at legacy bar_keeper / waiter
+        if (in_array($normalized, ['counter', 'bar_keeper', 'waiter'], true)) {
+            $targets = array_merge($targets, ['counter', 'bar_keeper', 'waiter']);
+        }
+
+        return $query->whereIn('target_role', array_values(array_unique($targets)));
     }
 }
